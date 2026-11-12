@@ -1,0 +1,91 @@
+# Checks new medRxiv preprints (and older ones when none is waiting) with
+# scripts/update.py, and commits the report pages and the data/ folder. A run
+# starts no new preprint after 50 minutes; one paper's code may run for up to
+# 60 minutes on the server, hence the 180-minute limit. Runs never overlap.
+#
+# The runs follow each other: at the end of a run that succeeded, the last
+# job ("next") starts the next run. So the work goes on without depending on
+# GitHub's timetable, which often starts runs late or not at all. Within a
+# run, the script sends a preprint only when the server is completely idle,
+# and waits otherwise; with nothing waiting it looks for new preprints every
+# 10 minutes. The hourly timetable is the backup: it restarts the series after
+# a run that failed (which does not start the next one).
+#
+# Started by hand (Actions tab, "Run workflow") with a number above 0, a run
+# checks at most that many preprints and does not start the next run.
+#
+# To stop: put a # before the two schedule lines, and cancel the run that is
+# going (Actions tab); or disable the workflow (Actions tab, "..." menu).
+name: Update the reports
+
+on:
+  schedule:
+    - cron: "47 * * * *"     # not at psyarxiv_metacheck's minute (17)
+  workflow_dispatch:
+    inputs:
+      max:
+        description: "Check at most this many preprints (0: no limit)"
+        default: "0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Name the commits
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+
+      # --push: each preprint's files are committed and pushed as soon as it
+      # is checked; a preprint whose files GitHub refuses is left out and
+      # listed as failed (scripts/update.py, store())
+      - name: Check preprints
+        run: python3 scripts/update.py --minutes 50 --max "${{ inputs.max || '0' }}" --push
+
+      # what is left: the run's last changes to data/state.json, and
+      # everything when the run stopped early
+      - name: Save the results
+        if: always()
+        run: |
+          git add -A data
+          # the report pages: <digits...>v<version>/ (update.py, REPORT_DIRS)
+          git add -A -- '[0-9]*v[0-9]*/index.html'
+          if git diff --cached --quiet; then echo "No changes."; exit 0; fi
+          git commit -m "Update the reports"
+          # --autostash: a file the run changed but did not commit is set aside
+          # during the pull, so the pull cannot fail on it
+          git pull --rebase --autostash origin main
+          git push origin HEAD:main
+
+  publish:
+    needs: update
+    if: always()
+    uses: ./.github/workflows/pages.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+  next:
+    # starts the next run; it waits until this run has ended (runs never
+    # overlap). Not after a failed run, and not after a run with a limit.
+    needs: [update, publish]
+    if: always() && needs.update.result == 'success' && (inputs.max == '' || inputs.max == '0')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Start the next run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run update.yml --repo "$GITHUB_REPOSITORY" --ref main
