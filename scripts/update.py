@@ -83,7 +83,7 @@ MODULES = ("power,marginal,prereg_check,ethics_check,ref_pubpeer,ref_retraction,
            "ref_replication,stat_check,stat_p_exact,stat_p_nonsig,stat_effect_size,"
            "repo_check,code_check,data_check,codebook_check")
 MAX_BYTES = 50 * 1024 ** 2      # the server refuses larger files (api.R MAX_UPLOAD_BYTES)
-JOB_WAIT_MINUTES = 75           # the server stops a paper's code after 60 minutes
+JOB_WAIT_MINUTES = 85           # the server stops a job after 70 minutes (60, and 10 for its report)
 MAX_TRIES = 2                   # a preprint whose job fails is tried this often
 BACKFILL_LIMIT = 1000           # older preprints sent to the server, at most
 FIRST_DAY = dt.date(2019, 6, 1)  # medRxiv's first preprints (25 June 2019)
