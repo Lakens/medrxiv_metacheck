@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>MetaCheck Report: Accelerometer Data Harmonization and Feature
+Engineering for Gait Analytics</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+
+
+
+
+
+
+
+
+
+
+
+<style>.back-to-main{display:inline-block;padding:4px 12px;border:1px solid var(--green,#2F6F1C);border-radius:3px;background:#fff;color:var(--green,#2F6F1C);font-size:0.9rem;font-weight:600;text-decoration:none}.back-to-main:hover{background:var(--green,#2F6F1C);color:#fff}.back-bar{max-width:900px;margin:14px auto 0;padding:0 16px}@media print{.back-bar{display:none}}</style></head>
+
+<body><p class="back-bar"><a class="back-to-main" id="back-to-main" href="../">← Back to the main page</a></p>
+
+
+
+
+
+
+
+<style>
+
+@font-face {
+font-family: "Cabin";
+src: url("../fonts/Cabin.ttf") format("truetype");
+font-weight: 400 700;
+font-stretch: 75% 100%;
+font-style: normal;
+}
+:root {
+color-scheme: light;
+--green: #2F6F1C;
+--green-dark: #1E4A10;
+--green-tint: #E3ECDF;
+--bg: #E9E8E5;
+--card: #F4F3F1;
+--line: #CFCDC8;
+--text: #262624;
+--muted: #5E5C58;
+--fix: #9B2C1F;
+--fix-tint: #F6E3DF;
+--improve: #7A4F00;
+--improve-tint: #F4E7C9;
+--improve-line: #C08A1E;
+--decide: #2C5577;
+--decide-tint: #DFE8EF;
+--na-tint: #E4E2DE;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); }
+body {
+margin: 0;
+color: var(--text);
+font-family: "Cabin", "Segoe UI", sans-serif;
+font-size: 17px;
+line-height: 1.55;
+-webkit-font-smoothing: antialiased;
+}
+a { color: var(--green); text-underline-offset: 2px; }
+a:hover { color: var(--green-dark); }
+code, pre { font-family: "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace; font-size: 0.84em; }
+code { background: #fff; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; overflow-wrap: anywhere; }
+pre { background: #fff; border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; overflow: auto; }
+pre code { background: none; border: 0; padding: 0; font-size: 1em; }
+
+.masthead { text-align: center; max-width: 900px; margin: 0 auto; padding: 32px 16px 0; }
+.logos { display: flex; justify-content: center; align-items: center; gap: 28px; margin-bottom: 8px; }
+.logos img { height: 64px; width: auto; }
+.masthead h1 { margin: 0; font-size: 2.2rem; font-weight: 700; line-height: 1.2; }
+.masthead .subtitle { margin: 2px 0 0; font-size: 1.15rem; color: var(--muted); overflow-wrap: anywhere; }
+.masthead .meta { margin: 6px 0 0; padding-bottom: 16px; font-size: 0.88rem; color: var(--muted);
+border-bottom: 1px solid var(--green); }
+.mc-main { max-width: 900px; margin: 0 auto; padding: 0 16px 48px; }
+.mc-intro { margin: 22px 0 18px; }
+
+.counts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 22px 0 32px; }
+.count { display: block; background: var(--card); border: 1px solid var(--line); border-top: 4px solid var(--line);
+border-radius: 4px; padding: 10px 12px; text-decoration: none; color: var(--text); }
+a.count:hover { color: var(--text); background: #fff; }
+.count b { display: block; font-size: 1.9rem; line-height: 1.1; }
+.count span { font-size: 0.92rem; color: var(--muted); }
+.count.fix { border-top-color: var(--fix); } .count.fix b { color: var(--fix); }
+.count.improve { border-top-color: var(--improve-line); } .count.improve b { color: var(--improve); }
+.count.decide { border-top-color: var(--decide); } .count.decide b { color: var(--decide); }
+.count.fine { border-top-color: var(--green); } .count.fine b { color: var(--green); }
+.count.zero { opacity: 0.55; }
+@media (max-width: 640px) { .counts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+h2 { font-size: 1.35rem; margin: 36px 0 12px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+h2 .n { color: var(--muted); font-weight: 400; }
+
+.check { background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--line);
+border-radius: 4px; padding: 14px 18px 12px; margin: 0 0 14px; }
+.check.fix { border-left-color: var(--fix); }
+.check.improve { border-left-color: var(--improve-line); }
+.check.decide { border-left-color: var(--decide); }
+.check-head p { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; margin: 0 0 10px; }
+.check-title { font-weight: 700; font-size: 1.12rem; }
+.where { font-size: 0.82rem; color: var(--muted); margin-left: auto; }
+.tag { display: inline-block; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.03em; line-height: 1.6;
+text-transform: uppercase; padding: 0 8px; border-radius: 3px; white-space: nowrap; }
+.tag.fix { color: var(--fix); background: var(--fix-tint); }
+.tag.improve { color: var(--improve); background: var(--improve-tint); }
+.tag.decide { color: var(--decide); background: var(--decide-tint); }
+.tag.fine { color: var(--green); background: var(--green-tint); }
+.tag.info, .tag.na { color: var(--muted); background: var(--na-tint); }
+.rows { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); gap: 6px 14px; }
+.rows > .label { font-weight: 700; font-size: 0.92rem; color: var(--muted); padding-top: 1px; }
+.rows > .text { min-width: 0; }
+.rows > .text.todo { font-weight: 600; }
+.rows p { margin: 0 0 4px; }
+.rows ul, .rows ol { margin: 0 0 4px; padding-left: 1.1em; }
+@media (max-width: 640px) {
+.rows { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.rows > .label { padding-top: 6px; }
+}
+details { margin-top: 10px; }
+details > summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: 0.95rem; }
+details > summary:hover { color: var(--green-dark); }
+details[open] > summary { margin-bottom: 8px; }
+.fold { background: #fff; border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; overflow-x: auto; }
+.fold > p:first-child { margin-top: 0; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th { text-align: left; background: var(--green-tint); color: var(--text); font-weight: 700; }
+th, td { padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table strong { color: var(--fix); }
+
+.done { background: var(--card); border: 1px solid var(--line); border-radius: 4px; }
+.done-row { display: grid; grid-template-columns: 7.5em 15em minmax(0, 1fr); gap: 4px 12px;
+padding: 8px 14px; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
+.done-row:last-child { border-bottom: 0; }
+.done-row > div { min-width: 0; }
+.done-row .tag { justify-self: start; align-self: start; margin-top: 2px; }
+.done-row .t { font-weight: 600; }
+.done-row .d { color: var(--muted); }
+.done-row p { margin: 0 0 4px; }
+@media (max-width: 720px) { .done-row { grid-template-columns: minmax(0, 1fr); } }
+.more > details { background: var(--card); border: 1px solid var(--line); border-radius: 4px; padding: 10px 14px; margin: 0 0 10px; }
+.more > details > summary { font-size: 1rem; }
+footer { max-width: 900px; margin: 0 auto; padding: 16px 16px 40px; border-top: 1px solid var(--green);
+text-align: center; font-size: 0.88rem; color: var(--muted); }
+@media print {
+html, body { background: #fff; }
+.check, .done-row, .count { break-inside: avoid; }
+}
+</style>
+<header class="masthead">
+<div class="logos">
+<a class="logo-home" href="../" aria-label="Back to the main page"><img role="img" aria-label="logo" src="../images/logo.png" alt="logo"></a>
+</div>
+<h1>
+MetaCheck Report
+</h1>
+<p class="subtitle">
+Accelerometer Data Harmonization and Feature Engineering for Gait
+Analytics
+</p>
+<p class="meta">
+2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.05.26367336
+</p>
+</header>
+<div class="mc-main">
+<nav class="counts" aria-label="Results">
+<a class="count fix" href="#fix"><b>1</b><span>to
+fix</span></a><a class="count improve" href="#improve"><b>1</b><span>to
+check</span></a><span class="count decide zero"><b>0</b><span>to decide
+by
+hand</span></span><a class="count fine" href="#fine"><b>1</b><span>fine</span></a><a class="count na" href="#na"><b>13</b><span>not
+applicable</span></a>
+</nav>
+<h2 id="fix">To fix <span class="n">(1)</span></h2>
+<div class="check fix">
+<div class="check-head">
+<p><span class="tag fix">To fix</span> <span class="check-title">Exact
+P-Values</span></p>
+</div>
+<div class="rows">
+<div class="label">
+<p>What we found</p>
+</div>
+<div class="text">
+<p>We found 1 imprecise <em>p</em> value out of 7 detected <em>p</em>
+values.</p>
+</div>
+</div>
+<details>
+<summary>
+Show details
+</summary>
+<div class="fold">
+<p>Reporting <em>p</em> values imprecisely (e.g., <em>p</em> &lt; .05)
+reduces transparency, reproducibility, and re-use (e.g., in <em>p</em>
+value meta-analyses). Best practice is to report exact p-values with
+three decimal places (e.g., <em>p</em> = .032) unless <em>p</em> values
+are smaller than 0.001, in which case you can use <em>p</em> &lt;
+.001.</p>
+<p>This module sometimes flags false positives when sentences discuss
+how p-value thresholds were set. It can also miss an imprecise p-value
+that is reported against a threshold (e.g., “decreased at the <em>p</em>
+&lt; .05 significance threshold”).</p>
+<table class="dt-static">
+<colgroup>
+<col style="width:10%" />
+<col style="width:90%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align:left;">
+P-Value
+</th>
+<th style="text-align:left;">
+Text
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+p&gt;.05
+</td>
+<td style="text-align:left;">
+Most of the classifiers cannot discriminate the gender and neither a
+feature set nor a classification algorithm or a training setup has a
+distinct advantage over the other (all p&gt;.05).
+</td>
+</tr>
+</tbody>
+</table>
+<div class="callout-tip" title="Learn More" collapse="true">
+<p>The APA manual states: Report exact <em>p</em> values (e.g.,
+<em>p</em> = .031) to two or three decimal places. However, report
+<em>p</em> values less than .001 as <em>p</em> &lt; .001. However, 2
+decimals is too imprecise for many use-cases (e.g., a <em>p</em> value
+meta-analysis), so report <em>p</em> values with three digits.</p>
+<p>American Psychological Association (2020). <em>Publication manual of
+the American Psychological Association</em>, 7 edition. American
+Psychological Association.</p>
+</div>
+</div>
+</details>
+</div>
+<h2 id="improve">To check <span class="n">(1)</span></h2>
+<div class="check improve">
+<div class="check-head">
+<p><span class="tag improve">To check</span> <span class="check-title">Non-Significant P Value Check</span></p>
+</div>
+<div class="rows">
+<div class="label">
+<p>What we found</p>
+</div>
+<div class="text">
+<p>We found 1 non-significant p value that should be checked for
+appropriate interpretation.</p>
+</div>
+</div>
+<details>
+<summary>
+Show details
+</summary>
+<div class="fold">
+<p>Meta-scientific research has shown nonsignificant p values are
+commonly misinterpreted. It is incorrect to infer that there is ‘no
+effect’, ‘no difference’, or that groups are ‘the same’ after p &gt;
+0.05.</p>
+<p>It is possible that there is a true non-zero effect, but that the
+study did not detect it. Make sure your inference acknowledges that it
+is possible that there is a non-zero effect. It is correct to include
+the effect is ‘not significantly’ different, although this just restates
+that p &gt; 0.05.</p>
+<p>Metacheck does not yet analyze automatically whether sentences which
+include non-significant p-values are correct, but we recommend manually
+checking the sentences below for possible misinterpreted non-significant
+p values.</p>
+<table class="dt-static">
+<colgroup>
+<col style="width:10%" />
+<col style="width:90%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align:left;">
+Text
+</th>
+<th style="text-align:left;">
+Sentence
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+p&gt;.05
+</td>
+<td style="text-align:left;">
+Most of the classifiers cannot discriminate the gender and neither a
+feature set nor a classification algorithm or a training setup has a
+distinct advantage over the other (all p&gt;.05).
+</td>
+</tr>
+</tbody>
+</table>
+<div class="callout-tip" title="Learn More" collapse="true">
+<p>For metascientific articles demonstrating the rate of
+misinterpretations of non-significant results is high, see:</p>
+<p>Aczel B, Palfi B, Szollosi A, Kovacs M, Szaszi B, Szecsi P, Zrubka M,
+Gronau Q, van den Bergh D, Wagenmakers E (2018). “Quantifying Support
+for the Null Hypothesis in Psychology: An Empirical Investigation.”
+<em>Advances in Methods and Practices in Psychological Science</em>,
+<b>1</b>(3), 357–366.
+<a href="https://doi.org/10.1177/2515245918773742">doi:10.1177/2515245918773742</a>.</p>
+<p>Murphy S, Merz R, Reimann L, Fernández A (2025). “Nonsignificance
+misinterpreted as an effect’s absence in psychology: Prevalence and
+temporal analyses.” <em>Royal Society Open Science</em>, <b>12</b>(3),
+242167.
+<a href="https://doi.org/10.1098/rsos.242167">doi:10.1098/rsos.242167</a>.</p>
+<p>For educational material on preventing the misinterpretation of p
+values, see <a href="https://lakens.github.io/statistical_inferences/01-pvalue.html#sec-misconception1">Improving
+Your Statistical Inferences</a>.</p>
+</div>
+</div>
+</details>
+</div>
+<h2 id="fine">Fine <span class="n">(1)</span></h2>
+<div class="done">
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag fine">Fine</span></p>
+</div>
+<div class="t">
+<p>Ethics Approval Check</p>
+</div>
+<div class="d">
+<p>All papers that appeared to involve live data collection contained an
+ethics approval statement.</p>
+</div>
+</div>
+</div>
+<h2 id="na">Not applicable <span class="n">(13)</span></h2>
+<div class="done">
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Power Analysis Check</p>
+</div>
+<div class="d">
+<p>No power analyses were detected.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Preregistration Check</p>
+</div>
+<div class="d">
+<p>No preregistration links were found.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Marginal Significance</p>
+</div>
+<div class="d">
+<p>No effects were described with terms related to ‘marginally
+significant’.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>StatCheck</p>
+</div>
+<div class="d">
+<p>No detectable t- or F-tests. StatCheck currently only detects
+statistics written in APA format.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Effect Sizes in t-tests and F-tests</p>
+</div>
+<div class="d">
+<p>No t-tests or F-tests were detected.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Codebook Check</p>
+</div>
+<div class="d">
+<p>We found no extracted data columns to check against a codebook.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Repository Check</p>
+</div>
+<div class="d">
+<p>We found no links to repositories on the Open Science Framework,
+Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
+ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Code Check</p>
+</div>
+<div class="d">
+<p>We found 0 R, 0 Python, 0 SAS, 0 SPSS, 0 Stata, 0 Mplus, 0 MATLAB,
+and 0 JASP code files.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Data Check</p>
+</div>
+<div class="d">
+<p>We found no files to analyse.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Reproducibility Check</p>
+</div>
+<div class="d">
+<ul>
+<li>We found no R or Python code files to assess for
+reproducibility.</li>
+</ul>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>PubPeer Comments</p>
+</div>
+<div class="d">
+<p>No references with comments in PubPeer were found.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>RetractionWatch</p>
+</div>
+<div class="d">
+<p>No citations to articles in the RetractionWatch database were
+found.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Replication Check</p>
+</div>
+<div class="d">
+<p>No citations to articles in the FLoRA database were found.</p>
+</div>
+</div>
+</div>
+<h2 id="more-detail">More detail</h2>
+<div class="more">
+<details>
+<summary>
+Ethics Approval Check
+</summary>
+<div class="fold">
+<p>Based on the following text, we would expect an ethics approval
+statement, and it was present:</p>
+<blockquote>
+<p>Because not all sensor locations yielded sufficient data to compute
+the full set of 608 statistical features, some participants had to be
+excluded in the paired analyses to ensure 609 that both samples
+comprised identical individuals.</p>
+</blockquote>
+<p>Ethics approval statement:</p>
+<blockquote>
+<p>Abbreviations: datasets see text; IMU: inertial measurement unit;
+IRB: 404 institutional review board; IC: informed consent 405 dataset nb
+participants gender [% female] age [years] (mean±std) nb sensor
+locations sensor type time walking per participant [min] (mean±std)
+ethics HuGaDB 18 22 23.7±3.7 6 IMU 5.17±2.16 -McGill 20* 50 24.4±4.6 3*
+smartphone 33.12±5.79 IRB Marea 11 N/A N/A 4 IMU 22.42±6.52 IRB Vajdi 92
+49 24.0±6.8 2 smartphone 12.58±3.96 IRB OU-ISIR-ISD1 744 48 26.0±17.4 1
+IMU 0.18±0.03 IC OU-ISIR-ISD2 496* 48 26.9±17.5 4* IMU / smartphone
+0.18±0.03 IC OU-ISIR-SAID 502 48 27.0±17.5 3 IMU 0.17±0.03 IC DBHuGa 30
+50 23.5±4.2 6 IMU 7.63±0.53 IRB DWH 935** 25.5±16.1 24 both 2.04±5.63
+N/A 406 * some sensors were recorded only for some participants; details
+in text; ** not the sum of all datasets since OU-407 ISIR studies partly
+used the same participants.</p>
+</blockquote>
+<blockquote>
+<p>Since this dataset does not provide information about ethics
+protocols for data collection, this data is not used for analysis
+purposes in this study.</p>
+</blockquote>
+</div>
+</details>
+<details>
+<summary>
+Power Analysis Check
+</summary>
+<div class="fold">
+<p>No power analyses were detected.</p>
+<div class="callout-tip" title="Learn More" collapse="true">
+<p>Power analyses need to contain the following information to be
+interpretable: the type of power analysis, the statistical test, the
+software used, sample size, critical alpha criterion, power level,
+effect size, and an effect size metric. In addition, it is recommended
+to make sure the power analysis is reproducible (by sharing the code, or
+a screenshot, of the power analysis), and to provide good arguments for
+why the study was designed to detect an effect of this size.</p>
+<p>For an a-priori power analysis, where the sample size is determined,
+reporting all information would look like:</p>
+<blockquote>
+<p>An a priori power analysis for an independent samples t-test,
+conducted using the pwr.t.test function from pwr (Champely, 2020),
+indicated that for a Cohen’s d = 0.5, an alpha level of 0.05, and a
+desired power level of 80% required at least 64 participants in each
+group.</p>
+</blockquote>
+<p>For a sensitivity power analysis, this sentence would look like:</p>
+<blockquote>
+<p>A sensitivity power analysis for an independent samples t-test,
+conducted using the pwr.t.test function from pwr (Champely, 2020),
+indicated that with 64 participants in each group, and an alpha level of
+0.05, a desired power level of 80% was reached for an effect size of d =
+0.5.</p>
+</blockquote>
+</div>
+</div>
+</details>
+<details>
+<summary>
+PubPeer Comments
+</summary>
+<div class="fold">
+<p>We checked 55 references with DOIs. No references with comments in
+PubPeer were found.</p>
+</div>
+</details>
+<details>
+<summary>
+RetractionWatch
+</summary>
+<div class="fold">
+<p>We checked 55 references with DOIs. No citations to articles in the
+RetractionWatch database were found.</p>
+</div>
+</details>
+<details>
+<summary>
+Replication Check
+</summary>
+<div class="fold">
+<p>We checked 55 references with DOIs. No citations to articles in the
+FLoRA database were found.</p>
+</div>
+</details>
+<details>
+<summary>
+How Ethics Approval Check works
+</summary>
+<div class="fold">
+<p>This module searches for statements of ethics approval, IRB approval,
+institutional review board approval, and related terms.</p>
+<p>Patterns are designed to capture:</p>
+<p><strong>Human research committee names</strong> -
+<code>Institutional Review Board</code> / IRB (US standard) -
+<code>Independent Ethics Committee</code> / IEC (ICH-GCP international
+clinical trial term) - <code>Ethical/Ethics Review Board</code>
+(generic) -
+<code>Ethics (Advisory/Review) Committee/Board/Panel/Sub-committee</code>
+- <code>Research Ethics Committee/Board/Panel</code>
+(UK/Canada/Australia) - <code>Medical Ethics Committee</code> -
+<code>Human Subjects/Research Committee</code> /
+<code>Human Research Ethics (Advisory) Panel</code> -
+<code>Committee for/on the Protection of Human Subjects</code> -
+<code>Committee on (Health) Research Ethics</code> -
+<code>Office of Research Ethics</code> - Abbreviations: IEC, REC, REB,
+ERB, METC, DEC. REC/REB/ERB/DEC are short enough to collide with
+unrelated jargon (e.g. <code>REC</code> as a recognition-heuristic model
+abbreviation, <code>DEC</code> as a decision-task label,
+<code>Reb</code> as an author surname), so these four require an
+ethics/approval/committee/board/panel/institutional/ protocol word
+within ~30 characters in the same sentence. IRB and IEC are kept
+unconstrained as they are not observed to collide in practice. - Dutch:
+<code>Medisch-ethische toetsingscommissie</code> (METC) - French:
+<code>Comité d&#39;éthique</code> / <code>Comité d&#39;Ethique</code></p>
+<p><strong>Animal research committee names</strong> -
+<code>Institutional Animal Care and Use Committee</code> / IACUC (US
+standard) - Any sentence containing <code>animal(s)</code> and
+<code>committee</code> (or <code>board</code>/<code>panel</code>) within
+~5 words of each other — catches
+<code>Experimental Animal Care and Use Committee</code>,
+<code>Animal Ethics Committee</code>, <code>Animal Welfare Board</code>,
+<code>Animal Welfare Ethical Review Body</code>, etc. - UK:
+<code>Animal Welfare Ethical Review Body</code> / AWERB - Dutch:
+<code>Dierexperimentencommissie</code> / DEC (see DEC constraint above);
+<code>Instantie voor Dierenwelzijn</code> / IvD - German:
+<code>Tierversuchskommission</code> / TvK (advisory committee under §15
+Tierschutzgesetz) - French:
+<code>Comité d&#39;éthique en expérimentation animale</code> / CEEA;
+<code>Comité d&#39;éthique animale</code> - Spanish:
+<code>Comité de ética en experimentación animal</code> / CEEA</p>
+<p><strong>Approval phrasing</strong> -
+<code>Ethics/Ethical (approval|clearance) [was] (granted|obtained|received|given|secured)</code>
+- <code>Ethically approved</code> -
+<code>Approved by the (ethics|irb|institutional|independent|local|review|research) ...</code>
+-
+<code>This/The study/protocol/experiment/procedures/methods/research [was] (approved|reviewed) by</code>
+- <code>Study was ethically approved</code> -
+<code>(Followed|met|follow) the ethical (guidelines|standards|requirements)</code>
+- <code>In accordance with ... ethical (guidelines|standards)</code> -
+<code>Ethics protocol</code> -
+<code>Approved under (protocol|reference|number)</code></p>
+<p><strong>Waiver / exemption</strong> -
+<code>Ethics/Ethical (waiver|exemption)</code> -
+<code>IRB (waiver|exemption|exempt)</code> -
+<code>Exempted from (ethics|irb|institutional review)</code> -
+<code>Waived by the (ethics|irb|institutional|review) (committee|board)</code>
+- <code>Deemed exempt</code></p>
+<p><strong>Declaration of Helsinki</strong> -
+<code>Declaration of Helsinki</code> /
+<code>Helsinki Declaration</code></p>
+<p>Patterns are NOT designed to capture: - General ethical
+considerations or ethical dilemmas in study content - Mentions of
+“ethics” in theoretical or philosophical contexts - Author approval of a
+manuscript (e.g. “all authors approved the final version”) - Ethical
+behaviour as a measured variable (e.g. “ethical decision-making”) - URLs
+containing “ethics” in path components</p>
+<p>Live data collection is detected by the internal helper
+<code>.detect_live_data()</code>, which searches for sentences
+indicating that data were collected directly from human or animal
+participants. Papers without any live-data signal are not flagged as
+missing ethics approval. The helper uses conservative patterns to avoid
+flagging secondary data analyses, computational experiments, or
+economics papers that analyse existing survey data. See
+<code>.detect_live_data()</code> for the full list of patterns and
+intentional exclusions.</p>
+<p>A paper that states that no human or animal subjects took part (“no
+human subjects were involved”, “did not involve human participants”, or
+people taking part “not as subjects”) is not expected to have an ethics
+statement, whatever participant phrase it also has (see
+<code>.detect_no_participants()</code>). A negation near a participant
+phrase alone (“No participants were excluded”) does not count: it
+reports a study with participants.</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ethics-check.html">metacheck
+manual</a>.</p>
+</div>
+</details>
+<details>
+<summary>
+How Power Analysis Check works
+</summary>
+<div class="fold">
+<p>This module uses regular expressions to identify sentences that
+contain a statistical power analysis. If specified by the user, it also
+uses a large language model (LLM) to extract information reported in
+power analyses, including the statistical test, sample size, alpha
+level, desired level of power, and magnitude and type of effect
+size.</p>
+<p>The Power Analysis Check module uses regular expressions to identify
+sentences that contain a statistical power analysis. Without the use of
+an LLM, the module uses regular expressions to classify the power
+analysis as a-priori, sensitivity or post-hoc. With the use of an LLM,
+it checks if the power analysis is reported with all required
+information.</p>
+<p>The regular expressions can miss power analyses, or fail to classify
+them correctly. The type of power analysis is often difficult to
+classify, which can easily be solved by explicitly specifying the type
+of power analysis as ‘a-priori’, ‘sensitivity’, or ‘post-hoc’. Note that
+‘post-hoc’ or ‘observed’ power is rarely useful. The LLM can fail to
+identify information in the paper, and will not have access to
+information in paragraphs in the paper other than those that contain the
+word ‘power’. This package was validated by the Metacheck team on
+articles in Psychological Science.</p>
+<p>This module was developed by Lisa DeBruine, Daniel Lakens and
+Cristian Mesquida</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-power.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: In a sample of 128 papers with 246 instances of power
+statements, 203 were correctly detected (true positives), 22 were missed
+(false negatives) and 21 were incorrectly detected (false positives).
+Overall, among all instances flagged as power statements, 90.6% were
+correct (positive predictive value).</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Preregistration Check works
+</summary>
+<div class="fold">
+<p>Retrieve information from preregistrations in a standardised way, and
+make them easier to check.</p>
+<p>The Preregistration Check module identifies preregistrations on the
+OSF and AsPredicted based on links in the manuscript, retrieves the
+preregistration text, and organizes the information into a template. The
+module retrieves text from the OSF with its API, and from AsPredicted
+with ResearchBox’s API when a ResearchBox key is set (see
+<code>rbox_token()</code>), or else from the preregistration’s web page.
+The information in the preregistration is returned. An AsPredicted link
+that could not be read is named in the report, with the reason.</p>
+<p>The module can’t extract information from non-structured
+preregistration templates (i.e., where the preregistration is uploaded
+in a single text field) and it can’t retrieve information in
+preregistrations that are stored as text documents on the OSF.</p>
+<p>If you want to extend the package to be able to download information
+from other preregistration sites, reach out to the Metacheck development
+team.</p>
+<p>This module was developed by Daniel Lakens and Lisa DeBruine</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-prereg-check.html">metacheck
+manual</a>.</p>
+</div>
+</details>
+<details>
+<summary>
+How Marginal Significance works
+</summary>
+<div class="fold">
+<p>List all sentences that describe an effect as ‘marginally
+significant’.</p>
+<p>The marginal module searches for regular expressions that match a
+predefined pattern. The list of terms is a subset of those listed in a
+<a href="https://web.archive.org/web/20251001114321/https://mchankins.wordpress.com/2013/04/21/still-not-significant-2/">blog
+post by Matthew Hankins</a>. The module returns all sentences that match
+terms describing ‘marginally significant’ results.</p>
+<p>Some of the terms identified might not be problematic in some
+contexts, and there are ways to describe ‘marginal significance’ that
+are not detected by the module.</p>
+<p>This module was developed by Daniel Lakens</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-marginal.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: In a sample of 51 papers with 87 statements, this module
+correctly identified 38 statements (true positives) and incorrectly
+flagged 22 statements (false positives). It failed to detect 27
+statements. Thus, among all statements flagged by the module, 63% were
+genuine cases (positive predictive value). However, the module missed
+42% of all true statements (false negative rate).</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How StatCheck works
+</summary>
+<div class="fold">
+<p>Check consistency of p-values and test statistics</p>
+<p>The Statcheck module runs Statcheck. Statcheck searches for regular
+expressions that match a predefined pattern, and identifies APA reported
+statistical tests. More information on the package can be found at <a href="https://github.com/cran/statcheck" class="uri">https://github.com/cran/statcheck</a>. The module only
+returns Statcheck results for t-tests and F-tests, as these are the only
+tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/tcxaj_v1/" class="uri">https://osf.io/preprints/psyarxiv/tcxaj_v1/</a>.</p>
+<p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
+<p>Statcheck considers p = 0.000 an error, as you should report p &lt;
+0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
+and one should simply report exact p-values (p = 0.031). Statcheck might
+miss one-sided tests, and falsely assume the p-value is incorrect. For
+more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+<p>This module only checks statistical results reported in the running
+text of the manuscript. It cannot (yet) process statistics reported only
+in tables.</p>
+<p>This module was developed by Daniel Lakens and Lisa DeBruine</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-check.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: In a sample of 685 tests with 34 instances of
+inconsistent reporting, Statcheck correctly detected 34 of them, and
+incorrectly identified 26. Therefore 0% of true instances were missed,
+and 43% of detections were false positives. See <a href="https://osf.io/preprints/psyarxiv/tcxaj_v1/" class="uri">https://osf.io/preprints/psyarxiv/tcxaj_v1/</a> for more
+details of the validation.</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Exact P-Values works
+</summary>
+<div class="fold">
+<p>List any p-values reported with insufficient precision (e.g., p &lt;
+.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+<p>This module uses regular expressions to identify p-values. It will
+flag any values reported as p &gt; ? or p &lt; numbers greater than
+.001. It will also flag p-values reported as exactly zero (e.g., p =
+.000, p = 0.00), which are mathematically impossible — p-values are
+never exactly zero and should instead be reported as p &lt; .001.</p>
+<p>A p-value that is not the result of a test is not flagged: a table
+note (“* p &lt; .05, ** p &lt; .01”), a figure legend (“Asterisks
+indicate significant differences (p &lt; .05)”, “Values in bold are
+significant at p &lt; .05”) or a stated threshold (“p &lt; .05 was
+considered significant”, “thresholded at p &lt; .001”). GROBID often
+puts such notes into the running text, so each p-value is judged by the
+words in its own clause (the text up to a “;” or a full stop), and never
+left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
+.05”). The column <code>not_a_test</code> of the table says why a
+p-value was left out (“marker”, “threshold” or “legend”). Notes in other
+forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
+flagged.</p>
+<p>This module sometimes flags false positives when sentences discuss
+how p-value thresholds were set. It can also miss an imprecise p-value
+that is reported against a threshold (“decreased at the p &lt; .05
+significance threshold”).</p>
+<p>This module only checks p-values reported in the running text of the
+manuscript. It cannot (yet) process p-values reported only in tables (as
+opposed to a table’s footnote text, which the module does see and tries
+to exclude — see above).</p>
+<p>This module was developed by Lisa DeBruine and Daniel Lakens</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: In a sample of 225 papers containing 405 instances of
+non-exact p-values, the module correctly detected 269 cases (true
+positives) and incorrectly identified 78 (false positives). It missed
+136 instances of imprecisely reported p-values (false negatives) and
+correctly identified 4557 cases of precisely reported p-values (true
+negative). Additionally, 78% of positive detections were correct
+(positive predictive value).</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Non-Significant P Value Check works
+</summary>
+<div class="fold">
+<p>This module checks for imprecisely reported p values. If p &gt; .05
+is detected, it warns for misinterpretations.</p>
+<p>The nonsignificant p-value check searches for regular expressions
+that match a predefined pattern. The module identifies all p-values in a
+manuscript and selects those that are not reported to be smaller than or
+equal to 0.05. It returns all sentences containing non-significant
+p-values.</p>
+<p>In the future, the Metacheck team aims to incorporate a machine
+learning classifier to only return sentences likely to contain
+misinterpretations. If you want to help to improve the module, reach out
+to the Metacheck development team.</p>
+<p>This module only checks p-values reported in the running text of the
+manuscript. It cannot (yet) process p-values reported only in
+tables.</p>
+<p>This module was developed by Daniel Lakens</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: In a sample of 194 papers with 1602 instances of
+non-significant p-values, this module correctly detected 1486 of them,
+and incorrectly identified 153. Additionally, 91% of detections were
+true instances (positive predictive value). That is, when this module
+flags non-significant p-values in a paper, it correctly identifies an
+issue 91% of the time.</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Effect Sizes in t-tests and F-tests works
+</summary>
+<div class="fold">
+<p>The Effect Size module checks if effect sizes are correctly reported
+in t-tests and F-tests.</p>
+<p>The Effect Size check searches for regular expressions that match
+typical ways in which effect sizes are reported. It subsequently checks
+different ways in which Cohen’s d, g, ηp2, and ωp2 can be computed
+against the reported value. If effects are missing, or might be
+incorrect, you the module provides a warning. The module was validated
+on APA reported statistical tests, and might miss effect sizes that were
+reported in other reporting styles. It was validated by the Metacheck
+team on papers published in Psychological Science.</p>
+<p>This module only checks statistical results reported in the running
+text of the manuscript. It cannot (yet) process statistics reported only
+in tables.</p>
+<p>This module was developed by Daniel Lakens and Lisa DeBruine</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-effect-size.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: In a sample of 161 papers with 1469 tests, this module
+correctly detected 1106 reported effect sizes (true positives) and
+correctly identified 295 cases where no effect size was present (true
+negatives). However, it missed 23 that were reported (false negatives),
+and incorrectly identified 45 effect sizes when none were reported
+(false positives). Among all instances detected by the module, 96% were
+true cases (positive predictive value). In a validation against 221
+reported Cohen’s d effect sizes, it correctly indicated coherence in 218
+cases (99%). In a validation against 485 partial eta-squared effect
+sizes, it correctly indicated coherence in 480 (99%)</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Codebook Check works
+</summary>
+<div class="fold">
+<p>This module checks whether the data columns in a repository are
+documented in a codebook or README. It locates codebook/readme files,
+extracts the variable definitions they contain, matches those
+definitions against the data columns extracted by
+<code>data_check</code>, and reports documentation coverage: how many
+data columns are documented, and which documented variables are never
+used.</p>
+<p>The Codebook Check module consumes the columns and file
+classification produced by <code>data_check</code> (and, transitively,
+<code>repo_check</code>). Files classified as <code>codebook</code> or
+<code>readme</code> are parsed with <code>parse_codebook()</code>, which
+reads structured tables (CSV/TSV/Excel with a variable-name column and a
+label column), embedded labels in haven files (SPSS/Stata/SAS), and
+plain text from rich-text formats (docx/pdf/rtf/odt). Embedded haven
+labels from data files are also harvested directly.</p>
+<p>Each data column is then matched against the parsed variable
+definitions with <code>match_column_labels()</code>, using
+normalised-name matching with experiment-group scoping, haven-label
+priority, and rule-based label-equivalence merging.</p>
+<p>Beyond the variable label, the module harvests the DDI-style
+per-variable properties a source supplies: the <strong>value labels /
+code list</strong> (the 1=“Strongly disagree”…5=“Strongly agree” mapping
+— from SPSS/Stata value labels and from a codebook “values”/“coding”
+column), the <strong>missing-value scheme</strong> (which codes denote
+missingness, from haven declared missings and labels that read as
+“refused”/“n/a”), and <strong>question text</strong> and columns when
+present. These are carried onto the matched data columns and exported
+into the Psych-DS <code>variableMeasured</code> (as a schema.org code
+list plus namespaced <code>metacheck:</code> fields).</p>
+<p>The module defaults to <strong>rules-only</strong> when
+<code>llm_use(FALSE)</code>. When <code>llm_use(TRUE)</code>, three
+optional LLM tiers run: parsing unstructured codebook text that the
+rules could not handle, fuzzy-matching still-unlabelled columns to
+still-unmatched codebook variables, and merging conflicting label
+definitions into a single canonical label.</p>
+<p>This module was developed by Daniel Lakens</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-codebook-check.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: This module has not been validated. All checks in the
+codebook_check module have unknown error rates. Carefully evaluate the
+output of this module. You can help improve this module by reporting an
+issue on GitHub.</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Repository Check works
+</summary>
+<div class="fold">
+<p>This module retrieves information from repositories.</p>
+<p>The Repository Check module lists files on the OSF, GitHub,
+ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
+installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
+4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
+other member nodes), and LDbase based on links in the manuscript.</p>
+<p>Listing a repository’s files never requires an API key, but some
+hosts answer faster or more completely with one: OSF allows 100
+requests/hour unauthenticated versus 10,000/day with a token (see
+[osf_pat()]), and Dryad enforces a strict per-IP daily quota on repeated
+listing (see <code>cache</code> below). Dryad is a special case beyond
+rate limits: listing a Dryad dataset’s files works without a key, but
+actually downloading file CONTENTS from Dryad fails with HTTP 401 unless
+a key is set, even for a fully public dataset (see [dryad_pat()] or
+[dryad_auth()]). Since this module only lists files and never downloads
+their contents itself, that limitation applies to
+<code>data_check</code> and <code>code_check</code> (which do download
+content), not here – see their own documentation.</p>
+<p>When a linked OSF page is a registration, its
+<code>registered_from</code> project (the one it was registered from,
+which the manuscript itself may never link directly) is also checked: if
+that project is public its files are listed under its own URL, and if it
+is closed or otherwise inaccessible the report flags it explicitly,
+since some registrations only describe their content rather than
+mirroring it.</p>
+<p>If you want to extend the package to be able to download files from
+additional data repositories reach out to the Metacheck development
+team.</p>
+<p>This module was developed by Daniel Lakens and Lisa DeBruine</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-repo-check.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: This module has not been validated. All checks in the
+repo_check module have unknown error rates. Carefully evaluate the
+output of this module. You can help improve this module by reporting an
+issue on GitHub.</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Code Check works
+</summary>
+<div class="fold">
+<p>This module retrieves information from repositories checked by
+repo_check about code files (R, Python, SAS, SPSS, Stata, Mplus,
+MATLAB).</p>
+<p>The Code Check module checks R (also R Markdown and Quarto), Python
+(also Jupyter notebooks), SAS, SPSS, Stata, Mplus, and MATLAB files,
+using regular expressions to check the code; JASP files are listed but
+not read. The language of a Quarto document or a notebook is read from
+the file itself (its engine or kernel), not from its extension. The
+regular expression search will detect the number of comments, the lines
+at which libraries/imports are loaded, attempts to detect absolute paths
+to files, <code>setwd()</code> and <code>install.packages()</code>
+calls, and lists files that are loaded, and checks if these files are in
+the repository; R code is also parsed. The module will return
+suggestions to improve the code if there are no comments, if
+libraries/imports are loaded in lines further than 4 lines apart, if
+files that are loaded are not in the repository, if absolute file paths,
+<code>setwd()</code> or <code>install.packages()</code> are found, and
+if R code cannot be parsed.</p>
+<p>The regular expressions can miss information in code files, or
+falsely detect parts of the code as a fixed file path. Libraries/imports
+might be loaded in one block, even if there are more than 3 intermittent
+lines. The module was tried out internally on papers published in
+Psychological Science, but has not been formally validated. There might
+be valid reasons why some loaded files can’t be shared, but the module
+can’t evaluate these reasons, and always gives a warning.</p>
+<p>The module also checks whether the repository pins the R/package
+versions the analysis actually depended on: an <code>renv.lock</code>
+file (parsed for the R version and every locked package + its
+version/source), a
+<code>sessionInfo()</code>/<code>sessioninfo::session_info()</code> text
+dump (matched by filename —
+<code>sessionInfo.txt</code>/<code>session_info.txt</code> and similar,
+or embedded in a README), or a
+<code>groundhog::groundhog.library()</code>/<code>checkpoint::checkpoint()</code>
+date-pin call in the code (a bare
+<code>library(groundhog)</code>/<code>library(checkpoint)</code> does
+not count — the pinning call itself must be present). When none of these
+is found, the report flags it as a reproducibility gap: package versions
+may drift between when the analysis was run and any later reproduction
+attempt.</p>
+<p>If you want to extend the package to perform additional checks on
+code files, or make the checks work on other types of code files, reach
+out to the Metacheck development team.</p>
+<p>Checking code requires downloading its file contents. For a paper
+whose repository is on Dryad, this never succeeds unless a Dryad API key
+is set: Dryad requires one to download file bytes, even from a fully
+public dataset (listing the repository’s files does not need one).
+Without a key, every Dryad-hosted code file is listed but unchecked, and
+a warning naming Dryad and
+<code>?dryad_pat</code>/<code>?dryad_auth</code> is included among the
+download failures recorded in the manifest.</p>
+<p>This module was developed by Daniel Lakens and Raphael Merz</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-code-check.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: This module has not been validated. All checks in the
+code_check module have unknown error rates. Carefully evaluate the
+output of this module. You can help improve this module by reporting an
+issue on GitHub.</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Data Check works
+</summary>
+<div class="fold">
+<p>This module classifies the files in a repository into semantic types
+(data, codebook, code, software, output, supplemental, readme, asset,
+other) and, for tabular data files, extracts each column’s type and
+summary statistics.</p>
+<p>The Data Check module consumes the file list produced by
+<code>repo_check</code> (or any files added via
+<code>local_path</code>). Each file is classified with rule-based
+heuristics layered over metacheck’s <code>file_category()</code> and
+<code>file_types</code>: file names matching README / codebook patterns
+win first, then an extension crosswalk, then format-locked extension
+overrides. For every file classified as tabular <code>data</code> that
+is available locally, the module reads the file head, describes each
+column with <code>data_col_facets()</code> and computes summary
+statistics for numeric columns. Every sheet of a spreadsheet that holds
+a table is read: a file with several such sheets has its columns under
+<code>source_file = &quot;file.xlsx [sheet]&quot;</code>, and the
+<code>sheet</code> column names the sheet of any spreadsheet with
+several sheets; a sheet of notes or a codebook is treated as
+documentation when the file has another table. Following DDI, a column
+is described by orthogonal facets rather than a single type:
+<code>representation</code> (numeric/text/datetime/code — how it is
+stored), <code>measurement_level</code> (Stevens:
+nominal/ordinal/interval/ratio), <code>concept</code> (what it measures:
+reaction_time/age/gender/likert/id/…), <code>role</code>
+(identifier/measure/condition/timestamp), <code>unit</code>, and a
+<code>quality</code> state (ok/empty/constant). Concepts are detected by
+name+value rules (the demographic concepts via
+<code>data_check_demographic()</code>); when <code>llm_use(TRUE)</code>
+the model fills concepts and measurement levels the rules left blank.
+Qualtrics survey exports are recognised
+(<code>data_check_is_qualtrics()</code>): their extra header rows are
+stripped so columns type correctly, and the reserved response-metadata
+columns (StartDate, Duration, Finished, …) are tagged.</p>
+<p>The module defaults to <strong>rules-only</strong> when
+<code>llm_use(FALSE)</code>: columns the rules cannot resolve (ambiguous
+3–20-unique integers, ambiguous character columns) fall back to
+<code>continuous</code> / <code>text</code> respectively. When
+<code>llm_use(TRUE)</code>, ambiguous columns and unresolved file types
+(<code>other</code>) are sent to <code>llm()</code> for optional
+refinement, and every file is assigned a study group (<code>ex1</code>,
+<code>pilot2</code>, <code>shared</code>, …) so that multi-study
+repositories can be recognised (used by <code>psychds_check</code>).
+Without an LLM the study <code>group</code> is left <code>NA</code>
+(unknown).</p>
+<p>Column extraction requires files to be readable from disk. Files
+fetched by <code>repo_check</code> from OSF/GitHub/etc. without a local
+copy (<code>file_location</code> is <code>NA</code>) are classified but
+not column-extracted; pass <code>local_path</code> to point at a
+downloaded copy of the repository.</p>
+<p>For a paper whose repository is on Dryad, this means column
+extraction never happens unless a Dryad API key is set: Dryad requires
+one to download file bytes, even from a fully public dataset (dataset
+listing and metadata do not need one). Without a key, every Dryad file
+stays classified but un-downloaded, column_n is 0, and a warning naming
+Dryad and <code>?dryad_pat</code>/<code>?dryad_auth</code> is included
+among the download failures. A one-time session message is also shown
+(see repo_check) the first time a Dryad dataset is encountered with no
+key set.</p>
+<p>Every downloaded text file the authors wrote (code, settings, survey
+definitions such as Qualtrics <code>.qsf</code> files, documentation,
+outputs) is searched for keys: API keys, access tokens and private keys,
+which let anyone who downloads the file use a paid service at the
+authors’ cost. Of a tabular data file only the column names and first 3
+rows of the table as read are searched: its values come from
+participants, but a key the authors set for a whole survey (as embedded
+data in a Qualtrics survey flow) is exported in every response. The
+search uses the rules of the secret scanner betterleaks (<a href="https://github.com/betterleaks/betterleaks" class="uri">https://github.com/betterleaks/betterleaks</a>, MIT licence)
+of high and medium confidence. A key found turns the traffic light red;
+the report and the <code>keys</code> table give its file, line and type,
+and only its beginning. Other files over 25 MB and binary files are not
+searched. A key is never tested with its provider. Every module’s result
+has any whole key replaced by “<span class="math display"><em>k</em><em>e</em><em>y</em><em>r</em><em>e</em><em>m</em><em>o</em><em>v</em><em>e</em><em>d</em></span>”
+(see <code>module_run()</code>).</p>
+<p>This module was developed by Daniel Lakens and Levi Baruch</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-data-check.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: This module has not been validated. All checks in the
+data_check module have unknown error rates. Carefully evaluate the
+output of this module. You can help improve this module by reporting an
+issue on GitHub.</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Reproducibility Check works
+</summary>
+<div class="fold">
+<p>This module assesses whether a paper’s R and Python code can be run
+on its data. It works in two phases. The <strong>static</strong> phase
+(always run) collects the package dependencies the code declares,
+rewrites the data-file paths that do not work in the repository as the
+authors organised it, works out the order the scripts must run in, and
+diagnoses why any referenced input file is unavailable — reporting what
+a reproduction attempt would involve and where it is likely to break.
+The <strong>execution</strong> phase (opt-in,
+<code>execute = TRUE</code>) then actually runs the code: it copies the
+repository into a throwaway directory, optionally installs the declared
+dependencies into a throwaway library, runs each script in order in an
+isolated subprocess with a per-script timeout, and captures the outcome
+and full output of each run.</p>
+<p>By default (<code>execute = FALSE</code>) the module does <strong>not
+run any code</strong> — it performs only static analysis: reading
+dependencies with the same extractors as <code>code_check</code>,
+finding the files the code references in the repository, and building a
+run-order dependency graph. It reports what <em>would</em> be installed
+and run rather than doing it.</p>
+<p>When <code>execute = TRUE</code>, the module additionally
+<strong>runs the downloaded code on your machine</strong> — a
+deliberate, opt-in action gated behind that argument (<code>callr</code>
+is required for R code). Each script runs in an isolated subprocess so a
+crash cannot take down the R session; note this isolates crashes,
+<strong>not</strong> the filesystem or network. Installs (when
+<code>install_missing = TRUE</code>) and the throwaway run library never
+touch your main R library. Each script’s outcome is one of
+<code>ran_ok</code>, <code>errored</code>, <code>timed_out</code>,
+<code>dependency_unavailable</code>, <code>not_parsed</code>,
+<code>run_by_source</code> (an R script another script runs with
+<code>source()</code>, which is run only inside that script, since on
+its own it lacks the packages and objects the sourcing script sets up
+first), <code>run_by_import</code> (a Python file other files import, a
+module rather than a script, unless it has an
+<code>if __name__ == &quot;__main__&quot;:</code> block), <code>jags_model</code>
+(a JAGS or BUGS model saved with an R extension, which another script
+reads) or <code>not_r_content</code> (a file that is not R at all, such
+as a JSON or HTML dump); these last two are not run and are not
+failures. <code>python2</code> marks Python 2 code that was not run.
+With <code>sandbox = &quot;docker&quot;</code> such code runs with Python 2.7
+(option <code>metacheck.docker_image_py2</code>; FALSE turns this off),
+which <code>modifications</code> records; it is never converted, since
+that can change results. <code>defines_functions</code> is a file that
+only defines functions, which is used, not run
+(<code>table$used_by</code> names the scripts that use it), and
+<code>not_analysis</code> is a file of software rather than of the
+analysis: a package’s code, tests, documentation or
+<code>setup.py</code>, a copy of a tool, a web application, a script a
+program wrote (<code>table$not_analysis_why</code> says which); neither
+is run or counted as a script. <code>docker_failed</code> means the
+container never started, which says nothing about the script, so it
+keeps the light from being green but does not make it red.
+<code>needs_a_person</code> is a script that stopped because it asks a
+person to choose a file or answer a question, or that starts an app, and
+<code>needs_internet</code> one that stopped because the network is off
+in a Docker run, or, with <code>internet = TRUE</code>, could not reach
+what it asked for; <code>download_too_large</code> is a script stopped
+for downloading more than the limits allow (see <code>internet</code>),
+and <code>out_of_memory</code> one that, or a program it started (such
+as a compiler), ran out of the memory each script may use. All four are
+treated the same way. <code>not_downloaded</code> is a script that
+stopped on a file the repository lists but that was not downloaded, such
+as one over <code>max_file_size</code>: it could not be tried, so it is
+not counted as a script that did not reproduce
+(<code>summary_table$repro_not_downloaded_n</code> counts them apart).
+<code>not_read</code> is a file metacheck could not read, so it was not
+run; the light is then not green, as the file may read and run on
+another computer, and <code>table$error_message</code> says why, naming
+a package that is installed but cannot be loaded on the computer that
+ran the check. <code>empty</code> is a file with nothing in it, which is
+not run or counted as a script. For a script that did not run through,
+<code>table$error_message</code> is its error, short (at most 300
+characters): the error line of its output, which names a package that is
+not there, with the address it asked for when it needed the internet, or
+the time limit it reached; <code>table$reason</code> sorts it into a
+kind. A timeout means “still running at the cutoff”, not a failure, so
+raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
+scripts. <code>dependency_unavailable</code> means the script’s own
+package could not be installed from live CRAN, the CRAN Archive, or a
+named GitHub/URL source — an infrastructure limitation, not a defect in
+the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
+it does <strong>not</strong> force the traffic light red. The full
+stdout/stderr of every run is kept in the result’s
+<code>run_results</code> (the report shows it in per-script dropdowns,
+capped for readability). The traffic light reflects the STATIC readiness
+signals by default, but an execution error
+(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
+a script that crashes on its own analysis is a genuine reproduction
+failure. A script that fails with <code>could not find function</code>
+is run once more with the <code>library()</code> calls the project’s
+other scripts make added at its top (or the one package that exports the
+function, or magrittr for <code>%&gt;%</code>), and a script that then
+runs is reported as reproducible only after that repair.</p>
+<p>Dependencies are reported name-only, with the source (CRAN, GitHub,
+or a base package already shipped with R) — static analysis of the code
+cannot know which <em>version</em> was used, and running against current
+package versions is itself informative: a break argues the authors
+should have pinned versions. When the repository does record versions, a
+run with <code>recorded_versions = TRUE</code> installs the packages the
+scripts load at those versions, but it does not change the R version,
+which remains a limitation of the check.</p>
+<p>Run order is derived from read-after-write data dependencies (a
+script writing a file another reads must run first),
+<code>source()</code> edges, and numeric filename prefixes as a weak
+tie-breaker. Ambiguous orderings, dependency cycles, and inputs a script
+reads but that no earlier script produces (and that are not in the
+repository) are surfaced as warnings, since these are the situations
+most likely to make an otherwise-correct reproduction fail.</p>
+<p>Python code (<code>.py</code> files, and notebooks and Quarto
+documents whose code is Python, from which the code is extracted first)
+goes through the same two phases, reported in its own “Python code”
+section. Each file is checked for syntax errors with Python’s own parser
+when a Python interpreter (<code>python</code>, or else
+<code>python3</code>) is available; dependencies are read from the
+<code>import</code> statements, with versions from a
+<code>requirements.txt</code> or <code>pyproject.toml</code> when there
+is one, and installed with <code>pip</code>; each script runs as its own
+<code>python</code> process (<code>processx</code> is required), so
+unlike R scripts, a name one script defines is not available to another.
+When no Python interpreter is available, the Python files are reported
+as not run and the R results are still returned. Statistics the Python
+scripts print are compared with the paper together with the R output and
+any self-reproducible output (JASP/jamovi, SPSS-Viewer, notebook
+outputs).</p>
+<p>This module was developed by Daniel Lakens</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-reproducibility-check.html">metacheck
+manual</a>.</p>
+</div>
+</details>
+<details>
+<summary>
+How PubPeer Comments works
+</summary>
+<div class="fold">
+<p>This module checks references and warns for citations that have
+comments on pubpeer (excluding Statcheck comments).</p>
+<p>The PubPeer module uses the PubPeer API to check for each reference
+that has a DOI whether there are comments on the post-publication peer
+review platform. If comments are found, a link to the comments is
+provided. Comments by ‘Statcheck’ on PubPeer are ignored, see <a href="https://retractionwatch.com/2016/09/02/heres-why-more-than-50000-psychology-studies-are-about-to-have-pubpeer-entries/" class="uri">https://retractionwatch.com/2016/09/02/heres-why-more-than-50000-psychology-studies-are-about-to-have-pubpeer-entries/</a>.</p>
+<p>The module requires that the reference has a DOI: the DOI in the
+paper’s reference list, or one looked up with
+<code>add_bib_match()</code> before the module runs (see
+<code>ref_table()</code>). References without a DOI are not checked.</p>
+<p>For more information, see <a href="https://www.pubpeer.com/static/about">PubPeer</a>.</p>
+<p>This module was developed by Daniel Lakens and Lisa DeBruine</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-pubpeer.html">metacheck
+manual</a>.</p>
+</div>
+</details>
+<details>
+<summary>
+How RetractionWatch works
+</summary>
+<div class="fold">
+<p>This module checks references and warns for citations in the
+RetractionWatch Database.</p>
+<p>The RetractionWatch Check module compares the reference list against
+studies in the RetractionWatch database based on the DOI. If a study in
+the database is found, a reminder is provided that the study was
+retracted, has an expression of concern, or a correction.</p>
+<p>The module requires that the reference has a DOI: the DOI in the
+paper’s reference list, or one looked up with
+<code>add_bib_match()</code> before the module runs (see
+<code>ref_table()</code>). References without a DOI are not checked.</p>
+<p>It is possible the authors are already aware that a study was
+retracted, but the module can’t evaluate this.</p>
+<p>The database can be manually updated with the rw_update function. For
+more information, see <a href="https://gitlab.com/crossref/retraction-watch-data" class="uri">https://gitlab.com/crossref/retraction-watch-data</a>.</p>
+<p>This module was developed by Daniel Lakens and Lisa DeBruine</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-retraction.html">metacheck
+manual</a>.</p>
+</div>
+</details>
+<details>
+<summary>
+How Replication Check works
+</summary>
+<div class="fold">
+<p>This module checks references and warns for citations of original
+studies for which replication or reproduction studies exist in the FLoRA
+database.</p>
+<p>The Replication Check module compares the reference list against
+studies in the FLoRA (FORRT Library of Replication Attempts) database
+based on the DOI. If a study in the database is found, a reminder is
+provided that a replication or reproduction of the original study
+exists, and should be cited. No reminder is given when the paper already
+cites that replication or reproduction (matched by its DOI).</p>
+<p>The module requires that the reference has a DOI: the DOI in the
+paper’s reference list, or one looked up with
+<code>add_bib_match()</code> before the module runs (see
+<code>ref_table()</code>). References without a DOI are not checked.</p>
+<p>It is possible the original study was cited for other reasons than
+the empirical claim tested, or that the replication/reproduction in the
+FLoRA database is for only one of the studies in the paper, and not the
+study the authors discuss.</p>
+<p>The database can be manually updated with the
+<code>FLoRA_update()</code> function. For more information, see <a href="https://forrt.org/FLoRA/" class="uri">https://forrt.org/FLoRA/</a>.</p>
+<p>This module was developed by Daniel Lakens, Lisa DeBruine and Lukas
+Wallrich</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
+manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Gait analytics is utilized for a wide range of health-related applications, ranging from fitness tracking to medical diagnostics, and beyond. Inertial measurement units that are ubiquitously available in mobile devices provide an accessible means of gait analysis but differences in sensor specifications, placement, and recording protocols limit comparability across studies.</p>
+<p>This study developed and evaluated an analysis-centered data warehouse and standardized quality-assessed processing pipeline to facilitate the integration and joint analysis of heterogeneous gait accelerometer data. Six publicly available datasets including a total of 935 persons were integrated into a star-schema data warehouse, and feature comparability was assessed across datasets and sensor locations. Gender classification served as a proofof-concept downstream analysis. Gait-cycle extraction, which serves as foundation for feature extraction, was successfully achieved with an accuracy above 99% for the dataset that provides ground truth information. Comparability varied across datasets and sensor configurations, with correlation coefficients between average gait cycles ranging from 0.5 to close to 1.0. Centrally positioned sensors generally show greater correspondence than peripheral sensors, although differences in statistical features persist even between sensors at nominally identical locations. Gender classification performance remains largely near chance level, and no consistent benefit from pooling datasets could be established. These findings demonstrate that heterogeneous gait accelerometer data can be integrated and processed within a common analytical framework, but standardized processing alone does not ensure comparability of the resulting features. The proposed open-source framework implemented in Python provides a foundation for reproducible cross-study gait analysis and for investigating residual heterogeneity associated with datasets and sensor configurations.</p>
+<p>.</p>
+<h3>Introduction</h3>
+<p>Quantification of the human gait is of interest to a variety of disciplines. In the wider context of health, gait features can on the medical side support the diagnostic procedure and monitoring of disorder or therapeutic progress [1] in orthopaedics [1] [2] [3], neurology (e.g., Alzheimer&#x27;s and Parkinson&#x27;s disease [4, 5] or stroke [6]), and psychiatry (e.g., schizophrenia, anxiety, depression, and other mood disorder [7] [8] [9] [10]). On the performance side, fitness tracking for well-being purposes [11] [12] [13] as well as analytics in recreational and competitive sports are increasingly utilizing gait tracking and similar measurements [14]. Unrelated to health applications, gait features are harnessed in further use cases such as biometric authentication [15] [16] [17] [18]. The gold standard for gait analytics has long been data from motion capture systems, force plates, and similar laboratory equipment [19, 20]. Those systems are challenged by mobile sensors such as inertial measurement units (IMU) comprising accelerometers and gyroscopes [19, 21, 22]. Those sensors are versatile, lightweight, easily available, cheap, and ubiquitous due to their integration in standard smartphones [23] and other smart devices. Their usefulness in gait analytics has been demonstrated by several studies showing in general a good correspondence between characteristics extracted from video-or force sensor-based methods and from smartphone IMU data [14, 24, 25]. The characteristics assessed in those studies are predominantly spatio-temporal, i.e., step cycle features such as step length, step time, or cadence [24], or additionally kinematic features [14].</p>
+<p>Depending on the use case, different features are extracted from the raw gait time series.</p>
+<p>They include spatial, temporal, spatio-temporal, kinematic, and kinetic features [14, 19].</p>
+<p>Besides general changes in spatio-temporal features such as slowing or reduction of step length [5], specific changes in kinematic features such as smoothness, or the symmetry in spatio-temporal feature are characteristics of interest in a wide range of health applications [6]. Gait asymmetry in particular has been found to be associated with balance instability at older age [26] [27] [28], compromised mental health status [29], and is also prevalent in individuals diagnosed with motor-related neurological disorders such as Parkinson&#x27;s disease [4, [30] [31] [32] [33], post-stroke conditions [34] [35] [36] [37], and Multiple Sclerosis [38] [39] [40]. Given its clinical relevance, the reduction of gait asymmetry is a targeted outcome in therapeutic interventions for those disorders [41].</p>
+<p>Challenges for application of IMU data in gait analysis and related decision support systems cumulate in the lack of robustness and generalisability of the features and models used for those purposes [5, 14, 20]. Diversity in sensor specifications, recording setups, sensor locations [24, 42], data quality, and study designs [20] hamper the comparability and replication of research findings [43]. On top of those variations stemming from recording conditions is the lack of standardized format for data storage and processing [20, 44], which leads to laborious data harmonization efforts whenever data from different studies or simply from different sensors needs to be processed in a comparable fashion. Gait analytics can be improved by leveraging large and diverse datasets [20, 44], and with replication of results with demarcable, and if possible, publicly available, datasets [45]. The demand for such datasets and study designs is aggravated by the application of increasingly complex and therefore data-greedy algorithms for analysis purposes, especially in the light of increasingly widespread use of deep learning [5, [46] [47] [48], and the demand for translating research findings into practise [20, 44]. The possibility to collect large research datasets with IMUs is easy to realize yet storage, processing, and comparison of the data is still laborious due to the diversity on several ends. This study presents 1) an analysis-centered data scheme (data warehouse (DWH) with star schema [49] [50] [51]) for accelerometer data from gait tasks including participant-and studyspecific additional data, 2) a quality-assessed data processing pipeline for data harmonization, pre-processing, feature extraction, and analytics, and 3) a proof-of-concept analysis on the combined dataset. The quality of the gait cycle extraction algorithm is assessed with a quality metric and additionally evaluated against ground truth for one of the datasets included. As feature sets, we provide 1) statistical features from the gait cycles including asymmetry features and 2) the normalized full gait cycle from the Euclidean norm of the jerk. For evaluation purposes, the features were systematically compared across body . sides, sensor locations, and datasets. Furthermore, the feature sets were subjected to 116 exemplary analyses on gender classification with different configurations of included 117 datasets. Data scheme and extract-transform-load (ETL) processes are based on the data of 118 six publicly available datasets comprising gait accelerometer data from both standalone 119 IMUs and sensors built into smartphones [52] [53] [54] [55] [56] [57] [58]. However, data scheme and processing 120 pipeline are designed to be extendable to incorporate further data formats, additional 121 information, and further processing steps such as additional data quality checks or additional 122 features. Both technical artifacts are provided in an open-source toolbox with accompanying 123 technical documentation. 124 125.</p>
+<h3>Results</h3>
+<h3>Data Storage</h3>
+<p>The data is stored in a star schema comprised of central fact tables each containing specific parts of recorded data or their derivates. Accelerometer data is stored raw, preprocessed, in gait cycles, and as statistical features. Additional fact tables contain raw electromyography (EMG), gyroscope, and magnetometer data. The dimension tables connected to the fact tables contain additional information that provide the analytical context for the fact data, such as participant characteristics, or sensor positions and specifications.</p>
+<h3>Quality Management</h3>
+<p>We verified the gait cycle extraction process with the Marea [52] dataset that provides a ground truth of the gait cycles based on force sensitive resistors. The average dominant peak detection accuracy for the left and right ankle sensor was 99.3±2.1% and 99.9±0.2%, respectively. The heel strike is recorded 56.7±18.6ms and 58.9±65.4ms before the detected peak across all data samples for the left and right foot, respectively.</p>
+<p>In order to evaluate the data quality independent of a ground truth, the quality of the extracted gait cycles (n=343,431) from the accelerometer data was assessed by correlating each individual uniform cycle with the corresponding average cycle. In order to be included in further analyses, we set a threshold of 0.7.255,542 cycles, i.e., 74.4% of the cycles, fulfilled this criterion.</p>
+<h3>Statistical Evaluation of Harmonized Data</h3>
+<p>In order to pool data across datasets or sensors, the features used for analyses need to be comparable. We first evaluated comparisons of exemplary sensors where the data stem either from different datasets, sensor locations, or body sides for illustrative purposes. The comparison between two sensors on the right waist (same location) from the datasets OU-ISIR-SAID [55] and Vajdi [53] (different datasets) shows only a moderate overlap in the average gait cycle (r=0.82; Fig 1, top). Along this line, most of their statistical features were not comparable (Fig 1, bottom). In contrast, the pairing of two other datasets (Vajdi [53] and DBHuGa [56]) even with similar but different sensor locations (left front pocket vs. left thigh) shows better harmonization results. The average gait cycles correlate higher (r=0.96; Fig 2 top) and the differences between the statistical features were slightly less although still prevalent (Fig 2, bottom). There is a very good correspondence for sensors of the same dataset in the same location but for opposite body sides (DBHuGa [56] shin (Fig S1) and OU-ISIR-SAID [55] waist (S6)), decreasing for sensors with increasingly different locations (DBHuGa [56] comparison of left shin to left thigh (Fig. S3) and left wrist (S5)).</p>
+<p>A less detailed but more comprehensive picture emerges from the full correlation matrix between all sensors in all datasets (Fig 3). The sensor data from the center waist electrodes correlate very highly independent of their dataset of origin (Fig 3, small triangle). Waist sensor placed on one side of the body follow closely regarding their correlation strength. We find a general tendency for the sensor placed on the far end of the extremities (ankle and wrist) to have a lower correlation with those placed more towards the bodies center of weight. The sensors from the OU-ISIR datasets have a visibly lower correlation with sensors from other datasets then the rest of the comparisons (Fig 3). In order to put the correspondence across sensor positions and datasets in perspective and assess the variability of gait within participants, we also calculated each sensor&#x27;s within and across subject correlations (Fig 4). The across subject correlations of the McGill [57], Marea [59], and DBHuGa [56] sensors are in a similar order as the higher correlations across sensors and databases and consistently higher than the within subject correlations. The across subject correlations in the Vajdi [53] and OU-ISIR datasets [54, 55] are markedly lower and in the range of the within subject variability.</p>
+<h3>Gender Classification on Harmonized Data</h3>
+<p>The ultimate test for harmonized data is its utilization in a downstream classification task, comparing performance of individual datasets with joint performance as well as generalization across datasets. We chose a gender classification task since this information is available in all but one datasets and the gender of a person can be detected in its gait [60, 61]. In order to match the dimensionality across feature sets we condensed the 200 time points of the unified gait cycle with a principal components analysis (PCA) to the ten first components that explain a variance of 75.2±11.1%.</p>
+<p>Using again the two sensors on the right waist (same location) from the datasets OU-ISIR-SAID [55] and Vajdi [53] (different datasets) (cf. Fig 1) we have to conclude that the features we used for this task do not seem well suited for gender discrimination, at least not from the right waist sensors of these two datasets (Fig 5). Most of the classifiers cannot discriminate the gender and neither a feature set nor a classification algorithm or a training setup has a distinct advantage over the other (all p&gt;.05). The features from sensors in the left front pocket and left thigh, respectively, from the Vajdi [53] and DBHuGa [56] datasets (cf. Fig 2) seem to be similarly inadequate for gender classification (Fig 6). However, here the statistical features tend to perform better in general (F1,96=15.052, p&lt;0.001) albeit with marked differences across training setups (F5,96=2.416, p=0.041). The classification results based on the remaining sensor pairings (Figs. S2, S4 and S7) present a similar picture. Given the overall around chance level classification performance, an advantage of harmonizing and pooling the data can neither be confirmed nor refuted.</p>
+<h3>Discussion</h3>
+<p>This study developed and evaluated an analysis-centered data warehouse and processing pipeline for harmonizing heterogeneous accelerometer data acquired during walking. The technical framework integrates participant-, study-, sensor-, and recording-specific information with standardized processing steps for gait-cycle extraction, quality assessment, and feature generation. Across six publicly available datasets, the results demonstrate that such a framework can substantially reduce technical heterogeneity and enable joint analysis of data originating from different studies. At the same time, the analyses show that technical harmonization does not necessarily result in comparable resulting gait representations.</p>
+<p>Residual differences related to dataset, sensor location, and body side remain evident, both for normalized gait cycles and for derived statistical features. This distinction between harmonization of data processing and comparability of the underlying measurements presents important implications for cross-study gait analysis.</p>
+<p>The results from the statistical evaluation demonstrate that data can be represented in a common analytical format but still lack analytical comparability. For example, accelerometer recordings obtained from the right waist in the OU-ISIR-SAID [55] and Vajdi [53] datasets were processed using the same pipeline and nominally represent the same sensor location, yet the resulting average gait cycles show only moderate correspondence, while several statistical features differ substantially. This finding indicates that differences between studies cannot be attributed solely to data format or preprocessing. Rather, sensor characteristics, recording protocols, participant populations, and other study-specific factors may remain embedded in the resulting features even after standardized processing. Therefore, technical harmonization is a necessary first step for creating a common representation in which residual heterogeneity can be quantified and investigated, rather than a procedure that completely removes heterogeneity. This issue is well known in other modalities, e.g., batch effects in genomics data [62, 63] or scanner effects in magnetic resonance imaging (MRI) [64] [65] [66] [67] [68]. Adjustment methods such as Combating Batch (ComBat, [62]), originally developed for genetic batch effects but transferred successfully to features derived from a variety of MRI modalities [64] [65] [66] [67], provide tools for aligning the distribution characteristics of the features while preserving differences in participant characteristics of interest. While those approaches may be suitable for the statistical features derived from the accelerometer data, the partially distinct forms of the unified gait cycles suggest that this feature might not be fit for combination across datasets. These considerations are particularly relevant for multi-study analyses, where apparently standardized inputs may still contain systematic study-or devicespecific information.</p>
+<p>The results furthermore suggest that harmonization strategies have to explicitly retain sensor location information as an important characteristic of the signal. Data recorded at different body locations are influenced by different biomechanical components of body motion [69, 70] and are therefore not expected to exhibit identical temporal or statistical characteristics even after normalization. Sensors mounted at the waist or other central locations capture a more global representation of the whole-body movement because they are located closer to the body&#x27;s center of mass, whereas peripheral sensors are more strongly influenced by limbspecific motion and attachment characteristics [71] [72] [73]. Our correlation analysis indicates generally stronger correspondence among centrally positioned sensors, even across datasets, whereas sensors located toward the extremities, such as the ankle and wrist, tend to show lower correspondence with sensors positioned closer to the body center or with sensors from other datasets. This renders the former especially suitable for analyses across datasets. However, depending on the use case, the former or latter is better suited to capture the characteristic of interest [72].</p>
+<p>The pairwise comparisons demonstrate that some sensor-position combinations have substantially stronger correspondence, indicating that harmonization can facilitate meaningful comparisons under appropriate conditions. The across-and within-subject analyses provide additional evidence that the magnitude of variability depends on both the dataset and the sensor configuration. In several datasets, across-subject correlations were higher than the corresponding within-subject variability, whereas other datasets showed the opposite pattern. This heterogeneity suggests that the relative contributions of subject-specific gait characteristics and recording-specific factors are not constant across datasets.</p>
+<p>Consequently, pooled analyses should account for the individual structure of the data and only opt for a combination of datasets when the conditions are met.</p>
+<p>The gait-cycle extraction procedure provides an important foundation for our harmonization approach. When evaluated against annotated gait events in the MAREA dataset [52], dominant-peak detection showed high accuracy for both left and right ankle sensors, with mean accuracies over 99%. These findings support the feasibility of extracting a consistent gait-cycle representation directly from single sensor accelerometer recordings, even when explicit gait-cycle annotations are unavailable. However, this validation should be interpreted within the scope of the available ground truth. The algorithm was evaluated against event annotations from a single dataset and only for ankle-mounted sensors; therefore, these results do not establish equivalent performance across all sensor positions represented in the data warehouse. This limitation is particularly relevant for peripheral and non-peripheral sensors, for which the relationship between local acceleration patterns and conventional gait events may differ. Future validation using independently annotated datasets and multiple sensor locations would therefore be important to establish the generalizability of the extraction algorithm. Along this line, we decided for a unified processing of the data from each sensor individually instead of a global gait cycle extraction across sensors because of the heterogeneity in number of sensors and their locations across datasets. An extension of the preprocessing pipeline might be useful for specific sets of sensors when a global gait cycle with temporally aligned sensor cycles is necessary for addressing specific research questions.</p>
+<p>The quality-control procedure offers a complementary safeguard against unreliable cycle extraction. Of the 343,431 extracted gait cycles, 74.4% met the predefined correlation threshold of 0.7 with the corresponding mean gait cycle and were retained for downstream analysis. This demonstrates the practical value of an automated quality-assessment step when integrating data from heterogeneous sources. At the same time, the finding that approximately one quarter of all extracted cycles did not meet the criterion indicates that the choice of quality threshold has a potentially substantial effect on the resulting analytical dataset. The threshold of 0.7 was selected for the present analysis and is configurable in the pipeline. Nevertheless, the current study does not establish whether this threshold is optimal across datasets, sensor locations, or gait conditions. The within-subject correlations demonstrate substantial differences for sensor positions and datasets suggesting that it might be recommended to adapt individual thresholds. Importantly, however, a low correlation with the mean cycle is not necessarily equivalent to poor data quality, as atypical but genuine gait cycles may also differ from the recording-specific mean. Especially in clinical populations, this variability can even be an important feature of interest [74] [75] [76].</p>
+<p>The rational for the gender-classification analysis was to provide a proof of concept for the use of the harmonized data in downstream analysis, rather than to develop an optimized gender-classification model. Classification performance was generally close to chance for the examined sensors, and a consistent benefit from combining data across datasets or sensor locations could therefore not be established. These findings do not demonstrate that the harmonization framework is ineffective. Rather, they illustrate that successful technical harmonization does not automatically translate into improved performance in a downstream machine-learning task. Furthermore, the configuration of the six training setups provides a suitable strategy for proper evaluation of joint data usage. Comparing the power of the increased data size achieved by pooling with the performance of the individual datasets and the pooled data while keeping dataset size provides a comprehensive test for improvement via data pooling. Training on one dataset and testing on the other provides a test unbiased to preprocessing for the generalizability across studies.</p>
+<p>The strength of this study is the use of multiple publicly available datasets with substantial variation in participant numbers, recording duration, sensor type, sensor location, and study characteristics. This heterogeneity reflects the conditions under which a general harmonization framework ultimately needs to operate. The data warehouse additionally retains contextual information alongside the sensor measurements, providing a basis for investigating these sources of variation rather than discarding them during preprocessing.</p>
+<p>The framework is also designed to accommodate additional processing steps, sensor modalities and further datasets, while the technical artifacts are provided in an open-source toolbox with accompanying documentation. These endeavours support reproducibility and provide a basis for extending the framework beyond the datasets evaluated here. Some limitations, nevertheless, need to be considered. First, the available datasets differed substantially in participant characteristics, recording duration, sensor configuration, and study protocol, and these factors are often intrinsically confounded. For example, an observed dataset effect cannot necessarily be attributed to the dataset itself because it may reflect differences in hardware, placement, participant population, or recording conditions. Second, several potentially informative comparisons could not be performed because the required metadata or features were unavailable. Consequently, the pairwise comparisons should be regarded as representative examples rather than a complete characterization of all possible sources of heterogeneity. Future studies might explicitly model contextual factors such as age, footwear, walking surface, and other recording conditions in order to disentangle their contributions [77].</p>
+<p>Overall, the present study demonstrates that heterogeneous accelerometer datasets can be integrated into a common analytical framework with standardized gait-cycle extraction, quality management, and feature engineering. At the same time, the results show that technical harmonization alone does not remove systematic differences associated with datasets and sensor configurations. The principal contribution of the framework is therefore to provide a reproducible infrastructure in which the differences across datasets can be identified, quantified, and incorporated into subsequent analyses. Such an approach facilitates more transparent cross-study comparisons, reproducible feature engineering, and ultimately more robust development and validation of gait-analysis methods across heterogeneous real-world datasets.</p>
+<h3>Material and Methods</h3>
+<h3>388</h3>
+<p>This chapter provides an overview about the data for the initial load of the DWH, the concept 389 for data storage and data processing as well as details about feature engineering and data 390 evaluation. Technical details of the data scheme, the processing steps, and data quality 391 Table 1 Characteristics of the original datasets and the harmonized data warehouse. Sensor locations for 403 each dataset are depicted in Fig 7. Abbreviations: datasets see text; IMU: inertial measurement unit; IRB: 404 institutional review board; IC: informed consent 405 dataset nb participants gender [% female] age [years] (mean±std) nb sensor locations sensor type time walking per participant [min] (mean±std) ethics HuGaDB 18 22 23.7±3.7 6 IMU 5.17±2.16 -McGill 20* 50 24.4±4.6 3* smartphone 33.12±5.79 IRB Marea 11 N/A N/A 4 IMU 22.42±6.52 IRB Vajdi 92 49 24.0±6.8 2 smartphone 12.58±3.96 IRB OU-ISIR-ISD1 744 48 26.0±17.4 1 IMU 0.18±0.03 IC OU-ISIR-ISD2 496* 48 26.9±17.5 4* IMU / smartphone 0.18±0.03 IC OU-ISIR-SAID 502 48 27.0±17.5 3 IMU 0.17±0.03 IC DBHuGa 30 50 23.5±4.2 6 IMU 7.63±0.53 IRB DWH 935** 25.5±16.1 24 both 2.04±5.63 N/A 406 * some sensors were recorded only for some participants; details in text; ** not the sum of all datasets since OU-407 ISIR studies partly used the same participants.</p>
+<h3>408 409</h3>
+<p>.</p>
+<p>The Human Gait Database (HuGaDB) [58] from Russia additionally includes recordings of eleven non-walking activities and provides gyroscope measurements and electromyography data as well as accelerometer data. Since this dataset does not provide information about ethics protocols for data collection, this data is not used for analysis purposes in this study.</p>
+<p>The McGill University Gait Dataset (McGill) [78] from Canada uses only one of the three available sensor locations for each participant, and furthermore includes magnetometer data.</p>
+<p>The Movement Analysis in Real-world Environments using Accelerometers Gait Database (MAREA) [52] from Sweden includes not only walking but also running activity performed under varying conditions. It provides ground truth annotations generated via Force Sensitive Resistors (FSRs) placed on both feet, capturing the frame-level occurrence of four gait-cycle events. The Vajdi Gait Database (Vajdi) [53] from the USA additionally contains gyroscope data. The OU-ISIR Gait Database from Japan represents a large collection of gait related datasets. Two subsets are particularly relevant for this work: the Inertial Sensor Dataset (OU-ISIR-ISD) [54] and the Similar Action Inertial Dataset (OU-ISIR-SAID) [55]. Although derived largely from the same set of recordings, these datasets differ with respect to the sensors employed and the specific data used. The OU-ISIR-ISD dataset is partitioned into two subsets. The first (OU-ISIR-ISD1) maximizes participant count but uses only one of the four available sensors. The second (OU-ISIR-ISD2) includes all four sensors but does not contain recordings for all participants. Both subsets provide gyroscope data in addition to the accelerometer data. Importantly, the two subsets partially overlap in terms of participants and recordings, which must be taken into account when jointly analysing them. The OU-ISIR-SAID dataset contains five different activities, includes gyroscope measurements, and provides a ground-truth annotation in the form of step counts. The Database of Human Gait Performance (DBHuGa) [56] from the USA also contains activities beyond walking, and each of its sensors records gyroscope as well as magnetometer data. In total, the selected data sources contain recordings of up to 935 participants from 24 sensors, some of which share similar sensor location (Fig 7) [79]. 438 circle on the back of the participant. Depicted is a front view of the participant. Abbreviations of the datasets see text; Human outline has been designed using resources from Flaticon.com [79].</p>
+<h3>440 441</h3>
+<p>The full dataset includes 485 male (age 24.53±16.04 years) and 439 female (age 442 26.56±16.05 years) participants. Additionally, eleven participants from the MAREA database 443 which does not provide information about the gender. 444 445 Data Scheme A star-schema-based data model was selected to support the analysis of the data (Fig 8), as this data scheme effectively supports and facilitates large-scale analytical queries [49]. In this structure, one or more central fact tables store the primary observational data while multiple dimension tables provide contextual information relevant to those observations. Each dimension table is directly associated with one or more fact tables, and the dimensions are independent from each other. In contrast to normalized relational designs, the star schema intentionally permits a certain degree of data redundancy to simplify query operations. By reducing the number of required joins, this approach improves computational efficiency at data read-out and is therefore well suited for analytical environments that demand rapid processing of large and complex datasets. The implemented scheme includes four initial fact tables: Raw Accelerometer, Raw Gyroscope, Raw Magnetometer, and Raw EMG. Only the raw accelerometer data is further processed. They store the respective raw sensor readings together with timestamps to maintain temporal order. Additional fact tables, introduced during feature extraction, are the preprocessed accelerometer data, extracted gait cycles in different normalization steps as well as statistical features extracted from the gait cycles. Eight dimension tables provide complementary information on activities (activity), ground conditions (ground), participants (person), recording metadata (recording), technical sensor information (sensor), sensor placement (sensor_location), step events (step_event), and rotation information for harmonization of sensors (world_coordinate_system).</p>
+<p>A comprehensive description of the data model, including a detailed data dictionary, is available in the accompanying technical documentation. SQL scripts for setting up the data scheme with a postgreSQL (The PostgreSQL Global Development Group) database are provided in the code repository.</p>
+<h3>Processing Pipeline Individual Extract-Transform-Load Process</h3>
+<p>The initial ETL process incorporates the full set of available sensor data, resulting in a raw dataset that includes accelerometer measurements from walking and non-walking activities as well as data from additional sensor modalities. Depending on the specific research objectives, the processing pipeline may be extended to accommodate further activity types, facilitated by the accompanying data dictionary. The data itself is not included as part of the code package and needs to be obtained independently since some of the datasets are only available upon request from the researchers who recorded the data. Moreover, the data warehouse is designed to easily integrate additional recordings, enabling researchers to enrich the repository with their own data if required.</p>
+<h3>Cycle Extraction</h3>
+<p>The analysis focusses on gait cycles derived from the accelerometer data during walking.</p>
+<p>Because most available datasets do not explicitly provide gait cycle annotations, we designed and tested an algorithm to extract gait cycles directly from the sensor signals.</p>
+<p>Each accelerometer provides tri-axial measurements (𝑥, 𝑦, and 𝑧 components), which inherently depend on the sensor&#x27;s orientation, as each axis captures acceleration along a specific spatial direction. To mitigate this orientation dependency and obtain a signal representation that reflects only the underlying dynamic behaviour, the Euclidean norm of the jerk is used for further processing.</p>
+<p>To estimate the global step frequency, we identified the first prominent peak in the frequency spectrum. For sensor placements near the body&#x27;s center of mass, this peak typically appears around 2 Hz, whereas peripheral sensor locations yield frequencies closer to 1 Hz.</p>
+<p>For non-centered sensor placements, a gait cycle is defined as the concatenation of the swing phase of the limb bearing the sensor, resulting in a dominant peak, followed by the contralateral swing phase, which yields a non-dominant peak. Dominant peaks are first identified by locating local maxima that exceed the global mean, while enforcing a minimum inter-peak distance determined by the estimated step frequency. To suppress non-dominant events among these candidates, we apply an amplitude threshold derived from the mean of the candidate peak amplitudes, again subject to the same distance constraint. Assuming an alternating dominant/non-dominant structure, we subsequently examine the inter-peak intervals with respect to the step period to infer and insert missing dominant peaks whose amplitudes may fall below the mean-based threshold.</p>
+<p>Non-dominant peaks are then identified by segmenting the signal between successive dominant peaks under the assumption that each segment contains exactly one non-dominant event. Because this event lies between two flanking minima, it is designated as the maximum bounded by the pair of &#x27;major minima&#x27; (Fig 9). To determine these minima, we first detect all local minima within the segment, excluding those within a small neighbourhood of dominant peaks to avoid false detections. The absolute minimum in the segment is taken as the first major minimum. For each remaining candidate minimum, we compute the highest signal value along the path connecting it to the absolute minimum. Minima that lie in the same valley as the absolute minimum yield lower connecting maxima, whereas those positioned across the opposing valley share the amplitude of the non-dominant peak. Among the minima belonging to this opposing valley, the one with the lowest value is selected as the second major minimum. The non-dominant peak is then identified as the highest local maximum located between these two major minima. The gait cycle is then defined as the major minimum preceding the dominant peak until the major minimum preceding the next dominant peak.</p>
+<h3>Fig 9 Major minima detection for non-dominant peak detection.</h3>
+<p>All detected minima are marked with a circle. The first minimum is simply the lowest value (hot pink). The second minimum is not the second lowest value since this can be on the same side of the non-dominant peak. The algorithm described in the text finds the true second minimum (dark purple).</p>
+<p>For centrally mounted sensors, the extraction of individual gait cycles is accomplished by segmenting the signal at every second minimum between successive peaks. This approach is feasible because contributions from the left and right leg appear with comparable prominence in the signal, resulting in a symmetric pattern that allows reliable cycle delineation.</p>
+<h3>Ground Truth</h3>
+<p>To evaluate the performance of the cycle extraction algorithm, we used the ankle-mounted sensors from the MAREA dataset, which provide annotated step-event labels. Heel-strike events are expected to correspond, with a temporal offset, to the dominant and non-dominant peaks identified within the extracted gait cycles. However, because the dataset occasionally contains misordered event annotations, only walking sequences with correctly ordered step-event labels are included in the analysis. Wrist-mounted accelerometer data are excluded, as the dominant peak observed in wrist motion during a gait cycle is not temporally aligned with the heel strike and therefore does not constitute a reliable reference event.</p>
+<p>Because heel-strike annotations and signal-derived peak positions do not coincide perfectly, a tolerance threshold was defined to account for minor temporal deviations. Based on typical step frequencies and the dataset&#x27;s sampling rate, a maximum difference of 123 milliseconds between the detected peak and the annotated ground-truth event was established as an acceptable margin of error.</p>
+<h3>Quality Management</h3>
+<p>To identify gait cycles unsuitable for inclusion in further analysis including the calculation of statistical features, a quality-assessment procedure was implemented. A mean gait cycle was computed for each recording, each participant, and each dataset, separately for each sensor location. In datasets where only a single recording was available per participant, the mean gait cycle at the recording and participant levels was identical. Cycles exceeding a predefined correlation threshold with their respective mean gait cycle were retained for further analysis, whereas those falling below the threshold were excluded. In this study, a correlation coefficient of 0.7 was selected as the cutoff threshold for inclusion.</p>
+<h3>Features</h3>
+<p>Ten statistical features that capture the regularity of the gait and its symmetry are calculated based on the gait cycles: In addition to these statistical features, the gait cycles uniformly resampled to 200 timepoints were incorporated as features for downstream analyses.</p>
+<h3>Evaluation of the Harmonized Data</h3>
+<p>To assess the comparability of features across different recording conditions (here: dataset, i.e., sensor model and participants; body side; and sensor location) we conducted an exemplary set of pairwise comparisons (Table 2). Wherever feasible, all conditions except the one under investigation (highlighted in blue in Table 2) were held constant. This design allowed us to evaluate how features originating from similar contexts differ from each other, and how variations in dataset, body side, or sensor location influence both the extracted gait 591 cycles and the derived statistical features. 592 When selecting sensor locations for comparison, the analyses were constrained by the 593 number of usable features available for each location as well as the distribution of male and 594 female participants across the relevant subsets of each dataset. These limitations excluded 595 several comparisons that would have been of additional interest. 596 597 To obtain robust feature estimates for each sensor location and dataset, the individual values 603 of the ten statistical features and the uniform gait cycles were averaged within each 604 participant, body side, and sensor location. To assess differences in statistical features 605 between pairs of conditions (Table 2), two-sided t-tests were conducted. Paired tests were 606 applied when the compared conditions involved the same set of participants, unpaired tests 607 otherwise. Because not all sensor locations yielded sufficient data to compute the full set of 608 statistical features, some participants had to be excluded in the paired analyses to ensure 609 that both samples comprised identical individuals. 610</p>
+<p>It is important to note that statistical tests are intended solely as indicators of whether specific features may be unsuitable for harmonization; consequently, no correction for multiple comparisons was applied, instead, we report multiple α thresholds.</p>
+<p>To evaluate the comparability of the uniform gait cycles, we computed Pearson correlation coefficients between all combinations of sensor locations and datasets. For each of those combinations we firstly calculate the average cycle per participant and then average those cycles for the further calculations. This analysis was performed separately for centered and non-centered sensor positions. Furthermore, to characterize variability at the participant level, we conducted an analysis for each dataset-sensor-location combination. Specifically, we calculated the average correlation among the uniform gait cycles of different participants (across subject correlation) and compared these values with the correlations obtained among cycles belonging to the same participant (within subject correlation). This comparison provides insight into the extent to which gait-cycle representations are consistent within individuals relative to variability across individuals.</p>
+<h3>Classification of Gender</h3>
+<p>As a proof of concept for the data harmonization, we perform a gender-classification task, as gender information is available for most datasets included in the comparative analyses.</p>
+<p>Classification performance was evaluated for the same combinations of conditions used in the statistical comparisons (Table 2), enabling a direct assessment of how differences in dataset, sensor location, and body side affect predictions.</p>
+<p>For the classification analyses, we used two machine learning algorithms: logistic regression as a linear classifier and random forests as a nonlinear classifier. The same two feature sets as in the statistical analysis were evaluated: (i) the ten statistical features and (ii) ten features derived from the uniform gait cycles (see below). Six training-testing strategies were examined. These included training and testing on data from a single sensor; training and testing on combined data from both sensors, either preserving the dataset size of a single sensor or doubling it; and training on one sensor while testing on the other. For all six strategies, the amount of training data was matched to the size of the smaller dataset to ensure comparability across conditions. The data was sampled once in the beginning of the analysis, so all six strategies relied on the same participants.</p>
+<p>To harmonize the dimensionality across feature sets, we used the first ten principal components derived from a principal component analysis (PCA) calculated on ten randomly chosen gait cycles per participant and condition.</p>
+<p>Classification performance was evaluated using stratified cross-validation. To ensure statistical reliability, each fold contained a minimum of five samples, with the total number of folds capped at ten. For comparisons that yielded less than five folds we only report the balanced accuracy over all folds, for the remaining comparison we calculated mean and standard deviation across folds. Stratification was performed primarily with respect to gender, and in cases when data from two sources were combined also with respect to the originating dataset, to the extent permitted by the available sample distributions. To assess whether classification performance exceeded chance level, we conducted one-sided t-tests against chance level of 0.5. This test was skipped if the data was partitioned in less than five folds.</p>
+<p>A conservative significance threshold of α = 0.01 was chosen to account for the multiple comparisons inherent in the evaluation across classifiers, feature sets, and training strategies. For completeness, results achieving only a threshold of α = 0.05 or even exceeding α = 0.001 are also indicated. In cases where the number of available folds was insufficient to support a t-test, we instead reported the weighted mean of the fold-wise accuracies as a descriptive summary measure.</p>
+<p>To evaluate the influence of classification algorithm, feature set, and training strategy on model performance, we conducted mixed-effects analyses of variance (ANOVA) on the accuracy outcomes, with classification algorithm as within-subject factor and feature set as well as training-testing strategy as between-subject factors.</p>
+<h3>Acknowledgements</h3>
+<p>The striking image has been designed using resources from Flaticon.com.</p>
+<p>CReDiT statement (author contribution) FC: Formal Analysis; Methodology; Software; Validation; Visualization; Writing -Original Draft Preparation; FS: Conceptualization; Data Curation; Formal Analysis; Methodology; Software; Validation; Writing -Original Draft Preparation; AR: Conceptualization; Formal Analysis; Project Administration; Supervision; Writing -Reviews &amp; Editing.</p>
+<p>The datasets used in this study are publicly available. Detailed information on how to access 866 the data can be found in the accompanying technical documentation (Supplementary 867 Material S2). 868.</p>
+<h3>.Fig 1</h3>
+<p>Fig 1 Comparison of uniform gait cycles (top) and statistical features (bottom) of the sensors on the right waist between the OU-ISIR-SAID [55] and Vajdi [53] datasets. The gait cycles are temporally normalized and the statistical features are divided between ratio features for gait asymmetry quantification (left) and measures of central tendency and dispersion (right). *** p&lt;0.001, uncorrected. Shaded bars denote 95% confidence interval and outliers in the boxplots are defined as 1.5 x the interquartile range below or above the first or third quartile, respectively. Abbreviations: r_m_dnp = ratio of mean values of dominant and non-dominant peaks, r_sd_dnp = ratio of standard deviations of dominant and non-dominant peaks, r_m_sd_dns: ratio of mean standard deviations of dominant and non-dominant steps, r_sd_sd_dns: ratio of standard deviations of standard deviations of dominant and nondominant steps, r_m_sl: ratio of means of dominant and non-dominant step length, r_sd_sl: ratio of standard deviations of dominant and non-dominant step length, m_dp: mean value of dominant peaks, sd_dp: standard deviation of dominant peaks, sd_sd_ds: standard deviation of standard deviations of dominant steps, m_sd_ds: mean standard deviation of dominant steps</p>
+<h3>Fig 2</h3>
+<p>Fig 2 Comparison of uniform gait cycles (top) and statistical features (bottom) of the left front pocket sensor from the Vajdi [53] and the left thigh sensor from the DBHuGa [56] dataset. Presentation conventions and abbreviations analogue to Fig 1; * p&lt;0.05, *** p&lt;0,001, uncorrected.</p>
+<h3>Fig 3</h3>
+<p>Fig 3 Correlations between the average uniform gait cycles of each dataset and sensor position combination. Results are split into centered sensors (small matrix) and non-centered ones (big matrix) because the two phases of a gait cycle are more evenly distributed for the centered sensors. The exemplary comparison combinations used for the detailed analyses have an olive border. Reddish colours indicate the sensor is placed on the left side of the body, blueish colours for right and black for center. The underline indicates the sensor being placed on the back. The number indicates the number of participants that have recorded data for that particular sensor position. Abbreviations: Pk = Pocket, Ak = Ankle, Wr = Wrist, Wa = Waist, Sh = Shin, Tg = Thigh</p>
+<h3>Fig 4</h3>
+<p>Fig 4 Across and within subject correlations of uniform gait cycles. The black triangles denote the average correlation coefficient between the average cycles of each individual participant (across subject correlations). The boxplots represent the distribution of the average correlation coefficients for each individual participants uniform cycles (within subject correlations). The numbers on top of the boxes indicate the number of subjects per boxplot Colour and font coding of the datasets and sensors analogue to Fig 3. Only cycles that meet the threshold of 0.7 were used here.</p>
+<h3>Fig 5</h3>
+<p>Fig 5 Accuracies for gender-classification with the sensors on the right waist for the OU-ISIR-SAID [55] and Vajdi [53] datasets. The six training setups were each tested with two feature sets and two classification algorithms. Error bars denote the STD of the classification accuracy across the 8 folds. * p&lt;0.05, uncorrected. Abbreviations: RF = random forest, LR = logistic regression, GC = gait cycles, SF = statistical features</p>
+<h3>Fig 6</h3>
+<p>Fig 6 Accuracies for gender-classification with the sensors in the left front pocket from the Vajdi [53] and on the left thigh from the DBHuGa [56] dataset. The six training setups were each tested with two feature sets and two classification algorithms. Error bars denote the STD of the classification accuracy across the 5 folds. * p&lt;0.05, uncorrected. Abbreviations: RF = random forest, LR = logistic regression, GC = gait cycles, SF = statistical features</p>
+<h3>Fig 7</h3>
+<p>Fig 7 Overview of sensor positions for all datasets. Rectangle indicates a sensor being placed on the front, a 439</p>
+<h3>Fig 8</h3>
+<p>Fig 8 Exemplary star schema for the raw accelerometer data. Note that the surrounding dimension tables are shortened for clarity; only a subset of their columns is included, also some dimension tables are missing for the same reason. The figure is intended to support conceptual understanding of the star scheme structure. Additional fact tables, such as preprocessed accelerometer or extracted features, can share the same dimensions. Figure created with the Visual Paradigm Modeling Tool (Visual Paradigm, Hong Kong, China).</p>
+<h3>-</h3>
+<p>mean value of dominant peaks (m_dp) standard deviation of dominant peaks (sd_dp) ratio of mean values of dominant and non-dominant peaks (r_m_dnp) ratio of standard deviations of dominant and non-dominant peaks (r_sd_dnp) mean standard deviation of dominant steps (m_sd_ds) ratio of mean standard deviations of dominant and non-dominant steps (r_m_sd_dns) standard deviation of standard deviations of dominant steps (sd_sd_ds) ratio of standard deviations of standard deviations of dominant and nondominant steps (r_sd_sd_dns) ratio of means of dominant and non-dominant step length (r_m_sl) ratio of standard deviations of dominant and non-dominant step length (r_sd_sl) To obtain robust estimates of each feature for every recording, the largest possible number of subsets containing 10, 20, 30, 40, and 50 randomly selected gait cycles were generated, ensuring that each cycle was only used once. Feature values were first computed for each individual gait cycle and subsequently averaged within each subset (i.e., over 10, 20, 30, 40, or 50 cycles). The exemplary analyses reported in this work focus on features derived from subsets of 10 cycles as this subset size maximized the number of recordings eligible for inclusion.</p>
+<h3>Table 1 )</h3>
+<p>from a variety of countries are included in the initial 397 data scheme and processing pipeline. All datasets include accelerometer data from walking, 398 which is used in this study. Possible additional sensor data is only included in the initial data 399 loading process, but the remainder of the data scheme and processing pipeline can be easily 400 extended to include information from this data as well. 401 402</p>
+<h3>Table 2 Dataset and sensor location pairs chosen for comparison.</h3>
+<p>Overview of the chosen comparison for 598 downstream analyses. Differences between the respectively selected pairs are marked blue.</p>
+<h3>References</h3>
+<p>Moyer R, Lanting B, Marsh J, Al-Jurayyan A, Churchill L, Howard J, et al. Postoperative Gait Mechanics After Total Hip Arthroplasty: A Systematic Review and Meta-Analysis. JBJS Rev. 2018;6(11):e1.</p>
+<p>Feng J, Wick J, Bompiani E, Aiona M. Applications of gait analysis in pediatric orthopaedics. Current orthopaedic practice. 2016;27(4):455-64.</p>
+<p>Hecht GG, Van Rysselberghe NL, Young JL, Gardner MJ. Gait Analysis in Orthopaedic Surgery: History, Limitations, and Future Directions. J Am Acad Orthop Surg. 2022;30(21):e1366-e73.</p>
+<p>di Biase L, Di Santo A, Caminiti ML, De Liso A, Shah SA, Ricci L, et al. Gait Analysis in Parkinson&#x27;s Disease: An Overview of the Most Accurate Markers for Diagnosis and Symptoms Monitoring. Sensors (Basel). 2020;20(12).</p>
+<p>Cicirelli G, Impedovo D, Dentamaro V, Marani R, Pirlo G, D&#x27;Orazio TR. Human Gait Analysis in Neurodegenerative Diseases: A Review. IEEE J Biomed Health Inform. 2022;26(1):229-42.</p>
+<p>Tramontano M, Orejel Bustos AS, Montemurro R, Vasta S, Marangon G, Belluscio V, et al. Dynamic Stability, Symmetry, and Smoothness of Gait in People with Neurological Health Conditions. Sensors (Basel). 2024;24(8).</p>
+<p>Feldman R, Schreiber S, Pick C, Been E. Gait, balance and posture in major mental illnesses: depression, anxiety and schizophrenia. Austin Med Sci. 2020;5(1):1039.</p>
+<p>Feldman R, Schreiber S, Pick CG, Been E. Gait, balance, mobility and muscle strength in people with anxiety compared to healthy individuals. Human movement science. 2019;67:102513.</p>
+<p>Deligianni F, Guo Y, Yang G-Z. From emotions to mood disorders: A survey on gait analysis methodology. IEEE journal of biomedical and health informatics. 2019;23(6):2302-16.</p>
+<p>Zhao N, Zhang Z, Wang Y, Wang J, Li B, Zhu T, et al. See your mental state from your walk: Recognizing anxiety and depression through Kinect-recorded gait data. PLoS one. 2019;14(5):e0216591.</p>
+<p>George AH, Shahul A, George AS. Wearable sensors: A new way to track health and wellness. Partners Universal International Innovation Journal. 2023;1(4):15-34.</p>
+<p>Sathe N, Hiwale A, editors. Achieving Wellness by Monitoring the Gait Pattern with Behavioral Intervention for Lifestyle Diseases. Fourth International Congress on Information and Communication Technology: ICICT 2019, London, Volume 2; 2020: Springer.</p>
+<p>Amini Gougeh R, Zilic Z. Systematic review of IoT-based solutions for user tracking: Towards smarter lifestyle, wellness and health management. Sensors. 2024;24(18):5939.</p>
+<p>Mason R, Pearson LT, Barry G, Young F, Lennon O, Godfrey A, et al. Wearables for Running Gait Analysis: A Systematic Review. Sports Med. 2023;53(1):241-68.</p>
+<p>Sprager S, Juric MB. Inertial Sensor-Based Gait Recognition: A Review. Sensors (Basel, Switzerland). 2015;15(9).</p>
+<p>Singh JP, Jain S, Arora S, Singh UP. A Survey of Behavioral Biometric Gait Recognition: Current Success and Future Perspectives. Archives of Computational Methods in Engineering. 2021;28(1).</p>
+<p>Álvarez-Aparicio C, Guerrero-Higueras AM, González-Santamarta MÁ, Campazas-Vega A, Matellán V, Fernández-Llamas C. Biometric recognition through gait analysis. Scientific Reports. 2022;12(1):14530.</p>
+<p>Purish SV, Lobachev MV. Gait recognition methods in the task of biometric human identification. Herald of Advanced Information Technology. 2023;6(1):13-25.</p>
+<p>Hutabarat Y, Owaki D, Hayashibe M. Recent advances in quantitative gait analysis using wearable sensors: a review. IEEE Sensors Journal. 2021;21(23):26470-87.</p>
+<p>Hulleck AA, Menoth Mohan D, Abdallah N, El Rich M, Khalaf K. Present and future of gait assessment in clinical practice: Towards the application of novel trends and technologies. Front Med Technol. 2022;4:901331.</p>
+<p>Prasanth H, Caban M, Keller U, Courtine G, Ijspeert A, Vallery H, et al. Wearable Sensor-Based Real-Time Gait Detection: A Systematic Review. Sensors (Basel). 2021;21(8).</p>
+<p>Prisco G, Pirozzi MA, Santone A, Esposito F, Cesarelli M, Amato F, et al. Validity of Wearable Inertial Sensors for Gait Analysis: A Systematic Review. Diagnostics (Basel). 2024;15(1).</p>
+<p>Lin S, Evans K, Hartley D, Morrison S, McDonald S, Veidt M, et al. A Review of Gait Analysis Using Gyroscopes and Inertial Measurement Units. Sensors. 2025;25(11):3481.</p>
+<p>Strongman C, Cavallerio F, Timmis MA, Morrison A. A scoping review of the validity and reliability of smartphone accelerometers when collecting kinematic gait data. Sensors. 2023;23(20):8615.</p>
+<p>Shahar RT, Agmon M. Gait analysis using accelerometry data from a single smartphone: Agreement and consistency between a smartphone application and gold-standard gait analysis system. Sensors. 2021;21(22):7497.</p>
+<p>Wong DW, Lam WK, Lee WC. Gait asymmetry and variability in older adults during long- distance walking: Implications for gait instability. Clin Biomech (Bristol). 2020;72:37-43.</p>
+<p>Osoba MY, Rao AK, Agrawal SK, Lalwani AK. Balance and gait in the elderly: A contemporary review. Laryngoscope Investig Otolaryngol. 2019;4(1):143-53.</p>
+<p>Zadik S, Benady A, Gutwillig S, Florentine MM, Solymani RE, Plotnik M. Age related changes in gait variability, asymmetry, and bilateral coordination -When does deterioration starts? Gait Posture. 2022;96:87-92.</p>
+<p>Nagano H, Sarashina E, Sparrow W, Mizukami K, Begg R. General Mental Health Is Associated with Gait Asymmetry. Sensors (Basel). 2019;19(22).</p>
+<p>Seuthe J, Hermanns H, Hulzinga F, D&#x27;Cruz N, Deuschl G, Ginis P, et al. Gait asymmetry and symptom laterality in Parkinson&#x27;s disease: two of a kind? Journal of Neurology. 2024:1-10.</p>
+<p>Fling BW, Curtze C, Horak FB. Gait Asymmetry in People With Parkinson&#x27;s Disease Is Linked to Reduced Integrity of Callosal Sensorimotor Regions. Front Neurol. 2018;9:215.</p>
+<p>Arippa F, Leban B, Monticone M, Cossu G, Casula C, Pau M. A Study on Lower Limb Asymmetries in Parkinson&#x27;s Disease during Gait Assessed through Kinematic-Derived Parameters. Bioengineering (Basel). 2022;9(3).</p>
+<p>Ricciardi L, Ricciardi D, Lena F, Plotnik M, Petracca M, Barricella S, et al. Working on asymmetry in Parkinson&#x27;s disease: randomized, controlled pilot study. Neurol Sci. 2015;36(8):1337- 43.</p>
+<p>Patterson KK, Mansfield A, Biasin L, Brunton K, Inness EL, McIlroy WE. Longitudinal changes in poststroke spatiotemporal gait asymmetry over inpatient rehabilitation. Neurorehabil Neural Repair. 2015;29(2):153-62.</p>
+<p>Rozanski GM, Huntley AH, Crosby LD, Schinkel-Ivy A, Mansfield A, Patterson KK. Lower limb muscle activity underlying temporal gait asymmetry post-stroke. Clin Neurophysiol. 2020;131(8):1848-58.</p>
+<p>Lee Y, Kim GB, Shin S. Association between lower limb strength asymmetry and gait asymmetry: implications for gait variability in stroke survivors. Journal of Clinical Medicine. 2025;14(2):380.</p>
+<p>Xu J, Witchalls J, Preston E, Pan L, Waddington G, Adams R, et al. Stroke-related factors associated with gait asymmetry in ambulatory stroke survivors: A systematic review and meta- analysis. Gait Posture. 2025;121:173-81.</p>
+<p>Plotnik M, Wagner JM, Adusumilli G, Gottlieb A, Naismith RT. Gait asymmetry, and bilateral coordination of gait during a six-minute walk test in persons with multiple sclerosis. Scientific reports. 2020;10(1):12382.</p>
+<p>Pau M, Leban B, Deidda M, Putzolu F, Porta M, Coghe G, et al. Kinematic analysis of lower limb joint asymmetry during gait in people with multiple sclerosis. Symmetry. 2021;13(4):598.</p>
+<p>Coca-Tapia M, Cuesta-Gómez A, Molina-Rueda F, Carratalá-Tejada M. Gait pattern in people with multiple sclerosis: a systematic review. Diagnostics. 2021;11(4):584.</p>
+<p>Cabral S, Resende RA, Clansey AC, Deluzio KJ, Selbie WS, Veloso AP. A Global Gait Asymmetry Index. J Appl Biomech. 2016;32(2):171-7.</p>
+<p>Manna SK, Hannan Bin Azhar MA, Greace A. Optimal locations and computational frameworks of FSR and IMU sensors for measuring gait abnormalities. Heliyon. 2023;9(4):e15210.</p>
+<p>Panebianco GP, Bisi MC, Stagni R, Fantozzi S. Analysis of the performance of 17 algorithms from a systematic review: Influence of sensor position, analysed variable and computational approach in gait timing estimation from IMU measurements. Gait &amp; posture. 2018;66:76-82.</p>
+<p>Arora A, Alderman JE, Palmer J, Ganapathi S, Laws E, McCradden MD, et al. The value of standards for health datasets in artificial intelligence-based applications. Nat Med. 2023;29(11):2929- 38.</p>
+<p>Norori N, Hu Q, Aellen FM, Faraci FD, Tzovara A. Addressing bias in big data and AI for health care: A call for open science. Patterns (N Y). 2021;2(10):100347.</p>
+<p>Filipi Gonçalves dos Santos C, Oliveira DDS, A. Passos L, Gonçalves Pires R, Felipe Silva Santos D, Pascotti Valem L, et al. Gait recognition based on deep learning: a survey. ACM Computing Surveys (CSUR). 2022;55(2):1-34.</p>
+<p>Horst F, Lapuschkin S, Samek W, Muller KR, Schollhorn WI. Explaining the unique nature of individual gait patterns with deep learning. Sci Rep. 2019;9(1):2391.</p>
+<p>Khan A, Galarraga O, Garcia-Salicetti S, Vigneron V. Deep learning for quantified gait analysis: a systematic literature review. IEEE Access. 2024.</p>
+<p>Iqbal MZ, Mustafa G, Sarwar N, Wajid SH, Nasir J, Siddque S, editors. A review of star schema and snowflakes schema. International Conference on Intelligent Technologies and Applications; 2019: Springer.</p>
+<p>Oliva SZ, Felipe JC. Optimizing public healthcare management through a data warehousing analytical framework. IFAC-PapersOnLine. 2018;51(27):407-12.</p>
+<p>Golfarelli M, Rizzi S. From star schemas to big data: 20 years of data warehouse research. A comprehensive guide through the Italian database research over the last 25 years. 2017:93-107.</p>
+<p>Khandelwal S, Wickström N. Evaluation of the performance of accelerometer-based gait event detection algorithms in different real-world scenarios using the MAREA gait database. Gait &amp; Posture. 2017;51.</p>
+<p>Vajdi A, Zaghian MR, Dehkordi NR, Rastegari E, Maroofi K, Farahmand S, et al. Human gait database for normal walk collected by smartphone accelerometer. arXiv preprint arXiv:190503109.2019.</p>
+<p>Ngo TT, Makihara Y, Nagahara H, Mukaigawa Y, Yagi Y. The largest inertial sensor-based gait database and performance evaluation of gait-based personal authentication. Pattern Recognition. 2014;47(1).</p>
+<p>Ngo TT, Makihara Y, Nagahara H, Mukaigawa Y, Yagi Y. Similar gait action recognition using an inertial sensor. Pattern Recognition. 2015;48(4).</p>
+<p>Luo Y, Coppola SM, Dixon PC, Li S, Dennerlein JT, Hu B. A database of human gait performance on irregular and uneven surfaces collected by wearable sensors. Sci Data. 2020;7(1):219.</p>
+<p>Data Sets: Mobile Phone Gait Recognition Data. [Internet]. 2010 [cited 23.03.2026]. Available from: https://www.cs.mcgill.ca/~jfrank8/data/gait-dataset.html.</p>
+<p>Chereshnev R, Kertész-Farkas A. HuGaDB: Human Gait Database for Activity Recognition from Wearable Ine. Lecture Notes in Computer Science. 2018.</p>
+<p>Khandelwal S, Wickström N. Evaluation of the performance of accelerometer-based gait event detection algorithms in different real-world scenarios using the MAREA gait database. Gait &amp; posture. 2017;51:84-90.</p>
+<p>Jain A, Kanhangad V. Gender classification in smartphones using gait information. Expert Systems with Applications. 2018;93:257-66.</p>
+<p>Lee M, Lee J-H, Kim D-H. Gender recognition using optimal gait feature based on recursive feature elimination in normal walking. Expert Systems with Applications. 2022;189:116040.</p>
+<p>Johnson WE, Li C, Rabinovic A. Adjusting batch effects in microarray expression data using empirical Bayes methods. Biostatistics. 2007;8(1):118-27.</p>
+<p>Tom JA, Reeder J, Forrest WF, Graham RR, Hunkapiller J, Behrens TW, et al. Identifying and mitigating batch effects in whole genome sequencing data. BMC bioinformatics. 2017;18(1):351.</p>
+<p>Fortin J-P, Parker D, Tunç B, Watanabe T, Elliott MA, Ruparel K, et al. Harmonization of multi- site diffusion tensor imaging data. Neuroimage. 2017;161:149-70.</p>
+<p>Pomponio R, Erus G, Habes M, Doshi J, Srinivasan D, Mamourian E, et al. Harmonization of large MRI datasets for the analysis of brain imaging patterns throughout the lifespan. Neuroimage. 2020;208:116450.</p>
+<p>Tassi E, Bianchi AM, Calesella F, Vai B, Bellani M, Nenadic I, et al. Assessment of ComBat Harmonization Performance on Structural Magnetic Resonance Imaging Measurements. Hum Brain Mapp. 2024;45(18):e70085.</p>
+<p>Yu M, Linn KA, Cook PA, Phillips ML, McInnis M, Fava M, et al. Statistical harmonization corrects site effects in functional connectivity measurements from multi-site fMRI data. Hum Brain Mapp. 2018;39(11):4213-27.</p>
+<p>Chen J, Liu J, Calhoun VD, Arias-Vasquez A, Zwiers MP, Gupta CN, et al. Exploration of scanning effects in multi-site structural MRI studies. Journal of neuroscience methods. 2014;230:37- 50.</p>
+<p>Özdemir AT. An analysis on sensor locations of the human body for wearable fall detection devices: Principles and practice. Sensors. 2016;16(8):1161.</p>
+<p>Kok M, Weygers I, Osman H, Weber D, Li R, Seel T, et al. Inertial human motion capture: From biomechanics to recent sensor fusion methods and back. Journal of Biomechanics. 2026:113542.</p>
+<p>Yang CC, Hsu YL. A review of accelerometry-based wearable motion detectors for physical activity monitoring. Sensors (Basel). 2010;10(8):7772-88.</p>
+<p>Chen L, Guo R, Guo R, Chen Y, Wang Y, Zhang S, et al. IMU-based gait analysis methods: a systematic review of techniques for different body locations. Front Sports Act Living. 2026;8:1854615.</p>
+<p>Boerema ST, van Velsen L, Schaake L, Tonis TM, Hermens HJ. Optimal sensor placement for measuring physical activity with a 3D accelerometer. Sensors (Basel). 2014;14(2):3188-206.</p>
+<p>Hausdorff JM. Gait variability: methods, modeling and meaning. J Neuroeng Rehabil. 2005;2:19.</p>
+<p>Hausdorff JM, Cudkowicz ME, Firtion R, Wei JY, Goldberger AL, New Collective A. Gait variability and basal ganglia disorders: stride-to-stride variations of gait cycle timing in Parkinson&#x27;s disease and Huntington&#x27;s disease. Mov Disord. 1998;13(3):428-37.</p>
+<p>Gouelle A, Mégrot F. Interpreting spatiotemporal parameters, symmetry and variability in clinical gait analysis2018 2018.</p>
+<p>Stisen A, Blunck H, Bhattacharya S, Prentow TS, Kjærgaard MB, Dey A, et al., editors. Smart devices are different: Assessing and mitigatingmobile sensing heterogeneities for activity recognition. Proceedings of the 13th ACM conference on embedded networked sensor systems; 2015.</p>
+<p>Frank J. Efficient computational methods for understanding human behaviour from mobile phone data. 2013.</p>
+<p>Freepik. Standing Human Body Silhouette free icon [cited 2025 09.09.]. Available from: https://www.flaticon.com/free-icon/standing-human-body- silhouette_30473?term=human+body+shape&amp;page=1&amp;position=1&amp;origin=search&amp;related_id=30473.</p>
+</div>
+</details>
+</div>
+</div>
+<footer>
+<p>
+If there are things we can improve, please email us at
+<a href="mailto:metacheck@scienceverse.org">metacheck@scienceverse.org</a>
+or leave an issue at
+<a href="https://github.com/scienceverse/metacheck/issues">github.com/scienceverse/metacheck/issues</a>.
+</p>
+</footer>
+
+
+
+<!-- code folding -->
+
+
+
+</body>
+</html>
