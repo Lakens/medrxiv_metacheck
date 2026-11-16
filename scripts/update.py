@@ -30,7 +30,8 @@
 #                     Only for a preprint whose licence allows sharing it
 #                     (OPEN_LICENCES); for the others the full text, tables,
 #                     figure captions and formulas are left out (only counted),
-#                     and the report page gets no full text either.
+#                     and the report page gets no full text either (for "no
+#                     reuse", NO_REUSE_NOTE in its place).
 #
 # Other files in the data folder:
 #   index.json        one line per checked preprint, for the list of reports
@@ -70,9 +71,12 @@ PREFIXES = ("10.64898", "10.1101")                # medRxiv's DOI prefixes, newe
 UA = "medrxiv_metacheck (github.com/Lakens/medrxiv_metacheck)"
 # Licences that allow putting the paper's full text on this site (medRxiv's
 # names). CC BY-NC counts: the site is not commercial. The licences with ND
-# ("no derivatives") do not: the converted text is not the paper as published.
-# cc_no: no reuse allowed. A licence not in this list counts as not open.
-OPEN_LICENCES = {"cc_by", "cc0", "cc0_ng", "cc_by_nc"}
+# ("no derivatives") count too: they allow sharing the paper unchanged, and a
+# change of format is not a change (Daniel, 16 November 2026). cc_no: no reuse
+# allowed. A licence not in this list counts as not open.
+OPEN_LICENCES = {"cc_by", "cc0", "cc0_ng", "cc_by_nc", "cc_by_nd", "cc_by_nc_nd"}
+# what the report page shows in place of the full text for "no reuse"
+NO_REUSE_NOTE = "The full text is not stored as the preprint has a CC-NO license."
 # Two sites send preprints to the SURF server (this one and psyarxiv_metacheck),
 # each only when the server is idle. After its own job ends, a run waits
 # REST_SECONDS before it sends the next one, and a waiting run asks the server
@@ -589,11 +593,15 @@ def drop_converter_note(html):
     return re.sub(r'<div class="metacheck-converter"[^>]*>.*?</div>', "", html, count=1, flags=re.S)
 
 
-def full_text_html(paper):
+def full_text_html(paper, licence=None):
     # the paper's text as metacheck read it (the converted paper's `text`, one
     # row per sentence), as a folded block like the report's own: each
     # section's heading, then its paragraphs. Headings of sections without
     # text of their own (such as "Methods" above "Data") are kept, in order.
+    # For a "no reuse" licence the block holds NO_REUSE_NOTE instead.
+    if licence == "cc_no":
+        return ('<details id="full-text">\n<summary>\nFull text\n</summary>\n<div class="fold">\n<p>'
+                + html_escape(NO_REUSE_NOTE) + "</p>\n</div>\n</details>\n")
     rows = (paper or {}).get("text") or []
     if not rows or paper.get("text_withheld"):     # its licence does not allow it
         return ""
@@ -633,11 +641,11 @@ def full_text_html(paper):
             + "\n".join(out) + "\n</div>\n</details>\n")
 
 
-def add_full_text(html, paper):
+def add_full_text(html, paper, licence=None):
     # the full text as the last folded block of the report's "More detail"
     # section (before the two closing </div>s ahead of the footer); before the
     # footer when the page is laid out differently. Once only.
-    block = full_text_html(paper)
+    block = full_text_html(paper, licence)
     if not block or 'id="full-text"' in html:
         return html
     new, n = re.subn(r"(</div>\s*</div>\s*<footer>)", lambda m: block + m.group(1), html, count=1)
@@ -690,9 +698,9 @@ def has_old_label(html):
     return any(pattern.search(html) for pattern, _ in OLD_LABEL)
 
 
-def decorate_page(html, paper):
+def decorate_page(html, paper, licence=None):
     # this site's changes to the server's report page
-    return relabel(add_way_back(add_full_text(drop_converter_note(html), paper)))
+    return relabel(add_way_back(add_full_text(drop_converter_note(html), paper, licence)))
 
 
 def refresh_pages(site_dir, data_dir):
@@ -706,8 +714,8 @@ def refresh_pages(site_dir, data_dir):
                 and not has_old_label(html)):
             continue
         osf_id = os.path.basename(os.path.dirname(path))
-        paper = load(os.path.join(data_dir, "papers", osf_id + ".json"), {}).get("paper")
-        new = decorate_page(html, paper)
+        record = load(os.path.join(data_dir, "papers", osf_id + ".json"), {})
+        new = decorate_page(html, record.get("paper"), (record.get("preprint") or {}).get("licence"))
         if new != html:
             with open(path, "w", encoding="utf-8", newline="") as f:
                 f.write(new)
@@ -715,7 +723,7 @@ def refresh_pages(site_dir, data_dir):
     return changed
 
 
-def save_page(html, site_dir, osf_id, paper=None):
+def save_page(html, site_dir, osf_id, paper=None, licence=None):
     # the report page in <site_dir>/<osf_id>/index.html; a font or image it
     # carries inside it is linked to the site's copy when the two are the same
     # file, byte for byte, and kept inside the page otherwise
@@ -727,7 +735,7 @@ def save_page(html, site_dir, osf_id, paper=None):
                     return "../" + rel
         return m.group(0)
     html = re.sub(r"data:(font/ttf|image/png);base64,([A-Za-z0-9+/=]+)", link, html)
-    html = decorate_page(html, paper)
+    html = decorate_page(html, paper, licence)
     folder = os.path.join(site_dir, osf_id)
     os.makedirs(folder, exist_ok=True)
     with open(os.path.join(folder, "index.html"), "w", encoding="utf-8", newline="\n") as f:
@@ -835,7 +843,7 @@ def check_one(item, state, index, papers_dir, site_dir):
     # The full text is added to it only for an open licence.
     html = result.pop("report_html", "") or ""
     if html:
-        save_page(html, site_dir, osf_id, result.get("paper") if is_open else None)
+        save_page(html, site_dir, osf_id, result.get("paper") if is_open else None, licence)
     modules = result.get("modules", {})
     now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     preprint = {
