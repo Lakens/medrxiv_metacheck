@@ -85,11 +85,11 @@ NO_REUSE_NOTE = "The full text is not stored as the preprint has a CC-NO license
 REST_SECONDS = 60
 POLL_SECONDS = 15
 # A job is sent while fewer than SERVER_PLACES jobs run on the server (and
-# none waits). Each site has at most one job there, so with 2 the two sites
-# can use both of the server's places at once: during the check again of
-# every preprint (18 November 2026, Daniel). Set it back to 1 afterwards, so
-# one place stays free for other people. psyarxiv_metacheck has the same.
-SERVER_PLACES = 2
+# none waits). Each site has at most one job there. The server has 4 places
+# since 18 November 2026; with 3 here the sites' jobs never take the fourth,
+# which stays free for other people (Daniel, 18 November 2026). psyarxiv_metacheck
+# has the same.
+SERVER_PLACES = 3
 # the checks the SURF server runs for its regular report; with run_code=true the
 # server adds reproducibility_check, which runs the paper's code in the sandbox
 MODULES = ("power,marginal,prereg_check,ethics_check,ref_pubpeer,ref_retraction,"
