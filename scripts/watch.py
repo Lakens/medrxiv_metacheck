@@ -30,6 +30,7 @@
 import argparse
 import datetime as dt
 import glob
+import gzip
 import hashlib
 import json
 import os
@@ -37,6 +38,9 @@ import re
 import subprocess
 import sys
 import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from update import load_result  # noqa: E402  (results are stored gzipped)
 
 # ── This site ────────────────────────────────────────────────────────────────
 REPO = os.environ.get("GITHUB_REPOSITORY", "Lakens/medrxiv_metacheck")
@@ -194,7 +198,7 @@ def module_failures(data_dir):
         failed = [k for k, light in (p.get("lights") or {}).items() if light == "fail"]
         if not failed:
             continue
-        rec = load(os.path.join(data_dir, "papers", p["id"] + ".json"), {})
+        rec = load_result(os.path.join(data_dir, "papers"), p["id"], {})
         reports = {e.get("module"): e.get("report") for e in rec.get("errors") or []}
         by_error = {}
         for mod in failed:
@@ -210,12 +214,17 @@ def module_failures(data_dir):
 
 def keys_removed(data_dir):
     out = []
-    for path in sorted(glob.glob(os.path.join(data_dir, "papers", "*.json"))):
-        with open(path, encoding="utf-8") as f:
+    # results are stored gzipped (<id>.json.gz) since 18 November 2026,
+    # before that as plain <id>.json (update.py, load_result())
+    paths = glob.glob(os.path.join(data_dir, "papers", "*.json.gz")) + \
+        glob.glob(os.path.join(data_dir, "papers", "*.json"))
+    for path in sorted(paths):
+        opener = gzip.open if path.endswith(".gz") else open
+        with opener(path, "rt", encoding="utf-8") as f:
             head = f.read(200000)         # keys_removed stands near the top
         m = re.search(r'"keys_removed": (\{[^}]*\})', head)
         if m and m.group(1) != "{}":
-            osf_id = os.path.basename(path)[:-5]
+            osf_id = re.sub(r"\.json(\.gz)?$", "", os.path.basename(path))
             out.append(("keys", "Keys were removed from results (the authors may want to know)", osf_id,
                         f"[{osf_id}]({SITE}{osf_id}/): {json.loads(m.group(1))}"))
     return out

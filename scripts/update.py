@@ -23,7 +23,7 @@
 #   <site-dir>/<id>/index.html  the server's checklist report, so its address
 #                     ends in the id as medRxiv's does; the font and logo it
 #                     carries are linked to the site's identical copies
-#   <data-dir>/papers/<id>.json  the medRxiv details and everything the server
+#   <data-dir>/papers/<id>.json.gz  the medRxiv details and everything the server
 #                     returned except the report page (saved above), with the
 #                     paper as converted (`paper`: its full text, sections,
 #                     references, tables), which metacheck can read again.
@@ -48,6 +48,7 @@ import base64
 import collections
 import datetime as dt
 import glob
+import gzip
 from html import escape as html_escape, unescape as html_unescape
 import json
 import math
@@ -326,6 +327,56 @@ def save(path, obj):
         f.write("\n")
     os.replace(tmp, path)
 
+# Each preprint's result is stored gzipped, as <papers_dir>/<id>.json.gz (since
+# 18 November 2026): a result can be tens of MB as JSON (79.7 MB for the
+# largest medRxiv one), close to GitHub's limit of 100 MB per file, and gzip
+# makes results about 8 times smaller. Results stored before are plain
+# <id>.json: convert_results() gzips them at the start of a run, and
+# load_result() reads either. The gzip header holds no time or file name, so
+# the same result always gives the same file.
+def result_paths(papers_dir, osf_id):
+    base = os.path.join(papers_dir, osf_id)
+    return base + ".json.gz", base + ".json"
+
+
+def load_result(papers_dir, osf_id, default=None):
+    # the stored result (a dict), or `default` when there is none; when both a
+    # gzipped and a plain file exist (a run of the older script wrote one after
+    # the change), the one checked last
+    found = []
+    for path in result_paths(papers_dir, osf_id):
+        try:
+            opener = gzip.open if path.endswith(".gz") else open
+            with opener(path, "rt", encoding="utf-8") as f:
+                found.append(json.load(f))
+        except FileNotFoundError:
+            pass
+    if not found:
+        return default
+    return max(found, key=lambda r: str(r.get("checked") or ""))
+
+
+def save_result_file(papers_dir, osf_id, obj):
+    # writes the result gzipped and removes a plain file of the same preprint
+    gz, plain = result_paths(papers_dir, osf_id)
+    data = (json.dumps(obj, ensure_ascii=False, indent=1) + "\n").encode("utf-8")
+    tmp = gz + ".tmp"
+    with open(tmp, "wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as f:
+        f.write(data)
+    os.replace(tmp, gz)
+    if os.path.exists(plain):
+        os.remove(plain)
+
+
+def convert_results(papers_dir):
+    # gzips every result still stored as plain JSON; returns how many
+    n = 0
+    for plain in sorted(glob.glob(os.path.join(papers_dir, "*.json"))):
+        osf_id = os.path.basename(plain)[:-len(".json")]
+        save_result_file(papers_dir, osf_id, load_result(papers_dir, osf_id))
+        n += 1
+    return n
+
 
 def split_id(pid):
     # "2026.04.04.26349881v2" -> ("2026.04.04.26349881", 2)
@@ -364,7 +415,7 @@ def queue_reruns(state, index, papers_dir):
     for osf_id, line in index.items():
         if osf_id in waiting or osf_id in state["rerun_failed"]:
             continue
-        result = load(os.path.join(papers_dir, osf_id + ".json"), None)
+        result = load_result(papers_dir, osf_id)
         if result and not is_current(result):
             todo.append({"id": osf_id, "doi": line.get("doi"), "published": line.get("published"),
                          "source": "rerun"})
@@ -787,7 +838,7 @@ def refresh_pages(site_dir, data_dir):
                 and not has_old_label(html)):
             continue
         osf_id = os.path.basename(os.path.dirname(path))
-        record = load(os.path.join(data_dir, "papers", osf_id + ".json"), {})
+        record = load_result(os.path.join(data_dir, "papers"), osf_id, {})
         new = decorate_page(html, record.get("paper"), (record.get("preprint") or {}).get("licence"))
         if new != html:
             with open(path, "w", encoding="utf-8", newline="") as f:
@@ -915,7 +966,7 @@ def check_one(item, state, index, papers_dir, site_dir):
 
 
 def save_result(osf_id, result, preprint, stored, index, papers_dir, site_dir, extra=None):
-    # the server's result as <papers_dir>/<osf_id>.json and the report page,
+    # the server's result as <papers_dir>/<osf_id>.json.gz and the report page,
     # with every key in them removed and, for a licence that does not allow
     # sharing the paper, without its text; the preprint's line in the index.
     # extra: fields that go in the result file before the server's own
@@ -957,7 +1008,7 @@ def save_result(osf_id, result, preprint, stored, index, papers_dir, site_dir, e
     paper.update(extra or {})
     # anything else the server returned is kept as well
     paper.update({k: v for k, v in result.items() if k not in paper})
-    save(os.path.join(papers_dir, osf_id + ".json"), paper)
+    save_result_file(papers_dir, osf_id, paper)
     index[osf_id] = {"id": osf_id, "base_id": preprint["id"], "version": preprint["version"],
                      "doi": preprint["doi"], "title": preprint["title"], "authors": preprint["authors"],
                      "published": preprint["published"], "url": preprint["url"],
@@ -979,7 +1030,7 @@ def recheck_one(item, state, index, papers_dir, site_dir):
     # result as it is. Returns "done", "skipped", "failed" or "busy", as
     # check_one().
     osf_id = item["id"]
-    old = load(os.path.join(papers_dir, osf_id + ".json"), None)
+    old = load_result(papers_dir, osf_id)
     if not old or osf_id not in index or is_current(old):
         return "skipped"
     preprint = old.get("preprint") or {}
@@ -1406,7 +1457,7 @@ def update_module_lists(data_dir, index, osf_ids=()):
             papers = {p["id"]: p for p in old["papers"]}
             todo = list(dict.fromkeys(list(osf_ids) + [i for i in index if i not in seen]))
         for osf_id in todo:
-            result = load(os.path.join(data_dir, "papers", osf_id + ".json"), None)
+            result = load_result(os.path.join(data_dir, "papers"), osf_id, None)
             found = findings(result) if result and osf_id in index else None
             if not found:
                 papers.pop(osf_id, None)
@@ -1521,6 +1572,18 @@ def main():
 
     papers_dir = os.path.join(args.data_dir, "papers")
     os.makedirs(papers_dir, exist_ok=True)
+    # results stored as plain JSON before 18 November 2026 (or by a run of the
+    # older script) are gzipped first, in a commit of their own
+    n = convert_results(papers_dir)
+    if n:
+        print(f"Gzipped {n} results that were stored as plain JSON.", flush=True)
+        if args.push and stage():
+            git("commit", "-q", "-m", f"Store {n} results gzipped (data/papers/<id>.json.gz)")
+            try:
+                if push() is not None:
+                    print("GitHub refused the gzipped results; they go with the next commit.", flush=True)
+            except NotStored as e:
+                print("The gzipped results could not be stored yet; they go with the next commit:", e, flush=True)
     state_path = os.path.join(args.data_dir, "state.json")
     state = load(state_path, {"newest": None, "backfill_day": None, "backfill_sent": 0,
                               "queue": [], "tries": {}, "skipped": {}, "failed": {}})

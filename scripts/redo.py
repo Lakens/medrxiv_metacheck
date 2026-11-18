@@ -126,7 +126,7 @@ def main():
         # with the lines of the preprints checked again
         index = {p["id"]: p for p in load(os.path.join(args.data_dir, "index.json"), {"papers": []})["papers"]}
         for osf_id in done:
-            index[osf_id] = index_line(load(os.path.join(papers_dir, osf_id + ".json"), None))
+            index[osf_id] = index_line(update.load_result(papers_dir, osf_id))
         update.write_index_and_tally(args.data_dir, index, done)
     print(f"Checked again: {', '.join(done) or 'none'}")
 

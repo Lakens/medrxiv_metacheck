@@ -20,7 +20,7 @@ import urllib.parse
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from update import (RAN_THROUGH, OUTCOME_REASON, CURRENT_FROM, data_rows, is_current, load,  # noqa: E402
+from update import (RAN_THROUGH, OUTCOME_REASON, CURRENT_FROM, data_rows, is_current, load, load_result,  # noqa: E402
                     reproducibility_findings, true)
 
 TOP = 30                # entries in each list of the most frequent
@@ -126,7 +126,11 @@ def year_of(s):
 
 
 def top(counter, n=TOP):
-    return [[k, v] for k, v in counter.most_common(n)]
+    # the n most frequent, equal counts in alphabetical order, so the same
+    # results always give the same list (most_common() keeps the order in
+    # which the items were counted, which differs from run to run)
+    items = sorted(counter.items(), key=lambda kv: (-kv[1], str(kv[0])))
+    return [[k, v] for k, v in items[:n]]
 
 
 def r3(x):
@@ -450,9 +454,8 @@ def main():
     # with an earlier metacheck are left out until they have been checked again
     results, not_current = [], 0
     for item in index:
-        path = os.path.join(data_dir, "papers", item["id"] + ".json")
-        if os.path.exists(path):
-            result = load(path, {})
+        result = load_result(os.path.join(data_dir, "papers"), item["id"])
+        if result is not None:
             if is_current(result):
                 results.append((item, result))
             else:
