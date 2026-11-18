@@ -1317,7 +1317,8 @@ fetch("../data/totals.json", { cache: "no-cache" })
       p.date = toDate(p.pub); p.cdate = toDate(p.chk);
     });
     var up = toDate(D.updated);
-    document.getElementById("updated").textContent = fmt(P.length) + " preprints, counted on " + dayYear(up) + ".";
+    document.getElementById("updated").textContent = fmt(P.length) + " preprints, counted on " + dayYear(up) + "." +
+      (D.not_current ? " " + fmt(D.not_current) + " preprints checked with an earlier version of Metacheck are left out until they have been checked again." : "");
     sectionsBox.innerHTML = "";
     section("open", "Open science", "", drawOpen);
     section("ethics", "Ethics approval", "", drawEthics);

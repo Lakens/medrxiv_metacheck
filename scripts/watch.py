@@ -19,7 +19,9 @@
 #   - a module that failed (traffic light "fail") in a stored report, one kind
 #     per module and error message, one case per preprint
 #   - preprints listed as failed in data/state.json (their job failed twice,
-#     or GitHub refused the result), one kind per reason
+#     or GitHub refused the result), and new checks with the current
+#     Metacheck that failed twice (rerun_failed; the earlier report stays),
+#     one kind per reason
 #   - keys removed from a result (the authors may want to know)
 # What each issue reported is kept in the issue itself, in a line the issue
 # page does not show. The single issue "Problems with the runs" of the earlier
@@ -51,12 +53,18 @@ def preprint_link(osf_id, state):
 
 
 def site_failures(state):
-    # [(kind, title, case, text)] for the preprints this site lists as failed
+    # [(kind, title, case, text)] for the preprints this site lists as failed,
+    # and for the new checks with the current Metacheck that failed (the
+    # earlier report stays)
     out = []
     for osf_id, why in sorted((state.get("failed") or {}).items()):
         k = error_kind(why)
         out.append((f"failed:{k}", f"Preprints that failed and are not tried again: {k}",
                     osf_id, f"{preprint_link(osf_id, state)}: {why}"))
+    for osf_id, why in sorted((state.get("rerun_failed") or {}).items()):
+        k = error_kind(why)
+        out.append((f"rerun-failed:{k}", f"New checks with the current Metacheck that failed: {k}",
+                    osf_id, f"[{osf_id}]({SITE}{osf_id}/) (its earlier report stays): {why}"))
     return out
 # ─────────────────────────────────────────────────────────────────────────────
 

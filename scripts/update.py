@@ -84,6 +84,12 @@ NO_REUSE_NOTE = "The full text is not stored as the preprint has a CC-NO license
 # take turns. psyarxiv_metacheck's update.py has the same two numbers.
 REST_SECONDS = 60
 POLL_SECONDS = 15
+# A job is sent while fewer than SERVER_PLACES jobs run on the server (and
+# none waits). Each site has at most one job there, so with 2 the two sites
+# can use both of the server's places at once: during the check again of
+# every preprint (18 November 2026, Daniel). Set it back to 1 afterwards, so
+# one place stays free for other people. psyarxiv_metacheck has the same.
+SERVER_PLACES = 2
 # the checks the SURF server runs for its regular report; with run_code=true the
 # server adds reproducibility_check, which runs the paper's code in the sandbox
 MODULES = ("power,marginal,prereg_check,ethics_check,ref_pubpeer,ref_retraction,"
@@ -93,6 +99,15 @@ MAX_BYTES = 50 * 1024 ** 2      # the server refuses larger files (api.R MAX_UPL
 JOB_WAIT_MINUTES = 85           # the server stops a job after 70 minutes (60, and 10 for its report)
 MAX_TRIES = 2                   # a preprint whose job fails is tried this often
 BACKFILL_LIMIT = 1000           # older preprints sent to the server, at most
+# A result is current when metacheck CURRENT_FROM or newer made it, after
+# CURRENT_SINCE: the moment that version was installed on the SURF server.
+# Older results are checked again (`rerun`), with the files their check
+# downloaded (on pCloud), after new preprints and before older days; the page
+# of totals counts only current results. Raise these two to check every
+# preprint again after a later improvement of metacheck.
+CURRENT_FROM = "0.4.4.18"
+CURRENT_SINCE = "2026-11-18T18:31:57+00:00"   # metacheck 0.4.4.18 installed on the server
+MAX_REQUEST = 495 * 1024 ** 2   # the server takes at most 500 MB in one request (api.R)
 FIRST_DAY = dt.date(2019, 6, 1)  # medRxiv's first preprints (25 June 2019)
 # the report pages' folders: a digit first, then a "v" and a digit
 # (2026.04.04.26349881v2, 19000109v1); the site's other folders have no digit
@@ -324,6 +339,43 @@ def reported(index, osf_id):
     return any(p["base_id"] == base and p["version"] >= version for p in index.values())
 
 
+def version_key(v):
+    # "0.4.4.5" as (0, 4, 4, 5), to compare versions; () when there is none
+    return tuple(int(x) for x in re.findall(r"\d+", str(v or "")))
+
+
+def is_current(result):
+    # made by metacheck CURRENT_FROM or newer, on the server as it is since
+    # CURRENT_SINCE (see there)
+    checked = dt.datetime.fromisoformat(result.get("checked") or "2000-01-01T00:00:00+00:00")
+    if checked.tzinfo is None:
+        checked = checked.replace(tzinfo=dt.timezone.utc)
+    return (version_key(result.get("metacheck_version")) >= version_key(CURRENT_FROM)
+            and checked >= dt.datetime.fromisoformat(CURRENT_SINCE))
+
+
+def queue_reruns(state, index, papers_dir):
+    # every checked preprint whose result is not current, newest first, after
+    # the new preprints (and --redo) at the front of the queue and before the
+    # older ones; not those already waiting, nor those whose new check failed
+    # (`rerun_failed`). Returns how many were added.
+    waiting = {q["id"] for q in state["queue"]}
+    todo = []
+    for osf_id, line in index.items():
+        if osf_id in waiting or osf_id in state["rerun_failed"]:
+            continue
+        result = load(os.path.join(papers_dir, osf_id + ".json"), None)
+        if result and not is_current(result):
+            todo.append({"id": osf_id, "doi": line.get("doi"), "published": line.get("published"),
+                         "source": "rerun"})
+    todo.sort(key=lambda q: q["published"] or "", reverse=True)
+    front = 0
+    while front < len(state["queue"]) and state["queue"][front]["source"] in ("new", "redo"):
+        front += 1
+    state["queue"][front:front] = todo
+    return len(todo)
+
+
 def known(state, index, osf_id):
     # waiting, skipped, failed, or reported
     if osf_id in state["skipped"] or osf_id in state["failed"]:
@@ -382,20 +434,22 @@ def withdrawn(rec):
             or bool(re.match(r"\W*withdrawal statement", rec.get("abstract") or "", re.I)))
 
 
-def run_job(name, data, ctype):
+def run_job(name, data, ctype, downloaded=None):
     # a check returns the JSON result; report=true adds the report page
     # (report_html), paper=true the paper as converted (`paper`: its full text,
     # sections, references, tables, ..., as metacheck reads it). With pCloud
     # (pcloud_on()), keep_files=true: the server also keeps what the checks
     # downloaded and the folders the code ran in, as a .zip, fetched here.
-    # Returns the result, an error, and what the server said about the kept
-    # files (its `files`, with `zip`: where the .zip was saved, or `error`).
+    # downloaded: the .zip an earlier check kept (bytes), whose files the
+    # server uses instead of fetching them again. Returns the result, an error,
+    # and what the server said about the kept files (its `files`, with `zip`:
+    # where the .zip was saved, or `error`).
     fields = {"kind": "check", "report": "true", "paper": "true", "report_type": "checklist",
               "modules": MODULES, "run_code": "true", "crossref": "true"}
     if pcloud_on():
         fields["keep_files"] = "true"
     try:
-        job = post_job(fields, file=(name, data, ctype))
+        job = post_job(fields, file=(name, data, ctype), downloaded=downloaded)
     except urllib.error.HTTPError as e:
         if e.code >= 500:
             raise ServerDown(f"the server answered {e.code}")
@@ -498,10 +552,28 @@ def pcloud_upload(folder, name, data=None, path=None):
                  "Content-Length": str(len(head) + size + len(tail))}, timeout=1800)
 
 
+def pcloud_fetch(path, limit):
+    # the bytes of a file on pCloud; None (with the reason printed) when it is
+    # larger than `limit` bytes or cannot be fetched
+    try:
+        size = pcloud_call("stat", {"path": path})["metadata"]["size"]
+        if size > limit:
+            print(f"{path}: {size // 1024 ** 2} MB, too large to send with the check", flush=True)
+            return None
+        link = pcloud_call("getfilelink", {"path": path})
+        req = urllib.request.Request(f"https://{link['hosts'][0]}{link['path']}", headers={"User-Agent": UA})
+        with urllib.request.urlopen(req, timeout=1800) as r:
+            return r.read()
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError, KeyError, PcloudError) as e:
+        print(f"{path}: could not be fetched from pCloud ({e})", flush=True)
+        return None
+
+
 def store_on_pcloud(osf_id, name, data, kept):
-    # the preprint's file and the kept .zip in PCLOUD_FOLDER/<osf_id>/; returns
-    # what is stored there (for the result file), or raises PcloudError. The
-    # .zip's temporary file is deleted either way.
+    # the preprint's file (data: None when it is already there, as for a
+    # rerun) and the kept .zip in PCLOUD_FOLDER/<osf_id>/; returns what is
+    # stored there (for the result file), or raises PcloudError. The .zip's
+    # temporary file is deleted either way.
     folder = f"{PCLOUD_FOLDER}/{osf_id}"
     kept = dict(kept or {})
     zip_path = kept.pop("zip", None)
@@ -509,7 +581,8 @@ def store_on_pcloud(osf_id, name, data, kept):
         for attempt in range(3):
             try:
                 pcloud_call("createfolderifnotexists", {"path": folder})
-                pcloud_upload(folder, name, data=data)
+                if data is not None:
+                    pcloud_upload(folder, name, data=data)
                 if zip_path:
                     pcloud_upload(folder, "files.zip", path=zip_path)
                 break
@@ -524,10 +597,10 @@ def store_on_pcloud(osf_id, name, data, kept):
             "files_zip": "files.zip" if zip_path else None, "kept_files": kept}
 
 
-# One preprint at a time on the server, so that one of its two places stays
-# free for other people: the job this script has on the server is kept in
-# <data-dir>/current_job.json (committed with the data, so the next run sees
-# it, even when GitHub stopped this one), and no job is sent while it runs.
+# One preprint of this site at a time on the server (see SERVER_PLACES): the
+# job this script has on the server is kept in <data-dir>/current_job.json
+# (committed with the data, so the next run sees it, even when GitHub stopped
+# this one), and no job is sent while it runs.
 CURRENT_JOB = os.path.join("data", "current_job.json")   # set in main()
 
 
@@ -543,11 +616,11 @@ def remember_job(job_id):
 
 
 def server_idle():
-    # True when the server answers and has no job running or waiting (also
-    # not one of ours left by an earlier run, whose record is cleared once it
-    # has finished); False otherwise, also when it cannot be reached. False
-    # too in the REST_SECONDS after this run's own job ended, so that the
-    # other site's run gets its turn.
+    # True when the server answers, runs fewer than SERVER_PLACES jobs and
+    # has none waiting, and no job of ours left by an earlier run is still
+    # there (its record is cleared once it has finished); False otherwise,
+    # also when it cannot be reached. False too in the REST_SECONDS after this
+    # run's own job ended, so that the other site's run gets its turn.
     if time.time() - LAST_JOB_END < REST_SECONDS:
         return False
     try:
@@ -556,7 +629,7 @@ def server_idle():
         health = get(f"{SERVER}/health", tries=1)
     except (urllib.error.URLError, TimeoutError, ValueError):
         return False
-    return (health.get("status") == "ok" and not health.get("jobs_running")
+    return (health.get("status") == "ok" and (health.get("jobs_running") or 0) < SERVER_PLACES
             and not health.get("jobs_waiting"))
 
 
@@ -762,15 +835,16 @@ def withhold_text(paper):
     return out
 
 
-def fail(state, osf_id, error, doi=None):
+def fail(state, osf_id, error, doi=None, rerun=False):
     # one more failed try; after MAX_TRIES the preprint is listed as failed
-    # (with its DOI in failed_doi, for the link in watch.py's issue)
-    if doi:
+    # (with its DOI in failed_doi, for the link in watch.py's issue), or, for
+    # a check again (rerun) that keeps the earlier result, under rerun_failed
+    if doi and not rerun:
         state.setdefault("failed_doi", {})[osf_id] = doi
     state["tries"][osf_id] = state["tries"].get(osf_id, 0) + 1
     print(f"{osf_id}: failed (try {state['tries'][osf_id]}): {error}", flush=True)
     if state["tries"][osf_id] >= MAX_TRIES:
-        state["failed"][osf_id] = error
+        state["rerun_failed" if rerun else "failed"][osf_id] = error
         del state["tries"][osf_id]
     return "failed"
 
@@ -778,6 +852,8 @@ def fail(state, osf_id, error, doi=None):
 def check_one(item, state, index, papers_dir, site_dir):
     # returns "done", "skipped", "failed", or "busy" (the server became busy
     # during the download; nothing changed)
+    if item["source"] == "rerun":
+        return recheck_one(item, state, index, papers_dir, site_dir)
     osf_id = item["id"]      # the name is psyarxiv_metacheck's; here a medRxiv id
     base, version = split_id(osf_id)
     doi = doi_of(item, index)
@@ -827,13 +903,29 @@ def check_one(item, state, index, papers_dir, site_dir):
             state.setdefault("not_stored", {})[osf_id] = str(e)[:300]
             print(f"{osf_id}: not stored on pCloud: {e}", flush=True)
     state["tries"].pop(osf_id, None)
+    preprint = {
+        "id": base, "version": version, "osf_id": osf_id,
+        "url": url, "doi": doi, "article_doi": rec.get("published") if rec.get("published") != "NA" else None,
+        "title": rec.get("title"), "authors": authors_of(rec), "published": rec.get("date"),
+        "file": name, "licence": rec.get("license") or "", "category": rec.get("category"),
+        "corresponding_institution": rec.get("author_corresponding_institution"),
+    }
+    save_result(osf_id, result, preprint, stored, index, papers_dir, site_dir)
+    return "done"
+
+
+def save_result(osf_id, result, preprint, stored, index, papers_dir, site_dir, extra=None):
+    # the server's result as <papers_dir>/<osf_id>.json and the report page,
+    # with every key in them removed and, for a licence that does not allow
+    # sharing the paper, without its text; the preprint's line in the index.
+    # extra: fields that go in the result file before the server's own
     keys = {}
     result = remove_keys(result, keys)
     if keys:
         print(f"{osf_id}: removed {sum(keys.values())} key(s) from the result: {keys}", flush=True)
 
     # a licence that does not allow sharing the paper: its text is left out
-    licence = rec.get("license") or ""
+    licence = preprint.get("licence") or ""
     is_open = licence in OPEN_LICENCES
     if not is_open and isinstance(result.get("paper"), dict):
         result["paper"] = withhold_text(result["paper"])
@@ -846,13 +938,6 @@ def check_one(item, state, index, papers_dir, site_dir):
         save_page(html, site_dir, osf_id, result.get("paper") if is_open else None, licence)
     modules = result.get("modules", {})
     now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
-    preprint = {
-        "id": base, "version": version, "osf_id": osf_id,
-        "url": url, "doi": doi, "article_doi": rec.get("published") if rec.get("published") != "NA" else None,
-        "title": rec.get("title"), "authors": authors_of(rec), "published": rec.get("date"),
-        "file": name, "licence": licence, "category": rec.get("category"),
-        "corresponding_institution": rec.get("author_corresponding_institution"),
-    }
     paper = {
         "preprint": preprint,
         "checked": now,
@@ -869,15 +954,89 @@ def check_one(item, state, index, papers_dir, site_dir):
         "paper_info": result.get("paper_info"),
         "modules": modules,
     }
+    paper.update(extra or {})
     # anything else the server returned is kept as well
     paper.update({k: v for k, v in result.items() if k not in paper})
     save(os.path.join(papers_dir, osf_id + ".json"), paper)
-    index[osf_id] = {"id": osf_id, "base_id": base, "version": version, "doi": doi,
-                     "title": preprint["title"], "authors": preprint["authors"],
+    index[osf_id] = {"id": osf_id, "base_id": preprint["id"], "version": preprint["version"],
+                     "doi": preprint["doi"], "title": preprint["title"], "authors": preprint["authors"],
                      "published": preprint["published"], "url": preprint["url"],
                      "checked": now, "report_page": bool(html),
                      "lights": {k: m.get("traffic_light") for k, m in modules.items()}}
     print(f"{osf_id}: saved", flush=True)
+
+
+def recheck_one(item, state, index, papers_dir, site_dir):
+    # a preprint checked before, checked again with the current metacheck
+    # (queue_reruns()): from the paper as converted that its result holds,
+    # so the file is neither downloaded nor converted again, and with the
+    # files its check downloaded (files.zip on pCloud), so the repositories
+    # are not asked for them again; files not in it are downloaded as usual.
+    # A result whose paper has its text left out (a licence that did not allow
+    # sharing it, withhold_text()) cannot be checked from it: then the PDF is
+    # sent, from pCloud when it is there and otherwise from medRxiv. The
+    # preprint's details are those saved. A check that fails leaves the saved
+    # result as it is. Returns "done", "skipped", "failed" or "busy", as
+    # check_one().
+    osf_id = item["id"]
+    old = load(os.path.join(papers_dir, osf_id + ".json"), None)
+    if not old or osf_id not in index or is_current(old):
+        return "skipped"
+    preprint = old.get("preprint") or {}
+    was = old.get("pcloud") or {}
+    paper = old.get("paper")
+    if isinstance(paper, dict) and not paper.get("text_withheld"):
+        data = json.dumps(paper, ensure_ascii=False).encode("utf-8")
+        name, ctype, what = osf_id + ".json", "application/json", "the converted paper"
+    else:
+        data = None
+        if pcloud_on() and was.get("folder") and was.get("preprint_file"):
+            data = pcloud_fetch(f"{was['folder']}/{was['preprint_file']}", MAX_BYTES)
+        if data is None and preprint.get("url"):
+            data = get(preprint["url"] + ".full.pdf", raw=True)
+        if not data or not data.startswith(b"%PDF"):
+            return fail(state, osf_id, "no PDF to check again (not on pCloud, and medRxiv did not give one)",
+                        rerun=True)
+        name, ctype, what = preprint.get("file") or osf_id + ".full.pdf", "application/pdf", "the PDF"
+    if len(data) > MAX_BYTES:
+        state["rerun_failed"][osf_id] = f"{what} is larger than 50 MB"
+        return "skipped"
+    downloaded = None
+    if pcloud_on() and was.get("folder") and was.get("files_zip"):
+        downloaded = pcloud_fetch(f"{was['folder']}/{was['files_zip']}", MAX_REQUEST - len(data))
+        if downloaded is None:
+            print(f"{osf_id}: its files are downloaded again", flush=True)
+    # asked again just before sending, as in check_one()
+    if not server_idle():
+        return "busy"
+    print(f"{osf_id}: checking again (made with metacheck {old.get('metacheck_version')}), from {what} "
+          f"({len(data) // 1024} KB)" + (f" and its earlier downloads "
+          f"({len(downloaded) // 1024} KB)" if downloaded else ""), flush=True)
+    result, error, kept = run_job(name, data, ctype, downloaded)
+    if error:
+        return fail(state, osf_id, error, rerun=True)
+    stored = was or None
+    if pcloud_on():
+        try:
+            # the preprint's file is on pCloud already when `was` names it,
+            # and is stored now when it was not; the new files.zip replaces
+            # the old one (pCloud keeps that as a revision), and when there is
+            # no new one the old one stays
+            pdf = data if ctype == "application/pdf" and not was.get("preprint_file") else None
+            stored = store_on_pcloud(osf_id, was.get("preprint_file") or name, pdf, kept)
+            if not stored["files_zip"] and was.get("files_zip"):
+                stored["files_zip"] = was["files_zip"]
+            state.setdefault("not_stored", {}).pop(osf_id, None)
+        except PcloudError as e:
+            state.setdefault("not_stored", {})[osf_id] = str(e)[:300]
+            print(f"{osf_id}: not stored on pCloud: {e}", flush=True)
+    state["tries"].pop(osf_id, None)
+    # the server says "converter": null for a paper sent as converted
+    if not result.get("converter"):
+        result["converter"] = old.get("converter")
+    save_result(osf_id, result, preprint, stored, index, papers_dir, site_dir,
+                extra={"rerun_of": {"metacheck_version": old.get("metacheck_version"),
+                                    "checked": old.get("checked")}})
     return "done"
 
 
@@ -1387,6 +1546,11 @@ def main():
         state["failed"].pop(osf_id, None)
         state["queue"] = [q for q in state["queue"] if q["id"] != osf_id]
         state["queue"].insert(0, {"id": osf_id, "published": None, "source": "redo"})
+    # the preprints whose result is not current, checked again (CURRENT_FROM)
+    state.setdefault("rerun_failed", {})
+    n = queue_reruns(state, {**held, **index}, papers_dir)
+    if n:
+        print(f"{n} preprints with an older result are waiting to be checked again.", flush=True)
     try:
         while time.time() < stop_at and (args.max == 0 or sent < args.max):
             try:
@@ -1418,8 +1582,8 @@ def main():
                 if not pause(stop_at, 600):
                     break
                 continue
-            # one preprint at a time, and only when the server is otherwise
-            # idle: nothing running or waiting there, ours or anyone's
+            # one preprint at a time, and only when the server has a place
+            # free (SERVER_PLACES) and nothing waiting, ours or anyone's
             if not server_idle():
                 if said != "busy":
                     print("The server is busy or cannot be reached; waiting until it is idle.", flush=True)
@@ -1435,7 +1599,8 @@ def main():
                 raise
             except (urllib.error.URLError, TimeoutError, KeyError, TypeError, ValueError) as e:
                 # a medRxiv answer that could not be read: tried again later
-                outcome = fail(state, item["id"], f"{type(e).__name__}: {e}", item.get("doi"))
+                outcome = fail(state, item["id"], f"{type(e).__name__}: {e}", item.get("doi"),
+                               rerun=item["source"] == "rerun")
             if outcome == "busy":       # the server became busy during the download
                 continue
             state["queue"].pop(0)

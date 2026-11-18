@@ -20,8 +20,8 @@ import urllib.parse
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from update import (RAN_THROUGH, OUTCOME_REASON, data_rows, load, reproducibility_findings,  # noqa: E402
-                    true)
+from update import (RAN_THROUGH, OUTCOME_REASON, CURRENT_FROM, data_rows, is_current, load,  # noqa: E402
+                    reproducibility_findings, true)
 
 TOP = 30                # entries in each list of the most frequent
 LIGHT_CODE = {"red": "r", "yellow": "y", "green": "g", "info": "i", "na": "n", "fail": "f"}
@@ -446,11 +446,17 @@ def main():
            "qualtrics": set(), "data_issues": C(), "careless_reasons": C(),
            "retraction_kinds": C(), "replication_outcomes": C()}
 
-    results = []
+    # only the results that are current (update.py, is_current()): those made
+    # with an earlier metacheck are left out until they have been checked again
+    results, not_current = [], 0
     for item in index:
         path = os.path.join(data_dir, "papers", item["id"] + ".json")
         if os.path.exists(path):
-            results.append((item, load(path, {})))
+            result = load(path, {})
+            if is_current(result):
+                results.append((item, result))
+            else:
+                not_current += 1
     # the checks, in the order of the report (the order the server gives)
     for _, result in results:
         for m, v in (result.get("modules") or {}).items():
@@ -473,6 +479,9 @@ def main():
         "preprints_on_medrxiv": tally.get("preprints"),
         "waiting": len(state.get("queue") or []),
         "failed": len(state.get("failed") or {}),
+        # checked preprints left out: their result is older (see above)
+        "not_current": not_current,
+        "current_from": CURRENT_FROM,
         "modules": [{"id": m, "title": acc["titles"][m]} for m in acc["modules"]],
         "light_codes": {v: k for k, v in LIGHT_CODE.items()},
         "section_codes": {v: k for k, v in SECTION_CODE.items()},

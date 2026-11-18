@@ -20,7 +20,10 @@ DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 MODULES = "repo_check,code_check,data_check"
 
 
-def post_job(fields, file=None):
+def post_job(fields, file=None, downloaded=None):
+    # downloaded: the bytes of the files.zip of an earlier check with
+    # keep_files, whose downloaded files the server uses instead of fetching
+    # them again (surf-research-cloud, api.R)
     boundary = uuid.uuid4().hex
     body = b""
     for key, value in fields.items():
@@ -29,6 +32,9 @@ def post_job(fields, file=None):
         name, data, ctype = file
         body += (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{name}"\r\n'
                  f"Content-Type: {ctype}\r\n\r\n").encode() + data + b"\r\n"
+    if downloaded is not None:
+        body += (f'--{boundary}\r\nContent-Disposition: form-data; name="downloaded"; filename="files.zip"\r\n'
+                 "Content-Type: application/zip\r\n\r\n").encode() + downloaded + b"\r\n"
     body += f"--{boundary}--\r\n".encode()
     req = urllib.request.Request(f"{SERVER}/jobs", data=body, method="POST",
                                  headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
