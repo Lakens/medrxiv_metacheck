@@ -106,8 +106,8 @@ BACKFILL_LIMIT = 1000           # older preprints sent to the server, at most
 # downloaded (on pCloud), after new preprints and before older days; the page
 # of totals counts only current results. Raise these two to check every
 # preprint again after a later improvement of metacheck.
-CURRENT_FROM = "0.4.4.18"
-CURRENT_SINCE = "2026-11-18T18:31:57+00:00"   # metacheck 0.4.4.18 installed on the server
+CURRENT_FROM = "0.4.4.25"
+CURRENT_SINCE = "2026-11-19T09:10:35+00:00"   # metacheck 0.4.4.25 installed on the server
 MAX_REQUEST = 495 * 1024 ** 2   # the server takes at most 500 MB in one request (api.R)
 FIRST_DAY = dt.date(2019, 6, 1)  # medRxiv's first preprints (25 June 2019)
 # the report pages' folders: a digit first, then a "v" and a digit
@@ -1599,6 +1599,19 @@ def main():
     listed_at = 0.0      # when medRxiv's list was last read
     changed = False
     said = None          # the last waiting message printed, so it is printed once
+    # data/redo.txt: preprints to check again first, one identifier per line
+    # (lines starting with # are left out), as with --redo; for example the
+    # ones listed as failed, after a fix in metacheck. A run reads it once and
+    # removes it, and the removal is committed with the run's data/ (stage()).
+    # A run started by hand cannot carry them: the next run of the series,
+    # waiting in the same concurrency group, would take its place.
+    redo_file = os.path.join(args.data_dir, "redo.txt")
+    if os.path.exists(redo_file):
+        with open(redo_file, encoding="utf-8") as f:
+            extra = [l.strip() for l in f if l.strip() and not l.lstrip().startswith("#")]
+        args.redo = list(dict.fromkeys(list(args.redo) + extra))
+        os.remove(redo_file)
+        print(f"{len(extra)} preprints from data/redo.txt are checked again first.", flush=True)
     # --redo: these go first; their index lines are set aside so they count as
     # not yet checked, and come back if their new check does not succeed
     held = {}
