@@ -198,7 +198,7 @@ episode-fatality 1 ratios for childhood lower respiratory infections in
 204 countries, 1990-2023 2
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.2 · DOI 10.64898/2026.09.01.26361942
+2026-11-19 · Metacheck 0.4.4.25 · DOI 10.64898/2026.09.01.26361942
 </p>
 </header>
 <div class="mc-main">
@@ -316,8 +316,8 @@ Your Statistical Inferences</a>.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 6 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 6 detected.</p>
 </div>
 </div>
 </div>
@@ -414,8 +414,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -789,7 +790,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -804,9 +806,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -819,13 +839,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -845,6 +868,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -852,12 +881,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -958,6 +993,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -997,6 +1052,21 @@ text (93 of 95) and 90% in reference lists (74 of 82); the labels were
 made by Claude agents from each link’s evidence, and disputed ones
 checked against the deposits. Telling this paper’s own deposit from the
 authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1252,19 +1322,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1374,6 +1526,131 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background Lower respiratory infections (LRI) remain the leading infectious cause of death in children, and survival once ill is a direct tracer of health-system quality. Whether countries are converging toward the best survival performance achieved within their own region has never been tested at national level.</p>
+<p>We measured each country&#x27;s distance to an empirical episode-fatality-ratio (EFR) frontier in 204 countries from 1990 to 2023.</p>
+<p>For each country and year we computed EFR = LRI deaths/incident episodes using Global Burden of Disease (GBD) 2023 estimates for ages 0-19 years. Deaths span the full 1990-2023 series; episodes are observed for 1990, 2019 and 2023, with intermediate years linearly interpolated. The frontier was the 10th-percentile country EFR within each GBD super-region and year (sensitivity: 5th and 25th percentiles); the gap = EFR_country/EFR_frontier. We classified 33-year gap trajectories into catch-up phenotypes, ranked COVID-window (2019-2023) movers, cross-tabulated gap against avoidable deaths to build a priority list, and benchmarked upper respiratory infections (URI) at three time points as a nearzero-fatality contrast.</p>
+<p>Findings The median country&#x27;s gap was 1.86 in 1990, 1.80 in 2019 and 1.86 in 2023; the share of countries more than twice their regional frontier was 44.6% in 1990 and 46.6% in 2023. Of 137 eligible countries, 67 narrowed and 69 widened their gap, with one unchanged. Nineteen countries achieved sustained catch-up, concentrated in North Africa and the Middle East (7) and Latin America (5), with China closing from 2.43 to 0.50, below its regional frontier; 28 countries regressed, led by Central Asia (Uzbekistan ×3.5) and including the United States (×2.0). Over the COVID-19 window the median gap peaked at 2.00 in 2021 (+10.8% versus 2019, from unrounded medians) before returning to 1.86.</p>
+<p>Combining gap with avoidable deaths identifies two distinct policy problems: high-burden, moderate-gap giants (Nigeria 67,490 avoidable deaths, gap 2.4; India 54,109, gap 1.6) and extreme-gap outliers (Uzbekistan, gap 28.6). The Sub-Saharan Africa frontier fell further behind the High-income frontier (ratio 4.2 in 1990, 9.5 in 2023); the median Sub-Saharan African country sits 11.0 times the global 10thpercentile frontier but only 1.78 times its own regional frontier, so within-region benchmarking understates the region&#x27;s true distance. URI gaps likewise did not converge (median 4.15 to 4.60).</p>
+<p>Joinpoint regression formalized the pattern: the median gap showed no net narrowing over 33 years (average annual percent change +0.03% per year, 95% CI -0.05 to 0.12).</p>
+<p>Interpretation Convergence toward the survival frontier is not the default national trajectory: over three decades the typical country made no net progress toward the best decile of its own region, and pandemicera divergence was only partly reversed. National gap trajectories separate system-wide quality shortfalls from extreme outliers warranting audit, and expose a measurement trap in which regions whose frontiers stagnate appear closer to best practice than they are.</p>
+<h3>Introduction</h3>
+<p>Lower respiratory infections (LRI) remain the leading infectious cause of death among children and adolescents. Global Burden of Disease (GBD) 2023 estimates attribute 711,228 deaths among 0-19-yearolds to LRI in 2023, down from 2,035,714 in 1990, a 65% decline driven jointly by falling incidence and improving survival once infected. [1] [2] [3] The two components have not contributed equally: incident episodes roughly halved over the period, while the probability of dying once ill fell by about 28%, so most of the mortality decline reflects fewer children falling ill rather than substantially better survival among the ill. 1, 2 The clinical pathway from pneumonia episode to death is short, well understood and responsive to inexpensive interventions (antibiotics, oxygen and supportive care) that have been standard of care for decades. 4 Where health systems function, children should not die of pneumonia; the condition therefore serves as a tracer for the proposition that treatable deaths signal remediable system performance.</p>
+<p>That proposition has a long intellectual lineage. Rutstein and colleagues proposed in 1976 that deaths from listed conditions be counted as sentinel events of health-care quality, each one a possible failure of prevention or treatment warranting investigation. 5 Nolte and McKee developed the idea into the amenable-mortality framework that now underpins cross-national health-system comparison, 6 and the Lancet Global Health Commission on High Quality Health Systems estimated that 8.6 million deaths annually in low-and middle-income countries are amenable to health care, with poor-quality care implicated in more deaths than non-use of services. 7 The GBD Healthcare Access and Quality (HAQ) Index operationalized the concept by scoring each country against the lowest observed age-specific death rates for 32 causes, an empirical frontier of attained performance. 8 These frameworks share a structural limitation for respiratory infections: they benchmark population-level mortality, conflating how many children fall ill with how many die once ill. A country with many episodes records more amenable deaths than one with few, even if both treat each episode equally well.</p>
+<p>The episode-fatality ratio (EFR), deaths divided by incident episodes, separates these two quantities. It isolates the component of mortality most plausibly responsive to case management, and it can be computed annually for every country from standard GBD outputs without external development covariates. An EFR frontier, defined as the 10th-percentile country EFR within each GBD super-region and year, sizes that opportunity directly: benchmarked against within-region best practice, 333,803 childhood LRI deaths in 2023 (46.9% of the total) were avoidable, and the avoidable share has not narrowed since 1990. A frontier establishes the size of the opportunity at regional level; it does not ask whether individual countries are closing on the frontier over time. Regional aggregates can conceal national heterogeneity in both directions: a stagnating regional average is compatible with some countries catching up and others falling back, and the policy response differs fundamentally between a region of uniform laggards and one of divergent movers. Resolving which pattern holds requires country-year resolution. This is the question the Sustainable Development Goals (SDG) era takes for granted. The default narrative of global child health is one of convergence: interventions diffuse, coverage rises, and lagging countries catch up with the best performers. 9 The narrative has empirical support in some domains. Gaps in amenable mortality between European countries narrowed over recent decades as effective care diffused eastward, 6 and global declines in under-five mortality have been fastest in many high-burden settings. 9 But mortality declines are consistent with convergence without demonstrating it: deaths can fall because fewer children fall ill while each country&#x27;s relative position against its regional frontier stays fixed. Frontier-style benchmarking has been applied to national mortality levels, 8, 10 and formal convergence tests on mortality itself have already returned negative verdicts: child mortality indicators showed β-and σ-divergence across 187 countries over 1990-2010, 11 and a global analysis of nine mortality indicators from 1990 to 2030 found convergence clubs rather than universal convergence. 12 Our increment is specific: to our knowledge no study has tested, country by country and year by year, whether national case-survival performance, net of incidence, is converging toward an empirically attained frontier for a major treatable cause of child death. The distinction is not academic. If convergence is underway, the residual burden is a matter of time and sustained financing; if it is not, the machinery assumed to diffuse best practice (guidelines, commodities, training and financing flows) is failing in ways that aggregate mortality trends cannot reveal.</p>
+<p>This study provides that test for childhood LRI in 204 countries from 1990 to 2023. We ask three questions. First, has the distance between the typical country and its regional survival frontier narrowed over three decades, globally and within each super-region? Second, which countries sustained catch-up, which stalled and which regressed, where are they concentrated, and how did national gaps move over the 2019-2023 pandemic window? Third, where do large gaps coincide with large avoidable burdens, and does benchmarking within regions systematically understate the distance for regions whose frontiers have themselves stagnated? The answers determine whether the residual burden of a treatable killer is a problem of catching up, of advancing the frontier, or of both, and for whom.</p>
+<h3>Methods</h3>
+<h3>Study design and data sources</h3>
+<p>This is a country-level trend analysis of modelled estimates from GBD 2023, 1,2 which synthesizes vital registration, surveillance, verbal autopsy and survey data through standardized cause-of-death and nonfatal modelling to produce internally consistent estimates for all locations and years. We extracted LRI deaths and incident episodes for ages 0-19 years (GBD age groups under 5, 5-9, 10-14 and 15-19 years, summed) for 204 countries and territories. LRI deaths span the full 1990-2023 annual series for all 204 countries; country sums reproduce published GBD totals (2,035,714 deaths in 1990; 711,228 in 2023). 1 Country-level LRI episodes are observed for three anchor years, 1990, 2019 and 2023, spanning the MDG-era baseline, the pre-pandemic reference year and the most recent GBD cycle; episodes for intermediate years were linearly interpolated between the observed anchors. This interpolation is a declared approximation: episodes move smoothly relative to deaths, so annual gap dynamics are dominated by the observed death series, and all anchor-year EFRs, gaps and phenotype classifications rely on observed inputs only. The smoothing assumption is most exposed over the 2020-2022 pandemic window, when respiratory incidence departed sharply from smooth trends; annual gap values for those years, including the 2021 peak, therefore rest on interpolated denominators and should be read as smoothed approximations, whereas comparisons between observed anchors (2019 versus 2023) do not.</p>
+<p>As a secondary cross-check we assembled an upper respiratory infection (URI) panel of deaths and episodes for 1990, 2019 and 2023 with no interpolation. Countries were assigned to the seven GBD 2023 super-regions (5-46 countries each). All inputs are publicly released modelled aggregates; no individuallevel data were used and ethics review was not required.</p>
+<h3>Episode-fatality ratio, frontier and gap</h3>
+<p>For country i in year y, EFR = LRI deaths/incident episodes. The EFR is not a clinical case-fatality ratio: GBD episode denominators include mild community and outpatient illness (81.0 million LRI episodes globally in 2023), so EFRs lie far below facility-based fatality rates and summarize, for an entire national system, the probability that an episode ends in death. 2, 4 The mortality-to-incidence ratio has a long history as a system-level survival proxy in cancer epidemiology, where its validity has been debated because deaths and cases arise from different cohorts; 13 for acute respiratory infections, whose course from onset to death is measured in days to weeks, that objection carries little force.</p>
+<p>The frontier EFR is the 10th percentile of country EFRs within each super-region × year stratum.</p>
+<p>Benchmarking within super-regions requires no external income or development covariate, avoids adjusting a performance measure by a covariate that is itself partly a function of health-system output, and respects broad regional epidemiological contexts such as pathogen mix and seasonality. The 10th percentile, rather than the minimum, prevents any single country estimate, potentially distorted by small numbers or model artefacts at the favourable extreme, from defining best practice for an entire region.</p>
+<p>The rationale holds only partially in South Asia, whose five countries place the interpolated 10th percentile at or near the best-performing country, so the frontier there approximates a best-country rather than a best-decile definition. The frontier is recomputed annually, so benchmarks evolve with observed performance.</p>
+<p>The gap is gap_i = EFR_i/EFR_frontier,sr(i). A gap of 1 places a country at its regional frontier; a gap of 3 means its children die once ill at three times the rate of the best-performing decile of its own region.</p>
+<p>Avoidable deaths are defined as avoidable_i = max(0, deaths_i -episodes_i × EFR_frontier,sr(i)); applied to the 2023 national panel this reproduces the global LRI avoidable total of 333,803 exactly. Because the frontier is relative, gaps understate absolute distance from global best practice wherever an entire region lags, a point we quantify directly for Sub-Saharan Africa.</p>
+<h3>Catch-up phenotypes</h3>
+<p>Each eligible country&#x27;s trajectory was classified from gap anchors at 1990, 2010, 2019 and 2023.</p>
+<p>Countries with fewer than 25 LRI deaths in 2023 were set aside as low-count (ratios unstable; excluded from rankings but retained in the panel). The threshold is applied to 2023, the ranking year; of the 67 countries below it, 37 were also below it in 1990, while 30 countries-the largest group high-income (12 of 30)-whose death counts fell under 25 as mortality declined, are excluded from classification despite having informative long-run trajectories. Among the remainder: near-frontier countries held a gap of 1.5 or less at all four anchors; sustained catch-up requires gap_2023/gap_1990 ≤ 0.7 (at least 30% relative closure) with no net widening by 2019; regressing requires gap_2023/gap_1990 ≥ 1.3; all remaining eligible countries are classified as stalled. COVID-window movers were ranked by gap_2023/gap_2019 among eligible countries. Thresholds (±30%, 1.5, 25 deaths) are conventional; the full country listing is published so alternatives can be re-derived. Because a fixed ±30% relative-change threshold is mechanically easier to satisfy from an extreme 1990 gap, the catch-up and regressing classes will partly reflect regression to the mean; the formal β-convergence statistic reported in the Results quantifies this tendency directly.</p>
+<h3>Priority grid and regional benchmark diagnostics</h3>
+<p>To locate where catch-up effort buys the most lives, we cross-tabulated each country&#x27;s 2023 gap against its absolute avoidable deaths and ranked countries by a gap-weighted burden, avoidable deaths × ln(gap), which rises with both the size of the avoidable toll and the proportional distance from the frontier. To diagnose benchmark degradation, we computed the ratio of the Sub-Saharan Africa frontier to the Highincome frontier in 1990 and 2023, counted Sub-Saharan African countries at or near their own frontier (gap ≤ 1.5) at each anchor, and compared the median Sub-Saharan African country&#x27;s gap to its own regional frontier with its gap to the global 10th-percentile frontier (1.12 per 1,000 episodes in 2023), the latter approximating distance from achievable global best practice.</p>
+<h3>Sensitivity analyses and uncertainty</h3>
+<p>The primary frontier percentile was varied (5th and 25th versus 10th) and all headline patterns recomputed. The URI panel bounds the method at the near-zero-fatality extreme without interpolation.</p>
+<p>All inputs are GBD 2023 modelled estimates rather than vital-registration counts, and national estimates carry the uncertainty of the underlying GBD models; primary estimates here are deterministic, computed from GBD central values consistent with published sums. Two external checks use data outside the GBD inputs: we correlated the 2023 gap with national mean elevation, computed from the NOAA ETOPO1 global relief model, 14 and with the WHO/World Bank UHC service coverage index 15 (Spearman rank correlations). We do not adjust for national ethnic composition (no comparable country-level data; no direct causal pathway to episode survival) or for coastal and ocean-climate variables (partially absorbed by super-region stratification). The main threats to inference are the declared episode interpolation, ratio instability at low death counts (addressed by the 25-death exclusion) and possible data-model artefacts behind extreme gaps in countries with weak vital registration, which we flag for audit rather than interpret literally.</p>
+<h3>Joinpoint analysis of trajectories</h3>
+<p>To locate turning points in the aggregate trajectories, we fitted joinpoint regression-continuous (hinge) segments on the natural-log scale-to three annual series for 1990-2023: the global EFR (total LRI deaths divided by total episodes), the global median country gap, and the ratio of the Sub-Saharan Africa frontier EFR to the High-income frontier EFR. The number of joinpoints (zero to three) was selected by grid search minimizing the Bayesian information criterion, counting 2k + 2 parameters for a model with k joinpoints (k estimated joinpoint locations plus k + 2 regression coefficients), with at least three annual observations per segment and adjacent joinpoints constrained to lie at least three years apart; confidence intervals use n -(2k + 2) residual degrees of freedom. We report the annual percent change (APC) per segment with t-based 95% confidence intervals on the log scale and the span-weighted average annual percent change (AAPC) for 1990-2023 with delta-method intervals. Because episode denominators for intermediate years are interpolated, within-window movements of the EFR series reflect both the observed death series and the functional form of the interpolation; the denominator&#x27;s contribution is quantified segment by segment in the note to Table 6. Model selection remained sensitive to the interpolation of the episode denominators; we therefore report the AAPC as the primary summary, and the fits selected under the previous parameter counting are retained in the supplementary joinpoint CSV for comparison.</p>
+<h3>Results</h3>
+<h3>The median country did not converge</h3>
+<p>Across 204 countries, the median gap to the within-super-region frontier was 1.86 in 1990, 1.80 in 2019 (-3.0%) and 1.86 in 2023: over 33 years the typical country ended exactly where it began relative to the best decile of its own region (Figure 1, Table 1). The share of countries more than twice their frontier was 44.6% in 1990, 44.1% in 2019 and 46.6% in 2023. Among the 137 countries eligible for classification, 67 narrowed and 69 widened their gap between 1990 and 2023, with one unchanged (the United Arab Emirates, at its regional frontier in both years): an almost even split; sustained catch-up was achieved by fewer than one in seven eligible countries (19 of 137).</p>
+<p>The absence of convergence is visible throughout the series. The global median gap in 2010 was 1.85, essentially unchanged from 1990 (1.86), 2019 (1.80) and 2023 (1.86): three decades of expanding intervention coverage left the typical country&#x27;s relative position untouched. Absolute performance did improve: national EFRs fell in 187 of 204 countries (92%) between 1990 and 2023; it is each country&#x27;s position relative to the moving regional frontier that did not advance.</p>
+<h3>Joinpoint turning points of the EFR and gap trajectories</h3>
+<p>Joinpoint regression of the global median-gap trajectory selected no joinpoints (k = 0; Table 6): a single log-linear trend fitted over 1990-2023 gives an average annual percent change of +0.03% per year (95% CI -0.05 to 0.12)-a formal, interval-quantified confirmation that the typical country&#x27;s distance to its regional frontier did not narrow. The three-joinpoint fit obtained under the previous BIC parameter counting (joinpoints 2014, 2017 and 2020) is retained in the supplementary CSV for comparison; its 33year summary is likewise statistically indistinguishable from zero. Sensitivity to this constraint choice: under the looser observation-count-only rule (no span requirement), the grid search would select k = 3 (joinpoints 2014, 2018, 2021; ΔBIC = -13.0 in favour of k = 3), whose span-weighted AAPC is +0.005% per year (95% CI -0.093 to +0.104)-equally indistinguishable from zero, so the non-convergence conclusion is invariant to the constraint choice.</p>
+<p>The apparent mid-period rise in the global EFR is an interpolation artefact rather than a reversal of survival improvement. The global EFR fell from 12.26 to 8.78 deaths per 1,000 episodes over 1990-2023 (AAPC -1.33% per year, -1.54 to -1.12), with two joinpoints selected (2010 and 2017): slow improvement from 1990 to 2010 (APC -1.02%, -1.31 to -0.73), a fitted rise between 2010 and 2017 (APC +1.80%, 0.91 to 2.70) and a steep decline thereafter (2017-2023 APC -5.88%, -7.19 to -4.55).</p>
+<p>The 2010-2017 rise should not be read as a reversal of survival improvement: observed deaths fell monotonically throughout 2010-2017 (-14.7% cumulatively; -12.3% over 2011-2017), 61.7% of the segment&#x27;s log-scale EFR movement comes from the interpolated episode denominator rather than from deaths (Table 6 note), and the level-linear interpolation mechanically accelerates on the log scale, from -3.3% per year in 2011 to -4.1% per year by 2017. Under log-linear interpolation of the same episode anchors the cumulative 2011-2017 rise shrinks from +9.7% to +4.4% and is no longer monotone (the series peaks in 2016). The Sub-Saharan Africa-to-High-income frontier ratio rose from 4.24 to 9.53 between 1990 and 2023 (fitted AAPC +2.80% per year, 2.56 to 3.03), with joinpoints in 2004, 2014 and 2017, confirming that the regional frontiers themselves diverged even where within-region gaps were stable. Super-region medians diverged rather than converged (Table 1). North Africa and the Middle East was the only region to converge strongly (median gap 2.36 to 1.68). South Asia remained closest to its frontier (1.09 to 1.25), although its five-country frontier approximates a best-country definition (Table 1). Two regions drifted away from their frontiers over the full period: Central Europe, Eastern Europe and Central Asia (2.13 to 2.60) and Southeast Asia, East Asia and Oceania (1.76 to 2.12). Latin America and the Caribbean narrowed modestly (2.67 to 2.43), while Sub-Saharan Africa (1.57 to 1.78) and the Highincome super-region (1.52 to 1.82) drifted wider. The flat-median pattern is insensitive to the frontier definition: under 5th-and 25th-percentile frontiers the global median gap rose from 2.00 to 2.42 and from 1.37 to 1.43 respectively (Table 5).</p>
+<p>Two formal convergence statistics quantify the same pattern (Supplementary Table S6). For σconvergence, the cross-country coefficient of variation of the gap rose from 0.89 in 1990 to 1.18 in 2023, and the standard deviation of the log gap from 0.67 to 0.72: dispersion widened rather than narrowed. For β-convergence, regressing the 1990-2023 change in log gap on the 1990 log gap across the 137 eligible countries yields a slope of -0.10 (SE 0.05; r = -0.19, p = 0.03): countries with wider initial gaps did tend to narrow proportionally more, a weak catch-up tendency consistent in part with regression to the mean, but one far too weak to arrest the widening of the cross-country distribution. Convergence, where it operated at all, did so inside a distribution that was itself spreading out.</p>
+<h3>Catch-up phenotypes and their geography</h3>
+<p>Of 204 countries, 63 were classified as stalled, 28 as regressing, 27 as near-frontier and 19 as sustained catch-up, with 67 low-count countries excluded from classification (Figure 3, Table 2). Sustained catchup is geographically concentrated. Seven of the 19 catch-up countries are in North Africa and the Middle East (Türkiye, Iran, Sudan, Oman, Algeria, Syria, Yemen), five in Latin America (Bolivia, Peru, Honduras, Nicaragua, Costa Rica) and four in Central and Eastern Europe and Central Asia (Albania, Belarus, Mongolia, Serbia) (Table 2). The largest national catch-up is China&#x27;s: its gap fell from 2.43 to 0.50, placing it below its own regional frontier in 2023. Belarus (1.80 to 0.71) and the Republic of Korea Regression is led by Central Asia: Uzbekistan&#x27;s gap multiplied 3.5-fold (8.08 to 28.64), Azerbaijan&#x27;s 2.2fold (11.37 to 24.72) and Turkmenistan&#x27;s 1.8-fold (9.46 to 17.17), with Kazakhstan also regressing (5.98 to 8.44). High-income countries are not exempt: the United States doubled its gap (1.61 to 3.30), Canada widened 1.7-fold, and France, the United Kingdom, Argentina and Venezuela are also regressing. These high-income regressions are relative, not absolute: every named high-income regressor improved its own EFR over the period (the United States by about 36%, from 3.75 to 2.40 per 1,000 episodes), but the High-income frontier improved by about two-thirds, so distance to the frontier grew even as survival improved. Within Sub-Saharan Africa, 8 of 45 eligible countries are regressing against a single sustained catch-up. Eswatini illustrates the fragility of frontier membership: one of the five countries that defined the Sub-Saharan Africa frontier in 1990 (gap 0.86), it is classified as regressing in 2023 (gap 2.94).</p>
+<h3>COVID-window divergence and its partial reversal</h3>
+<p>The pandemic window produced a sharp, largely transient divergence. The global median gap rose from 1.80 in 2019 to 1.90 in 2020 and 2.00 in 2021 (+10.8% versus 2019; percentages here and below are computed from unrounded medians), before falling back to 1.86 in 2023, a residual widening of +3.1% (Figure 1). The 2021 peak rests on interpolated episode denominators and is a smoothed estimate whose height and timing are sensitive to that assumption (see Methods); the observed-anchor comparison (2019 versus 2023, +3.1%) does not depend on it. National movements over the window were large in both directions (Figure 4, Table 3). The fastest catch-up was Botswana&#x27;s (gap 2.17 to 1.49), and the United Arab Emirates moved from 1.42 to 1.00, reaching its regional frontier; Japan was the only high-income country among the ten fastest catch-ups (Table 3). The largest regressions were Ecuador (+59%), Kazakhstan (+58%), Cambodia (+47%) and the United States (+44%), with France, Canada, Saudi Arabia and Peru each widening by a third or more. Afghanistan&#x27;s gap widened 36% to 6.3, against 10,268 LRI deaths in 2023: the window&#x27;s divergence hit hardest where the pre-pandemic gap was already wide. Highincome countries appear on both sides of the ledger, reinforcing that pandemic-era disruption of case survival was not confined to low-income settings.</p>
+<h3>Where gaps meet burden: the priority list</h3>
+<p>The 2023 geography of the gap (Figure 2) shows extreme values clustered in Central Asia, with elevated gaps across much of Latin America, South and Southeast Asia and parts of Sub-Saharan Africa. Crosstabulating the 2023 gap against absolute avoidable deaths separates two distinct policy problems (Table 4).</p>
+<p>The first is high-burden, moderate-gap giants: Nigeria (67,490 avoidable LRI deaths, gap 2.4), India (54,109, gap 1.6), Niger (18,738, gap 3.9), the Democratic Republic of the Congo (14,470, gap 1.9) and Chad (8,621, gap 2.6), where system-wide improvement in the quality of case management across very large episode volumes would avert the most deaths. The second is extreme-gap outliers: Uzbekistan (10,679 avoidable deaths against a gap of 28.6, the single most extreme value worldwide), Azerbaijan (24.7), Turkmenistan (17.2), Haiti (9.6) and Mexico (8.2), where fatality per episode so far exceeds regional best deciles that targeted review of case-management performance or data quality is warranted before programmatic inference. Afghanistan, Myanmar, Indonesia and Egypt combine substantial burdens with large gaps. The 15 countries in Table 4 together hold 229,230 avoidable deaths, 68.7% of the 2023 global total, so a bounded set of national programmes could in principle reach more than two-thirds of the avoidable burden.</p>
+<h3>The Sub-Saharan Africa frontier problem</h3>
+<p>Within-region benchmarking understates the distance for regions whose frontier has stagnated. In 1990 the Sub-Saharan Africa frontier was defined by Cabo Verde, Uganda, South Africa, Eswatini and Kenya, whose EFRs (6.7-9.4 per 1,000 episodes) were already 2.9-4.0 times the High-income frontier of the same year. (With 46 countries in the region, the 10th-percentile frontier is interpolated between the fifthand sixth-lowest country EFRs, so the 1990 frontier value, 9.85 per 1,000, sits just above this five-country group.) The region&#x27;s frontier improved from 9.85 to 6.93 per 1,000 between 1990 and 2023, about 30% in 33 years, while the High-income frontier improved by about two-thirds (2.32 to 0.73 per 1,000); the ratio of the two frontiers therefore widened from 4.2 to 9.5. Within the region, the number of countries at or near the frontier (gap ≤ 1.5) fell from 20 of 46 in 1990 to 13 in 2019, recovering only to 17 in 2023.</p>
+<p>Measured against the global 10th-percentile frontier of 2023, the median Sub-Saharan African country&#x27;s gap is 11.0, against 1.78 to its own regional frontier: within-region benchmarking reports less than onesixth of the region&#x27;s true distance from achievable survival. The frontier ratio series is shown in Figure 5.</p>
+<h3>URI cross-check and sensitivity analyses</h3>
+<p>The stalled-catch-up pattern is not specific to LRI. For URI, a near-zero-fatality contrast assembled without interpolation, the median gap was 4.15 in 1990, 4.36 in 2019 and 4.60 in 2023: no convergence over the same three decades, and 93.5% of avoidable URI deaths in 2023 occurred in Sub-Saharan Africa.</p>
+<p>Headline LRI patterns are qualitatively unchanged under 5th-and 25th-percentile frontiers (Table 5). The 1 two external checks are likewise reassuring (Supplementary Table S7). National mean elevation 2 correlated only weakly with the 2023 gap (eligible countries: Spearman ρ = 0.14, p = 0.11, n = 135; all 3 countries with data: ρ = 0.19, p = 0.01, n = 174), so the wide gaps of high-altitude countries such as 4 Bolivia, Mexico, Ecuador, Afghanistan, the Central Asian republics and Ethiopia are not explained by 5 elevation alone. The UHC service coverage index correlated with the gap in the expected negative 6 direction, but weakly (all countries with data, ρ = -0.18, p = 0.01, n = 193; eligible, ρ = -0.07, p = 0.42, n7 = 136), the attenuation expected, since within-region frontiers themselves track system quality. 8</p>
+<p>Table 1. Median EFR gap to the within-super-region LRI survival frontier, by super-region and 9 year (ages 0-19 years) 10 Super-region 1990 2010 2019 2021 2023 Central Europe, Eastern Europe, and Central Asia 2.13 2.30 2.33 2.32 2.60 High-income 1.52 1.81 1.65 1.91 1.82 Latin America and Caribbean 2.67 2.90 2.43 2.32 2.43 North Africa and Middle East 2.36 1.98 1.70 1.85 1.68 South Asia* 1.09 1.12 1.19 1.21 1.25 Southeast Asia, East Asia, and Oceania 1.76 1.85 1.72 2.49 2.12 Sub-Saharan Africa 1.57 1.67 1.83 1.80 1.78 Global median 1.86 1.85 1.80 2.00 1.86 Countries with gap &gt;2 (%) 44.6 -44.1 -46.6 EFR, episode-fatality ratio (deaths per incident episode). Gap = country EFR/frontier EFR, where the 11 frontier is the 10th percentile of country EFRs within each super-region and year; a gap of 1 places a 12 country at its regional frontier. *South Asia contains five countries, so its 10th-percentile frontier 13 approximates a best-country definition. The 2021 column relies in part on linearly interpolated episode 14 denominators and is a smoothed approximation (see Methods). 15 Table 2. Catch-up phenotypes of 33-year gap trajectories, 1990-2023 16 Phenotype Definition n Representative countries (gap 1990 → 2023) Sustained catch-up gap ratio ≤0.7 and no net widening by 2019 19 Türkiye (3.41→1.12), Iran (2.63→1.68), China (2.43→0.50), Bolivia (11.10→5.32), Albania (7.13→2.86), Sudan (6.72→3.29), Oman (2.16→1.10) Near-frontier gap ≤1.5 at all four anchors (1990, 2010, 2019, 2023) 27 Bangladesh, Brazil, Thailand, South Africa, Kenya, Germany, United Arab Emirates Stalled eligible, meeting none of the other criteria 63 Nigeria, India, Democratic Republic of the Congo, Angola, Cameroon Regressing gap ratio ≥1.3 28 Uzbekistan (8.08→28.64), Azerbaijan (11.37→24.72), Turkmenistan (9.46→17.17), United States (1.61→3.30), Canada (1.90→3.27), Venezuela (4.08→7.15) Low-count &lt;25 LRI deaths in 2023; excluded from rankings 67 -</p>
+<p>Gap = country EFR/within-super-region 10th-percentile frontier EFR. Eligible countries (non-low-count) 1 total 137; of these, 67 narrowed, 69 widened and one (United Arab Emirates) left the gap unchanged 2 between 1990 and 2023. The full country listing is in Supplementary Table S1. 3</p>
+<p>Table 3. COVID-window movers: fastest catch-up and largest regressions in EFR gap, 2019-2023 4 (eligible countries) 5 Catch-up (gap narrowed) Super-region Gap 2019 Gap 2023 Ratio Botswana Sub-Saharan Africa 2.17 1.49 0.69 United Arab Emirates North Africa and Middle East 1.42 1.00 0.71 Turkmenistan Central Europe, Eastern Europe, and Central Asia 23.13 17.17 0.74 Albania Central Europe, Eastern Europe, and Central Asia 3.72 2.86 0.77 Honduras Latin America and Caribbean 3.37 2.62 0.78 Bolivia Latin America and Caribbean 6.66 5.32 0.80 Gabon Sub-Saharan Africa 1.53 1.24 0.81 El Salvador Latin America and Caribbean 4.28 3.56 0.83 Japan High-income 1.38 1.15 0.83 Slovakia Central Europe, Eastern Europe, and Central Asia 3.51 2.93 0.83 Regressing (gap widened) Ecuador Latin America and Caribbean 2.87 4.57 1.59 Kazakhstan Central Europe, Eastern Europe, and Central Asia 5.33 8.44 1.58 Cambodia Southeast Asia, East Asia, and Oceania 3.42 5.02 1.47 United States High-income 2.30 3.30 1.44 Georgia Central Europe, Eastern Europe, and Central Asia 3.11 4.36 1.40 France High-income 1.10 1.54 1.40 Canada High-income 2.35 3.27 1.39 Afghanistan North Africa and Middle East 4.64 6.29 1.36 Saudi Arabia North Africa and Middle East 1.89 2.54 1.34 Peru Latin America and Caribbean 2.48 3.31 1.34 Ratio = gap 2023/gap 2019. Over the same window the global median gap rose from 1.80 (2019) to a 1 peak of 2.00 (2021, +10.8%, computed from unrounded medians of 1.802 and 1.995) and returned to 1.86 2 (2023). The 2021 peak rests on interpolated episode denominators (see Methods). 3 Table 4. Priority countries, 2023: EFR gap × avoidable LRI deaths (top 15, ranked by avoidable 4 deaths × ln gap) 5 Country Super-region Gap 2023 Avoidable deaths Observed LRI deaths Nigeria Sub-Saharan Africa 2.4 67,490 116,482 Uzbekistan Central Europe, Eastern Europe, and Central Asia 28.6 10,679 11,065 India South Asia 1.6 54,109 143,192 Niger Sub-Saharan Africa 3.9 18,738 25,191 Afghanistan North Africa and Middle East 6.3 8,634 10,268 Myanmar Southeast Asia, East Asia, and Oceania 6.4 7,006 8,296 Indonesia Southeast Asia, East Asia, and Oceania 3.2 9,757 14,197 Egypt North Africa and Middle East 4.1 7,649 10,096 Democratic Republic of the Congo Sub-Saharan Africa 1.9 14,470 30,177 Chad Sub-Saharan Africa 2.6 8,621 13,920 Philippines Southeast Asia, East Asia, and Oceania 3.4 6,223 8,767 Haiti Latin America and Caribbean 9.6 3,379 3,774 Côte d&#x27;Ivoire Sub-Saharan Africa 2.8 7,246 11,371 Mexico Latin America and Caribbean 8.2 3,344 3,810 Azerbaijan Central Europe, Eastern Europe, and Central Asia 24.7 1,884 1,964</p>
+<p>Avoidable deaths = max(0, deaths -episodes × frontier EFR), deterministic estimates from GBD 2023 6 central values; the 2023 national panel sums to the global LRI avoidable total of 333,803. The ranking 7 combines the size of the avoidable toll with the proportional distance from the frontier, separating high-8 burden, moderate-gap countries from extreme-gap outliers; ranks are computed on unrounded values. 9</p>
+<p>Displayed avoidable deaths sum to 229,229 owing to rounding; the unrounded total is 229,230 (68.7% of 1 the global total). 2</p>
+<p>Table 5. Sensitivity of the no-convergence finding to frontier definition, and URI cross-check 3 (global median gap) 4 Benchmark 1990 2019 2023 LRI, 5th-percentile frontier 2.00 2.25 2.42 LRI, 10th-percentile frontier (primary) 1.86 1.80 1.86 LRI, 25th-percentile frontier 1.37 1.44 1.43 URI, 10th-percentile frontier 4.15 4.36 4.60</p>
+<p>Under every frontier definition the median country&#x27;s gap was as wide or wider in 2023 than in 1990. URI 5 values derive from observed deaths and episodes at three time points, without interpolation. As a 6 regional-benchmark diagnostic, the median Sub-Saharan African country&#x27;s gap in 2023 was 1.78 to its 7 own super-region frontier but 11.0 to the global 10th-percentile frontier (1.12 deaths per 1,000 episodes). 8</p>
+<p>In the URI panel, 93.5% of avoidable deaths in 2023 occurred in Sub-Saharan Africa. 9</p>
+<p>Table 6. Joinpoint regression of the global EFR, median-gap and frontier-ratio trajectories, 1990-10 2023 11 Series (BIC-selected joinpoints) Segment APC, %/yr (95% CI) AAPC 1990-2023, %/yr (95% CI) Global EFR, deaths per 1,000 episodes (2010, 2017) 1990-2010 -1.02 (-1.31, -0.73) -1.33 (-1.54, -1.12) 2010-2017 +1.80 (0.91, 2.70) 2017-2023 -5.88 (-7.19, -4.55) Global median gap to the within-super-region frontier (no joinpoints selected) 1990-2023 +0.03 (-0.05, 0.12) +0.03 (-0.05, 0.12) Sub-Saharan Africa / Highincome frontier EFR ratio (2004, 2014, 2017) 1990-2004 +5.09 (4.59, 5.56) +2.80 (2.56, 3.03) 2004-2014 +0.76 (0.09, 1.43) 2014-2017 -7.23 (-9.59, -4.81) 2017-2023 +6.28 (4.58, 8.01)</p>
+<p>Continuous hinge segments fitted to the natural log of each series by least squares; number of joinpoints 12 (zero to three) selected by BIC grid search counting 2k + 2 parameters for k joinpoints, with at least three 13 annual observations per segment, adjacent joinpoints at least three years apart, and every segment 14 (including the first and last) spanning at least three years; the span rule binds only for segments starting or 15 ending within three years of the series bounds, and is stricter than the observation-count rule there; 16 intervals use n -(2k + 2) residual degrees of freedom. APC = annual percent change within a segment (t-17 based 95% CI on the log scale); AAPC = span-weighted average APC (delta-method 95% CI). The 18 AAPC is the span-weighted average of fitted segment slopes, not the endpoint-to-endpoint rate; the observed endpoints imply +2.49% per year for the Sub-Saharan Africa/High-income ratio. EFR = episode-fatality ratio (deaths per incident episode); gap = country EFR/within-super-region 10thpercentile frontier EFR. Episode denominators for intermediate years are linearly interpolated between the observed 1990, 2019 and 2023 values. Within each EFR segment the log-scale change decomposes additively into an observed-deaths component and an interpolated-episodes component; the denominator accounts for 42.5% (1990-2010), 61.7% (2010-2017) and 14.5% (2017-2023) of the absolute log movement (43.1%, 63.1%, 15.7% and 55.3% across the four segments of the previous three-joinpoint EFR fit, which is retained together with the previous median-gap fit in the supplementary joinpoint CSV).</p>
+<p>Under log-linear interpolation of the episode anchors the cumulative 2011-2017 EFR rise shrinks from +9.7% to +4.4% and is no longer monotone (+1.5% when the log-linear interpolation is applied country by country before aggregation).</p>
+<h3>Discussion</h3>
+<h3>Principal findings</h3>
+<p>Across 204 countries and 33 years, the typical country made no net progress toward the best survival performance achieved within its own region. The median gap to the within-super-region LRI survival frontier was 1.86 in both 1990 and 2023, the share of countries more than twice their frontier rose by 2.0 percentage points (44.6% to 46.6%), and eligible countries split almost evenly between narrowing (67) and widening (69), with one unchanged. Sustained catch-up is real but rare and geographically concentrated: 19 countries, most of them in North Africa and the Middle East and Latin America, with China closing beyond its frontier entirely. Regression is similarly patterned, led by Central Asia but extending to high-income countries, including the United States. The pandemic window produced a sharp, only partly reversed divergence (median gap +10.8% by 2021, residual +3.1% by 2023). Where gaps meet burden, two distinct policy problems emerge: system-wide quality shortfalls in high-burden giants, and extreme outliers whose fatality per episode defies regional comparison. Finally, the region with the largest burden, Sub-Saharan Africa, is measured against a frontier that has itself fallen further behind global best practice, so within-region benchmarking reports a small fraction of the region&#x27;s true distance.</p>
+<p>Joinpoint analysis quantifies this verdict: the median gap&#x27;s 33-year average annual change (+0.03% per year, 95% CI -0.05 to 0.12) is statistically indistinguishable from zero, and the apparent mid-period rise in the global EFR is an artefact of the interpolated episode denominators rather than a reversal of survival improvement (Results; Table 6 note).</p>
+<h3>Convergence is not the default trajectory</h3>
+<p>These results amount to a national-level falsification of the convergence assumption embedded in SDGera child-survival discourse. 9 Aggregate mortality fell 65% over the study period, a decline routinely read as evidence that lagging countries are catching up. The gap series shows the two processes are independent: deaths fell overwhelmingly because fewer children fell ill and because fatality improved almost everywhere, while relative positions against the moving frontier barely changed. Progress and convergence are not the same thing. This distinction matters for monitoring: a country can halve its LRI mortality while falling further behind its peers, and standard mortality tracking would record only success.</p>
+<p>The even split between narrowing and widening countries indicates that the diffusion mechanism assumed by convergence narratives has been weak for case survival in a cause group responsive to some of the oldest and cheapest interventions in child survival. 4 The finding is consistent with uneven, development-decoupled gains in the HAQ Index 8 and with the High Quality Health Systems Commission&#x27;s argument that the binding constraint has shifted from contact with services to the quality of care delivered. 7 Between-country gaps in amenable mortality did narrow within Europe over recent decades; 6 our results show that this regional experience does not generalize to a global, cause-specific case-survival metric.</p>
+<h3>Two policy problems, not one</h3>
+<p>The priority grid separates countries for whom catch-up means different things. In the high-burden, moderate-gap giants (Nigeria, India, Niger, the Democratic Republic of the Congo), most avoidable deaths arise from average-quality case management applied to very large episode volumes; the relevant interventions are system-wide: reliable oxygen systems and pulse oximetry, timely effective antimicrobials, referral pathways for severe pneumonia, and sustained immunization against respiratory pathogens. 4, 16 A prospective Lives Saved Tool analysis independently corroborates this scale of opportunity: scaling four pneumonia interventions to at least 90% coverage in three high-burden countries would avert 45-58% of expected under-five pneumonia deaths, 17 matching the avoidable shares implied here. The extreme-gap outliers present a different problem. A gap of 28.6 (Uzbekistan), 24.7 (Azerbaijan) or 17.2 (Turkmenistan) means children die once ill at rates an order of magnitude above the best decile of the same region; values of this size plausibly reflect case-management performance or data quality, including vital-registration misclassification; the appropriate first response is targeted clinical and data audit rather than inference from the point estimate alone. We deliberately refrain from adjudicating individual countries: the gap locates where scrutiny and support would yield the most, it does not assign cause.</p>
+<h3>The anchoring effect of regional benchmarks</h3>
+<p>The Sub-Saharan Africa results expose a measurement trap with consequences beyond this study. Withinregion benchmarking is designed to be fair and conservative, since a region&#x27;s best decile is an attained rather than aspirational standard; but when a region&#x27;s frontier stagnates, the benchmark anchors perception: the median Sub-Saharan African country appears 1.78 times from best practice against its own frontier while standing 11.0 times from the global frontier. The region&#x27;s frontier was already 4.2 times the High-income frontier in 1990 and is 9.5 times today, and the number of regional countries at or near their own frontier has shrunk. Two implications follow. First, regional frontier metrics should be reported alongside a global-frontier contrast, otherwise regions most in need of frontier-advancing investment will appear closest to target. Second, the binding constraint for Sub-Saharan Africa is not only laggard catch-up: even perfect within-region convergence would leave the region&#x27;s children dying once ill at about six times (6.2-fold) the rate the global best decile achieves. Closing that distance requires raising the frontier itself, through the quality-of-care investments the HQSS Commission set out, 7 after which a functioning convergence mechanism, currently absent, would have something to propagate.</p>
+<h3>High-income regression and the surveillance dialogue</h3>
+<p>The regression of high-income countries complicates any simple income gradient in catch-up. The United States doubled its gap over 33 years and widened it by a further 44% over the pandemic window; Canada and France show the same direction. These movements coincide with documented post-pandemic disruption and asynchronous resurgence of respiratory infections in high-income settings, 18 and they demonstrate that frontier proximity is not a stable property of wealthy health systems but a performance variable that can deteriorate. The contrast with China is instructive for surveillance: one country moved from 2.4 times its regional frontier to below it, while another moved from 1.6 times to 3.3 times, and neither movement is visible in aggregate mortality trends, which improved in both. Annual gap tracking of the kind presented here is computable from standard GBD outputs at negligible cost and would make such reversals visible as they happen rather than in retrospect.</p>
+<h3>Limitations</h3>
+<p>Seven limitations qualify these findings. First, the EFR is not a clinical case-fatality ratio: episode denominators include mild community illness, and the two are not interchangeable. 2 Second, all inputs are GBD 2023 modelled estimates rather than counts; national gaps inherit the uncertainty of the underlying models, which is widest where vital registration is absent, and we report deterministic central values without propagated national uncertainty intervals. Third, LRI episodes for non-anchor years were linearly interpolated between the observed 1990, 2019 and 2023 anchors. The gap is exactly invariant to any rescaling applied uniformly to all countries within a super-region-year, but between-anchor trajectories are sensitive to the functional form of the interpolation: under log-linear interpolation the 2014 median gap is 1.74 rather than 1.86 and the median-gap joinpoints shift to 2012, 2016 and 2020. The exposure is greatest in the COVID-19 window: the 2021 median-gap peak (+10.8% versus 2019) rests on denominators interpolated across a period when respiratory incidence collapsed and rebounded nonlinearly, 18 so if true 2020-2021 incidence was lower than the interpolated path, the peak is understated; endpoint comparisons between observed years (2019 versus 2023) are unaffected. Fourth, ratio instability at low death counts led us to exclude 67 countries with fewer than 25 deaths in 2023 from classification; conclusions therefore concern the 137 countries where the burden is concentrated. The threshold is anchored to 2023 only: 30 of the excluded countries-the largest group high-income (12 of 30)-had counts above 25 in 1990, so their long-run trajectories are set aside even where the 1990 endpoint was precisely measured. Fifth, extreme gaps in Central Asia may partly reflect data-model artefacts, and we flag them for audit rather than interpret them literally. Sixth, the EFR is not age-standardized across the 0-19 band and reflects severity mix as well as care quality; a sensitivity analysis of this pipeline restricted to the under-five age band, which removes cross-country differences in child age structure by construction, left country avoidable-death rankings essentially unchanged (Spearman rank correlation 0.95 for LRI), so age composition is unlikely to explain the patterns reported. Seventh, gaps are not adjusted for elevation: hypobaric hypoxia at altitude may inflate measured episode fatality in high-altitude countries, so residual confounding would overstate, not understate, their gaps, although the weak elevation-gap correlation reported above bounds the likely bias. Phenotype thresholds are conventional; publishing the full country panel allows alternative classifications to be derived.</p>
+<h3>Conclusions</h3>
+<p>For three decades, convergence toward the best survival performance within regions has been assumed but never tested at national level for a leading treatable cause of child death. Tested here across 204 countries, it did not occur: the median country ended 2023 exactly as far from its regional frontier as in 1990, nearly half of all countries remain more than twice their frontier, and widening countries slightly outnumber narrowing ones. Catch-up, where it happened, was concentrated and identifiable, in North Africa and the Middle East, parts of Latin America and China; regression was equally identifiable, led by Central Asia and extending to high-income settings. The pandemic window briefly widened the typical gap by a tenth, and that widening has only partly reversed. The residual burden of avoidable death is addressable through two distinct instruments: system-wide quality improvement in a small set of highburden countries, and targeted audit where gaps are so extreme that case-management performance or data quality must be established first. And the Sub-Saharan Africa diagnostic shows that the benchmark itself can deceive: a region measured against a stagnating frontier will always look closer to best practice than it is. The pattern is not an artefact of one cause group: for upper respiratory infections, a near-zero-fatality contrast observed without interpolation, the median gap widened over the same three decades. 1 Three implications follow for the SDG era&#x27;s monitoring architecture. Aggregate mortality trends should 2 be read alongside episode-based survival metrics, since the first can improve while the second stagnates. 3 Regional benchmarks should be reported with a global-frontier contrast, so that frontier stagnation cannot 4 masquerade as proximity to best practice. And convergence itself should be treated as an outcome to be 5 measured, not a tendency to be assumed. Convergence, if it is wanted, will have to be built: tracked 6 annually, country by country, in the metric that separates falling ill from dying once ill. 7  6 Figure 3. Catch-up phenotypes of 1990-2023 LRI EFR gap trajectories (anchors 1990, 2010, 2019, 2023). 7 (a) Phenotype map: sustained catch-up (gap fell ≥30%; n=19), near-frontier (gap ≤1.5 throughout; 8 n=27), stalled (n=63), regressing (gap rose ≥30%; n=28), low-count (&amp;lt;25 deaths in 2023; n=67). (b) 9 Phenotype composition by GBD super-region (stacked country counts). (c) Phenotype counts: stalled 63, 10 regressing 28, near-frontier 27, sustained catch-up 19, low-count 67.</p>
+<h3>Declarations</h3>
+<p>Contributors. CS conceived and designed the study. CS developed the analytical framework. CS, DL and HC curated the data and performed the analyses. XW prepared the figures and assembled the supplementary materials. CS drafted the manuscript. DL, HC, and CS interpreted the results and critically revised the manuscript. CS supervised the work. All authors had full access to all of the data in the study, verified the underlying data, accept responsibility for the decision to submit for publication, and read and approved the final version. Presentation. This work has not been presented at any scientific meeting.</p>
+<p>Declaration of interests. The authors declare no conflicts of interest. AI tools were used for language editing and for assistance with code generation and modification; the authors take full responsibility for the content.</p>
+<h3>Data sharing.</h3>
+<p>All inputs are publicly available from the Global Burden of Disease Study 2023 results tools. The analytic country-year panel, phenotype classifications and all derived tables accompany this article (Supplementary Tables S1-S7). Version 3 additionally provides the joinpoint analysis script (joinpoint_efr_trajectories.py), its input panel (lri_gap_panel_country_year.csv) and its outputs (Supplementary_Joinpoint_NoConvergenceEFR.csv, Supplementary_Joinpoint_series_NoConvergenceEFR.csv, and the previous-BIC comparison fits in Supplementary_Joinpoint_legacyBIC_NoConvergenceEFR.csv) in the accompanying code folder.</p>
+<h3>( 2.</h3>
+<p>32 to 1.04) likewise closed to or below their frontiers. Equatorial Guinea is the only sustained catch-up country in Sub-Saharan Africa. The 27 near-frontier countries include most of South Asia (Bangladesh, Bhutan, Nepal, Pakistan), Brazil and Cuba, Kenya, Uganda and South Africa, and Thailand and Malaysia; the group is geographically broad but demographically small relative to the stalled majority. The 63 stalled countries carry most of the global burden: Nigeria, India and the Democratic Republic of the Congo all sit in this class, with gaps that neither closed nor blew out over 33 years.</p>
+<p>Figure 1. Distance to the LRI survival frontier, 204 countries, 1990-2023.2 (a) Country EFR gap trajectories (thin grey lines; country EFR / within-super-region 10th-percentile 3 frontier EFR, log scale), super-region medians (thick coloured lines), and the global median (dashed 4 line); the dotted line marks a gap of 1 (at the frontier). (b) Global median EFR gap at the anchor years: 5 1.86 (1990), 1.80 (2019), 2.00 (2021), 1.86 (2023); corresponding changes -3.0% (1990 to 2019), +10.8% 6 (2019 to 2021), +3.1% (2019 to 2023). (c) Share of countries with gap &amp;gt; 2 by year: 44.6% (1990), 7 44.1% (2019), 46.6% (2023). 8</p>
+<h3>8 Figure 2 . 6 Figure 3.</h3>
+<p>Figure 2. Distance to the LRI survival frontier by country (EFR ratio to within-super-region 10th-1 percentile frontier). 2 (a) Gap in 2023 (log colour scale). (b) Gap in 2019 (same scale). (c) Fold change 2019 to 2023 3 (diverging scale centred on ×1; red = widening, olive = narrowing). Grey: no GBD 2023 estimate or not 4 in the 1:110m base map. 5</p>
+<h3>11 Figure 4.</h3>
+<p>Figure 4. Gap change over the COVID-19 window, 2019 versus 2023 (low-count countries excluded). 2 (a) Dumbbell plot of the ten fastest catch-up and ten largest regressing countries (log scale; grey dot = 3 2019, red dot = 2023). (b) Gap 2019 versus gap 2023 for the 137 eligible countries (log-log; dotted 4 diagonal = no change); the 20 window movers are annotated. (c) Sigma/beta convergence statistics: 5 cross-country coefficient of variation of the gap, 0.89 (1990) to 1.18 (2023); beta-convergence 6 regression log(gap2023/gap1990) ~ log(gap1990): slope β = -0.105 (SE 0.047, p = 0.028, n = 137). 7</p>
+<p>Figure 5. Sub-Saharan Africa frontier regression, 1990-2023.9 (a) Ratio of the SSA frontier EFR to the High-income frontier EFR by year: 4.2 (1990) to 9.5 (2023). (b) 10 EFR in 1990 (per 1,000 episodes) of the five countries defining the SSA frontier -Cabo Verde 6.7, 11 Uganda 7.1, South Africa 8.1, Eswatini 8.4, Kenya 9.4 -against the SSA frontier (9.85) and the High-12 income frontier (2.32). (c) Gap of the 46 SSA countries in 2023 to their own regional frontier (median 13 1.78) versus the global p10 frontier (median 11.0; log scale; horizontal bars = medians). 14</p>
+<h3>Funding.</h3>
+<p>This work was supported by the Beijing Science and Technology Nova ProgramInterdisciplinary Project (20230484439) and the Beijing High-Level Public Health Technical Talents Project (2023-02-33). The funder had no role in study design, data collection, data analysis, data interpretation, or writing of the report.</p>
+<h3>References</h3>
+<p>GBD 2023 Causes of Death Collaborators. Global burden of 292 causes of death in 204 countries and territories and 660 subnational locations, 1990-2023: a systematic analysis for the Global Burden of Disease Study 2023. Lancet. 2025;406(10513):1811-1872. doi:10.1016/S0140-6736(25)01917-8.</p>
+<p>GBD 2023 Disease and Injury and Risk Factor Collaborators. Burden of 375 diseases and injuries, risk- attributable burden of 88 risk factors, and healthy life expectancy in 204 countries and territories, 1990-2023. Lancet. 2025;406(10513):1873-1922. doi:10.1016/S0140-6736(25)01637-X.</p>
+<p>GBD 2023 Lower Respiratory Infections and Antimicrobial Resistance Collaborators. Global burden of lower respiratory infections and aetiologies, 1990-2023: a systematic analysis for the Global Burden of Disease Study 2023. Lancet Infect Dis. 2026;26(4):343-361. doi:10.1016/S1473-3099(25)00689-9.</p>
+<p>GBD 2021 Lower Respiratory Infections and Antimicrobial Resistance Collaborators. Global, regional, and national incidence and mortality burden of non-COVID-19 lower respiratory infections and aetiologies, 1990-2021. Lancet Infect Dis. 2024;24(9):974-1002. doi:10.1016/S1473-3099(24)00176-2.</p>
+<p>Rutstein DD, Berenberg W, Chalmers TC, Child CG 3rd, Fishman AP, Perrin EB. Measuring the quality of medical care: a clinical method. N Engl J Med. 1976;294(11):582-588. doi:10.1056/NEJM197603112941104.</p>
+<p>Nolte E, McKee M. Measuring the health of nations: updating an earlier analysis. Health Aff (Millwood). 2008;27(1):58-71. doi:10.1377/hlthaff.27.1.58.</p>
+<p>Kruk ME, Gage AD, Arsenault C, et al. High-quality health systems in the Sustainable Development Goals era: time for a revolution. Lancet Glob Health. 2018;6(11):e1196-e1252. doi:10.1016/S2214-109X(18)30386-3.</p>
+<p>GBD 2019 Healthcare Access and Quality Collaborators. Assessing performance of the Healthcare Access and Quality Index, overall and by select age groups, for 204 countries and territories, 1990- 2019: a systematic analysis from the Global Burden of Disease Study 2019. Lancet Glob Health. 2022;10(12):e1715-e1743. doi:10.1016/S2214-109X(22)00429-6.</p>
+<p>GBD 2019 Child and Adolescent Communicable Disease Collaborators. The unfinished agenda of communicable diseases among children and adolescents before the COVID-19 pandemic, 1990- 2019. Lancet. 2023;402(10398):313-335. doi:10.1016/S0140-6736(23)00860-7.</p>
+<p>Ruan J, Tao Z, Zhang K, et al. Avoidable under-5 mortality from congenital and genetic disorders: a frontier analysis of GBD 2023 identifying intervention targets. Front Public Health. 2026;14:1886383. doi:10.3389/fpubh.2026.1886383.</p>
+<p>Goli S, Arokiasamy P. Maternal and child mortality indicators across 187 countries of the world: converging or diverging. Glob Public Health. 2014;9(3):342-360. doi:10.1080/17441692.2014.890237.</p>
+<p>Atance D, Claramunt MM, Varea X, Aburto JM. Convergence and divergence in mortality: a global study from 1990 to 2030. PLoS One. 2024;19(1):e0295842. doi:10.1371/journal.pone.0295842.</p>
+<p>Ellis L, Belot A, Rachet B, Coleman MP. The mortality-to-incidence ratio is not a valid proxy for cancer survival. J Glob Oncol. 2019;5:1-9. doi:10.1200/JGO.19.00038.</p>
+<p>Amante C, Eakins BW. ETOPO1 1 arc-minute global relief model: procedures, data sources and analysis. NOAA Technical Memorandum NESDIS NGDC-24. Boulder, CO: National Geophysical Data Center, NOAA; 2009. doi:10.7289/V5C8276M.</p>
+<p>World Health Organization and World Bank. Tracking universal health coverage: 2025 global monitoring report. Geneva: World Health Organization; 2025.</p>
+<p>World Health Organization and UNICEF. WHO/UNICEF Estimates of National Immunization Coverage (WUENIC), 2025 release. Geneva: WHO; 2025. Available at: https://data.who.int.</p>
+<p>Pfurtscheller T, Lam F, Shah R, et al. Predicting the potential impact of scaling up four pneumonia interventions on under-five pneumonia mortality: a prospective Lives Saved Tool (LiST) analysis for Bangladesh, Chad, and Ethiopia. J Glob Health. 2024;14:04001. doi:10.7189/jogh.14.04001.</p>
+<p>Chow EJ, Uyeki TM, Chu HY. The effects of the COVID-19 pandemic on community respiratory virus activity. Nat Rev Microbiol. 2023;21(3):195-210. doi:10.1038/s41579-022-00807-9.</p>
 </div>
 </details>
 </div>
