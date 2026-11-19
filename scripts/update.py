@@ -99,6 +99,15 @@ MODULES = ("power,marginal,prereg_check,ethics_check,ref_pubpeer,ref_retraction,
 MAX_BYTES = 50 * 1024 ** 2      # the server refuses larger files (api.R MAX_UPLOAD_BYTES)
 JOB_WAIT_MINUTES = 85           # the server stops a job after 70 minutes (60, and 10 for its report)
 MAX_TRIES = 2                   # a preprint whose job fails is tried this often
+# medRxiv's Cloudflare refuses GitHub's machines now and then for some minutes
+# (HTTP 403 with a page instead of the PDF; 19 preprints in six periods
+# between 12 and 18 November 2026, each fetched without trouble later). A
+# refused preprint stays at the front of the queue and the run waits
+# REFUSED_PAUSE seconds; after REFUSED_TO_BACK refusals it waits at the back,
+# and after REFUSED_MAX it is listed as failed.
+REFUSED_PAUSE = 15 * 60
+REFUSED_TO_BACK = 3
+REFUSED_MAX = 6
 BACKFILL_LIMIT = 1000           # older preprints sent to the server, at most
 # A result is current when metacheck CURRENT_FROM or newer made it, after
 # CURRENT_SINCE: the moment that version was installed on the SURF server.
@@ -682,6 +691,32 @@ def server_idle():
         return False
     return (health.get("status") == "ok" and (health.get("jobs_running") or 0) < SERVER_PLACES
             and not health.get("jobs_waiting"))
+
+
+def is_refusal(e):
+    # an HTTP 403 from medRxiv (or its API): its Cloudflare refusing for a while
+    return e.code == 403 and "rxiv.org" in str(getattr(e, "filename", "") or "")
+
+
+def refused(state, item):
+    # medRxiv refused the item at the front of the queue (is_refusal()). It
+    # stays at the front, after REFUSED_TO_BACK refusals it goes to the back,
+    # and after REFUSED_MAX it is listed as failed. Returns "wait" (the run
+    # waits REFUSED_PAUSE, the item at the front or the back) or "failed" (the
+    # item is still at the front, for the run loop to take it off as usual).
+    n = state["refused"].get(item["id"], 0) + 1
+    if n >= REFUSED_MAX:
+        state["refused"].pop(item["id"], None)
+        return fail(state, item["id"],
+                    f"medRxiv refused the PDF {n} times (HTTP 403), over at least "
+                    f"{(n - 1) * REFUSED_PAUSE // 60} minutes", item.get("doi"),
+                    rerun=item["source"] == "rerun")
+    state["refused"][item["id"]] = n
+    if n >= REFUSED_TO_BACK:
+        state["queue"].append(state["queue"].pop(0))
+    print(f"medRxiv refused {item['id']} (HTTP 403, {n} time{'s' if n > 1 else ''}); "
+          f"waiting {REFUSED_PAUSE // 60} minutes.", flush=True)
+    return "wait"
 
 
 def pause(stop_at, seconds):
@@ -1624,6 +1659,7 @@ def main():
         state["queue"].insert(0, {"id": osf_id, "published": None, "source": "redo"})
     # the preprints whose result is not current, checked again (CURRENT_FROM)
     state.setdefault("rerun_failed", {})
+    state.setdefault("refused", {})       # HTTP 403 from medRxiv, per preprint
     n = queue_reruns(state, {**held, **index}, papers_dir)
     if n:
         print(f"{n} preprints with an older result are waiting to be checked again.", flush=True)
@@ -1673,12 +1709,25 @@ def main():
                 outcome = check_one(item, state, index, papers_dir, args.site_dir)
             except ServerDown:
                 raise
+            except urllib.error.HTTPError as e:
+                if is_refusal(e):
+                    # medRxiv refused for a while: not a fault of the preprint
+                    outcome = refused(state, item)
+                    if outcome != "failed":
+                        save(state_path, state)
+                        if not pause(stop_at, REFUSED_PAUSE):
+                            break
+                        continue
+                else:
+                    outcome = fail(state, item["id"], f"{type(e).__name__}: {e}", item.get("doi"),
+                                   rerun=item["source"] == "rerun")
             except (urllib.error.URLError, TimeoutError, KeyError, TypeError, ValueError) as e:
                 # a medRxiv answer that could not be read: tried again later
                 outcome = fail(state, item["id"], f"{type(e).__name__}: {e}", item.get("doi"),
                                rerun=item["source"] == "rerun")
             if outcome == "busy":       # the server became busy during the download
                 continue
+            state["refused"].pop(item["id"], None)
             state["queue"].pop(0)
             if outcome == "failed" and item["id"] in state["tries"]:
                 state["queue"].append(item)        # try again after the others
