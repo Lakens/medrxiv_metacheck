@@ -197,7 +197,7 @@ Diversification without convergence: national childhood respiratory
 pathogen spectra diverge as they diversify, 1990-2023
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.2 · DOI 10.64898/2026.09.01.26361890
+2026-11-19 · Metacheck 0.4.4.25 · DOI 10.64898/2026.09.01.26361890
 </p>
 </header>
 <div class="mc-main">
@@ -216,8 +216,8 @@ applicable</span></a>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 9 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 9 detected.</p>
 </div>
 </div>
 </div>
@@ -325,8 +325,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -701,7 +702,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -716,9 +718,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -731,13 +751,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -757,6 +780,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -764,12 +793,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -870,6 +905,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -909,6 +964,21 @@ text (93 of 95) and 90% in reference lists (74 of 82); the labels were
 made by Claude agents from each link’s evidence, and disputed ones
 checked against the deposits. Telling this paper’s own deposit from the
 authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1164,19 +1234,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1286,6 +1438,121 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background National childhood respiratory pathogen spectra are diversifying nearly everywhere -within-country diversity rose in 203 of 204 countries between 1990 and 2023 -yet whether countries are diversifying toward a common spectrum or along divergent paths is unknown. We quantified between-country compositional distance of national pathogen spectra over the same period.</p>
+<p>We built national pathogen share vectors from Global Burden of Disease Study 2023 lower respiratory infection etiologic attributions (26 pathogens, 204 countries, ages 0-19 years) at five timepoints spanning 1990-2023. Between-country distance was measured as all pairwise Jensen-Shannon divergences (JSD; primary) and Bray-Curtis dissimilarities, with Baselga and Jaccard decompositions; robustness was assessed across metrics, pathogen panels, low-count thresholds and a balanced panel of 107 countries.</p>
+<p>Mean pairwise JSD rose from 0.0084 in 1990 to 0.0283 in 2023 (+238%; trend p = 0.030), peaking in 2021 (+283%) with a partial 2023 pullback. Bray-Curtis dissimilarity rose +120% and the balanced panel +423%. Divergence was entirely balanced variation (share reallocation), with spectrum richness rising from 18.5 to 21.1 of 26 pathogens. Dispersion rose fastest for influenza (coefficient of variation 0.03 to 0.55) and respiratory syncytial virus (0.08 to 0.48). Within-region distance rose in every computable GBD super-region (five of seven): divergence occurs within regions, not between blocs. A country-level bootstrap confirmed the increase (+238%, 95% CI +165 to +331), and segmented trend analysis found no supported breakpoint, with divergence proceeding steadily at +4.1% per year (95% CI 2.0-6.3) rather than in stages.</p>
+<p>Conclusions National spectra are re-sorting along country-specific axes as vaccine-preventable dominance recedes at different speeds. Diversification is universal, but convergence is absent: the transition at the etiologic-spectrum level is asynchronous and path-dependent, with implications for empirical treatment policy and pathogen surveillance.</p>
+<h3>1. Introduction</h3>
+<p>Epidemiological transition theory describes how, as mortality declines, the structure of causes of death shifts from infectious dominance toward noncommunicable disease. 1 Although the theory was framed as a description of idealised stages rather than a law of motion, its canonical reading carries an implicit spatial expectation: countries traverse broadly similar stages, so their cause-ofdeath structures should become more alike as the transition advances. 2, 3 The convergence agenda in global health makes this expectation explicit at the level of mortality rates, projecting a world &quot;converging within a generation&quot;. 4 The empirical record at the level of life expectancy and allcause mortality is more complicated: cross-country mortality converged through the midtwentieth century but began to diverge again from the late 1980s, with reversal episodes concentrated in Eastern Europe and sub-Saharan Africa, [5] [6] [7] although convergence-club analyses of mortality indicators still find country clusters converging along broadly continental lines. 8 What has rarely been examined is the compositional layer below broad cause groups: whether the specific etiologic spectra within a single syndrome converge as countries move through the transition. The stakes for the theory are real either way. If national spectra converge as they diversify, the stage model extends naturally downward: countries follow a shared track not only in how much mortality declines but in the fine structure of what remains. If they diverge, the transition at the etiologic level is better described as asynchronous and path-dependent, with each country&#x27;s endpoint contingent on its own intervention history, and the stage imagery needs amendment. This gap is partly one of data. Compositional convergence questions require comparable, pathogen-resolved national estimates over long periods, which have only recently become available at global scale through the etiologic attribution machinery of the GBD study. 9 Childhood respiratory infection is a natural test case. It was the dominant infectious killer of children at the start of the transition, and its mortality has fallen sharply: deaths at ages 0-19 years from the combined respiratory spectrum declined by 62.5% between 1990 and 2023 in the Global Burden of Disease Study (GBD) 2023. 9 Over the same period, conjugate vaccines against Streptococcus pneumoniae and Haemophilus influenzae type b were introduced at different times and speeds across countries, eroding the dominance of the two historically leading pathogens unevenly. 10 Within-country diversity of the childhood respiratory pathogen spectrum has risen nearly everywhere over the same period: in the present 204-country panel, national Shannon diversity increased in 203 of 204 countries between 1990 and 2023, and the cross-country median rose from 2.11 to 2.62. Diversification, in other words, is close to universal at the national level.</p>
+<p>Universal diversification, however, does not imply convergence. In community ecology the distinction is formal: alpha diversity measures the variety within a local community, whereas beta diversity measures compositional difference between communities. 11 Every local community can gain diversity while the compositional distances among them widen, a pattern ecologists term differentiation, the opposite of biotic homogenisation. The same distinction applies to national pathogen spectra. Operationally, convergence would appear as shrinking pairwise compositional distance between countries over time: national spectra approaching a common template, much as mortality rates have approached common low levels. Divergence would appear as widening distance, with each country&#x27;s spectrum becoming more idiosyncratic even as all become more diverse. The two outcomes answer different questions, and the alpha-level result settles neither; indeed, in the present panel diversification was fastest where baseline diversity was lowest (convergence in slope), yet the cross-country spread of diversity widened (divergence in level), an early hint that the national trajectories are not funnelled toward a single endpoint. The question carries practical weight. Empirical treatment guidelines for childhood pneumonia are premised on a sufficiently shared pathogen spectrum that a single antibiotic algorithm is reasonable across settings; 12 vaccine pipeline priorities and regional surveillance design make analogous assumptions about which pathogens matter where. If national spectra are in fact drifting apart, these shared templates describe a shrinking fraction of real settings.</p>
+<p>We therefore posed three questions. First, has the between-country compositional distance of national childhood respiratory pathogen spectra increased or decreased between 1990 and 2023?</p>
+<p>Second, if distance has changed, is the change driven by reallocation of shares among a common pathogen set or by subsets of pathogens appearing and disappearing across countries? Third, which pathogens, and which geographic scales, contribute most? We addressed these questions using a national panel of pathogen-attributed respiratory deaths from GBD 2023, five timepoints spanning the vaccine era and the pandemic window, pairwise information-theoretic and abundance-based distances, and a beta-diversity decomposition transferred from community ecology. Robustness was pre-specified in both directions -convergence and divergence were each interpretable outcomes -and the analysis plan fixed the distance metrics, decomposition, low-count filter, balanced-panel check and regional stratification before results were examined.</p>
+<p>To our knowledge this is the first application of formal beta-diversity analysis to national causeof-death spectra, and the first empirical test of compositional convergence at the etiologic level of the childhood respiratory transition.</p>
+<h3>2. Methods</h3>
+<p> &gt;Methods</p>
+<h3>2.1 Data source and spectrum definition</h3>
+<p>This is a secondary analysis of GBD 2023 (release v8352), which produces cause-specific mortality estimates for 204 countries and territories using standardised Bayesian models. 9 Etiologically attributed lower respiratory infection (LRI) deaths were extracted at the risk-effect (rei) level for the 26 single-pathogen and residual causes of GBD 2023, for both sexes combined; attribution follows a counterfactual population-attributable-fraction (PAF) model that partitions LRI deaths across etiologies using etiologic fraction data, and the rei-level interface returns deaths (central estimates, in numbers) rather than rates or uncertainty draws. 13, 14 We aggregated the four paediatric age groups (&lt;5, 5-9, 10-14, 15-19 years) into a single 0-19 year total and retained five timepoints: 1990, 2010, 2019, 2021 and 2023. These timepoints span the prevaccine baseline, the vaccine scale-up era, the immediate pre-pandemic year, the pandemic shock and the most recent post-shock year. We use 2021 rather than 2020 as the pandemic-shock timepoint: 2020 was the year of maximal non-pharmaceutical-intervention suppression of respiratory transmission, whereas 2021 is when the shock to pathogen spectra became manifest.</p>
+<p>Three complementary causes complete the childhood respiratory infectious spectrum: tuberculosis and pertussis, which GBD models directly as causes of death rather than through PAF attribution, and COVID-19 (2021 and 2023). 13 Because GBD causes of death are mutually exclusive and collectively exhaustive, concatenating the modules introduces no double counting.</p>
+<p>However, country-level pertussis estimates were unavailable for 1990 and 2023, and COVID-19 did not exist before 2020, so the main analysis uses the 26-pathogen LRI panel at all five timepoints. A 29-pathogen panel (adding tuberculosis, pertussis and COVID-19, with COVID-19 set to zero before 2020, which is factual) is reported as a sensitivity for 2010, 2019 and 2021.</p>
+<h3>2.2 Spectrum vectors and low-count filter</h3>
+<p>For each country and timepoint we formed a closed compositional vector of pathogen shares by dividing attributed deaths by the country-timepoint total. Shares derived from very small death counts are unstable: below roughly 100 deaths, single-digit changes in one pathogen&#x27;s count can swing shares by percentage points and generate spurious pairwise distances. We therefore excluded country-timepoints with fewer than 100 total attributed deaths (primary threshold).</p>
+<p>Exclusions were 67, 89, 93, 97 and 96 of 204 countries in 1990, 2010, 2019, 2021 and 2023, respectively; the rise reflects mortality decline pushing more countries, predominantly highincome and small states, below the filter. Thresholds of 50 and 200 deaths were examined in sensitivity analysis. Because a filter tied to mortality level lets the analysed sample change over time, we additionally defined a balanced panel of the 107 countries passing the 100-death filter at all five timepoints; comparing the balanced and unbalanced trends separates genuine compositional change from turnover in which countries enter the sample.</p>
+<h3>2.3 Between-country distance metrics</h3>
+<p>The primary metric was the Jensen-Shannon divergence (JSD) between national share vectors, computed with base-2 logarithms and bounded on [0, 1]; it is symmetric, finite everywhere (zero shares contribute zero to the entropy terms, so no pseudocounts are required), and interpretable as the information lost when two spectra are pooled. 15 For each timepoint we computed all pairwise JSD values among included countries and summarised their distribution by the mean, median and interquartile range; with n countries this yields n(n -1)/2 dependent pairwise values, so inference is placed on the time trend of the summary statistics rather than on individual pairs. As a sensitivity metric we used the Bray-Curtis dissimilarity, which for share vectors equals half the L1 distance and is also bounded on [0, 1]. 16 The two metrics weight dominant and rare components differently, so agreement between them indicates that the result is not metric-specific.</p>
+<h3>2.4 Beta-diversity decomposition</h3>
+<p>To characterise the type of compositional change, we applied the Baselga partitions. For abundance data, Bray-Curtis dissimilarity decomposes into balanced variation in abundance (countries re-allocating share among the same components) and abundance gradients (one country&#x27;s components forming a strict subset of another&#x27;s). 17 For closed share vectors, both share totals equal one by construction, so the gradient component is identically zero; we report this as a mathematical property and therefore pair the abundance partition with an incidence-based partition. Converting shares to presence (share ≥0.5%) and absence, we decomposed Jaccard dissimilarity into turnover and nestedness components, 18 and tracked mean spectrum richness (number of pathogens present at ≥0.5% share) per timepoint. The 0.5% presence threshold is arbitrary but conservative: it is high enough that a pathogen must carry a non-trivial mortality share to count as present, and low enough that the long tail of the spectrum remains visible.</p>
+<h3>2.5 Per-pathogen dispersion and regional stratification</h3>
+<p>For each pathogen and timepoint we computed the cross-country coefficient of variation (CV, standard deviation divided by mean) and interquartile range of its share; the CV is scale-free, so pathogens with small mean shares can be compared with dominant ones. Countries were mapped to the seven GBD super-regions using the standard GBD location hierarchy, and mean pairwise JSD was computed within each super-region (where at least five countries passed the filter) and between country pairs spanning different super-regions, to test whether divergence reflects within-region differentiation or regional blocs drifting apart.</p>
+<h3>2.6 Statistics and reporting</h3>
+<p>Temporal trend was assessed by ordinary least squares regression of mean pairwise distance on calendar year across the five timepoints, reporting the slope, Pearson correlation and two-sided p value; with five points the test has three residual degrees of freedom and is interpreted as descriptive evidence of direction rather than confirmatory inference. Because pairwise distances are not independent, the primary regression was accompanied by an exact permutation test over the 120 orderings of the five timepoint labels. Several such trend tests were performed on the same underlying distance summaries (the primary JSD, Bray-Curtis and balanced-panel series); these tests are correlated, no adjustment for multiple comparisons was made, and the marginal p = 0.030 of the primary series should be read with corresponding caution, the strength of evidence resting on effect size and consistency across specifications rather than on any single p value. All other analyses are descriptive. Analyses used Python (pandas, NumPy, SciPy) with two-sided alpha 0.05. The study uses publicly available, de-identified, aggregate modelled estimates and was exempt from institutional ethics review.</p>
+<p>Three analyses were added in this revision. First, to test whether divergence accelerated at identifiable times, segmented log-linear (joinpoint) models were fitted to the five-timepoint series of mean pairwise JSD (primary and balanced-panel) and mean Bray-Curtis dissimilarity, with the number and location of joinpoints selected by the Bayesian information criterion; because every segment was required to contain at least three observations (adjacent joinpoints at least two years apart), five timepoints admit at most one breakpoint, at 2019. Second, to quantify the sensitivity of the incidence-based partition to the arbitrary 0.5% presence threshold, the Jaccard turnovernestedness decomposition and mean richness were recomputed at thresholds of 0.25%, 1% and 2% of spectrum share. Third, a non-parametric bootstrap (2,000 resamples of countries with replacement within each timepoint; seed 42) gave 95% confidence intervals for the 1990 to 2023 change in mean pairwise JSD in absolute and percentage terms. Full segment tables, the threshold-sensitivity grid and the bootstrap summary accompany this revision as CSV files with the reproducible script (Supplementary_Joinpoint_DivergingSpectra.csv, sensitivity_presence_threshold_DivergingSpectra.csv, bootstrap_jsd_change_DivergingSpectra.csv; code/joinpoint_robustness_divergingspectra.py).</p>
+<h3>3. Results</h3>
+<p> &gt;Results</p>
+<h3>3.1 Between-country compositional distance tripled between 1990 and 2023</h3>
+<p>In 1990 national spectra were near-identical: the mean pairwise JSD among the 137 included countries was 0.0084 on a [0, 1] scale (median 0.0051), reflecting the shared dominance of S. pneumoniae (48.6% mean share) and broad residual categories. Part of this early homogeneity is likely to reflect covariate-driven smoothing of the GBD attribution models in the data-sparsest year, so the magnitude of the subsequent increase is interpreted conservatively (see Limitations).</p>
+<p>Distance then rose at every successive timepoint to a 2021 peak of 0.0320 (+283% relative to 1990), before a partial pullback to 0.0283 in 2023 (Table 1, Figure 1). The 2023 level remains more than threefold the 1990 level (+238%; linear trend over the five timepoints: slope 0.00068 per year, r = 0.91, p = 0.030; exact permutation p = 0.025). The median pairwise distance tracked the mean (0.0051 to 0.0240), indicating a shift of the whole distribution rather than a tail phenomenon. The Bray-Curtis sensitivity metric showed the same pattern: mean dissimilarity rose from 0.066 to 0.145 (+120%; r = 0.95, p = 0.014). Absolute JSD values are small on their [0, 1] scale; we therefore report relative change alongside absolute levels throughout.</p>
+<p>Two additions firm up the trend inference. Segmented (joinpoint) models selected by the Bayesian information criterion retained zero joinpoints for the primary JSD series, the balancedpanel series and the Bray-Curtis series alike: under the constraint of at least three observations per segment, five timepoints admit at most one breakpoint (2019), and the 2021 peak with its 2023 pullback did not justify one. The single admissible breakpoint at 2019 was evaluated explicitly and was rejected for all three series (ΔBIC = +2.8, +2.6 and +3.1 for the primary, balanced-panel and Bray-Curtis series, respectively; positive ΔBIC favours the no-joinpoint model). Divergence is therefore best described as a single steady log-linear rise-+4.1% per year (95% CI 2.0-6.3) for mean pairwise JSD, +5.5% (3.0-8.1) on the balanced panel and +2.6% (1.4-3.8) for Bray-Curtis-rather than as staged or purely pandemic-driven acceleration.</p>
+<p>A nonparametric bootstrap over countries (2,000 resamples within timepoints) put a 95% confidence interval of +165% to +331% on the +238% rise in mean pairwise JSD between 1990 and 2023 (absolute change +0.0200, 95% CI 0.0155-0.0244), complementing the exact permutation test by quantifying sampling uncertainty in the magnitude of change.</p>
+<p>Table 1. Pairwise between-country compositional distance of national childhood respiratory pathogen spectra (26 pathogens, ages 0-19 years), 1990-2023 Year Countries, n JSD mean JSD median JSD IQR Bray-Curtis mean Bray-Curtis median 1990 137 0.0084 0.0051 0.0020-0.0110 0.066 0.061 2010 115 0.0136 0.0083 0.0035-0.0162 0.090 0.080 2019 111 0.0250 0.0183 0.0084-0.0343 0.139 0.130 2021 107 0.0320 0.0270 0.0146-0.0446 0.145 0.140 2023 108 0.0283 0.0240 0.0126-0.0384 0.145 0.138 JSD, Jensen-Shannon divergence (base 2, bounded [0, 1]); IQR, interquartile range. Change 1990 to 2023: JSD mean +238% (trend p = 0.030); Bray-Curtis mean +120% (p = 0.014).</p>
+<h3>3.2 Divergence is robust to metric, panel composition, pathogen set, COVID-19 and count threshold</h3>
+<p>The result did not depend on which countries entered the sample. On the balanced panel of 107 countries passing the low-count filter at all five timepoints, mean pairwise JSD rose from 0.0052 to 0.0275 (+423%; p = 0.038), steeper than in the unbalanced sample, so divergence is not an artefact of changing sample composition (Table 2). Extending the panel to 29 pathogens (adding tuberculosis, pertussis and COVID-19) for 2010-2021 preserved the direction with a steeper 1 slope: mean JSD rose from 0.056 (2010) through 0.067 (2019) to 0.103 (2021), at a higher 2 absolute level because tuberculosis and pertussis add cross-country heterogeneity. COVID-19 3 amplified but did not drive the pandemic-era peak: excluding it, the 2021 mean JSD on the 28-4 pathogen panel was 0.072 versus 0.103 with it (+43% amplification), and the 2010 to 2021 trend 5 was identical in direction (0.056 to 0.067 to 0.072). Low-count thresholds of 50, 100 and 200 6 deaths all yielded increases of +238% to +255% between 1990 and 2023 (Figure 5).</p>
+<p>Table 2. Robustness of the divergence trend (mean pairwise JSD) 8 Analysis Scope 1990 2010 2019 2021 2023 Change Trend p Primary (26 pathogens, threshold 100) Unbalanced 0.0084 0.0136 0.0250 0.0320 0.0283 +238% 0.030 Bray-Curtis dissimilarity Unbalanced 0.066 0.090 0.139 0.145 0.145 +120% 0.014 Balanced panel (n = 107 all years) Fixed sample 0.0052 0.0109 0.0219 0.0320 0.0275 +423% 0.038 29-pathogen panel (incl. TB, pertussis, COVID-19) Unbalanced n/a 0.056 0.067 0.103 n/a +83% (2010→2021) n/a 29-panel excluding COVID-19 Unbalanced n/a 0.056 0.067 0.072 n/a +29% (2010→2021) n/a Low-count threshold 50 Unbalanced 0.0092 0.0194 0.0291 0.0368 0.0327 +255% n/a Low-count threshold 200 Unbalanced 0.0078 0.0114 0.0215 0.0312 0.0266 +243% n/a</p>
+<p>TB, tuberculosis; n/a, not applicable (pertussis country data unavailable for 1990 and 2023; 9 COVID-19 nonexistent before 2020). Trend p values, where reported, from linear regression of 10 mean pairwise distance on calendar year (five timepoints for the 26-pathogen rows; three for the 11 29-pathogen rows; not computed for the threshold sensitivity rows). 12 3.3 Divergence is share reallocation, with a nestedness signature in incidence space 13   The Baselga abundance partition attributed 100% of quantitative divergence at every timepoint to 14 balanced variation in abundance, the turnover analogue: countries are re-allocating shares among 15 a common pathogen set (Table 3, Figure 2). The abundance-gradient component was identically 16 zero, a mathematical property of closed share vectors rather than an empirical finding, so we 17 verified the structural pattern in incidence space. There, total Jaccard dissimilarity was roughly 18 stable (0.052 in 1990; 0.059 in 2023; a 2021 excursion to 0.089) while mean spectrum richness rose from 18.5 to 21.1 of 26 pathogens. Because richer spectra tend to contain poorer ones, nestedness accounted for the majority of incidence dissimilarity (68% in 2023 versus 57% in 1990; turnover fraction 32% versus 43%). The turnover fraction was non-monotonic across the intermediate timepoints, however (11% in 2010 against 32-43% in the other years), so the nestedness majority is an endpoint pattern rather than a stable ordering and is interpreted descriptively. The combined picture is consistent: countries are gaining components almost universally, yet the proportional composition of the enriched spectra is increasingly countryspecific. Re-running the partition at presence thresholds of 0.25%, 1% and 2% (base 0.5%) left the qualitative pattern intact: mean richness rose between 1990 and 2023 at every threshold ( 21.2   to 23.1, 15.9 to 17.7 and 11.2 to 13.2 of 26 Table 3. Beta-diversity decomposition of between-country dissimilarity, 1990-2023 Year Abundance partition (Bray-Curtis): balanced variation, % Abundance partition: gradient, % Jaccard dissimilarity Jaccard turnover fraction, % Jaccard nestedness fraction, % Mean richness (of 26) 1990 100 0 0.052 43 57 18.5 2010 100 0 0.061 11 89 19.2 2019 100 0 0.052 42 58 20.7 2021 100 0 0.089 33 67 20.9 2023 100 0 0.059 32 68 21.1</p>
+<p>Presence defined as pathogen share ≥0.5%. The gradient component is identically zero for closed share vectors (both totals equal one); see Methods. The 2010 turnover fraction (11%) is an isolated departure from the 32-43% range of the other timepoints; the turnover-nestedness split is sensitive to the arbitrary presence threshold and to endpoint choice and is interpreted descriptively.</p>
+<h3>3.4 Viral pathogens show the fastest cross-country dispersion</h3>
+<p>Fifteen of 26 pathogens showed rising cross-country CV of share between 1990 and 2023 (Table 4, Figure 3). Dispersion rose fastest for the two major respiratory viruses: influenza from 0.03 to 0.55 and respiratory syncytial virus (RSV) from 0.08 to 0.48, despite broadly stable mean shares, meaning that influenza and RSV mortality shares were nearly uniform across countries in 1990 -a uniformity probably exaggerated by covariate-driven model smoothing in a data-sparse year 1 -but differ widely in 2023.</p>
+<p>S. pneumoniae itself dispersed markedly (0.06 to 0.26) as its mean 2 share fell from 48.6% to 29.5%, consistent with uneven pacing of the post-pneumococcal 3 transition. Mycoplasma, other gram-negative bacteria, Pseudomonas aeruginosa and Escherichia 4 coli dispersed from low bases. Several high-CV opportunistic or rare causes were stable or 5 declining (Klebsiella pneumoniae 0.19 to 0.18; Staphylococcus aureus 0.32 to 0.31; Aspergillus 6 spp. 0.39 to 0.33). Legionella spp. was the counterpoint: the highest CV in the panel at every 7 timepoint, yet falling from 2.86 to 2.04 -the largest absolute dispersion narrowed rather than 8 widened. 9</p>
+<p>Table 4. Cross-country dispersion (coefficient of variation) of pathogen shares, selected 10 pathogens, 1990 versus 2023 11 Pathogen Mean share 1990, % Mean share 2023, % CV 1990 CV 2023 Direction Influenza 4.6 4.3 0.03 0.55 Rising Respiratory syncytial virus 4.5 4.0 0.08 0.48 Rising Streptococcus pneumoniae 48.6 29.5 0.06 0.26 Rising Other Acinetobacter species 0.4 0.6 0.04 0.21 Rising Other gramnegative bacteria 1.8 2.8 0.06 0.19 Rising Mycoplasma 2.8 4.0 0.07 0.17 Rising Pseudomonas aeruginosa 4.8 7.4 0.07 0.15 Rising Escherichia coli 3.2 5.4 0.11 0.15 Rising Haemophilus influenzae 2.2 2.5 0.16 0.18 Rising Klebsiella pneumoniae 8.9 11.0 0.19 0.18 Stable Staphylococcus aureus 3.3 7.0 0.32 0.31 Stable Aspergillus spp. 1.4 2.1 0.39 0.33 Falling</p>
+<p>CV, coefficient of variation across included countries. 15 of 26 pathogens showed rising CV. 12 Rows were selected to cover the pathogens with the largest 1990-2023 CV increases, the leading 13 residual causes, and the largest stable or declining high-CV causes; the full 26-pathogen panel 14 appears in Figure 3. 15</p>
+<h3>3.5 Divergence occurs within every super-region 1</h3>
+<p>Mean within-region pairwise JSD rose between 1990 and 2023 in all five super-regions with 2 computable samples (Table 5, Figure 4): 3.5-fold in Southeast Asia, East Asia and Oceania; 4.4-3 fold in Central Europe, Eastern Europe and Central Asia; 5.6-fold in Latin America and the 4 Caribbean; 6.0-fold in North Africa and the Middle East; and 9.0-fold in Sub-Saharan Africa. 5</p>
+<p>Mean JSD between country pairs spanning different super-regions rose 3.2-fold (0.0096 to 6 0.0310), nearly matching the global 3.4-fold rise. Divergence is therefore a within-region 7 phenomenon, not a story of regional blocs drifting apart. The two remaining super-regions also 8 rose over their shorter computable windows (South Asia 0.0009 to 0.0020 and the high-income 9 super-region 0.0064 to 0.0337 between 1990 and 2010), so within-region divergence held in all 10 seven super-regions wherever it could be measured. South Asia and the high-income super-region 11 could not be assessed in later years (four and three included countries in 2023, respectively), itself 12 a consequence of mortality decline in those settings. 13</p>
+<p>Table 5. Mean pairwise JSD within GBD super-regions and between super-region pairs, 14 1990-2023 15 Superregion Countries 1990, n Countries 2023, n JSD 1990 JSD 2010 JSD 2019 JSD 2021 JSD 2023 Fold change Sub-Saharan Africa 44 44 0.0021 0.0044 0.0130 0.0171 0.0190 ×9.0 Latin America and Caribbean 19 16 0.0041 0.0067 0.0165 0.0264 0.0231 ×5.6 North Africa and Middle East 18 16 0.0035 0.0089 0.0242 0.0196 0.0210 ×6.0 Central Europe, Eastern Europe, Central Asia 23 12 0.0045 0.0047 0.0183 0.0243 0.0197 ×4.4 Southeast Asia, East Asia and Oceania 16 13 0.0052 0.0172 0.0274 0.0181 0.0182 ×3.5 South Asia 5 4 0.0009 0.0020 n/c n/c n/c n/c Highincome 12 3 0.0064 0.0337 n/c n/c n/c n/c Betweenregion pairs n/a n/a 0.0096 0.0157 0.0277 0.0362 0.0310 ×3.2</p>
+<p>JSD, Jensen-Shannon divergence; n/c, not computed (fewer than five included countries); n/a, not applicable (between-region pairs have no region membership). Fold change 1990 to 2023.</p>
+<h3>4. Discussion</h3>
+<p> &gt;Discussion</p>
+<h3>4.1 Principal findings</h3>
+<p>Between 1990 and 2023, the compositional distance among national childhood respiratory pathogen spectra roughly tripled, whether measured by Jensen-Shannon divergence (+238%) or Bray-Curtis dissimilarity (+120%), and whether or not sample composition, pathogen panel, COVID-19 and count thresholds were varied. The distance distribution shifted as a whole rather than at the extremes. Divergence peaked during the pandemic year 2021 (+283%) and partially receded by 2023, but the 2023 level remained more than threefold the 1990 baseline.</p>
+<p>Decomposition showed the divergence to be entirely balanced variation: countries re-allocating shares among a common, and slowly expanding, pathogen set. Dispersion rose fastest for the major respiratory viruses and for pneumococcus itself, and divergence occurred within every assessable super-region. Set against the near-universal rise in within-country diversity over the same period (203 of 204 countries gained Shannon diversity), the picture is consistent: national spectra are diversifying almost everywhere, and they are doing so along different paths. Because the near-uniform 1990 baseline is partly a smoothed model output (Limitations), we read the increase conservatively as at least a doubling of between-country distance.</p>
+<h3>4.2 Implications for epidemiological transition theory</h3>
+<p>These results add a second layer to the transition narrative. At the level of mortality rates and broad cause groups, the transition literature has documented convergence followed by divergence, driven by reversal episodes in particular regions. [5] [6] [7] At the etiologic level studied here, we find no convergence phase at all within the 1990-2023 window: national spectra began the period nearidentical, dominated everywhere by pneumococcus and residual categories, and have been differentiating ever since. The mechanism is plausibly the asynchronous, path-dependent unwinding of that shared starting point. Conjugate vaccine introduction varied by more than two decades across countries, 10 and national third-dose pneumococcal conjugate vaccine coverage still spans from nil in countries yet to introduce it to near-universal levels elsewhere, 19 so as vaccinepreventable dominance recedes at different speeds, the revealed spectrum re-sorts along countryspecific axes: viral-dominated in some settings, gram-negative or opportunistic mixes in others, depending on local vaccine coverage, antimicrobial pressure and health-care exposure. The 2021 peak sharpens the point. A global shock that struck every country simultaneously did not homogenise national spectra; it amplified their differences by 43% on top of the secular trend, because the shock interacted with already-divergent structures (asynchronous disruption and resurgence of respiratory viruses is documented in incidence surveillance). 20 The partial 2023 pullback suggests a reversible shock component superimposed on a persistent secular component, and the 2019 value (0.0250), measured before any pandemic effect, already sits threefold above 1990, so the trend does not depend on the pandemic window. If this reading is correct, the &quot;postpneumococcal diaspora&quot; is not a transitional phase on the way to a new common spectrum; it is the transition, proceeding at different speeds along different paths. Transition theory&#x27;s stage imagery, in which countries follow one another along a shared track, fits the etiologic layer poorly: the stages were defined by the order in which broad cause groups recede, but the residual composition left behind by that recession is contingent on national intervention histories and health-system structures, and contingency compounds over time. The within-region pattern reinforces this interpretation. Divergence is not driven by regional blocs drifting apart; neighbouring countries with similar starting points are acquiring dissimilar spectra, which is what path dependence looks like at this scale.</p>
+<h3>4.3 Clinical and policy implications</h3>
+<p>Empirical management of childhood pneumonia assumes that a shared pathogen spectrum justifies shared antibiotic algorithms. 12 That premise is weakening between countries. A spectrum distance that has at least doubled raises the possibility that any single empirical regimen may increasingly mismatch local spectra, in setting-specific ways. This inference is necessarily indirect: part of the divergence is driven by viral shares that antibacterial algorithms do not target, the pathogen mix of fatal infections need not match that of presenting clinical pneumonia, and empirical choices in practice hinge on local resistance patterns, which we did not measure. The per-pathogen results make the point concrete: influenza and RSV shares were nearly uniform across countries in 1990 but now vary several-fold to more than tenfold more widely, so the viral contribution to severe pneumonia presentations, and hence the likely yield of antibacterial-first management, differs increasingly by setting. Three practical consequences follow. First, regional and national etiologic surveillance gains value relative to global averages: as between-country heterogeneity grows, pooled estimates describe fewer individual countries well, and the case strengthens for sentinel etiologic testing networks feeding national guideline committees. Second, intervention portfolios need local compositional information. As single-pathogen strategies address a shrinking share of the spectrum almost everywhere, platform interventions (oxygen, antimicrobial access, referral) gain relative weight; the present result adds that the identity of the leading residual pathogens differs increasingly by country, so platforms must be stocked and calibrated locally. Third, vaccine development and introduction priorities, for example for RSV, will have heterogeneous marginal value across countries whose spectra have already diverged, which argues for country-stratified rather than globally pooled estimates of vaccine-preventable burden in investment cases.</p>
+<h3>4.4 A beta-diversity framework for monitoring etiologic transitions</h3>
+<p>Methodologically, the study demonstrates that the alpha/beta apparatus of community ecology 11, 17, 18 transfers directly to population-level pathogen spectra and answers a question that alpha-diversity reporting alone cannot pose. The present study illustrates the two-layer reporting standard we would propose for etiologic-transition monitoring: alpha diversity (is the national spectrum diversifying?), beta diversity (are national spectra converging?), and decomposition (is change driven by share reallocation or by components appearing and disappearing?). Jensen-Shannon divergence is a convenient primary metric because it is bounded, symmetric and information-theoretically interpretable; 15 the Baselga partitions then discipline interpretation by separating turnover-like from nestedness-like structure. 17, 18 Two features of the present application may be worth standardising. First, the balanced-panel check proved essential: in any monitoring system where units drop below a reporting threshold as the underlying burden falls, unbalanced samples can manufacture or mask trends, and the fixed-sample comparison should be routine. Second, the distinction between balanced variation and nestedness has a direct policy translation: reallocation within a shared pathogen set calls for recalibration of existing tools, whereas genuine turnover of the pathogen set would call for new tools. The same framework could monitor spectra of antimicrobial resistance, serotype replacement after vaccine introduction, or any multi-cause mortality structure in which compositional change, not just level change, is of interest. We have not modelled why trajectories differ; geographic and ecological covariatesisland-state status, latitude and the distance decay of compositional similarity -are the natural next driver analysis, one that must reckon with the low-count filter, which already excludes most small island states from the panel.</p>
+<h3>4.5 Relation to the convergence literature</h3>
+<p>Our finding appears to contradict the convergence rhetoric in global health, 4 but the discrepancy is one of level and metric, not of fact. Convergence claims concern mortality levels (under-five mortality rates, life expectancy gaps), where catch-up is real; the documented late-twentieth-century divergence likewise concerns levels, [5] [6] [7] and the convergence clubs identified by clustering country mortality indicators are clubs of levels, not of compositions. 8 Compositional structure is a different object. Two countries can have identical and rapidly falling pneumonia mortality while the mix of pathogens killing their remaining cases grows steadily apart -precisely what the balanced panel shows. Direct precedents for compositional comparison are scarce: cause-of-death structure has been compared across countries mainly through broad groupings (communicable versus noncommunicable versus injury), at which aggregation level the transition&#x27;s shared direction dominates and similarity necessarily rises. The closest precedents are within-country (alpha-level) analyses of cause-of-death diversity -in low-mortality countries 21 and globally across 204 countries, where diversity trends themselves differed by region 22 -analogues of the within-country diversification documented here rather than tests of between-country convergence.</p>
+<p>At the 26-pathogen resolution studied here, the shared direction of decline drops out of the measure, because shares are normalised within country and year; what remains is pure compositional difference, and it grows. Even within the alpha layer, the present panel shows convergence in slope (diversification was fastest where baseline diversity was lowest) but divergence in level (the cross-country spread of Shannon diversity widened). The layered picture -converging rates, diverging diversity levels and diverging compositions -is more coherent than any single convergence verdict, and it suggests that &quot;convergence&quot; should be specified by layer before it is asserted.</p>
+<h3>4.6 Limitations</h3>
+<p>Several limitations qualify the findings. First, GBD etiologic attributions are modelled estimates derived from counterfactual population-attributable fractions, not etiologic testing of individual deaths; 13, 14, 23 pathogen shares in low-data settings borrow strength from covariates and regional patterns, which could attenuate or inflate measured divergence in ways we cannot isolate. This caveat weighs most heavily on the 1990 baseline. Eleven of the 26 pathogens were newly modelled in GBD 2023, 14 and national estimates for the earliest, data-sparsest years lean more heavily on covariate-driven smoothing, so part of the near-uniformity of 1990 spectra may be a modelling artefact and the headline +238% may partly reflect the growth of information content over time rather than compositional change alone. Two sensitivity results partially address this concern: on the balanced panel of 107 continuously included countries the increase was steeper, not weaker (+423%), and under the stricter 200-death threshold, which retains only higher-burden settings, the increase remained +243% (+255% under the 50-death threshold). We therefore retain the directional conclusion but describe the magnitude as at least a twofold increase rather than a precisely estimated threefold one. Second, uncertainty was not propagated: the rei-level interface returns central estimates only, so pairwise distances, trend statistics and p values carry no uncertainty bands. GBD 2023 uncertainty intervals around pathogen-attributed deaths are wide in low-data settings, 14 and because pairwise distance is a nonlinear function of shares, the reported p values overstate precision to a degree we cannot quantify. Third, the low-count filter progressively excludes countries as mortality declines (67 of 204 excluded in 1990; 96 in 2023), so the later sample is predominantly low-and middle-income; the balanced panel shows the trend is stronger, not weaker, within a fixed sample, but our estimates do not describe high-income spectra in later years and the within-region analysis could not assess two super-regions by 2023.</p>
+<p>Fourth, five timepoints do not constitute a continuous series; the trend test has three residual degrees of freedom, and p = 0.030 should be read as modest statistical evidence resting on a large and consistent relative change, corroborated across specifications. Fifth, the 2021 timepoint contains the pandemic shock; we quantified and separated the COVID-19 contribution, but pandemic-era attribution is unusually uncertain. Sixth, shares form a closed composition, which induces mathematical coupling: a fall in pneumococcal share mechanically raises other shares, and the abundance-gradient component of the decomposition is zero by construction. We mitigated this by pairing the abundance partition with an incidence-based Jaccard partition, but compositional constraints should be borne in mind when interpreting per-pathogen dispersion.</p>
+<p>Finally, absolute JSD values are small; the finding is a large relative change from a near-zero baseline, and its clinical significance scales with the absolute levels reported. Likewise, with five timepoints the joinpoint analysis could test at most one breakpoint; annual national series, when released, would allow finer temporal localisation of any acceleration.</p>
+<h3>5. Conclusions</h3>
+<p>National childhood respiratory pathogen spectra have moved apart as they have diversified.</p>
+<p>Between 1990 and 2023, mean pairwise compositional distance among countries roughly tripled (+238% in Jensen-Shannon divergence, +120% in Bray-Curtis dissimilarity), a result that held across distance metrics, pathogen panels, exclusion of COVID-19, low-count thresholds and a fixed balanced panel of 107 countries, where the increase was steepest (+423%). The divergence peaked during the 2021 pandemic window and receded only partially by 2023, suggesting a reversible shock component superimposed on a persistent secular trend. Decomposition shows that the divergence is reallocation of shares within a slowly expanding common pathogen set, not the appearance of country-specific subsets; it is fastest for viral pathogens and for pneumococcus itself; and it occurs within every assessable world region rather than between regional blocs. 7 Figure 3. Cross-country dispersion of pathogen shares. 8 (a) Heat map of the coefficient of variation (CV) of national share for each of 26 pathogens 9 across the five timepoints, ordered by the 1990-2023 change in CV (largest increase first); cell 10 annotations are raw CV values and colour is on a linear scale from 0, clipped at the 95th 11 percentile of all cells (0.66), so the maximum colour denotes CV ≥0.66, including Legionella spp. 12 (CV 1.84-2.86). (b) Ranked 1990-2023 change in CV per pathogen; dispersion rose fastest for 13 influenza (0.03 to 0.55) and RSV (0.08 to 0.48). (c) Count of pathogens with rising (15) versus 14 stable or falling (11) cross-country CV.  (adding tuberculosis, pertussis and COVID-19), 2010-2021. (c) Primary series annotated as 1 percentage change relative to 1990: +63% (2010), +199% (2019), +283% (2021 peak) and 2 +238% (2023). 3</p>
+<p>Competing interests None declared.</p>
+<p>Diversification without convergence carries a coherent implication for transition theory: at the etiologic-spectrum level, the childhood respiratory transition is asynchronous and path-dependent, and there is no single destination spectrum toward which countries are travelling. The shared pneumococcus-dominated starting point of 1990 has dissolved into increasingly country-specific compositions as vaccine-preventable dominance recedes at different speeds. For policy, the era in which one empirical spectrum could anchor treatment algorithms, surveillance priorities and vaccine strategies across countries is receding; compositional surveillance at national and regional scale becomes correspondingly more valuable, and shared guidelines should be treated as starting hypotheses to be locally verified rather than as descriptions of local reality. For monitoring, paired alpha-and beta-diversity reporting offers a compact, transferable framework for tracking how the structure of disease burden changes as it declines, applicable wherever multi-cause mortality or morbidity spectra are estimated. Contributors SC conceived the study, led the research design, and is the principal investigator responsible for the study idea and overall conduct. DL and HC curated the data and performed the analysis. SC drafted the manuscript. SC supervised the study and is the corresponding author. All authors revised the manuscript and approved the final version. SC is the guarantor.</p>
+<p>pathogens, versus 18.5 to 21.1 at base), and nestedness remained the majority component of 2023 incidence dissimilarity at thresholds up to 1% (turnover fraction 2.5%, 31.8% and 49.3% at 0.25%, 0.5% and 1%), tipping to a narrow turnover majority (54.1%) only at the strict 2% cut-off. The nestedness signature is therefore robust across the plausible threshold range, even though the exact turnover-nestedness split is thresholddependent (sensitivity_presence_threshold_DivergingSpectra.csv).</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Pairwise between-country Jensen-Shannon divergence of national childhood 2 respiratory pathogen spectra, 1990-2023.3 (a) Distribution of all pairwise JSD values among included countries at each of five timepoints 4 (violins with box plots and mean trace; 26-pathogen panel, 100-death filter). (b) Mean pairwise 5 JSD with interquartile band, 0.0084 (1990) to 0.0283 (2023; +238%); the 2021 pandemic-6 window peak (0.0320) and partial 2023 pullback are visible. (c) Bray-Curtis sensitivity metric, 7 mean with interquartile band (0.066 to 0.145; +120%). (d) Balanced panel of the 107 countries 8passing the filter at all five timepoints (0.0052 to 0.0275; +423%). 9</p>
+<h3>9 Figure 2 . 7 Figure 3</h3>
+<p>Figure 2. Beta-diversity decomposition of between-country dissimilarity, 1990-2023.1 (a) Baselga abundance partition of Bray-Curtis dissimilarity into balanced variation and 2 abundance-gradient components; the 100%/0% split is an identity by construction for closed 3 share vectors, shown for completeness rather than as an empirical result. (b) Mean spectrum 4 richness (pathogens with share ≥0.5%, of 26), rising from 18.5 to 21.1. (c) Jaccard partition into 5 turnover and nestedness components with the total Jaccard dissimilarity series. 6</p>
+<p>Figure 4. Within-region divergence across GBD super-regions. 2 (a) Mean within-region pairwise JSD at each timepoint, shown as small multiples for all seven 3 super-regions (South Asia and the high-income super-region are computable only through 2010). 4 (b) Mean within-region pairs and the range across super-regions versus between-region pairs 5 (0.0096 to 0.0310): divergence is a within-region phenomenon. (c) COVID-19 sensitivity on the 6 extended panel, 2010-2021: mean pairwise JSD with the 29-pathogen panel (0.056 to 0.067 to 7 0.103) versus the 28-pathogen panel excluding COVID-19 (0.056 to 0.067 to 0.072); COVID-19 8amplifies the 2021 peak by +43% but does not drive the trend. 9</p>
+<h3>9 10 Figure 5.</h3>
+<p>Figure 5. Robustness overview. 11 (a) Mean pairwise JSD under low-count thresholds of 50, 100 and 200 deaths; the 1990-2023 12 increase is +255%, +238% and +243%, respectively. (b) Twenty-six-versus 29-pathogen panels 13</p>
+<p>Ethics approvalNot required; the study uses publicly available, de-identified, aggregate modelled estimates. Derived national share panels and pairwise distance series are available from the corresponding author; a Funding This work was supported by the Beijing Science and Technology Nova Program Interdisciplinary Project (20230484439) and the Beijing High-Level Public Health Technical Talents Project (2023-02-33). The funder had no role in study design, data collection, data analysis, data interpretation, or writing of the report. Presentation This work has not been presented at any scientific meeting.Disclosure The authors declare no conflicts of interest. AI tools were used for language editing and for assistance with code generation and modification; the authors take full responsibility for the content.Patient and public involvementPatients and the public were not involved in this secondary analysis of modelled estimates.</p>
+<h3>References</h3>
+<p>Omran AR. The epidemiologic transition: a theory of the epidemiology of population change. Milbank Mem Fund Q. 1971;49(4):509-538. doi:10.2307/3349375.</p>
+<p>Mackenbach JP. Omran&#x27;s &#x27;Epidemiologic Transition&#x27; 50 years on. Int J Epidemiol. 2022;51(3):1054-1057. doi:10.1093/ije/dyac020.</p>
+<p>Santosa A, Wall S, Fottrell E, Högberg U, Byass P. The development and experience of epidemiological transition theory over four decades: a systematic review. Glob Health Action. 2014;7:23574. doi:10.3402/gha.v7.23574.</p>
+<p>Jamison DT, Summers LH, Alleyne G, et al. Global health 2035: a world converging within a generation. Lancet. 2013;382(9908):1898-1955. doi:10.1016/S0140-6736(13)62105-4.</p>
+<p>Vallin J, Meslé F. Convergences and divergences in mortality: a new approach to health transition. Demogr Res. 2004;Special Collection 2:11-44. doi:10.4054/DemRes.2004.S2.2.</p>
+<p>Moser K, Shkolnikov V, Leon DA. World mortality 1950-2000: divergence replaces convergence from the late 1980s. Bull World Health Organ. 2005;83(3):202-209.</p>
+<p>McMichael AJ, McKee M, Shkolnikov V, Valkonen T. Mortality trends and setbacks: global convergence or divergence? Lancet. 2004;363(9415):1155-1159. doi:10.1016/S0140-6736(04)15902-3.</p>
+<p>Atance D, Claramunt MM, Varea X, Aburto JM. Convergence and divergence in mortality: a global study from 1990 to 2030. PLoS One. 2024;19(1):e0295842. doi:10.1371/journal.pone.0295842.</p>
+<p>GBD 2023 Causes of Death Collaborators. Global burden of 292 causes of death in 204 countries and territories and 660 subnational locations, 1990-2023: a systematic analysis for the Global Burden of Disease Study 2023. Lancet. 2025;406(10513):1811-1872. doi:10.1016/S0140-6736(25)01917-8.</p>
+<p>Wahl B, O&#x27;Brien KL, Greenbaum A, et al. Burden of Streptococcus pneumoniae and Haemophilus influenzae type b disease in children in the era of conjugate vaccines: global, regional, and national estimates for 2000-15. Lancet Glob Health. 2018;6(7):e744-e757. doi:10.1016/S2214-109X(18)30247-X.</p>
+<p>Whittaker RH. Vegetation of the Siskiyou Mountains, Oregon and California. Ecol Monogr. 1960;30(3):279-338. doi:10.2307/1943563.</p>
+<p>World Health Organization. Pocket book of hospital care for children: guidelines for the management of common childhood illnesses. 2nd ed. Geneva: World Health Organization; 2013.</p>
+<p>GBD 2021 Lower Respiratory Infections and Antimicrobial Resistance Collaborators. Global, regional, and national incidence and mortality burden of non-COVID-19 lower respiratory infections and aetiologies, 1990-2021. Lancet Infect Dis. 2024;24(9):974-1002. doi:10.1016/S1473-3099(24)00176-2.</p>
+<p>GBD 2023 Lower Respiratory Infections and Antimicrobial Resistance Collaborators. Global burden of lower respiratory infections and aetiologies, 1990-2023: a systematic analysis for the Global Burden of Disease Study 2023. Lancet Infect Dis. 2026;26(4):343-361. doi:10.1016/S1473-3099(25)00689-9.</p>
+<p>Lin J. Divergence measures based on the Shannon entropy. IEEE Trans Inf Theory. 1991;37(1):145-151. doi:10.1109/18.61115.</p>
+<p>Bray JR, Curtis JT. An ordination of the upland forest communities of southern Wisconsin. Ecol Monogr. 1957;27(4):325-349. doi:10.2307/1942268.</p>
+<p>Baselga A. Separating the two components of abundance-based dissimilarity: balanced changes in abundance vs. abundance gradients. Methods Ecol Evol. 2013;4(6):552-557. doi:10.1111/2041-210X.12029.</p>
+<p>Baselga A. Partitioning the turnover and nestedness components of beta diversity. Glob Ecol Biogeogr. 2010;19(1):134-143. doi:10.1111/j.1466-8238.2009.00490.x.</p>
+<p>World Health Organization and UNICEF. WHO/UNICEF estimates of national immunization coverage (WUENIC), 2025 revision. Geneva: World Health Organization; 2026. Available at: https://immunizationdata.who.int (PCV3 and Hib3 coverage indicators).</p>
+<p>Chow EJ, Uyeki TM, Chu HY. The effects of the COVID-19 pandemic on community respiratory virus activity. Nat Rev Microbiol. 2023;21(3):195-210. doi:10.1038/s41579-022-00807-9.</p>
+<p>Bergeron-Boucher MP, Aburto JM, van Raalte A. Diversification in causes of death in low- mortality countries: emerging patterns and implications. BMJ Glob Health. 2020;5(7):e002414. doi:10.1136/bmjgh-2020-002414.</p>
+<p>Calazans JA, Permanyer I. Levels, trends, and determinants of cause-of-death diversity in a global perspective: 1990-2019. BMC Public Health. 2023;23:650. doi:10.1186/s12889-023-15502-4.</p>
+<p>GBD 2023 Disease and Injury and Risk Factor Collaborators. Burden of 375 diseases and injuries, risk-attributable burden of 88 risk factors, and healthy life expectancy in 204 countries and territories and 660 subnational locations, 1990-2023: a systematic analysis for the Global Burden of Disease Study 2023. Lancet. 2025;406(10513):1873-1922. doi:10.1016/S0140-6736(25)01637-X.</p>
 </div>
 </details>
 </div>
