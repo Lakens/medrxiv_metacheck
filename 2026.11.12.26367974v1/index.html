@@ -199,7 +199,7 @@ Disease Screening by Non-Cardiologists in Rural Nepal: A Mixed-Methods
 Diagnostic Accuracy Study
 </p>
 <p class="meta">
-2026-11-16 · Metacheck 0.4.4.3 · DOI 10.64898/2026.11.12.26367974
+2026-11-20 · Metacheck 0.4.4.27 · DOI 10.64898/2026.11.12.26367974
 </p>
 </header>
 <div class="mc-main">
@@ -326,8 +326,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -714,9 +715,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -738,7 +743,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -761,6 +767,19 @@ test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
 significant (“genes with padj &lt; 0.05 were selected”); such a p-value
 is “named” in <code>not_a_test</code>. Notes in other forms, such as a
 marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -927,6 +946,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -966,6 +1005,21 @@ text (93 of 95) and 90% in reference lists (74 of 82); the labels were
 made by Claude agents from each link’s evidence, and disputed ones
 checked against the deposits. Telling this paper’s own deposit from the
 authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1221,19 +1275,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1343,6 +1479,129 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Rheumatic heart disease remains a major cause of preventable morbidity and mortality in rural Nepal, where access to cardiovascular specialists and echocardiography is limited. We evaluated the diagnostic accuracy and feasibility of AI-guided echocardiography performed by nurse practitioners for community-based RHD screening.</p>
+<p>Methods: We conducted a triangulation mixed-methods study (QUAN &gt; qual) combining a paired cross-sectional diagnostic accuracy study with semi-structured interviews during community screening camps in Damak, Nepal, in November 2025. Nurse practitioners performed AI-guided handheld echocardiography using EchoNous Kosmos Plus devices, with cardiologist overread serving as the comparator. Diagnostic performance was assessed using sensitivity, specificity, and kappa. Interviews were analyzed thematically.</p>
+<p>Results: Of 90 participants enrolled, 76 were included in the final analysis. Mean age was 50.8 years, 57.8% were male, and 42.2% had undergone prior cardiac evaluation. Detection of any valvular lesion demonstrated 95.8% sensitivity and 100% specificity, with near-perfect agreement with cardiologist interpretation (κ=0.97). Lesion-specific performance included mitral regurgitation sensitivity 66.7% and specificity 97.3% (κ=0.55), mitral stenosis sensitivity 100% and specificity 97.2% (κ=0.81), aortic regurgitation sensitivity 90.9% and specificity 96.9% (κ=0.84), and tricuspid regurgitation sensitivity and specificity of 100% (κ=1.00). Mean scan duration was 5.8 minutes. Portability, AI-assisted acquisition, and remote review facilitated implementation, while training needs, workflow constraints, and technical issues were barriers.</p>
+<p>.</p>
+<h3>Introduction</h3>
+<p>Rheumatic heart disease (RHD) remains a leading cause of preventable morbidity and mortality in rural Nepal. 1 RHD is a chronic sequela of acute rheumatic fever (ARF), an immune-mediated inflammatory disease that typically follows infection with group A Streptococcus and occurs most commonly in children and adolescents. 2 Through molecular mimicry, streptococcal antigens can trigger cross-reactive immune responses against host tissues, including cardiac structures. 2 Recurrent episodes of ARF drive a destructive cycle of cumulative valvular inflammation, scarring, and fibrosis, culminating in permanent structural remodeling of the heart valves. 2 This progressive damage often results in hemodynamically significant lesions, such as mitral or aortic stenosis and regurgitation, which severely compromise cardiac function and lead to debilitating, life-limiting cardiovascular complications. 3 Secondary prophylaxis with regular penicillin injections remains the gold-standard, costeffective strategy for preventing recurrent ARF and limiting progression of RHD. However, many patients are not diagnosed until symptomatic, when advanced disease has developed, thus missing the opportunity for early intervention when prophylaxis may provide the greatest benefit. 4 This has made early detection of asymptomatic or subclinical RHD an important prevention strategy.</p>
+<p>Traditional approaches relied on clinical examinations and cardiac auscultation; however, these methods have limited sensitivity, often failing to detect subclinical disease. 4 In the past decade, echocardiography has evolved to identify RHD more accurately, including disease without a clinically detectable murmur. 4 Advances in portable echocardiography have further expanded the . feasibility of screening in remote and resource-limited settings, creating opportunities to detect disease earlier, initiate secondary prophylaxis, and potentially reduce RHD-related morbidity and mortality. 5 This shift toward echocardiographic screening has been accompanied by parallel efforts to standardize how RHD is diagnosed. In 2023, the World Heart Federation (WHF) released updated guidelines for the echocardiographic diagnosis of RHD, revising the widely used 2012 criteria to reflect a decade of accumulated evidence and end-user feedback. 6 The updated guidelines refine the screening and confirmatory criteria used for active case finding and introduce a stage-based classification that stratifies patients according to their risk of progression to advanced valvular disease. 6 By standardizing minimum diagnostic criteria for use in RHDendemic, resource-limited settings, the 2023 guidelines aim to support earlier, more consistent detection and timely initiation of secondary prophylaxis.</p>
+<p>Building on this diagnostic framework, the World Health Organization (WHO) released its first guideline on the prevention and diagnosis of ARF and RHD in 2024, developed in partnership with the WHF. The guideline consolidates recommendations spanning primary and secondary prevention, diagnostic pathways, and clinical management, providing a single evidence-based reference intended for use across primary, district, and referral levels of care in RHD-endemic countries. 7 It responds to a gap identified by WHO itself: despite the 2018 World Health Assembly resolution calling for a coordinated global response to ARF/RHD, countries lacked a unified technical resource to guide implementation. By translating the 2023 WHF echocardiographic criteria and other recent evidence into actionable, health-system-level guidance, the 2024 WHO guideline aims to support countries in strengthening screening, prophylaxis, and referral systems for RHD. 7 Nepal has undertaken several initiatives to strengthen RHD prevention and care, but important gaps remain. In 2007, the Nepal Heart Foundation, with government support, launched a comprehensive RHD control program incorporating community awareness, free medication, patient registries, health worker training, clinical guidelines, and secondary prophylaxis. 8 However, inadequate funding led to discontinuation of the program and a shift toward subsidizing heart valve surgery, weakening systems for secondary prevention. 8 Consequently, adherence to recommended prophylaxis remains limited. One study found that only 21.9% of patients received intramuscular benzathine penicillin, while most received oral penicillin instead. 9 These challenges are compounded by substantial workforce limitations, particularly in specialized cardiovascular care. Nepal has fewer physicians per capita than the global average and a critical shortage of cardiac surgeons, with approximately 25 surgeons reported nationally by 2022, 10 giving Nepal one of the lowest per-capita capacities in South Asia. Although cardiac surgical capacity has expanded to approximately 15 centers performing around 2,000 procedures annually, services remain concentrated in the Kathmandu Valley and insufficient to meet national demand. 11 More recently, Nepal has pursued decentralization through the PEN-Plus initiative, launched in 2021 to strengthen management of severe noncommunicable diseases, including RHD, at district-level facilities. 12 Implemented through the Kathmandu Institute of Child Health, the initiative emphasizes training local health workers, expanding access to diagnostic tools, and strengthening referral pathways between district and tertiary centers. 12 These efforts represent important progress toward equitable RHD care; however, persistent shortages of specialized personnel, limited secondary prophylaxis systems, and geographic concentration of advanced services underscore the need for scalable approaches that enable earlier RHD detection and decentralized screening in underserved communities. AI-guided handheld echocardiography devices offer a promising approach to addressing persistent barriers to RHD screening in resource-limited settings by enabling non-cardiologist healthcare workers with limited echocardiographic training to acquire clinically interpretable cardiac images. By expanding screening capacity beyond specialized cardiovascular centers, this technology may facilitate earlier identification of previously undiagnosed disease and timely initiation of secondary prophylaxis, potentially reducing progression to advanced valvular damage. However, evidence regarding the diagnostic performance and real-world feasibility of AI-guided echocardiography when used by non-cardiologists in low-resource settings remains limited.</p>
+<h3>Study Objectives</h3>
+<p>The primary objective of this study was to determine the diagnostic accuracy of AI-guided handheld echocardiographic screening for rheumatic heart disease when performed by noncardiologist providers in a rural, resource-limited setting in Nepal. Specifically, we aimed to estimate the sensitivity, specificity, and Cohen&#x27;s kappa agreement coefficient of screening examinations performed by nurse practitioners using the EchoNous Kosmos system, with cardiologist overread as the reference standard, both overall and for individual valve lesions.</p>
+<p>Secondary objectives were to assess the quality and ease of image acquisition by noncardiologist screeners, and to characterize, through semi-structured interviews with field providers, the perceived facilitators, barriers, and recommendations for implementing AI-guided echocardiographic screening in routine practice.</p>
+<h3>Methods</h3>
+<h3>Study Design</h3>
+<p>This study employed a triangulation mixed-methods design with a quantitative-dominant approach (QUAN &gt; qual). The quantitative component consisted of a prospective paired crosssectional diagnostic accuracy study comparing handheld echocardiographic screening performed by non-cardiologist providers using an AI-guided ultrasound system vs. cardiologist overread interpretation of the saved studies. The qualitative component consisted of semi-structured interviews with the providers who performed the screening studies to explore implementation feasibility, usability, workflow integration, and barriers and facilitators to deployment in rural settings.</p>
+<h3>Training of Non-Cardiologist Screeners</h3>
+<p>The screening team consisted of two nurse practitioners (NPs) who performed the AI-guided echocardiographic examinations and one cardiologist who conducted expert overread interpretation. Neither NP had prior experience performing formal echocardiographic examinations or screening for rheumatic or valvular heart disease. Although both were familiar with point-of-care ultrasound (POCUS) applications in clinical practice, neither routinely performed POCUS examinations. The interpreting cardiologist is board-certified in echocardiography in the United States. Before initiation of the screening camps, both NPs completed a one-day hands-on training conducted by the device manufacturer. Training covered device operation, acquisition of standard cardiac views, use of AI-guided image acquisition features, and study-specific screening procedures.</p>
+<h3>Screening Camps and Screening Device</h3>
+<p>Community-based screening camps were conducted over a two-week period in November 2025 in Damak, a rural agricultural municipality in Jhapa District, Nepal. Screening camp sites were selected based on existing epidemiological data on RHD prevalence, prioritizing districts with the highest estimated disease burden to maximize case detection and study yield. Community engagement and recruitment for each camp were conducted through localized advertising via print media and radio broadcasts within the selected district in the weeks preceding the event, in order to inform residents of the screening date, location, and eligibility. On the day of the camp, all participants underwent a standardized registration process to collect demographic and identifying information, followed by a structured history and physical examination performed by trained clinical staff, with particular attention to symptoms and signs suggestive of rheumatic heart disease. Vital signs and a 6-lead ECG were obtained for every participant as part of the standard screening protocol. Echocardiographic screening was performed on all participants regardless of clinical or ECG findings. This was to capture the full spectrum of RHD, including subclinical or latent disease that might otherwise go undetected by history, exam, or ECG alone, and to generate an accurate estimate of true disease prevalence within the screened population.</p>
+<p>Echocardiographic screenings were performed using the EchoNous Kosmos Plus handheld ultrasound device, shown in Figure 1, with integrated real-time AI-guided image acquisition support, compatible with the iOS operating system and paired with a 13-inch Apple iPad. The Kosmos software is unique in providing real-time guidance on image acquisition by directing the user on how to position the probe via on-screen animations, grading of image quality via onscreen scoring bars, and automated labeling of anatomic structures. In addition AI-determined ejection fraction was documented.</p>
+<p>Echocardiographic screening was performed using a standardized, abbreviated protocol consisting of four views: parasternal long-axis, parasternal short-axis, apical four-chamber, and apical five-chamber. This focused imaging protocol was designed to allow rapid assessment of valvular structure and function, chamber size, and hemodynamically significant regurgitation or stenosis in a field setting, while maintaining sufficient diagnostic yield to identify morphologic and functional features consistent with rheumatic heart disease. For screening purposes, participants with any detected structural valvular abnormality were classified as screen-positive and referred for confirmatory diagnostic evaluation.</p>
+<h3>Participants.</h3>
+<p>A total of 90 participants were recruited during the screening camps. Eligible participants were individuals attending the screening camps who were able to undergo handheld echocardiographic examination and provide informed consent or assent. Participants were excluded if they had hemodynamic instability or other conditions that precluded safe echocardiographic assessment.</p>
+<h3>Quantitative Statistical Analysis</h3>
+<p>Descriptive statistics were used to summarize participant characteristics, including age, gender, medical history, and scan duration. Diagnostic accuracy analyses compared AI-guided echocardiography by non-specialist providers vs. cardiologist overread as the gold standard. We used 2 × 2 contingency tables to calculate true positives, true negatives, false positives, false negatives, sensitivity, and specificity. Inter-rater agreement between non-cardiologist screeners and cardiologist interpretation was assessed using Cohen&#x27;s kappa statistic.</p>
+<p>For the &quot;any valvular lesion&quot; category, each participant was counted only once, regardless of the number of valvular lesions detected. In lesion-specific analyses, participants with multiple lesions were included in each applicable lesion category; therefore, lesion-specific counts are not mutually exclusive and may exceed the number of participants with any valvular lesion.</p>
+<p>A paired-samples t-test was used to compare mean ejection fraction (EF) measurements obtained by the nurse practitioner and the cardiologist.</p>
+<p>Secondary quantitative outcomes included NPs&#x27; mean confidence in image quality score using a 3-point scale (1 = poor,2 = adequate/limited,3 = good); mean ease of image acquisition score using a 3-point scale (1 = low,2 = moderate,3 = high); and mean scan duration, defined as the time in minutes from probe placement to completion of image acquisition. We used SPSS and Microsoft Excel software for quantitative analysis.</p>
+<p>.</p>
+<h3>Qualitative Data Collection and Analysis</h3>
+<p>All screening providers involved in the screening camps (two nurse practitioners and one cardiologist) participated in the qualitative component. Semi-structured interviews lasting approximately 30-45 minutes were conducted and audio-recorded with participant consent.</p>
+<p>Interviews were conducted by video call. Verbatim transcripts were generated. Thematic saturation was not the goal of this study given the small, purposive, whole-team sample.</p>
+<p>Interview domains included training adequacy, usability of the handheld ultrasound device and AI guidance system, image acquisition experience, workflow and scan duration, applicability in routine clinical practice, environmental constraints (including space, electricity, and internet connectivity), cultural acceptability, data management considerations, and recommendations for improvement.</p>
+<p>Interview transcripts were independently coded by two researchers (HA and AP), and discrepancies were resolved by discussion between the two coders before thematic analysis was conducted. Coding and qualitative data management were conducted using Dedoose</p>
+<h3>Results</h3>
+<h3>Quantitative results</h3>
+<h3>Participant characteristics</h3>
+<p>Ninety participants were registered in the screening camps between November 1 and November 15, 2025, in Damak, Nepal. Table 1 presents participants&#x27; demographic and medical characteristics. Due to patient factors, lack of consent, and workflow issues, only 76 patients underwent echocardiographic screening using the EchoNous Kosmos devices by the nurse practitioners. Participants had a mean age of 50.2 years (range, 19-86 years), and 42.2% were female. Overall, 7.7% were diabetic, 12.2% had hypertension, 6.6% had a history of coronary artery disease, 1.1% were diagnosed with heart failure, and only 42.2% had ever had a cardiovascular evaluation.</p>
+<p>Table 2 summarizes the overall and the individual valve lesion diagnostic performance results of NPs compared to the reference standard. Figure 2 shows the comparison between NPs and reference standard diagnostic performance. Across the screened cohort, the prevalence of any lesion per reference test was 31.6 cases per 100 patients. Individual lesion prevalence was 3.9 per 100 for mitral regurgitation (MR), 6.6 per 100 for mitral stenosis (MS), 14.5 per 100 for aortic regurgitation (AR), 13.2 per 100 for tricuspid regurgitation (TR), 1.3 per 100 for pulmonary regurgitation (PR), and no cases were found for aortic stenosis (AS).</p>
+<p>NPs were able to detect 23 out of the 24 positive cases, demonstrating high diagnostic accuracy, with a sensitivity of 95.8% and specificity of 100%, and almost perfect agreement with the reference standard (kappa = 0.97).</p>
+<p>Across individual valve lesions, performance varied. For MR, sensitivity was lower at 66.7%, while specificity remained high at 97.3%, with moderate agreement (kappa = 0.55). In contrast, MS showed excellent performance, with 100% sensitivity, 97.2% specificity, and almost perfect agreement (kappa = 0.81). Similarly, AR demonstrated strong performance, with 90.9% sensitivity, 96.9% specificity, and almost perfect agreement (kappa = 0.84). For TR, NPs achieved 100% sensitivity and specificity, with perfect agreement (kappa = 1.00). However, all these results should be interpreted cautiously due to the relatively small number of positive cases. Our dataset recorded one case of PR, yielding 100% sensitivity and specificity (kappa = 1.00) for NP detection, which should also be interpreted with caution. Analysis for AS could not be performed due to the absence of positive cases in the dataset.</p>
+<p>Additionally, comparison of EF measurements between NPs and the reference standard using a paired t-test (n = 46 complete pairs) found no significant difference between methods (mean difference 2.50%, 95% confidence interval 0.56 to 5.56).</p>
+<p>Out of a maximum score of 3 points, nurse practitioners reported an average ease of image acquisition score of 2.36 and an average confidence in image-quality score of 2.69. The mean examination time per patient was 5.8 minutes, with a range of 2-20 minutes.</p>
+<h3>Qualitative results</h3>
+<h3>Theme 1: Capacity Building and User Competence</h3>
+<p>Participants consistently emphasized that successful adoption of AI-supported echo depended on adequate preparation, repeated practice, and the ability to interpret AI guidance in light of clinical judgment. While the technology reduced some technical barriers to image acquisition, participants described competency as developing progressively through hands-on experience rather than through training alone.</p>
+<p>Although participants generally viewed the initial training positively, they noted that additional practice was necessary to become comfortable with both image acquisition and the device interface. One nurse practitioner described supplementing the formal training with independent practice sessions using family members and volunteers, explaining: &quot;I definitely had to practice both the exam and using the interface… I practiced on my own with my family and some volunteers&quot; (Interviewee 1).</p>
+<p>Participants reported that confidence and efficiency improved substantially with repeated use in the field, particularly when encountering patients with varying body habitus and clinical presentations. As one participant noted: &quot;The more time I spent screening, the faster and more efficient that I got&quot; (Interviewee 2).</p>
+<p>Despite feeling adequately prepared to begin screening, participants suggested that additional structured training materials, supervised practice, and ongoing mentorship would further strengthen user preparedness.</p>
+<p>Participants also described a gradual process of building trust in the AI-assisted platform. While they expressed confidence in their ability to obtain diagnostic-quality images, they were often more cautious about relying on AI-generated assessments. One participant explained: &quot;I had very high confidence in my ability to gather good clinical images, but sometimes I didn&#x27;t trust the AI&#x27;s labeling of whether an image was good or not&quot; (Interviewee 1).</p>
+<p>Rather than accepting AI outputs uncritically, participants frequently compared AI feedback against their own assessment and sought confirmation from the supervising cardiologist when uncertainty arose. Repeated exposure to screening appeared to increase their confidence in identifying abnormal findings, but trust in the technology remained conditional and closely tied to users&#x27; clinical experience.</p>
+<p>Across interviews, participants consistently framed AI as an assistive tool rather than a replacement for clinical expertise. Clinical judgment, prior exposure to echo, and specialist consultation remained central to screening and referral decisions. One nurse practitioner described their approach to uncertain findings: &quot;If there was anything questionable, I would get the highest quality imaging possible and then refer to the cardiologist&quot; (Interviewee 2).</p>
+<p>Similarly, another participant emphasized that while AI improved image acquisition, it did not meaningfully influence clinical decision-making, stating: &quot;AI was helpful in acquiring images and getting good image acquisition… but it was not useful in clinical decision-making&quot; (Interviewee 1).</p>
+<p>Collectively, these findings suggest that while AI-supported echo may facilitate task-shifting of RHD screening to non-cardiologists, successful implementation will require structured training pathways, continued opportunities for skill development, and clearly defined mechanisms for specialist referral.</p>
+<h3>Theme 2: AI guidance improved image acquisition and usability, although technical and diagnostic limitations remained</h3>
+<p>Participants generally viewed the AI-enabled devices as user-friendly and valuable for supporting image acquisition by non-specialists. The AI-guided interface was particularly helpful for novice users, providing real-time feedback on probe positioning and image quality. As one participant explained: &quot;Especially if you were like a novice…the AI system could be very, very helpful… telling you, like, &#x27;Oh, this is a good quality image&#x27;&quot; (Interviewee 2).</p>
+<p>Similarly, the cardiologist emphasized the importance of AI support for nurses and other nonspecialist screeners, noting: &quot;They don&#x27;t do this every day. So the AI can help them&quot; (Interviewee 3).</p>
+<p>Participants reported that these features increased their confidence in obtaining clinically useful images and reduced some of the technical barriers traditionally associated with echocardiography.</p>
+<p>Despite these advantages, participants also identified several technological limitations.</p>
+<p>Intermittent hardware and software issues, including overheating, system errors, and probe disconnections, occasionally disrupted workflow. One participant recalled: &quot;The system overheated once or twice… and then a couple times my setup had errors… so I had to restart the system&quot; (Interviewee 1), while another described occasional probe disconnections that required restarting the platform (Interviewee 2). Participants also reported that AI-generated feedback was sometimes inconsistent, particularly when evaluating abnormal studies. In some instances, the AI classified high-quality images as suboptimal or failed to capture clinically relevant views. As one participant explained: &quot;Sometimes the AI feedback would be helpful, but… you would have really good views… and it would say, &#x27;Oh, this view is suboptimal&#x27;&quot; (Interviewee 1).</p>
+<p>Another described the AI grading system as &quot;a little glitchy and not as seamless as what it could have been&quot; (Interviewee 2).</p>
+<p>While participants acknowledged these limitations, they generally agreed that the technology was sufficient for screening purposes. However, they emphasized that the devices were not intended to replace comprehensive diagnostic echo or specialist interpretation. As the cardiologist noted: &quot;They are not designed for more accurate calculation… of valve severity… But… to screen for our purpose, I do think that&#x27;s good enough for us&quot; (Interviewee 3).</p>
+<p>Overall, participants viewed the technology as a practical and effective screening tool that improved image acquisition and usability, while recognizing that technical limitations and diagnostic uncertainty still necessitated clinical oversight and specialist review.</p>
+<p>Theme 3: AI-supported echocardiography shows strong potential for rural RHD screening, but successful implementation depends on addressing workforce, workflow, and infrastructure challenges Participants viewed AI-supported echocardiography as a promising approach for expanding RHD screening in rural and underserved communities, citing the device&#x27;s portability, ease of deployment, and potential to connect non-specialist providers with remote cardiology expertise.</p>
+<p>The technology was perceived as particularly well suited for resource-constrained environments, with one participant noting: &quot;It worked very well in an austere environment… there was not consistent electricity… not air conditioning… not Wi-Fi available, but the system still worked very well&quot; (Interviewee 1).</p>
+<p>Portability emerged as a major advantage, as participants described the device as compact and easy to transport to remote settings. As one nurse practitioner explained: &quot;One of the things that is really, really nice about it is its portability… you can take it wherever you physically go&quot; (Interviewee 2).</p>
+<p>Participants also felt that image quality was sufficient for real-world screening and, in some cases, comparable to imaging obtained in hospital settings. Combined with AI-guided acquisition and the ability to share images remotely, participants believed the technology could substantially expand access to cardiac screening in areas with limited specialist availability. One participant highlighted this potential, stating: &quot;There&#x27;s promise… to have people who aren&#x27;t formally trained… get imaging remotely and send it to another cardiology team to review&quot; (Interviewee 2).</p>
+<p>Despite this optimism, participants identified several barriers that could affect implementation and scale-up. Human resource limitations and the need for ongoing training were frequently cited concerns. One participant noted: &quot;Human resources are going to be a barrier, like getting people trained and comfortable with the system&quot; (Interviewee 1). Workflow challenges were also common, including language barriers, high patient volumes, and maintaining efficient screening processes without compromising diagnostic quality. As one participant explained: &quot;We have too many patients… You want to screen more patients, but you don&#x27;t want to shorten your protocol. If you shorten too much, you&#x27;re going to miss some of the disease&quot; (Interviewee 3).</p>
+<p>Environmental constraints such as heat, background noise, limited space, and privacy concerns further complicated field implementation.</p>
+<p>Participants nevertheless believed the technology could be scaled successfully if these operational challenges were addressed. Key requirements for broader implementation included hands-on training with real patients, improved internet connectivity to facilitate image sharing, and continued evaluation of emerging AI-enabled devices. As one participant explained: &quot;If you solve these two, the device can be widely used… train the staff with the patient… and good Wi-Fi data can be shared&quot; (Interviewee 3).</p>
+<p>Cost was also viewed as a facilitator, with handheld AI-enabled devices perceived as substantially less expensive than traditional echocardiography systems. Overall, participants viewed AI-supported echocardiography as a scalable and potentially transformative tool for rural RHD screening, but emphasized that successful implementation would require investments in training, infrastructure, workflow optimization, and healthcare system capacity.</p>
+<p>In summary, participants viewed AI-supported echocardiography as a feasible and promising approach for expanding RHD screening through task-shifting to non-cardiologists. The devices were considered portable, generally user-friendly, and adequate for screening in rural field settings. However, participants emphasized that AI should be understood as a supportive tool for image acquisition rather than a replacement for clinical judgment or specialist interpretation. Successful implementation will require structured training, reliable workflows, local adaptation, referral pathways, and continued cardiology oversight. be inherently more difficult to visualize using handheld ultrasound because of their dependence on image quality, Doppler optimization, and subtle hemodynamic findings. Although the reasons for this difference remain uncertain, it highlights an important area for future refinement of both AI algorithms and user training. Agreement in ejection fraction measurements between nurse practitioners and cardiologist interpretation was also high, likely reflecting the automated measurement algorithms incorporated into modern handheld ultrasound systems that use computational methods similar to those of conventional echocardiography. Clinically, these findings suggest that AI-guided handheld devices can provide sufficiently reliable screening when operated by trained non-cardiologists, while emphasizing that positive or equivocal findings should continue to undergo specialist review.</p>
+<p>The high diagnostic performance observed despite brief training is consistent with emerging evidence that real-time AI guidance may reduce traditional technical barriers to echocardiographic acquisition. Mor-Avi et al. demonstrated that novice nurses and medical residents using AI guidance acquired images of sufficient quality in 81%-94% of examinations across standard views, with diagnostic concordance of 83%-96% relative to expert-acquired studies. 13 In an accompanying editorial, Meucci and Delgado argued that real-time AI guidance may accelerate training by addressing one of echocardiography&#x27;s principal limitations: the dependence of image acquisition on operator skill and individualized probe manipulation. 14 Our qualitative findings provide complementary real-world support for this mechanism. Nurse practitioners described AI as particularly valuable for probe guidance, image acquisition, and confidence building, while continuing to rely on clinical judgment and cardiologist review for abnormal or equivocal findings.</p>
+<p>Similarly, Peck et al. showed that novice healthcare workers could obtain interpretable echocardiographic images suitable for RHD screening after less than five hours of AI-assisted training, particularly for mitral valve assessment. 15 Whereas that study focused on image quality and interpretability, our study evaluated diagnostic accuracy using cardiologist overread as the reference standard and additionally explored implementation barriers and facilitators through qualitative interviews. Together, these studies suggest that AI-guided handheld echocardiography has progressed from demonstrating technical feasibility to supporting diseasespecific screening programs in underserved populations.</p>
+<p>The qualitative findings provide important context for interpreting these quantitative results.</p>
+<p>Participants consistently described competency as developing through repeated clinical practice rather than initial instruction alone, reinforcing previous implementation literature demonstrating that brief introductory training should be supplemented with additional supervised practice.</p>
+<p>Providers also consistently emphasized that AI functioned primarily as an image acquisition aid rather than an autonomous diagnostic system. Although AI improved confidence during image acquisition and reduced technical uncertainty, clinicians continued to rely on their own judgment and cardiologist consultation when evaluating abnormal or borderline findings. This observation mirrors previous AI-guided echocardiography studies and suggests that current AI technologies should be viewed as decision-support tools rather than replacements for specialist expertise. 13 Furthermore, providers identified workflow, staffing, internet connectivity, patient flow, language support, and referral pathways as equally important determinants of successful implementation. These findings illustrate that successful deployment of AI-assisted screening depends not only on technological performance but also on thoughtful integration within existing healthcare systems.</p>
+<p>Our findings also contribute to the broader evolution of RHD screening strategies. Longenecker previously argued that widespread implementation of echocardiographic screening would require simplified protocols, handheld devices, and non-expert operators to become logistically feasible and economically sustainable. 16 The editorial also emphasized that additional implementation evidence was needed before community-based screening could be recommended outside research settings. 16 Our study addresses one of these implementation gaps by demonstrating that nurse practitioners using AI-guided handheld echocardiography can accurately perform RHD screening in a rural community setting after a relatively brief training period. Although our study does not determine whether screening improves long-term clinical outcomes or reduces disease progression, it provides practical evidence supporting one of the essential components required for future population-level RHD screening programs.</p>
+<p>This study has several strengths. To our knowledge, it is the first mixed-methods evaluation of AI-guided handheld echocardiography for RHD screening conducted in rural Nepal. The study was performed under real-world field conditions rather than a controlled research environment, increasing the applicability of the findings to community screening programs. By combining diagnostic accuracy with qualitative implementation data, we were able to evaluate not only whether the technology worked but also how it could be successfully integrated into rural healthcare delivery. Finally, the evaluation of AI-assisted task-shifting directly addresses a major workforce limitation affecting cardiovascular care in many low-and middle-income countries (LMICs).</p>
+<p>Several limitations should also be acknowledged. The relatively small sample size and limited number of positive valve lesions reduced the precision of lesion-specific diagnostic estimates, especially for less common abnormalities. The absence of positive aortic stenosis cases prevented evaluation of device performance for this lesion. Participants were recruited through convenience sampling during community screening camps, which may limit generalizability to other populations and healthcare settings. Additionally, competency was assessed immediately following a brief training period, and long-term retention of screening skills was not evaluated.</p>
+<p>Larger multicenter studies with longer follow-up will be necessary to confirm these findings and evaluate reproducibility across different providers and populations.</p>
+<p>The findings of this study have important implications for RHD control in Nepal and other LMICs. AI-guided handheld echocardiography performed by non-cardiologist providers offers a practical strategy for expanding access to screening while reducing dependence on specialist outreach services. Such an approach could facilitate more accurate estimation of national RHD burden, enable earlier initiation of secondary prophylaxis with benzathine penicillin G, and support implementation of the World Health Organization&#x27;s goals for RHD prevention and control. Given the device&#x27;s portability, relatively low cost, and ease of use, this intervention may also prove valuable for screening other structural heart diseases in underserved communities.</p>
+<p>Future research should focus on multicenter validation, long-term competency assessment, costeffectiveness analyses, and integration of AI-assisted echocardiography into primary healthcare systems..</p>
+<h3>Acknowledgments</h3>
+<p>All listed authors contributed to this study.</p>
+<h3>Discussion</h3>
+<p>This mixed-methods study demonstrates that AI-guided handheld echocardiography performed by non-cardiologist providers is both diagnostically accurate and operationally feasible for community-based RHD screening in rural Nepal. Nurse practitioners achieved high overall sensitivity and excellent specificity for detecting valvular abnormalities, with almost perfect agreement with cardiologist overread for identifying any valvular lesion. Although diagnostic performance varied across individual valve lesions, the technology consistently demonstrated sufficient accuracy to support community screening. However, these results should be interpreted cautiously given the small number of valvular lesions detected in the study population. The qualitative findings complemented these results by demonstrating that providers viewed the devices as portable, intuitive, and supportive of image acquisition while recognizing the continued need for structured training and clinical judgment. Together, these findings suggest that AI-assisted handheld echocardiography represents a promising task-shifting strategy for expanding access to RHD screening in resource-limited settings.</p>
+<p>The high diagnostic performance observed in this study is encouraging given the limited training received by the nurse practitioners and the challenging environment in which screening was performed. Overall specificity was particularly high, suggesting that nurse practitioners were able to reliably identify normal examinations and minimize unnecessary referrals. One possible explanation is that both the AI guidance system and providers were repeatedly exposed to normal cardiac anatomy during training and screening, allowing deviations from typical anatomy to be more readily recognized and referred for further evaluation. In contrast, sensitivity was comparatively lower for mitral regurgitation than for other lesions. Mild regurgitant lesions may.</p>
+<h3>Sources of Funding</h3>
+<p>The Kosmos echocardiogram probes were donated for the purpose of this study by EchoNous (Redmond, Washington).</p>
+<h3>Supplemental material</h3>
+<p>-Supplementary Appendix 1: Interview Guide -Supplementary Appendix 2: Codebook</p>
+<h3>(</h3>
+<p>SocioCultural Research Consultants, LLC, Redondo Beach, California) and Microsoft Word software (Microsoft Corporation, Redmond, Washington). Ethics approval IRB approval was obtained from the University of Washington (IDs STUDY00024715 and STUDY00019788) and the Social Welfare Council of Nepal. All participants provided verbal informed consent for data collection. Written documentation of consent was waived.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. EchoNous Kosmos AI-assisted echocardiography probe attached to a display device.</p>
+<h3>Table 1.</h3>
+<p>Campaign participants&#x27; demographic and medical characteristics</p>
+<h3>Table 2.</h3>
+<p>Overall and individual valve lesion diagnostic performance of NPs*</p>
+<h3>References</h3>
+<p>Gautam S, Dhungel S, KC B, Khan M, Shah S. Rheumatic Heart Disease In School Going Children: A Study From Lumbini Province, Nepal. J Univers Coll Med Sci. 2023;11(3):7-9.</p>
+<p>Zhuang S, Guo D, Yu D. A mini review of the pathogenesis of acute rheumatic fever and rheumatic heart disease. Front Cell Infect Microbiol. 2025;15:1447149. doi:10.3389/fcimb.2025.1447149</p>
+<p>Passos LSA, Nunes MCP, Aikawa E. Rheumatic Heart Valve Disease Pathophysiology and Underlying Mechanisms. Front Cardiovasc Med. 2021;7:612716. doi:10.3389/fcvm.2020.612716</p>
+<p>Reményi B, Wilson N, Steer A, et al. World Heart Federation criteria for echocardiographic diagnosis of rheumatic heart disease-an evidence-based guideline. Nat Rev Cardiol. 2012;9(5):297-309. doi:10.1038/nrcardio.2012.7</p>
+<p>Williamson J, Remenyi B, Francis J, et al. Echocardiographic Screening for Rheumatic Heart Disease: A Brief History and Implications for the Future. Heart Lung Circ. 2024 Jul;33(7):943-950. Doi 10.1016/j.hlc.2024.02.021</p>
+<p>Rwebembera J, Marangou J, Mwita JC, et al. 2023 World Heart Federation guidelines for the echocardiographic diagnosis of rheumatic heart disease. Nat Rev Cardiol. 2024;21(4):250- 263. doi:10.1038/s41569-023-00940-9.</p>
+<p>WHO guideline on the prevention and diagnosis of rheumatic fever and rheumatic heart disease. Geneva: WHO; 2024, https://www.who.int/publications/i/item/9789240100077</p>
+<p>END RHD Campaign. Nepal Heart Foundation, Central Office. Accessed July 14, 2025. https://nepalheart.org.np/end-rhd-campaing-nepal/ [sic]</p>
+<p>S L, K. Kaushal T, Subedi A, K. Sharma S. Underuse of Injectable Penicillin in Secondary Prophylaxis of Rheumatic Heart Disease in Nepal. Cardiol Vasc Res. 2020;4(5).</p>
+<p>Rajbanshi BG, Pradhan S, Koirala B. Twenty-five years of Cardiac Surgery in Nepal: Trials, Tribulations and Triumph. Nepal Heart J. 2022;19(2):2. doi:10.3126/njh.v19i2.48936</p>
+<p>Hosain N, Amin F, Maruf MF, et al. Global geographical discrepancy in numerical distribution of cardiovascular surgeries and human resource development in South Asia. JTCVS Open. 2022;11:192-199. doi:10.1016/j.xjon.2022.05.002</p>
+<p>Mor-Avi V, Khandheria B, Klempfner R, et al. Real-Time Artificial Intelligence-Based Guidance of Echocardiographic Imaging by Novices: Image Quality and Suitability for Diagnostic Interpretation and Quantitative Analysis. Circ Cardiovasc Imaging. 2023;16(11). doi:10.1161/CIRCIMAGING.123.015569</p>
+<p>Meucci MC, Delgado V. Artificial Intelligence to Speed Up Training in Echocardiography: The Next Frontier. Circ Cardiovasc Imaging. 2023;16(11). doi:10.1161/CIRCIMAGING.123.016148.</p>
+<p>Peck D, Rwebembera J, Nakagaayi D, et al. The Use of Artificial Intelligence Guidance for Rheumatic Heart Disease Screening by Novices. J Am Soc Echocardiogr. 2023;36(7):724- 732. doi:10.1016/j.echo.2023.03.001</p>
+<p>Longenecker CT. Echo Screening for Rheumatic Heart Disease: Are We There Yet? Circ Cardiovasc Imaging. 2019;12(2):e008818. doi:10.1161/CIRCIMAGING.118.008818</p>
 </div>
 </details>
 </div>
