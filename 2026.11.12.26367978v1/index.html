@@ -195,7 +195,7 @@ MetaCheck Report
 Sleep Irregularity and Risk of Incident Hypertension in the UK Biobank
 </p>
 <p class="meta">
-2026-11-16 · Metacheck 0.4.4.3 · DOI 10.64898/2026.11.12.26367978
+2026-11-20 · Metacheck 0.4.4.27 · DOI 10.64898/2026.11.12.26367978
 </p>
 </header>
 <div class="mc-main">
@@ -228,8 +228,8 @@ applicable</span></a>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 1 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 1 detected.</p>
 </div>
 </div>
 </div>
@@ -337,8 +337,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -712,9 +713,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -736,7 +741,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -759,6 +765,19 @@ test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
 significant (“genes with padj &lt; 0.05 were selected”); such a p-value
 is “named” in <code>not_a_test</code>. Notes in other forms, such as a
 marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -925,6 +944,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -964,6 +1003,21 @@ text (93 of 95) and 90% in reference lists (74 of 82); the labels were
 made by Claude agents from each link’s evidence, and disputed ones
 checked against the deposits. Telling this paper’s own deposit from the
 authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1219,19 +1273,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1341,6 +1477,140 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Irregular sleep pa erns are common and have been associated with higher cardiovascular disease (CVD) risk. Hypertension is the leading modifiable cause of CVD, but evidence linking irregular sleep to hypertension is inconsistent. The objec ve of this study was to quan fy associa ons between irregular sleep and incident hypertension.</p>
+<p>Methods: We conducted a prospec ve cohort study among 55,572 UK Biobank par cipants without hypertension or an -hypertensive medica on use who provided ≥5 valid days of accelerometry in 2013-2015 (60% women, mean age 61 years). We measured sleep regularity using the intra-individual standard devia on (SD) of sleep dura on and the sleep regularity index (SRI), a measure of the similarity of sleep-wake pa erns from one day to the next. Cox propor onal hazards models es mated adjusted hazard ra os (HR) for incident hypertension, iden fied through linked health records, by levels of sleep regularity adjus ng for demographic, socioeconomic, and lifestyle factors as well as employment schedule. We also evaluated differences by demographic, clinical, and sleep-related (defined by dura on, efficiency, ming, and sleep disorders) subgroups, and interac on with gene c suscep bility to hypertension.</p>
+<p>Results: During 7.9 years of follow-up, 5,713 par cipants developed hypertension. Par cipants with sleep dura on SD &gt;90 minutes had an 18% higher risk of incident hypertension compared to those with sleep dura on SD ≤30 minutes (HR: 1.18; 95% confidence interval (CI): 1.06, 1.31). Similarly, par cipants in the lowest SRI quin le had a 40% higher risk than those in the highest SRI quin le (HR: 1.40; 95% CI: 1.29, 1.52). These associa ons were generally consistent across demographic, health, and sleep-defined subgroups. Sleep irregularity and gene c suscep bility contributed independently to hypertension risk, without evidence of interac on.</p>
+<p>Conclusions: Irregular sleep pa erns were associated with higher incident hypertension risk independent of established risk factors and gene c suscep bility. Maintaining regular sleep schedules may represent a modifiable behavioral target for hypertension preven on.</p>
+<h3>Introduc on</h3>
+<p>Hypertension is the most prevalent modifiable risk factor for cardiovascular disease (CVD), affec ng more 1.4 billion, or a third, of adults aged 30-79 years worldwide 1 . Despite effec ve pharmacologic treatments, preven on remains a major public health priority given the high prevalence of hypertension, its strong contribu on to cardiovascular morbidity and mortality, and its difficulty to control a er it develops 2 . While behavioral strategies have tradi onally focused on diet and physical ac vity, sleep is increasingly recognized as a core behavioral component of cardiovascular health 3.</p>
+<p>Sleep has tradi onally been characterized by dura on and quality, but emerging evidence highlights sleep regularity as a dis nct and clinically relevant dimension of sleep 4 . Recent evidence suggests that maintaining a consistent sleep schedule may have even greater health benefits compared to a aining adequate sleep dura on, and that the benefits of regular sleep are independent of sleep dura on 5, 6 . Irregular sleep pa erns are common in modern socie es and may contribute to circadian disrup on or misalignment, which are implicated in adverse cardiometabolic outcomes 7 . While several cross-sec onal and prospec ve observa onal studies have linked irregular sleep to both CVD risk factors and outcomes 5, 8, 9 , reviews have highlighted that evidence for an associa on between sleep regularity and hypertension remains inconsistent [10] [11] [12] ; Associa ons may also vary according to other clinical factors, including average sleep dura on and the presence of obstruc ve sleep apnea (OSA) or prediabetes 11,13- 15 . Prior studies inves ga ng the associa on between irregular sleep and hypertension have been limited by cross-sec onal designs or, among prospec ve studies, reliance on self-reported sleep regularity, small sample sizes due in part to high baseline hypertension prevalence, short follow-up and few incident cases, or inadequate par cipant characteriza on for confounder control. In addi on, few studies have examined complementary accelerometry-derived sleep regularity metrics, limi ng insight into whether different aspects of irregular sleep confer similar risks.</p>
+<p>With strong evidence of heritability, gene c suscep bility to hypertension, as captured by polygenic risk score (PRS), has been shown to have varying effects across different groups (e.g., by sex and obesity status) 16 . While interac ons between short or long sleep dura on and blood pressure gene c loci have been reported 17 , the interac on between irregular sleep schedules and gene c suscep bility to hypertension remains unexplored. Whether the associa on between irregular sleep pa erns and hypertension risk differs by level of hypertension PRS remains largely unexplored and this informa on may inform precision preven on by iden fying individuals who may be most likely to benefit from improving sleep regularity.</p>
+<p>To address these gaps, we examined associa ons of two complementary measures of sleep irregularity with risk for incident hypertension in the UK Biobank (UKB), a large prospec ve cohort with accelerometer-derived sleep data and long-term follow-up via linkage to healthcare records. We also assessed poten al effect modifica on by demographic, clinical, and other sleep factors, and interac on by gene c suscep bility for hypertension. We hypothesized that greater sleep irregularity would be associated with higher risk of incident hypertension.</p>
+<h3>Methods</h3>
+<h3>Sample and study design</h3>
+<p>The UKB is a prospec ve cohort study that enrolled over 502,000 United Kingdom residents aged 40-69 years at the me of the baseline visit (2006-2010) 18 . Baseline assessments included ques onnaires, interviews, physical measurements, and biologic sample collec on to capture a broad range of socio-demographic, lifestyle, and health characteris cs. The study was approved by the NHS North-West Mul -Centre Research Ethics Commi ee, and all par cipants gave informed electronic consent. These data are available with an approved UKB applica on, and this study was conducted under UKB applica on ID 85501. Between 2013 and 2015, a random sample of 236,519 UKB par cipants with email addresses were invited to par cipate in an accelerometer study 19 of whom 103,610 provided up to 7 days of data, using Axivity AX3 triaxial devices worn on the dominant wrist (Supplementary Figure S1 for par cipant flowchart). We excluded individuals with less than five nights of valid accelerometry data, following methods described previously to iden fy valid recordings 20 , missing or extreme (&gt;4 hours) sleep dura on SD, or missing sleep regularity index (SRI) (n=23,976 excluded). Finally, we excluded 24,062 par cipants with likely prevalent hypertension any me prior to accelerometry, iden fied through medical records, self-report diagnoses, self-reported an -hypertensive medica on use, or an -hypertensive medica ons recorded during nurse interviews, based on a published UKB an hypertensive medica ons list 21.</p>
+<h3>Sleep measures</h3>
+<p>Raw accelerometer data were processed by R package GGIR (version 1.5.12) as described by Jones et al. 20 . Briefly, 100-Hz triaxial accelera on signals were summarized to 5-second epochs, classified as sleep or wake, and used to iden fy the main sleep period me (SPT) window. The GGIR sleep detec on algorithm has been validated against polysomnography for detec ng the main sleep period even in the absence of diaries 22 . Using one SPT window per 24-hour period, GGIR es mated average sleep metrics across all available nights per par cipant, including sleep dura on, sleep dura on SD (the intra-individual standard devia on of sleep dura on across all nights), sleep maintenance efficiency (percentage me asleep in SPT window), and sleep midpoint ming. We addi onally calculated the sleep regularity index (SRI) using the sleepreg package as described previously 6, 23 . The SRI is based on the probability of being in the same sleep-wake state at any two me points 24-h apart, averaged across the recording 24, 25 . Briefly, the SRI used here is based on one-minute sleep/wake epochs including classifica on of naps and nigh me awakenings, and nights were excluded if their GGIR es mated SPT window was considered invalid based on the criteria described by Winded et al. 23 . A minimum of five valid nights were required. SRI Values closer to 100 reflect more regular sleep-wake pa erns, whereas values closer to 0 represent increasingly random pa erns. We focused on both sleep dura on SD and SRI to capture complementary dimensions of sleep irregularity. Sleep dura on SD reflects night-to-night variability in sleep dura on and may be more clinically intui ve, while the SRI measures sleep-wake pa ern regularity across consecu ve days, capturing variability in dura on, ming, nigh me wake episodes, and naps, poten ally making it more sensi ve to circadian disrup on and irregularly fragmented sleep 25 . The SRI is slightly more sensi ve to varia on in ming compared to varia on in dura on and operates on a consecu ve mescale, while sleep dura on SD is agnos c to the ordering of nights and quan fies varia on in dura on only, not ming. Higher sleep dura on SD and lower SRI each indicate more irregular pa erns.</p>
+<h3>Iden fica on of hypertension and gene c risk</h3>
+<p>Incident hypertension occurring between the end date of accelerometry and the end of followup was iden fied using the UKB &quot;first occurrence&quot; algorithm to capture the earliest date of 3-character</p>
+<h3>Interna onal Classifica on of Diseases, 10th Revision (ICD10) code I10, essen al (primary) hypertension.</h3>
+<p>The first occurrence algorithms incorporate linked medical records from the Na onal Health Service covering hospital inpa ent data, coded primary care data, and cancer and death registries, as well as interview-verified self-report diagnoses from study visits 26 . Hypertension iden fied through these UKB sources has been associated with expected hypertensive cardiac remodeling, sugges ng validity 21.</p>
+<p>Gene c predisposi on to hypertension was measured using both a polygenic risk score (PRS) for hypertension and self-reported history of hypertension among par cipants&#x27; parents or siblings (family history). We used the Standard PRS described by Thompson et al., which was not trained on any UKB data 27 . Analyses using the PRS were restricted to par cipants self-repor ng White/European ethnic background.</p>
+<h3>Sta s cal analysis</h3>
+<p>Sleep dura on SD and SRI were modeled categorically for primary analysis, consistent with previous research. Sleep dura on SD was categorized as ≤30, 31-45, 46-60, 61-90, and &gt;90 minutes [28] [29] [30] to facilitate clinical interpreta on, and SRI was categorized into quin les 6 . About 9% of the sample had sleep dura on SD &gt;90 minutes; we used quin les of sleep dura on SD in a sensi vity analysis to aid comparison of results to those found using SRI quin les. We also evaluated sleep regularity con nuously (per SD of each metric) and as binary variables, comparing the most irregular sleepers (&gt;90 minutes sleep dura on SD and 0-20 th SRI percen les) to all others. Using the con nuous sleep dura on SD and SRI, poten al nonlinearity was further evaluated using natural cubic splines with knots placed at the 10 th , 50 th , and 90 th percen les 31 . Likelihood ra o tests comparing spline and linear models evaluated sta s cal significance of nonlinearity. End of follow-up was October 31, 2022, corresponding to the censoring date for England hospital data available in the UKB data used for this analysis (version 18.1, available from March 2025; the majority of hospital data came from England but from Scotland and Wales data were also used and their corresponding end of follow-up dates were within 5 months of the date used).</p>
+<p>Follow-up me was calculated from the end date of accelerometer recording to the earliest occurrence of incident hypertension, death, loss to follow-up, or end of follow-up, whichever came first. Hazard ra os (HRs) and 95% confidence intervals (CIs) for incident hypertension by level of sleep regularity were es mated with Cox propor onal hazards regression. The propor onal hazards assump on was evaluated using Schoenfeld residuals.</p>
+<p>We es mated associa ons using sequen ally adjusted models selected a priori based on known or plausible associa ons with sleep regularity and hypertension to control for confounding.</p>
+<p>Supplementary Table S1 provides UKB data fields, source ques ons, and coding descrip ons for all variables used. Age and sex were included in the minimally adjusted model (Model 0). Model 1 addi onally adjusted for self-reported ethnic background, Townsend depriva on index, employment/shi work, and family history of hypertension. Model 2, used for primary interpreta on, further adjusted for lifestyle factors including smoking history, alcohol use, physical ac vity, and healthy diet score. In a sensi vity model we addi onally included health factors that may be possible mediators or colliders, including body mass index (BMI), diabetes, use of cholesterol-lowering medica on, and presence of depression or anxiety symptoms. In a second sensi vity model we also adjusted for baseline self-reported chronotype, sleepiness, and insomnia, diagnosed sleep disorders any me un l the accelerometer visit (ICD-10 code G47), and accelerometer-measured average sleep dura on. Missing covariate data were minimal (most &lt;1%; highest was 3% missing on depression/anxiety, used only in sensi vity model), so we applied single imputa on using medians and modes for con nuous and categorical variables, respec vely (Supplementary Table S2 show numbers imputed per variable).</p>
+<p>We further evaluated associa ons within pre-specified demographic, health, and sleep-related subgroups using Model 2 and binary sleep regularity variables to examine consistency of associa ons.</p>
+<p>Stra fied analyses were conducted by age at accelerometry, sex, ethnicity, family history of hypertension, hypertension PRS (low risk: ter le 1, medium risk: ter le 2, high risk: ter le 3), baseline BMI, baseline self-reported sleep characteris cs (insomnia symptoms, excessive sleepiness, snoring, and chronotype), and health condi ons iden fied any me prior to accelerometry (diabetes history and diagnosed sleep disorders). We also stra fied by other accelerometry-derived sleep characteris cs including sleep dura on (short: &lt;20 th percen le, intermediate: 20 th to &lt;80 th percen le, long: ≥80 th percen le), sleep midpoint me (early: &lt;20 th percen le, intermediate: 20 th to &lt;80 th percen le, late: ≥80 th percen le), and sleep efficiency (inefficient: &lt;0.8, efficient: ≥0.8). We reported interac on p-values from Wald tests for the product term between binary sleep regularity variables and the subgroups; these analyses were considered exploratory.</p>
+<p>To evaluate interac on with gene c suscep bility, we es mated joint HRs for sleep regularity (using binary variables) and gene c risk (PRS and family history) using a common low-risk reference group (regular sleep and low-medium gene c risk), following the approach of VanderWeele and Knol 32.</p>
+<p>We assessed mul plica ve and addi ve interac on, with addi ve interac on quan fied by the rela ve excess risk due to interac on (RERI). Ninety-five percent confidence intervals were es mated using the variance recovery method 33, 34.</p>
+<p>Several sensi vity analyses were performed to interrogate robustness of results. First, we excluded individuals with high blood pressure readings at the UKB baseline visit (SBP&gt;130 or DBP&gt;80) who were not otherwise excluded based on the criteria of prevalent hypertension described above.</p>
+<p>Second, we repeated the analysis censoring at March 23, 2020, the start date of the COVID-19 lockdown in the UK, to account for disrup ons to healthcare during and a er the pandemic that may have delayed hypertension diagnoses. Third, we excluded those diagnosed with hypertension in the first year of follow-up in case they represented delayed diagnoses or reverse causa on. Finally, because sleep dura on SD was heavily right-skewed, we repeated the analysis excluding those with sleep dura on SD &gt;2 hours.</p>
+<h3>Results</h3>
+<p>Among the 55,572 individuals included in analyses, 60% were female and 97% self-reported as White and European ethnic background (Table 1). The mean (SD) age at the me of accelerometry was 61(8) years. At the UKB baseline visit, which occurred a median of 5.7 years earlier than the accelerometry assessment, 66% were employed (12% of those employed worked in shi jobs), 7% were current smokers, 33% had depressive or anxiety symptoms, and the mean BMI was 26 kg/m 2 . Almost 90% of the sample provided 7 valid nights of data (only 2% had 5 nights).</p>
+<p>The mean (SD) of sleep dura on SD and SRI were 54 (30) minutes and 79 (11), respec vely, with an average sleep dura on of 7.3 hours (Supplementary Figures S2 and S3 provide sleep dura on SD and SRI distribu ons). As expected, there was an inverse associa on between sleep dura on SD and SRI (Spearman r=-0.39; Supplementary Figure S4). The distribu ons of par cipant characteris cs across categories of sleep dura on SD were mostly similar, although those with more irregular sleep were more likely to be current smokers, report depressive or anxiety symptoms, have diabetes or sleep disorder diagnoses, iden fy as evening chronotypes, and have shorter and less efficient sleep. Similar pa erns were observed across SRI quin les (Supplementary Table S3).</p>
+<p>There were 5,713 incident hypertension cases observed over a median follow-up of 7.9 (interquar le range: 1.1) years (rate: 137 cases per 10,000 person-years). More irregular sleep dura on was associated with higher risk of incident hypertension (Table 2). In the age and sex adjusted model, those with sleep dura on SD of 46-60 minutes, 61-90 minutes, and &gt;90 minutes had HRs 10%, 12%, and 25% greater than those with ≤30 minutes. A er further adjustment for family history of hypertension, socioeconomic and lifestyle factors (Model 2), these es mates a enuated but remained direc onally consistent. When treated con nuously, each one-SD increase in sleep dura on SD (about 30 minutes) was associated with a 5% higher hazard of developing hypertension (95% CI: 1.02, 1.07). The HR in Model 2 for those with &gt;90 minutes sleep dura on SD was 1.16 (95% CI: 1.06, 1.27) when comparing to the reference of ≤90 minutes (binary classifica on). In a sensi vity analysis we repeated Model 2 using quin les of sleep dura on SD to aid comparison to SRI quin le-based analyses and the results were very similar to the a priori-defined minute-based categories (Supplementary Table S4). In exploring the poten al nonlinear rela onship between sleep dura on SD and incident hypertension using a spline model, we found that the associa on was linear for the bulk of the distribu on, with higher hypertension risk as sleep dura on SD increased up to approximately 110 minutes, represen ng &gt;90% of the sample&#x27;s distribu on. Above that, the risk began to plateau and then decreased (p for nonlinearity=0.03; Figure 1).</p>
+<p>Irregular day-to-day sleep pa erns, represented by low SRI, were consistently associated with higher risk of incident hypertension (Table 2). Those in the lowest quin le (most irregular) had a 57% higher hazard of developing hypertension over the follow-up compared to those in the most regular quin le in the age-and sex-adjusted model. The HR for the same comparison was 1.40 (95% CI: 1.29, 1.52) in the fully adjusted Model 2. While there was a large compara ve difference in risk from the 2 nd (HR=1.16) to the 1 st SRI quin le (HR=1.40), we observed steady risk increases across quin les 4, 3 and 2 compared to the most regular quin le 5, with the HRs (95% CIs) of 1.12 (1.03, 1.22), 1.14 (1.04, 1.24), and 1.16 (1.07, 1.26), respec vely. When treated con nuously, each one-SD increase in SRI (~11 points) towards more regular pa erns was associated with a 10% lower risk of hypertension (HR [95% CI]: 0.90 [0.88, 0.92]). When treated as a binary variable, those in quin le 1 of SRI had a 26% higher risk (95% CI: 1.19, 1.35) compared to the higher 4 quin les. The linear, dose-response associa on was reflected in the plo ed spline model which showed consistently lower risk across increasing SRI (Figure 1; p for nonlinearity=0.98).</p>
+<p>Across sensi vity analyses, the results remained consistent. There was mild a enua on of HRs when we further controlled for tradi onal cardiometabolic risk factors and comorbidi es, which we hypothesized as poten al mediators or colliders, and for other sleep factors (Supplementary Table S5).</p>
+<p>There was a slight increase in strength of the HRs for the most irregular groups (sleep dura on SD and SRI) when we removed individuals with high baseline blood pressure readings (Supplementary Table S6).</p>
+<p>There was also a slight increase in strength of the associa on for those with sleep dura on SD&gt;90 minutes when we excluded those with sleep dura on SD&gt;120 minutes. These findings were generally consistent across subgroups (Figure 2). When es ma ng the HR for the most irregular groups (&gt;90 minutes sleep dura on SD or Q1 of SRI) compared to the remaining more regular sample (binary classifica on), all subgroup es mates but one indicated higher risk for hypertension and fell in the range of HRs observed in the main analysis. The excep on was among those repor ng the most sleepiness at baseline (HR (95% CI) for those in quin le 1 of SRI compared to quin les 2-5: 0.93 (0.64, 1.36)). There was no evidence of interac on except by BMI where the HR for hypertension in those with irregular sleep dura on SD was higher among those with BMI≥30 than those with BMI&lt;30 (interac on p=0.02). However, the subgroup difference by BMI was not observed for SRI.</p>
+<p>We found no clear evidence of mul plica ve or addi ve interac on between sleep regularity and gene c suscep bility to hypertension (Figure 3, Supplementary Table S8). Irregular sleep was associated with higher hypertension risk within both low/medium and high gene c suscep bility strata.</p>
+<p>In joint analyses, hypertension risk was highest among par cipants with both irregular sleep and high gene c suscep bility (HRs of 1.80 for sleep dura on SD and 1.92 for SRI). Notably, par cipants with high gene c suscep bility but regular sleep had higher hypertension risk than those with low/medium gene c suscep bility but irregular sleep. Similar pa erns were observed when using family history of hypertension instead of PRS (Supplementary Table S9).</p>
+<h3>Discussion</h3>
+<p>In this prospec ve cohort study among over 55,000 individuals, objec vely measured irregular sleep pa erns were consistently associated with increased risk of incident hypertension over nearly 8 years of follow-up. We observed associa ons across two complementary measures of sleep regularity, and these were generally stronger for the SRI than for sleep dura on SD, although both metrics iden fied individuals at increased risk for hypertension. We observed that the most irregular sleepers had an 18 to 40% increase in hypertension risk compared to the most regular sleepers. The magnitude of these associa ons is comparable to other established risk factors for hypertension, such as habitual exposure to secondhand smoke and increased abdominal adiposity 35, 36 . Findings were robust to comprehensive adjustment for poten al confounders, addi onal adjustment for health and sleeprelated factors, a range of sensi vity analyses, and were broadly consistent across demographic, clinical, and sleep-related subgroups. Sleep regularity and gene c suscep bility appeared to largely contribute independently to hypertension risk, where irregular sleep was associated with higher risk across levels of inherited risk. Together, these findings support sleep regularity as a poten ally important and modifiable independent behavioral target for hypertension preven on in popula ons.</p>
+<p>Our findings help clarify a growing but previously inconsistent literature linking irregular sleep to hypertension. Previous studies using ac graphy-derived sleep regularity have been mixed. Sleep dura on SD was not associated with hypertension in the Mul -Ethnic Study of Atherosclerosis (MESA) or the Swiss CoLaus cohort 37, 38 , whereas the ELSA-Brasil cohort observed modest posi ve associa ons with blood pressure and hypertension 14 . In contrast, lower SRI was consistently associated with higher blood pressure in both MESA and the Coronary Artery Risk Development in Young Adults (CARDIA) cohort 39, 40.</p>
+<p>Differences in the sociodemographic and health characteris cs of study popula ons or sleep regularity assessment methods may partly explain these mixed findings 13, 14 , and limited power may have contributed to some of the previous null findings. More recent studies have assessed sleep regularity over substan ally longer periods. In the All of Us cohort, each one-hour increase in sleep dura on SD measured over a median of 4.5 years using Fitbit devices was associated with a 56% increased risk of incident hypertension 41 . Similar findings were reported in a study of 12,287 individuals using underma ress sensors over approximately 9 months 42 . Although those two studies have limited generalizability given the samples included select par cipants using consumer wearables or nearables that also agreed to share their data for research purposes, and the la er was unable to account for many possible confounders. Together with the prior literature, our findings strengthen the prospec ve evidence linking irregular sleep to incident hypertension and extend it by demonstra ng consistent associa ons across diverse subgroups using two complementary objec ve measures of sleep regularity. These findings are especially relevant alongside preliminary interven on evidence that suggests sleep regularity may be a modifiable target for blood pressure reduc on. In a proof-of-concept study among 11 adults with hypertension and obesity, a two-week sleep regulariza on interven on led to clinically meaningful reduc ons in blood pressure despite minimal changes in other sleep characteris cs 43.</p>
+<p>Several biological and behavioral mechanisms may explain these associa ons. Blood pressure follows a strong circadian pa ern, characterized by a physiological decline during sleep (nocturnal dipping) and a surge before awakening. Circadian misalignment, whereby sleep-wake cycles or other behavioral rhythms fall out of sync with endogenous circadian rhythms, may disrupt this regula on. In a controlled laboratory study, experimentally induced circadian misalignment over 10 days increased mean arterial blood pressure 44 . Irregular sleep pa erns may similarly alter nocturnal dipping or the ming of the morning blood pressure surge, poten ally through effects on autonomic nervous system ac vity and other circadian-controlled physiological processes 12 . Consistent with this hypothesis, stronger and more regular rest-ac vity rhythms have been associated with lower nocturnal blood pressure in young adults 45 . Greater sleep dura on variability has also been associated with impaired microvascular func on, sugges ng vascular dysfunc on as another poten al pathway 46 . Addi onally, irregular sleep schedules may contribute to poorer dietary behaviors, including higher energy intake and less healthy food choices 47, 48 , which may subsequently contribute to elevated blood pressure.</p>
+<p>The stronger associa ons observed for SRI in our study, consistent with findings from previous studies, may reflect its more comprehensive characteriza on of sleep-wake regularity, capturing variability in sleep ming and dura on, day me sleep-wake pa erns, and nigh me awakenings through comparisons of sleep-wake states at corresponding mes across consecu ve days 25 . Together, these feature and the assessment of regularity on a 24-hour mescale may make SRI a more sensi ve marker of behavioral irregularity than sleep dura on SD, although the la er offers the advantage of more straigh orward clinical interpreta on.</p>
+<p>This study has several strengths, including its prospec ve design; assessment of two complementary sleep regularity metrics derived from research-grade accelerometry devices using validated algorithms; a large sample size with extensive follow-up; rigorous exclusion of individuals with pre-exis ng hypertension; detailed par cipant characteriza on enabling adjustment for poten al confounders and evalua on across clinically relevant subgroups; and robustness across mul ple sensi vity analyses. Several limita ons should also be considered. As an observa onal study, causality cannot be established and residual confounding remains possible. Sleep regularity was es mated from 7day ac graphy recordings and may not reflect habitual long-term sleep pa erns 49 ; however, any resul ng measurement error is likely to have been largely nondifferen al and therefore would be expected to a enuate the observed associa ons 50 . Ascertainment of incident hypertension through linked health records may have resulted in some missed or delayed diagnoses. Finally, the predominantly White, healthier-than-average UKB sample limits the generalizability of these findings. The healthy volunteer effect may also have introduced selec on bias, although its likely the direc on and magnitude are difficult to predict.</p>
+<h3>Conclusion</h3>
+<p>In this prospec ve study of more than 50,000 UK adults, greater sleep dura on variability and more irregular sleep-wake pa erns assessed via 7-day ac graphy were associated with higher risk of incident hypertension over nearly 8 years of follow-up. While these findings require replica on in more diverse popula ons and using longer-term assessments of sleep regularity, they support hypertension as a poten al pathway linking irregular sleep with CVD 5, 28 . Randomized controlled trials are now needed to assess whether interven ons that promote more regular sleep pa erns can reduce blood pressure and hypertension risk, and thereby establish whether sleep regularity represents a causal and modifiable target for CVD preven on.</p>
+<h3>Tables and Figures</h3>
+<h3>546</h3>
+<p>Table 1. Descrip on of par cipants by level of sleep regularity (SD sleep dura on). nerves, anxiety, tension, or depression, or if they answered that they&#x27;ve experienced frequent (&gt;half of days in the past 2 weeks) depressed mood or unenthusiasm/disinterest. Physical ac vity is the percentage of me spent in moderate or vigorous physical ac vity across the ac graphy recording.</p>
+<h3>548 549</h3>
+<p>Table 2. Rate, adjusted hazard ra os and 95% confidence intervals for incident hypertension by level of sleep irregularity, measured by sleep 550 dura on SD and the Sleep Regularity Index. Es mates from Cox propor onal hazards models adjusted for the following: age, sex, ethnic background (White/European, non-European), Townsend depriva on index, employment/shi work, family history of hypertension, smoking history (never, former, current), alcohol use (never, former, current), physical ac vity (propor on of me spent in moderate or vigorous ac vity, from ac graphy), healthy diet score. Interac on p-values are from the Wald tests for the product terms included in the fully adjusted model (p-value from type-3 test for modifier variables with &gt;2 categories). BMI: body mass index, kg/m 2 ; HTN: hypertension; PRS: polygenic risk score; CI: confidence interval. Family history of HTN was based on self-reported high blood pressure of father, mother, or siblings. PRS for HTN was based on the Standard PRS, which does not use UK Biobank par cipants in the training set. PRS was categorized as low risk: ter le 1, medium risk: ter le 2, and high risk: ter le 3. Sleep dura on, sleep midpoint ( me), and sleep efficiency are es mated from the accelerometry data. These were categorized as follows: sleep dura on (short: &lt;20 th percen le, normal: 20 th to &lt;80 th percen le, long: ≥80 th percen le), sleep midpoint (early: &lt;20 th percen le, normal: 20 th to &lt;80 th percen le, late: ≥80 th percen le), sleep efficiency (inefficient: &lt;0.8, efficient: ≥0.8), Diabetes based on ICD10 code E11 any me prior to start of ac graphy, or self-report at baseline or visit 1. Sleep disorders based on ICD10 code G47 any me prior to start of ac graphy. BMI, insomnia, sleepiness, and chronotype were all measured as the UK Biobank baseline visit which occurred 5.7 years prior to the start of ac graphy recording, on average. Insomnia symptoms measured by the touchscreen ques on &quot;Do you have trouble falling asleep at night or do you wake up in the middle of the night?&quot; Sleepiness assessed by the touchscreen ques on &quot;How likely are you to doze off or fall asleep during the day me when you don&#x27;t mean to? (e.g. when working, reading or driving).&quot; Snoring assessed from the touchscreen ques on &quot;Has your snoring ever bothered other people?&quot; Chronotype measured by the touchscreen ques on &quot;Do you consider yourself to be?&quot; with the response op ons shown in the figure, except that those who answered &quot;do not know&quot; are treated as having an intermediate chronotype, in alignment with previous research.</p>
+<h3>Acknowledgments</h3>
+<p>This research has been conducted using the UK Biobank Resource under Applica on Number 85501. This work uses data provided by pa ents and collected by the NHS as part of their care and support.</p>
+<p>This research was supported by Na onal Ins tutes of Health grant R01HL155395 and the Na onal Ins tute on Aging (ZIAAG000530). SK was supported by an American Heart Associa on grant 24POST1188091.</p>
+<h3>Disclosures</h3>
+<p>AJKP has received research funding from Versalux, Beacon, and Delos; he is a founder and director of Circadian Health Innova ons; and he is a scien fic advisor for In Rhythm.</p>
+<h3>Supplemental Material</h3>
+<p>Figure S1-S4. Tables S1-S9.  S8.</p>
+<h3>Figure 1.</h3>
+<p>Figure1. Examining poten al nonlinearity in the associa ons between sleep regularity metrics and incident hypertension. Natural cubic spline models (forced linear at the tails) with internal knots set at the 10 th , 50 th (reference value), and 90 th percen les of sleep regularity metrics were used to es mate nonlinear associa ons with incident hypertension via Cox propor onal hazards model adjusted for the following (plo ed using the mean or mode values): age, sex, ethnic background (White/European, non-European), Townsend depriva on index, employment/shi work, family history of hypertension, smoking history (never, former, current), alcohol use (never, former, current), physical ac vity (propor on of me spent in moderate or vigorous ac vity, from ac graphy), healthy diet score. P-nonlinearity is from the likelihood ra o test comparing the model with the linear (con nuous) sleep regularity term compared to the spline model. Plo ed range is from the 1 st -99 th percen les. Horizontal dashed line indicates HR=1. Ver cal do ed lines indicate percen le loca ons of internal knots.</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Stra fied analyses: adjusted hazard ra os and 95% confidence intervals for incident hypertension by level of sleep regularity stra fied by demographic, gene c, health, and sleep factors. Es mates from Cox propor onal hazards models adjusted for the following: age,</p>
+<h3>Figure 3.</h3>
+<p>Joint associa ons of sleep regularity and gene c suscep bility with incident hypertension. Joint associa ons of sleep regularity and gene c suscep bility to hypertension with incident hypertension are presented for (A) night-to-night variability in sleep dura on, measured by sleep dura on standard devia on (SD), and (B) consistency of sleep-wake pa erns, measured by the Sleep Regularity Index (SRI). Joint hazard ra os (HRs) and 95% confidence intervals (CIs) are presented rela ve to par cipants with low or medium gene c suscep bility and regular sleep. Associa ons of irregular versus regular sleep within each gene c suscep bility stratum are also presented. High gene c suscep bility was defined as the highest ter le of the hypertension polygenic risk score (PRS), and low or medium suscep bility as the lower two ter les. Irregular sleep was defined as sleep dura on SD ≥90 minutes or SRI in the lowest quin le, respec vely. Models were adjusted for age, sex, the first 10 gene c principal components, Townsend depriva on index, employment and shi work, family history of hypertension, smoking, alcohol consump on, physical ac vity, and diet quality. Sample limited to White/European sample with gene c data, n= 52,514, cases= 5378. The PRS is the Standard PRS that did not include UK Biobank data in the training set. P-values for mul plica ve interac on between con nuous sleep regularity measures and con nuous hypertension PRS were 0.161 for sleep dura on SD and 0.868 for SRI. Es mates of addi ve and mul plica ve interac on using categorical exposures are presented in Supplementary Table</p>
+<p>NOTE: This preprint reports new research that has not been certified by peer review and should not be used to guide clinical practice.</p>
+<h3>References</h3>
+<p>WHO. Global report on hypertension 2025: high stakes: turning evidence into ac on. 2025. Accessed October 8, 2026. h ps://www.who.int/publica ons/i/item/9789240115569</p>
+<p>Mar n SS, Aday AW, Allen NB, et al. 2025 Heart Disease and Stroke Sta s cs: A Report of US and Global Data From the American Heart Associa on. Circula on. 2025;151(8):e41-e660. doi:10.1161/CIR.0000000000001303</p>
+<p>Lloyd-Jones DM, Allen NB, Anderson CAM, et al. Life&#x27;s Essen al 8: Upda ng and Enhancing the American Heart Associa on&#x27;s Construct of Cardiovascular Health: A Presiden al Advisory From the American Heart Associa on. Circula on. Published online June 29, 2022:101161CIR0000000000001078. doi:10.1161/CIR.0000000000001078</p>
+<p>Sle en TL, Weaver MD, Foster RG, et al. The importance of sleep regularity: a consensus statement of the Na onal Sleep Founda on sleep ming and variability panel. Sleep Health: Journal of the Na onal Sleep Founda on. 2023;9(6):801-820. doi:10.1016/j.sleh.2023.07.016</p>
+<p>Chaput JP, Biswas RK, Ahmadi M, et al. Sleep regularity and major adverse cardiovascular events: a device-based prospec ve study in 72 269 UK adults. J Epidemiol Community Health. 2025;79(4):257-264. doi:10.1136/jech-2024-222795</p>
+<p>Windred DP, Burns AC, Lane JM, et al. Sleep regularity is a stronger predictor of mortality risk than sleep dura on: A prospec ve cohort study. Sleep. 2024;47(1):zsad253. doi:10.1093/sleep/zsad253</p>
+<p>Chellappa SL, Vujovic N, Williams JS, Scheer FAJL. Impact of Circadian Disrup on on Cardiovascular Func on and Disease. Trends in Endocrinology &amp; Metabolism. 2019;30(10):767-779. doi:h ps://doi.org/10.1016/j.tem.2019.07.008</p>
+<p>Huang T. Sleep Irregularity, Circadian Disrup on, and Cardiometabolic Disease Risk. Circula on Research. 2025;137(5):709-726. doi:10.1161/CIRCRESAHA.125.325613</p>
+<p>Kianersi S, Po s KS, Wang H, et al. Associa on between accelerometer-measured irregular sleep dura on and longitudinal changes in body mass index in older adults. Int J Obes. 2025;49(7):1280-1289. doi:10.1038/s41366-025-01768-8</p>
+<p>Makarem N, Zuraikat FM, Aggarwal B, Jelic S, St-Onge MP. Variability in Sleep Pa erns: an Emerging Risk Factor for Hypertension. Curr Hypertens Rep. 2020;22(2):19. doi:10.1007/s11906-020-1025-9</p>
+<p>Zhu B, Wang Y, Yuan J, et al. Associa ons between sleep variability and cardiometabolic health: A systema c review. Sleep Med Rev. 2022;66:101688. doi:10.1016/j.smrv.2022.101688</p>
+<p>Zhang C, Qin G. Irregular sleep and cardiometabolic risk: Clinical evidence and mechanisms. Fron ers in Cardiovascular Medicine. 2023;10. Accessed February 27, 2024. h ps://www.fron ersin.org/ar cles/10.3389/fcvm.2023.1059257</p>
+<p>Sansom K, Reynolds A, Windred D, et al. The interrela onships between sleep regularity, obstruc ve sleep apnea, and hypertension in a middle-aged community popula on. Sleep. 2024;47(3):zsae001. doi:10.1093/sleep/zsae001</p>
+<p>Parise BK, Santos RB, Mesas AE, et al. Sleep irregularity and the associa on with hypertension and blood pressure levels: the ELSA-Brasil study. Journal of Hypertension. 2023;41(4):670. doi:10.1097/HJH.0000000000003392</p>
+<p>Hwangbo Y, Kim WJ, Chu MK, Yun CH, Yang KI. Associa on between weekend catch-up sleep dura on and hypertension in Korean adults. Sleep Medicine. 2013;14(6):549-554. doi:10.1016/j.sleep.2013.02.009</p>
+<p>Kurniansyah N, Goodman MO, Khan AT, et al. Evalua ng the use of blood pressure polygenic risk scores across race/ethnic background groups. Nat Commun. 2023;14(1):3202. doi:10.1038/s41467-023-38990-9</p>
+<p>Nagarajan P, Winkler TW, Bentley AR, et al. A large-scale genome-wide study of gene-sleep dura on interac ons for blood pressure in 811,405 individuals from diverse popula ons. Mol Psychiatry. 2025;30(8):3660-3672. doi:10.1038/s41380-025-02954-w</p>
+<p>Sudlow C, Gallacher J, Allen N, et al. UK Biobank: An Open Access Resource for Iden fying the Causes of a Wide Range of Complex Diseases of Middle and Old Age. PLOS Medicine. 2015;12(3):e1001779. doi:10.1371/journal.pmed.1001779</p>
+<p>Doherty A, Jackson D, Hammerla N, et al. Large Scale Popula on Assessment of Physical Ac vity Using Wrist Worn Accelerometers: The UK Biobank Study. PLOS ONE. 2017;12(2):e0169649. doi:10.1371/journal.pone.0169649</p>
+<p>Jones SE, Lane JM, Wood AR, et al. Genome-wide associa on analyses of chronotype in 697,828 individuals provides insights into circadian rhythms. Nat Commun. 2019;10:343. doi:10.1038/s41467-018-08259-7</p>
+<p>Elghazaly H, McCracken C, Szabo L, et al. Characterizing the hypertensive cardiovascular phenotype in the UK Biobank. Eur Heart J Cardiovasc Imaging. 2023;24(10):1352-1360. doi:10.1093/ehjci/jead123</p>
+<p>van Hees VT, Sabia S, Jones SE, et al. Es ma ng sleep parameters using an accelerometer without sleep diary. Sci Rep. 2018;8(1):12975. doi:10.1038/s41598-018-31266-z</p>
+<p>Windred DP, Jones SE, Russell A, et al. Objec ve assessment of sleep regularity in 60 000 UK Biobank par cipants using an open-source package. Sleep. 2021;44(12):zsab254. doi:10.1093/sleep/zsab254</p>
+<p>Phillips AJK, Clerx WM, O&#x27;Brien CS, et al. Irregular sleep/wake pa erns are associated with poorer academic performance and delayed circadian and sleep/wake ming. Scien fic Reports. 2017;7(1):3216. doi:10.1038/s41598-017-03171-4</p>
+<p>Fischer D, Klerman EB, Phillips AJK. Measuring sleep regularity: theore cal proper es and prac cal usage of exis ng metrics. Sleep. 2021;44(10):zsab103. doi:10.1093/sleep/zsab103</p>
+<p>UK Biobank. Resource 593. First occurrence of health outcomes defined by 3-character ICD10 code. September 2019. Accessed May 12, 2026. h ps://biobank.ndph.ox.ac.uk/ukb/refer.cgi?id=593</p>
+<p>Thompson DJ, Wells D, Selzam S, et al. UK Biobank release and systema c evalua on of op mised polygenic risk scores for 53 diseases and quan ta ve traits. medRxiv. Preprint posted online June 16, 2022:2022.06.16.22276246. doi:10.1101/2022.06.16.22276246</p>
+<p>Huang T, Mariani S, Redline S. Sleep Irregularity and Risk of Cardiovascular Events: The Mul -Ethnic Study of Atherosclerosis. J Am Coll Cardiol. 2020;75(9):991-999. doi:10.1016/j.jacc.2019.12.054</p>
+<p>Huang T, Kianersi S, Wang H, et al. Sleep Dura on Irregularity and Risk for Incident Cardiovascular Disease in the UK Biobank. Journal of the American Heart Associa on. 0(0):e040027. doi:10.1161/JAHA.124.040027</p>
+<p>Kianersi S, Wang H, Sofer T, et al. Associa on Between Accelerometer-Measured Irregular Sleep Dura on and Type 2 Diabetes Risk: A Prospec ve Cohort Study in the UK Biobank. Diabetes Care. 2024;47(9):1647-1655. doi:10.2337/dc24-0213</p>
+<p>Harrell FE. Regression Modeling Strategies: With Applica ons to Linear Models, Logis c and Ordinal Regression, and Survival Analysis. Springer Interna onal Publishing; 2015. doi:10.1007/978-3-319-19425-7</p>
+<p>VanderWeele TJ, Knol MJ. A Tutorial on Interac on. Epidemiologic Methods. 2014;3(1):33- 72. doi:10.1515/em-2013-0005</p>
+<p>Zou GY. On the Es ma on of Addi ve Interac on by Use of the Four-by-two Table and Beyond. American Journal of Epidemiology. 2008;168(2):212-224. doi:10.1093/aje/kwn104</p>
+<p>Alli BY. Interac onR: An R package for full repor ng of effect modifica on and interac on. So ware Impacts. 2021;10. doi:10.1016/j.simpa.2021.100147</p>
+<p>Song Y, Du K, Jiang H. Passive smoking and the risk of hypertension in nonsmoking adults: a systema c review and meta-analysis. PeerJ. 2026;14:e20639. doi:10.7717/peerj.20639</p>
+<p>Zhou W, Shi Y, Li Y qian, et al. Body mass index, abdominal fatness, and hypertension incidence: a dose-response meta-analysis of prospec ve studies. J Hum Hypertens. 2018;32(5):321-333. doi:10.1038/s41371-018-0046-1</p>
+<p>Häusler N, Marques-Vidal P, Haba-Rubio J, Heinzer R. Associa on between ac graphy-based sleep dura on variability and cardiovascular risk factors -Results of a popula on-based study. Sleep Medicine. 2020;66:286-290. doi:10.1016/j.sleep.2019.02.008</p>
+<p>Huang T, Redline S. Cross-sec onal and Prospec ve Associa ons of Ac graphy-Assessed Sleep Regularity With Metabolic Abnormali es: The Mul -Ethnic Study of Atherosclerosis. Diabetes Care. 2019;42(8):1422-1429. doi:10.2337/dc19-0596</p>
+<p>Chapagai S, Schreiner PJ, Thomas SJ, et al. Associa on of Rest-Ac vity Rhythm and Sleep Regularity With Cardiometabolic Disease in the CARDIA Study. Journal of the American Heart Associa on. 2026;15(7):e046839. doi:10.1161/JAHA.125.046839</p>
+<p>Lunsford-Avery JR, Engelhard MM, Navar AM, Kollins SH. Valida on of the Sleep Regularity Index in Older Adults and Associa ons with Cardiometabolic Risk. Scien fic reports. 2018;8(1):14158. doi:10.1038/s41598-018-32402-5</p>
+<p>Zheng NS, Annis J, Master H, et al. Sleep pa erns and risk of chronic disease as measured by long-term monitoring with commercial wearable devices in the All of Us Research Program. Nat Med. Published online July 19, 2024:1-9. doi:10.1038/s41591-024-03155-8</p>
+<p>Sco H, Lechat B, Guye A, et al. Sleep Irregularity Is Associated With Hypertension: Findings From Over 2 Million Nights With a Large Global Popula on Sample. Hypertension. 2023;80(5):1117-1126. doi:10.1161/HYPERTENSIONAHA.122.20513</p>
+<p>Thosar SS, Sreeramadas AM, Jones M, et al. Bed me regulariza on as a poten al adjunct therapy for hypertension: a proof-of-concept study. Sleep Adv. 2025;6(4):zpaf082. doi:10.1093/sleepadvances/zpaf082</p>
+<p>Scheer FAJL, Hilton MF, Mantzoros CS, Shea SA. Adverse metabolic and cardiovascular consequences of circadian misalignment. Proc Natl Acad Sci U S A. 2009;106(11):4453-4458. doi:10.1073/pnas.0808180106</p>
+<p>HOOPES EK, PATTERSON F, BERUBE FR, et al. Ac graphy-Derived Rest-Ac vity Rhythms are Associated with Nocturnal Blood Pressure in Young Adult Females. J Hypertens. 2021;39(12):2413-2421. doi:10.1097/HJH.0000000000002966</p>
+<p>Hoopes EK, Berube FR, D&#x27;Agata MN, et al. Sleep dura on regularity, but not sleep dura on, is associated with microvascular func on in college students. Sleep. 2021;44(2):zsaa175. doi:10.1093/sleep/zsaa175</p>
+<p>He F, Bixler EO, Berg A, et al. Habitual sleep variability, not sleep dura on, is associated with caloric intake in adolescents. Sleep Medicine. 2015;16(7):856-861. doi:10.1016/j.sleep.2015.03.004</p>
+<p>Almoosawi S, Palla L, Walshe I, Vingeliene S, Ellis J. Long Sleep Dura on and Social Jetlag Are Associated Inversely with a Healthy Dietary Pa ern in Adults: Results from the UK Na onal Diet and Nutri on Survey Rolling Programme Y1-4. Nutrients. 2018;10(9):1131. doi:10.3390/nu10091131</p>
+<p>Leota J, Messman BA, Le F, et al. How many nights are needed? The short-term stability of intraindividual variability in sleep parameters derived from accelerometry data in a cohort of normal sleepers. Sleep. 2026;49(6):zsag040. doi:10.1093/sleep/zsag040</p>
+<p>Zisou C, Calvin C, Taylor H, et al. Reproducibility and associated regression dilu on bias of accelerometer-derived physical ac vity and sleep in UK Biobank. Int J Epidemiol. 2026;55(2):dyag014. doi:10.1093/ije/dyag014SD Sleep Duraon(minutes) Total≤3031-4546-6061-90&gt;90 (n=55,572) (n=8,417) (n=17,236) (n=14,462) (n=10,464) (n=4,993) Age at ac graphy, years: mean (SD)</p>
+<p>Employed, shi</p>
+<p>SD: standard devia on; Q: quar le; HTN: hypertension; PRS: Polygenic Risk Score. * n=1349 are missing (not imputed) for PRS for HTN. Data presented are %, mean (SD), or median [quar le 1, quar le 3], as indicated, among the column total. Percentages may not sum to 100 due to rounding. Sta s cs represent distribu ons of variables in the final included sample a er missing values have been imputed (using the median for con nuous variables and mode for categorical variables). Numbers missing on covariates are reported in the supplement. Variables were measured at the baseline visit (occurring 5.7 years prior to the start of ac graphy recording, on average) except for diabetes (ICD10 code E11 any me prior to start of ac graphy, or self-report at baseline or visit 1), diagnosed sleep disorders (ICD10 code G47 any me prior to start of ac graphy), and ac graphy variables. Healthy Diet Score ranges from 0-5 where 5 represents a healthy diet based on mee ng some of the American Heart Associa on dietary recommenda ons. Family history of HTN was based on self-reported high blood pressure of father, mother, or siblings. PRS for HTN was based on the Standard PRS, which does not use UK Biobank par cipants in the training set. Depression/anxiety is self-reported and posi ve if they report seeing a doctor for n (cases) person-me (yrs)</p>
+<p>HR (95% CI) Con nuous, per-SD 55,572 (5713) 417,560 137 1.07 (1.04, 1.09) 1.06 (1.03, 1.09) 1.05 (1.02, 1.07)</p>
+<p>Binary &lt;=90 min. 50,579 (5175) 380,121 136 Ref. Ref. Ref. &gt; 90 min. 4993 (538) 37,439 144 1.20 (1.10, 1.32)</p>
+<p>Categorical Q5 11,891 (1052) 90,248 117 Ref. Ref. Ref. Q4 11,633 (1127) 87,775 128 1.15 (1.06, 1.25) 1.15 (1.06, 1.25) 1.12 (1.03, 1.22)</p>
+<p>Binary Q2-Q5 45,622 (4430) 344,322 129 Ref. Ref. Ref. Q1 9950 (1283) 73,238 175 1.38 (1.29, 1.47) 1.34 (1.26, 1.43) 1.26 (1.19, 1.35)</p>
+<p>Q: Quin le. One SD of sleep dura on SD is 30.2 minutes. One SD of SRI is 10.8 points on the original SRI scale. a. per 10,000 person-years. Model 552 0: age, sex. Model 1: age, sex, ethnic background (White/European, non-European), Townsend depriva on index, employment/shi work 553 (employed-nonshi , employed-shi , re red or not employed), family history of hypertension (based on reported illnesses of father, mother, and 554 siblings). Model 2: model 1 +, smoking history (never, former, current), alcohol history (never, former, current), physical ac vity (propor on of 555 me spent in moderate or vigorous ac vity, from ac graphy), healthy diet score.</p>
 </div>
 </details>
 </div>
