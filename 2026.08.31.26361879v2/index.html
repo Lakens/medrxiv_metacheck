@@ -195,7 +195,7 @@ MetaCheck Report
 Warming, thermal variability, and the 96% decline in childhood
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.2 · DOI 10.64898/2026.08.31.26361879
+2026-11-19 · Metacheck 0.4.4.25 · DOI 10.64898/2026.08.31.26361879
 </p>
 </header>
 <div class="mc-main">
@@ -664,7 +664,7 @@ figshare
 2
 </td>
 <td style="text-align:right;">
-0
+2
 </td>
 <td style="text-align:right;">
 0
@@ -687,7 +687,7 @@ figshare
 2
 </td>
 <td style="text-align:right;">
-0
+2
 </td>
 <td style="text-align:right;">
 0
@@ -1469,7 +1469,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -1484,9 +1485,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -1499,13 +1518,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1525,6 +1547,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -1532,12 +1560,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1638,6 +1672,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1677,6 +1731,21 @@ text (93 of 95) and 90% in reference lists (74 of 82); the labels were
 made by Claude agents from each link’s evidence, and disputed ones
 checked against the deposits. Telling this paper’s own deposit from the
 authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1932,19 +2001,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -2054,6 +2205,127 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background Childhood respiratory mortality in China has fallen by over 90% in three decades alongside sustained national warming, yet national long-run evidence on temperature and child respiratory mortality is lacking.</p>
+<p>Methods We linked Global Burden of Disease (GBD) 2021 mortality estimates (rates use a fixed 2022 population denominator, so rate trends equal death-count trends) for China -lower respiratory infections (LRI), ages 0-19, and asthma, ages 0-24, 1990-2021 -with C-LSAT 0.5° gridded temperature data (1990-2019), aggregated nationally and to five climate zones. Four annual indicators (mean temperature, diurnal temperature range, seasonal amplitude, interannual variability) entered regressions of log mortality rates with Newey-West standard errors. A bootstrapped (500 resamples) quadratic model probed the minimum mortality temperature (MMT), with PM2.5-adjusted analyses and future-exposure, permutation, and detrended falsification tests. Changes in China&#x27;s national thermal regime for 2041-2060 were additionally projected under three CMIP6 SSP scenarios (SSP1-2.6, SSP2-4.5 and SSP5-8.5; WorldClim v2.1 1970-2000 baseline, MRI-ESM2-0) using a matched-cell delta method.</p>
+<p>Results LRI deaths fell by 96.3% (330,194 in 1990 to 12,098 in 2021; 95% uncertainty interval 9,669-14,891) and asthma deaths by 94.9% (3,287 to 167), while mean temperature rose 0.364 ° C per decade and diurnal temperature range narrowed 0.092 ° C per decade. Baseline coefficients were large (mean temperature -1.696, SE 0.174; diurnal temperature range +2.408, SE 0.336; seasonal amplitude -0.162, SE 0.082; interannual variability +2.924, SE 1.514, per 1 ° C in log rate), but the future-exposure test failed and detrending nullified every coefficient: the associations are trend-level, and short-cycle causal effects are not identifiable. Nor was the national MMT identifiable -observed temperature support spans only 6.66-8.13 ° C, and the nominal turning point of 35.84 ° C is an extrapolation artifact (quadratic term p = 0.963). Within the observed range, warming and declining mortality moved in the same direction. A CMIP6 scenario projection (WorldClim v2.1, MRI-ESM2-0, matched-cell national means) indicates a further +2.19 to +3.02 ° C of national warming by 2041-2060, with little change in diurnal temperature range or seasonal amplitude.</p>
+<p>The 96% decline in childhood respiratory mortality cannot be attributed to warming. China sits on the low-temperature side of the optimum, and the marginal direction of future warming requires stronger designs to establish. The falsification framework offers a discipline for climate-health inference in China. Bias-corrected scenario projections place China&#x27;s 2050s mean temperature (approximately 9.4-10.3 ° C on the C-LSAT scale) still far below multi-country optima (14.7-19.8 ° C), noting that an annual-mean construct is not fully comparable with dailyscale MMT estimates.</p>
+<h3>1. Introduction</h3>
+<p>Ambient temperature is a well-established determinant of human mortality. In a 13-country analysis, 7.71% of deaths were attributable to non-optimal temperatures, with cold (7.29%) outweighing heat (0.42%) by roughly seventeen-fold. 1 A global assessment estimated 5,083,173 temperature-related deaths per year during 2000-2019 (9.43% of all deaths), again dominated by cold (8.52% versus 0.91%). 2 The temperature at which mortality is lowest -the minimum mortality temperature (MMT) -varies with geography and local climate, and its estimation carries substantial uncertainty. 3 1 4 Beyond the mean level, thermal variability itself is hazardous: diurnal temperature range (DTR) has been linked to mortality in multi-country studies and systematic reviews, with an estimated attributable fraction of 2.5%. 5 6 7 In Shanghai, each 1 ° C increase in DTR raised respiratory mortality by 1.29% on cold days. 8 Children may be especially susceptible, yet paediatric evidence is thin. Infants under one year appear most vulnerable to heat, and temperature effects in children operate mainly through infectious diseases, including respiratory infections. 9 A 5 ° C increase in DTR has been associated with a 31% increase in childhood asthma emergency visits, 10 and exposure is rising: infants worldwide experienced an average of 13.8 heatwave days in 2023, 8.2 days above the historical baseline. 11 However, this evidence is almost entirely city-level and short-term; 12 national, longrun analyses of temperature and child respiratory mortality are lacking, particularly for China.</p>
+<p>This gap is striking given China&#x27;s recent history. Between 1990 and 2021, deaths from lower respiratory infections (LRI) among Chinese children aged 0-19 years fell by 96.3%, from 330,194 to 12,098, and asthma deaths among ages 0-24 years fell by 94.9%, from 3,287 to 167. 13 14 This decline -among the largest reductions in child mortality on record -unfolded in parallel with sustained national warming. We therefore pose three questions. First, how is the three-decade decline in childhood respiratory mortality related to concurrent warming? Second, does thermal variability -operationalised as DTR, seasonal amplitude, and interannual fluctuation -show associations independent of mean temperature? Third, where does China&#x27;s childhood MMT lie, and is it identifiable from the observed climate range?</p>
+<p>To address these questions, we linked the complete national GBD 2021 mortality series for China (1990-2021) with the C-LSAT 0.5° high-resolution land surface temperature and DTR datasets. 15 Our contributions are threefold: (i) the first national-scale coupling of the full GBD childhood respiratory mortality series with high-resolution Chinese climate data; (ii) a four-dimensional decomposition of thermal exposure -mean, DTR, seasonal amplitude, and interannual variability -with adjustment for ambient fine particulate matter (PM2.5); 16 and (iii) an explicit falsification framework (future-exposure, permutation, and detrended specifications) with a formal identifiability assessment of the national MMT, in which every turning-point estimate is reported against the observed temperature support (6.66-8.13 ° C), so that extrapolated values are labelled as such rather than read as identified optima.</p>
+<h3>2. Methods</h3>
+<p> &gt;Methods</p>
+<h3>2.1 Data sources</h3>
+<p>Mortality outcomes were drawn from the Global Burden of Disease (GBD) 2021 study for China, 1990-2021. 13  14 The primary outcome was deaths from lower respiratory infections (LRI; GBD cause 322) among children aged 0-19 years, obtained by summing the four constituent age groups (&lt;5, 5-9, 10-14, and 15-19 years); the 20-24-year group was never combined into the 0-19 total. The secondary outcome was asthma deaths (GBD cause 515) among ages 0-24 years, the narrowest paediatric age band available for this cause. Climate exposures came from the C-LSAT high-resolution land surface air temperature dataset (HRv1) and its paired diurnal temperature range product (C-LDTR), which provide gridded monthly temperature and diurnal temperature range at 0.5° resolution over 1901-2023; the regression panel used 1990-2019 to avoid the COVID-19 perturbation years, which disrupted both mortality ascertainment and healthcare use; the 2020-2021 mortality years were retained for trend description only. 15 As a time-varying covariate we used the GBD 2023 summary exposure value (SEV) for ambient particulate matter (PM2.5) for China, 1990-2023. 16 We note a version difference across inputs: mortality outcomes are from GBD 2021, whereas the PM2.5 SEV series is from GBD 2023; the two rounds use partly different estimation pipelines, and we therefore treat the PM2.5-adjusted model as a sensitivity analysis rather than the primary specification.</p>
+<h3>2.2 Exposure construction and climate zones</h3>
+<p>Gridded C-LSAT values were aggregated to 33 province-level units (GADM 4.1 boundaries) and then to the national level using land-area weights. Four annual indicators were constructed per unit: (i) mean_temp, the annual mean temperature; (ii) dtr_mean, the annual mean of daily diurnal temperature range; (iii) season_amp, the within-year seasonal amplitude, defined as the difference between the warmest and coldest monthly mean temperatures; and (iv) interannual_sd, the standard deviation of annual mean temperature over a trailing 10-year window, capturing year-to-year thermal variability. For zone-stratified description, provinces were grouped into five climate zones: cold temperate (Heilongjiang, Jilin, Liaoning, NeiMongol, XinjiangUygur), mid temperate (Beijing, Tianjin, Hebei, Shanxi, Shandong, Henan, Shaanxi, Gansu, NingxiaHui), warm temperate (Shanghai, Jiangsu, Anhui, Zhejiang, Hubei, Hunan, Jiangxi, Sichuan, Chongqing, Guizhou), subtropical (Fujian, Guangdong, Guangxi, Hainan, Yunnan, HongKong, Macau), and plateau (Qinghai, Xizang). Because provincial paediatric population time series were unavailable, national aggregation used area rather than population weights; this over-weights large western provinces relative to the populous east and is revisited as a limitation.</p>
+<h3>2.3 Outcomes and rates</h3>
+<p>Both outcomes were expressed as rates per 100,000 using a single fixed denominator: the GLOBOCAN 2022 estimate of the Chinese population aged 0-19 years (317,671,474), a level consistent with the GBD 2023 demographic estimates for China. 17 A fixed denominator isolates the mortality-numerator dynamics and avoids importing population-age-structure change into the trend, at the cost that the resulting series is a mortality index rather than an age-standardised rate.</p>
+<p>For asthma, GBD deaths span ages 0-24 years while the denominator covers ages 0-19 years; this numerator-denominator mismatch is deliberate under the fixed-denominator convention and affects levels, not within-series relative change, which is the quantity entering all regressions.</p>
+<h3>2.4 Statistical models</h3>
+<p>The primary specification was an ordinary least squares regression of the natural logarithm of the national mortality rate on the four climate indicators jointly: log(rate_t) = β0 + β1•mean_temp_t + β2•dtr_mean_t + β3•season_amp_t + β4•interannual_sd_t + ε_t, estimated on n = 30 annual observations (1990-2019). Standard errors were computed with Newey-West heteroskedasticity-and autocorrelation-consistent (HAC) covariance with a maximum lag of 3 years, given the short, strongly autocorrelated series. Coefficients are interpreted as the change in log mortality rate per +1 ° C of the indicator. Two sensitivity analyses were pre-specified: (i) adding the national PM2.5 SEV as a covariate; and (ii) a linearly detrended model in which the log rate and all regressors were residualised on calendar year, removing shared secular trends.</p>
+<h3>2.5 Minimum mortality temperature</h3>
+<p>To probe a national minimum mortality temperature (MMT), we fitted a quadratic in mean_temp (log rate on mean_temp and mean_temp²) and located the turning point at -β1/2β2. 1 18 Uncertainty was quantified with 500 bootstrap resamples over years; draws yielding a nonpositive quadratic coefficient (no minimum) were discarded from the interval, and the proportion of such draws was reported. We applied a strict observed-support rule: any turning point must be reported together with the observed range of the exposure, and any estimate lying outside that range is explicitly labelled an extrapolation rather than an identified MMT.</p>
+<h3>2.6 Falsification suite</h3>
+<p>Three falsification tests assessed whether baseline associations reflect short-run causal structure or shared trends: (i) a future-exposure test replacing concurrent exposures with their t+1 and t+2 leads, which should attenuate a genuinely causal concurrent effect; (ii) 200 permutations of calendar years to generate a null distribution for the coefficients; and (iii) the detrended model described above. Failure of the future-exposure test, or null effects after detrending, was taken as evidence against a short-run causal interpretation.</p>
+<h3>2.7 Reporting, ethics, and software</h3>
+<p>The study used publicly available, de-identified, aggregated estimates and required no ethics approval or consent. Analyses were conducted in Python (statsmodels for HAC estimation; NumPy/pandas for data processing), and all aggregation and modelling code is available from the corresponding author on reasonable request.</p>
+<h3>2.8 Scenario projection of China&#x27;s future thermal regime</h3>
+<p>As forward-looking context, we projected the change in China&#x27;s national thermal regime between the WorldClim version 2.1 1970-2000 baseline climatology and CMIP6-downscaled projections for 2041-2060 (10 arc-minute resolution, monthly minimum and maximum temperature; single general circulation model, MRI-ESM2-0) 21 under SSP1-2.6, SSP2-4.5 and SSP5-8.5. National means were computed over the 34,111 grid cells covered by China&#x27;s Natural Earth polygon and valid in the future land mask, with baseline and future averages taken over identical cells (matched-cell delta method). Annual mean temperature, mean diurnal temperature range and seasonal amplitude were derived as in Section 2.2, except that grid cells were unweighted rather than land-area weighted. These are scenario-conditional climatological changes and are reported as exposure context only; no mortality projection is attempted.</p>
+<h3>3. Results</h3>
+<p> &gt;Results the corresponding mortality rate fell from 103.9 to 3.81 per 100,000 (Table 1; rates use the fixed 2022 population denominator, so rate trends equal death-count trends).</p>
+<h3>3.1 Thirty-year trends in childhood respiratory mortality and climate</h3>
+<p>The climate series moved concurrently but far more modestly (Figure 1; Table 1). Over 1990-2019, the area-weighted national mean temperature rose by 0.364 ° C per decade, from 7.26 ° C in 1990 to 8.04 ° C in 2019. Mean diurnal temperature range (DTR) declined by 0.092 ° C per decade, whereas seasonal amplitude increased by 0.250 ° C per decade. Interannual temperature variability was essentially stable, changing by only +0.005 ° C per decade. Thus, the observation window pairs a near-total decline in childhood respiratory mortality with gradual warming, narrowing DTR, widening seasonal amplitude, and unchanged year-to-year variability.</p>
+<p>Table 1. Trend anchors for childhood respiratory mortality (1990-2021) and national climate indicators (1990-2019), China Indicator 1990 End year Change LRI deaths, ages 0-19 (n) 330,194 12,097.7 (95% UI 9,668.5-14,890.7; 2021) -96.3% LRI mortality rate (per 100,000) 103.9 3.81 (2021) -96.3% Asthma deaths, ages 0-24 (n) 3,287 167 (2021) -94.9% Asthma mortality rate (per 100,000) 1.035 0.053 (2021) -94.9% National mean temperature 7.26 ° C 8.04 ° C (2019) +0.364 ° C/decade Diurnal temperature range ---0.092 ° C/decade Seasonal amplitude --+0.250 ° C/decade Interannual temperature SD --+0.005 ° C/decade flip attributable to collinearity among the climate regressors, and is therefore interpreted cautiously.</p>
+<h3>3.2 Baseline associations between climate indicators and mortality</h3>
+<p>Table 2. Baseline model coefficients (log mortality rate per 1 ° C), Newey-West HAC (lag = 3), n = 30, 1990-2019 Indicator LRI, β (SE) p Asthma, β (SE) p Mean temperature -1.696 (0.174) &lt;0.001 -1.600 (0.161) &lt;0.001 Diurnal temperature range +2.408 (0.336) &lt;0.001 +2.210 (0.294) &lt;0.001 Seasonal amplitude -0.162 (0.082) 0.047 -0.137 (0.072) 0.056 Interannual temperature SD +2.924 (1.514) 0.054 +2.525 (1.348) 0.061</p>
+<h3>3.3 Adjustment for PM2.5 and detrended models</h3>
+<p>Adding the PM2.5 summary exposure value to the model attenuated the mean-temperature coefficient by roughly three quarters, to -0.419 (SE 0.140, p = 0.003) for LRI and -0.453 (SE 0.145, p = 0.002) for asthma, although it remained statistically significant. The seasonalamplitude coefficient also remained negative and significant (-0.077, SE 0.032, p = 0.015 for LRI; -0.061, SE 0.029, p = 0.037 for asthma). In contrast, the DTR and interannual-variability coefficients lost all significance after PM2.5 adjustment (DTR: p = 0.728 and p = 0.625; interannual SD: p = 0.515 and p = 0.597, for LRI and asthma respectively). PM2.5 itself entered with a negative coefficient (-0.070, SE 0.008, p &lt; 0.001 for LRI; -0.063, SE 0.008, p &lt; 0.001 for asthma), co-moving with the long-run mortality decline rather than capturing a short-run effect.</p>
+<p>In the linearly detrended specification, every climate coefficient collapsed toward zero, with magnitudes shrinking by an order of magnitude and no coefficient approaching significance (all p &gt; 0.24).</p>
+<h3>3.4 The minimum-mortality temperature is not identifiable in China</h3>
+<p>Figure 3 presents the quadratic temperature-mortality curves. For LRI, the quadratic term was small and non-significant (b2 = 0.029, p = 0.963); the implied turning point was 35.84 ° C, with a bootstrap 95% confidence interval of 7.92-46.50 ° C, and only 248 of 500 bootstrap resamples yielded a positive quadratic term-that is, an interior minimum existed in fewer than half of resamples. For asthma, the quadratic term was negative and non-significant (b2 = -0.045, p = 0.935), so no minimum-mortality temperature exists. Critically, the observed support of the national annual mean temperature spans only 6.66-8.13 ° C across the 30 study years; the LRI point estimate of 35.84 ° C lies far outside this support and is an extrapolation artifact of the quadratic form. We therefore judge the national childhood minimum-mortality temperature (MMT) to be not identifiable from this series. Within the observed support, log mortality declined monotonically with mean temperature for both outcomes. China&#x27;s national mean temperature (approximately 7.5 ° C) sits on the low-temperature side of the minimum-mortality temperatures typically estimated in multi-country studies, so warming and declining mortality move together within the observed range-without implying that further warming would remain beneficial.</p>
+<h3>3.5 Falsification tests and climate-zone patterns</h3>
+<p>Figure 4 summarizes the falsification suite. The future-exposure test failed: mean-temperature coefficients at leads t + 1 and t + 2 were essentially identical to the concurrent estimates (LRI:</p>
+<h3>3.6 Projected changes in China&#x27;s thermal regime to the 2050s</h3>
+<p>China&#x27;s national mean temperature is projected to rise by +2.19 °C under SSP1-2.6, +2.46 ° C under SSP2-4.5 and +3.02 ° C under SSP5-8.5 (2041-2060 versus 1970-2000; Table 3). These cumulative changes span a ≈65-year interval (0.33-0.46 ° C per decade), whereas the observed 1990-2019 trend was 0.364 ° C per decade (fitted; corresponding to +1.06 ° C over 2.9 decades, with a raw endpoint difference of +0.78 ° C) -only SSP5-8.5 is clearly faster than the observed rate. The projected change in mean diurnal temperature range is small (-0.01, -0.14 and -0.07 °C), directionally consistent with the observed narrowing (-0.092 °C per decade), and projected seasonal amplitude is essentially unchanged (+0.36, -0.05 and +0.32 °C). After biascorrecting the WorldClim baseline to the C-LSAT 1990 anchor (a level offset of 0.89 ° C: 7.26 versus 6.37 °C), China&#x27;s projected 2041-2060 national mean temperature is approximately 9.4-10.3 ° C on the C-LSAT scale across SSP1-2.6 to SSP5-8.5 -still far below the minimummortality temperatures estimated in multi-country studies (14.7-19.8 ° C), reinforcing the conclusion that China lies on the low-temperature side of the optimum; we note, however, that an annual-mean construct is not fully comparable with daily-scale MMT estimates, and the unidentifiability of the national MMT (Section 3.4) nonetheless precludes translating this exposure projection into a mortality projection.</p>
+<h3>4. Discussion</h3>
+<p> &gt;Discussion</p>
+<h3>4.1 Principal findings</h3>
+<p>In this national time-series analysis of China over three decades, childhood mortality from lower respiratory infections (LRI) fell by 96.</p>
+<h3>4.2 The 96% decline and concurrent warming: concordant, not attributable</h3>
+<p>The near-elimination of childhood respiratory mortality in China is best understood as a development and health-systems phenomenon. The decline coincided with large expansions in healthcare access, nutrition, sanitation and immunization, including the period of routine diphtheria-tetanus-pertussis vaccination and the subsequent introduction of vaccines against respiratory pathogens; improvements in air quality further compressed the residual burden. 19 16 Warming unfolded in parallel as a background process, and the strong baseline coefficients we report quantify that parallelism rather than any protective effect of higher temperature. What this study adds is a falsification framework that converts the truism &quot;correlation is not causation&quot; into an auditable set of tests: the fact that future climate predicts current mortality as strongly as concurrent climate, and that detrending nullifies every coefficient, provides a reproducible basis for rejecting a causal reading. Because national climate-health assessments increasingly inform policy, 11 we suggest that this test suite-future exposure, permutation, and detrending-should accompany any single-series national analysis before trend-level associations are interpreted, and we present it here as a discipline for climate-health inference in China rather than as a methodological novelty.</p>
+<h3>4.3 China lies on the low-temperature side of the optimum</h3>
+<p>Within the observed range, warming and declining mortality moved in the same direction, and as shown in Section 3.4, China&#x27;s area-weighted national mean temperature sits well below the minimum-mortality temperatures estimated in multi-country studies, so modest warming and declining mortality moved together within the observed range -though the MMT itself could not be identified in the observed range. This reading is also consistent with global multi-country evidence that cold-attributable mortality substantially exceeds heat-attributable mortality, 1 2 and with paediatric evidence that temperature predominantly affects infectious, including respiratory, outcomes in children. 9 Two cautions are essential. First, the exposure construct differs: our exposure is the annual area-weighted mean temperature, not the daily temperature distributions underlying MMT estimates, so the comparison is directional rather than quantitative. Second, our finding that the national MMT is not identifiable-with only 1.47 ° C of observed support and a quadratic term far from significance-is itself the important result for risk assessment: China&#x27;s future climate-health burden depends on where the mortality-temperature curve bends, and this analysis demonstrates that a 30-year national series cannot locate that bend. Estimating the Chinese childhood MMT will require distributed-lag designs on daily, subnational data, 18 not further extrapolation of annual aggregates. Consistently, the bias-corrected CMIP6 scenario projection (Section 3.6; WorldClim baseline adjusted to the C-LSAT 1990 anchor, offset 0.89 ° C) places China&#x27;s 2041-2060 national mean temperature at approximately 9.4-10.3 ° C on the C-LSAT scale under SSP1-2.6 to SSP5-8.5 -still far below multi-country MMT estimates (14.7-19.8 ° C), though the annual-mean and daily-MMT constructs are not fully comparable -so even the SSP5-8.5 change projected for the 2050s (+3.0 ° C relative to the 1970-2000 baseline) would not, on current evidence, carry the country across an identifiable optimum; whether the marginal effect of warming turns adverse remains an empirical question that these data cannot settle.</p>
+<h3>4.4 The hierarchy of variability associations</h3>
+<p>The variability indicators behaved differently from mean temperature, and differently from shortterm city-level evidence. Time-series studies in Chinese cities consistently report acute harms from large DTR on respiratory mortality and childhood asthma morbidity, 8 20 10 and multi-country work attributes a measurable mortality fraction to temperature variability. 5 Our baseline DTR coefficient (+2.408 for LRI) appears directionally consistent with that literature, but the interpretation is constrained by an uncomfortable coincidence: in China, DTR declined over the study period while mortality also declined, so the positive coefficient encodes two falling trends rather than a short-run mechanism. After PM2.5 adjustment the DTR and interannual-variability coefficients lost significance, and after detrending all variability coefficients were null. The evidence therefore does not support a short-cycle causal effect of thermal variability on childhood respiratory mortality at the annual aggregate level; this does not contradict the acute city-level effects, which operate at daily lags that an annual national series cannot resolve.</p>
+<h3>4.5 Limitations</h3>
+<p>Several limitations qualify these findings. First, statistical power is inherently limited by 30 annual national observations, and the ecological design precludes inference to individuals.</p>
+<p>Second, mortality rates use a fixed GLOBOCAN 2022 population denominator, so rate trends partly reflect numerator changes under a static denominator; the asthma series additionally divides deaths at ages 0-24 years by the population aged 0-19 years, a numerator-denominator mismatch we retained for consistency and disclosed rather than corrected. Third, area weighting over-weights large western provinces relative to the population distribution of Chinese children.</p>
+<h3>5. Conclusions</h3>
+<p>Over three decades, childhood lower respiratory infection mortality in China fell by 96.3% and asthma mortality by 94.9%, while the national mean temperature rose by 0.364 ° C per decade.</p>
+<p>Strong baseline climate-mortality associations did not survive a pre-specified falsification suite: future exposure predicted current mortality as strongly as concurrent exposure, and every coefficient collapsed after detrending. The decline is therefore concordant with, but not attributable to, warming, and the national minimum mortality temperature is not identifiable from the narrow observed support (6.66-8.13 ° C). The practical takeaway is twofold: trend-level national associations must not be read as causal effects, and China lies on the low-temperature side of the childhood optimum, so the direction of future warming impacts remains undetermined.</p>
+<p>Future work should exploit provincial-level GBD estimates for China if they are released publicly, monthly or daily distributed-lag designs, 18 and CMIP6 scenario projections to locate the Chinese childhood optimum and quantify warming-attributable burdens. 11 The scenario extension added in this version (Sections 2.8 and 3.6) takes a first step in that direction, projecting a further +2.2 to +3.0 ° C of national warming by 2041-2060 (0.33-0.46 °C per decade over a ≈65-year interval; only SSP5-8.5 exceeds the observed 1990-2019 rate of 0.364 ° C per decade) while leaving the mortality response undetermined.</p>
+<h3>Acknowledgements</h3>
+<p>We thank the Institute for Health Metrics and Evaluation and the Global Burden of Disease collaborative network for making the mortality estimates publicly available, and the C-LSAT team at Sun Yat-sen University for developing and sharing the high-resolution temperature and diurnal temperature range datasets.</p>
+<p>Funding This work was supported by the Beijing Science and Technology Nova Program Interdisciplinary Project (20230484439) and the Beijing High-Level Public Health Technical Talents Project (2023-02-33). The funder had no role in study design, data collection, data analysis, data interpretation, or writing of the report. Presentation This work has not been presented at any scientific meeting.</p>
+<p>Availability of data and materials Mortality estimates are available from the GBD 2021 Results Tool (gbd2021.healthdata.org, version 8016). The C-LSAT high-resolution land surface air temperature dataset and the C-LDTR diurnal temperature range dataset are available on figshare (DOI: 10.6084/m9.figshare.28255505 and DOI: 10.6084/m9.figshare.28255568). The population denominator was taken from GLOBOCAN 2022. The analysis code and the assembled analysis panel are available from the corresponding author on reasonable request. The WorldClim v2.1 baseline and CMIP6-downscaled scenario fields are publicly available (https://www.worldclim.org; https://geodata.ucdavis.edu/cmip6); the national projection values are given in Table 3 and accompany this article as a CSV file (chn_ssp2050_projection.csv); the raster-extraction script used to produce them is available from the corresponding author upon reasonable request.</p>
+<h3>Disclosure</h3>
+<p>The authors declare no conflicts of interest. AI tools were used for language editing and for assistance with code generation and modification; the authors take full responsibility for the content.</p>
+<p>Authors&#x27; contributions SC conceived the study, led the research design, and is the principal investigator responsible for the study idea and overall conduct. DL and HC curated the data and performed the analyses. SC supervised the study and is the corresponding author. All authors read and approved the final manuscript.</p>
+<h3>Declarations</h3>
+<p>Ethics approval and consent to participate Not applicable. The study used publicly available, de-identified, aggregated estimates and required no ethics approval or consent.</p>
+<p>Consent for publication Not applicable.</p>
+<h3>Figure 2</h3>
+<p>Figure2summarizes the baseline Newey-West regressions of the log mortality rate on the four climate indicators (n = 30 years, 1990-2019); coefficients denote the change in log mortality per 1 ° C increase in each indicator (Table2). Annual mean temperature was strongly and negatively associated with both outcomes: -1.696 (SE 0.174, p &lt; 0.001) for LRI and -1.600 (SE 0.161, p &lt; 0.001) for asthma. DTR was positively associated with mortality (LRI: +2.408, SE 0.336, p &lt; 0.001; asthma: +2.210, SE 0.294, p &lt; 0.001). Seasonal amplitude showed a weaker negative association (LRI: -0.162, SE 0.082, p = 0.047; asthma: -0.137, SE 0.072, p = 0.056), and interannual variability a weaker positive one (LRI: +2.924, SE 1.514, p = 0.054; asthma: +2.525, SE 1.348, p = 0.061). Bivariate correlations confirmed the direction of the mean-temperature (r = -0.72), DTR (r = +0.50), and seasonal-amplitude (r = -0.23) coefficients; the interannualvariability coefficient reversed sign relative to its weak bivariate correlation (r = -0.09), a sign 649 and -1.629 versus -1.696; asthma: -1.538 and -1.488 versus -1.600), meaning that future climate &quot;predicts&quot; current mortality as strongly as concurrent climate-the signature of trend-driven association rather than a causal lag structure.</p>
+<h3>- 1.</h3>
+<p>In 200 year permutations, the observed mean-temperature coefficient lay outside the permutation null distribution (0 of 200 permuted estimates reached the observed magnitude, p &lt; 0.005; null SD ≈ 0.42), but this test only establishes that year alignment is non-random and cannot distinguish causation from shared trends. Together with the null detrended estimates (Section 3.3), these results indicate that the baseline associations reflect trend-level co-movement of declining mortality and changing climate; short-cycle causal effects are not identifiable in this national annual series.</p>
+<h3>Figure 5</h3>
+<p>Figure 5 presents the provincial mean annual-temperature heatmap (33 provinces × 30 years, 1990-2019, provinces ordered by climate zone) and the sensitivity 3% and asthma mortality by 94.9%, while the national mean temperature rose by 0.364 ° C per decade and the diurnal temperature range (DTR) narrowed by 0.092 ° C per decade.</p>
+<p>Baseline regressions yielded strong associations between all four climate indicators and mortality, but three lines of evidence-the failure of the futureexposure falsification test, the collapse of every coefficient after linear detrending, and the attenuation of most coefficients after adjustment for fine particulate matter (PM2.5)-indicate that these associations reflect shared secular trends rather than short-run causal effects. Finally, the national minimum-mortality temperature (MMT) was not identifiable: the observed support of annual mean temperature spans only 6.66-8.13 ° C, and the nominal turning point of 35.84 ° C is an extrapolation artifact.</p>
+<h3>Fourth, PM2.5</h3>
+<p>and mean temperature are strongly collinear (r = 0.67), so the attenuated PM2.5adjusted temperature coefficient should not be read as a causal decomposition. Fifth, the narrow observed temperature support precludes MMT identification. Sixth, mortality estimates derive from GBD 2021 while PM2.5 covariates derive from GBD 2023, and cross-version inconsistencies are possible. Finally, the five climate zones are an analytical partition, not an official climatological classification, and zone-level contrasts are descriptive. These constraints notwithstanding, the falsification-based interpretation-concordant trends, no identifiable shortrun effect, no identifiable national optimum-rests on the internal logic of the tests rather than on the precision of any single coefficient. The scenario projection added in this version is subject to analogous constraints -a single climate model without ensemble spread, unweighted grid-cell national aggregation, and a WorldClim baseline that is not level-calibrated to the C-LSAT series -and is therefore read only as scenario-conditional change.</p>
+<h3>Figure 1 . 2 (</h3>
+<p>Figure 1.2 (a) National mean annual temperature (solid) and interannual variability (dashed), 1990-2019 3 (warming 0.364 ° C/decade); (b) childhood LRI deaths (ages 0-19; -96.3%) and asthma deaths 4 (ages 0-24; -94.9%), 1990-2021; (c) mean-temperature trajectories by climate zone (small 5 multiples; per-decade trend shown). 6</p>
+<h3>6 7 Figure 2 . 2 (</h3>
+<p>Figure 2.2 (a) National mean temperature versus log LRI and log asthma mortality rates, 1990-2019, with 3 linear fits; (b) interannual-SD coefficients for LRI (2.92, 95% CI -0.04 to 5.89) and asthma (2.52, 4 -0.12 to 5.17) under baseline, PM2.5-adjusted and detrended specifications; (c) falsification 5 controls: contemporaneous versus future-exposure (t+1, t+2) mean-temperature coefficients and 6 the detrended null. 7</p>
+<h3>7 Figure 3 . 2 (</h3>
+<p>Figure 3.2 (a) Quadratic temperature-mortality fit for LRI without reference lines (b2 = 0.0292, p = 0.963; 3 turning point 35.8 ° C, far outside support); (b) observed temperature support 6.66-8.13 ° C 4 (shaded band) with the fitted curve; (c) between-zone versus within-zone variance decomposition 5 of the four provincial thermal metrics (33 provinces × 30 years). 6</p>
+<h3>6 7 Figure 4 . 2 (</h3>
+<p>Figure 4.2 (a) Climate-zone warming trends, 1990-2019 (° C per decade, ranked); (b) zone-stratified mean-3 temperature coefficients (national LRI/asthma log rates versus zone climate; Newey-West lag 3); 4 (c) baseline versus PM2.5-adjusted coefficients for mean temperature and interannual SD. 5</p>
+<h3>5 6 Figure 5 . 2 (</h3>
+<p>Figure 5.2 (a) Heatmap of provincial mean annual temperature, 33 provinces × 30 years (1990-2019), 3 ordered by climate zone (white rules separate zones); (b) sensitivity summary: coefficients across 4 baseline, PM2.5-adjusted and detrended specifications for all four thermal metrics (star: p &lt; 5 0.05). 6</p>
+<h3>Table 3</h3>
+<p>Projected change in China&#x27;s national thermal indicators,2041-2060 versus 1970-2000</p>
+<h3>References</h3>
+<p>Gasparrini A, Guo Y, Hashizume M, et al. Mortality risk attributable to high and low ambient temperature: a multicountry observational study. Lancet. 2015;386(9991):369- 375. doi:10.1016/S0140-6736(14)62114-0.</p>
+<p>Zhao Q, Guo Y, Ye T, et al. Global, regional, and national burden of mortality associated with non-optimal ambient temperatures from 2000 to 2019: a three-stage modelling study. Lancet Planet Health. 2021;5(7):e415-e425. doi:10.1016/S2542-5196(21)00081-4.</p>
+<p>Guo Y, Gasparrini A, Armstrong B, et al. Global variation in the effects of ambient temperature on mortality: a systematic evaluation. Epidemiology. 2014;25(6):781-789. doi:10.1097/EDE.0000000000000165.</p>
+<p>Tobí as A, Armstrong B, Gasparrini A. Brief report: investigating uncertainty in the minimum mortality temperature: methods and application to 52 Spanish cities. Epidemiology. 2017;28(1):72-76. doi:10.1097/EDE.0000000000000567.</p>
+<p>Guo Y, Gasparrini A, Armstrong BG, et al. Temperature variability and mortality: a multi-country study. Environ Health Perspect. 2016;124(10):1554-1559. doi:10.1289/EHP149.</p>
+<p>Lee W, Bell ML, Gasparrini A, et al. Mortality burden of diurnal temperature range and its temporal changes: a multi-country study. Environ Int. 2018;110:123-130. doi:10.1016/j.envint.2017.10.018.</p>
+<p>Cheng J, Xu Z, Zhu R, et al. Impact of diurnal temperature range on human health: a systematic review. Int J Biometeorol. 2014;58(9):2011-2024. doi:10.1007/s00484-014-0797-5.</p>
+<p>Kan H, London SJ, Chen H, et al. Diurnal temperature range and daily mortality in Shanghai, China. Environ Res. 2007;103(3):424-431. doi:10.1016/j.envres.2006.11.009.</p>
+<p>Xu Z, Etzel RA, Su H, Huang C, Guo Y, Tong S. Impact of ambient temperature on children&#x27;s health: a systematic review. Environ Res. 2012;117:120-131. doi:10.1016/j.envres.2012.07.002.</p>
+<p>Xu Z, Huang C, Su H, Turner LR, Qiao Z, Tong S. Diurnal temperature range and childhood asthma: a time-series study. Environ Health. 2013;12:12. doi:10.1186/1476-069X-12-12.</p>
+<p>Romanello M, Walawender M, Hsu SC, et al. The 2024 report of the Lancet Countdown on health and climate change. Lancet. 2024;404(10465):1847-1896. doi:10.1016/S0140-6736(24)01822-1.</p>
+<p>Wu Y, Liu X, Gao L, et al. Short-term exposure to extreme temperature and outpatient visits for respiratory diseases among children in the northern city of China: a time-series study. BMC Public Health. 2024;24(1):341. doi:10.1186/s12889-024-17814-5.</p>
+<p>Institute for Health Metrics and Evaluation (IHME). GBD Results Tool. Seattle, WA: IHME. https://vizhub.healthdata.org/gbd-results</p>
+<p>GBD 2021 Causes of Death Collaborators. Global burden of 288 causes of death and life expectancy decomposition in 204 countries and territories and 811 subnational locations, 1990-2021: a systematic analysis for the Global Burden of Disease Study 2021. Lancet. 2024;403(10440):2100-2132. doi:10.1016/S0140-6736(24)00367-2.</p>
+<p>Wei S, Li Q, Xu Q, Li Z, Zhang H, Lin J. Updates to C-LSAT 2.1 and the development of high-resolution land surface air temperature and diurnal temperature range datasets. Earth Syst Sci Data. 2025;17(10):4985-5005. doi:10.5194/essd-17-4985-2025.</p>
+<p>GBD 2023 Disease and Injury and Risk Factor Collaborators. Burden of 375 diseases and injuries, risk-attributable burden of 88 risk factors, and healthy life expectancy in 204 countries and territories, 1990-2023. Lancet. 2025;406(10513):1873-1922. doi:10.1016/S0140-6736(25)01637-X.</p>
+<p>GBD 2023 Demographics Collaborators. Global age-sex-specific all-cause mortality and life expectancy estimates for 204 countries and territories and 660 subnational locations, 1950-2023. Lancet. 2025;406(10513):1731-1810. doi:10.1016/S0140-6736(25)01330-3.</p>
+<p>Gasparrini A, Armstrong B, Kenward MG. Distributed lag non-linear models. Stat Med. 2010;29(21):2224-2234. doi:10.1002/sim.3940.</p>
+<p>GBD 2023 Causes of Death Collaborators. Global burden of 292 causes of death in 204 countries and territories and 660 subnational locations, 1990-2023. Lancet. 2025;406(10513):1811-1872. doi:10.1016/S0140-6736(25)01917-8.</p>
+<p>Zhou X, Zhao A, Meng X, et al. Acute effects of diurnal temperature range on mortality in 8 Chinese cities. Sci Total Environ. 2014;493:92-97. doi:10.1016/j.scitotenv.2014.05.116.</p>
+<p>Fick SE, Hijmans RJ. WorldClim 2: new 1-km spatial resolution climate surfaces for global land areas. Int J Climatol. 2017;37(12):4302-4315. doi:10.1002/joc.5086. Additional files Additional file 1: Supplementary Tables S1-S5. Trend anchors and climate trends (S1); main model coefficients with PM2.5-adjusted and detrended specifications (S2); MMT bootstrap details (S3); falsification suite results (S4); climate-zone and province-level summaries (S5).</p>
 </div>
 </details>
 </div>
