@@ -198,7 +198,7 @@ Typhoid-Cholera Conjugate Combo Vaccine: A Scenario-Based Forecasting
 Approach
 </p>
 <p class="meta">
-2026-11-12 · Metacheck 0.4.3.27 · DOI 10.64898/2026.11.09.26367688
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367688
 </p>
 </header>
 <div class="mc-main">
@@ -320,8 +320,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -671,9 +674,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -695,7 +702,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -710,9 +718,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -725,13 +751,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -751,6 +780,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -758,12 +793,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -864,6 +905,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -883,6 +944,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1138,19 +1234,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1260,6 +1438,111 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Objective: This study aimed to project introduction timing and pathways of cholera conjugate vaccine (CCV) and combined typhoid-cholera conjugate vaccines (TCV/CCVs) in 39 low-and middle-income countries and to assess potential barriers to their routine immunization integration. Methods: Accelerated failure time models were fitted using oral cholera vaccine (OCV) introduction as a proxy for CCV adoption. Country-level estimates were standardized using observed post-WHOprequalification introduction intervals for analogous vaccine transitions. TCV/CCV introduction timing and pathways were projected by combining standardized CCV estimates with a TCV introduction priority index based on typhoid burden and previous vaccination experience. Potential barriers to routine immunization integration were assessed using semi-quantitative scoring approach.</p>
+<p>Results: Gavi, the Vaccine Alliance (Gavi) eligibility, greater previous OCV experience, and higher cholera intensity were associated with earlier introduction times. After standardization, the median projected time to CCV introduction was 6.9 years after WHO prequalification, with 12 countries introducing within five years. The TCV/CCV projections comprised three pathways: CCV introduction followed by transition to TCV/CCV, direct TCV/CCV introduction and continued CCV use without TCV/CCV introduction during the analysis period. Projected introduction timing was not consistently aligned with routine integration barrier levels for either vaccine.</p>
+<p>Conclusions: These scenario-based projections provide an early indication of where and when demand may emerge and which countries may require additional programmatic or financing support. The NOTE: This preprint reports new research that has not been certified by peer review and should not be used to guide clinical practice.</p>
+<h3>[div-01]</h3>
+<p>findings can inform demand forecasting, market assessment, manufacturing and supply planning, investment decisions, and introduction preparedness, but the projections should be recalibrated as product-specific evidence becomes available.</p>
+<h3>Introduction</h3>
+<p>Cholera remains an important public health challenge in low-and middle-income countries (LMICs), particularly where access to safe water, sanitation, and hygiene is limited and health systems are affected by conflict, population displacement, or climate-related emergencies (1, 2). An estimated 1.3-4.0 million cases and 21,000-143,000 associated deaths occur globally each year (2). While improvements in water and sanitation provide the most sustainable means of preventing cholera, these require substantial longterm investment. Vaccination therefore remains an important component of integrated cholera control alongside surveillance, community engagement, and water and sanitation interventions (2-4).</p>
+<p>Oral cholera vaccines (OCVs) are currently used in preventive and outbreak-response campaigns in populations at risk (4, 5). However, protection may decline over time, vaccine efficacy is lower among young children than among older children and adults, and revaccination may be required to maintain protection (4, 6). Periodic global supply constraints have also restricted preventive vaccination, with preventive campaigns suspended in 2022 and resumed only after vaccine supply improved in 2026 (4, 7). These challenges highlight the need for complementary vaccines that may provide more durable protection, particularly in younger children, and support sustained vaccination strategies.</p>
+<p>Cholera conjugate vaccines (CCVs) are being developed to overcome several of these limitations. Conjugation of the Vibrio cholerae O-specific polysaccharide (OSP) to a carrier protein is intended to generate a T-cell-dependent immune response and immunological memory. Preclinical findings have supported further development of an OSP tetanus toxin heavy chain fragment (rTTHc) CCV candidate, which is currently undergoing clinical evaluation in adults and children (8, 9). If its safety, efficacy, and duration of protection are established, CCV may offer opportunities for delivery through routine immunization or other sustained preventive strategies, thereby expanding the range of available approaches to cholera prevention and control.</p>
+<p>Typhoid fever also imposes a substantial burden in many LMICs and shares several underlying risk factors with cholera, including inadequate access to safe water and sanitation. Typhoid conjugate vaccines (TCVs) are available and recommended for use in typhoid-endemic settings (10). Where the burden, target populations, and vaccination strategies for the two diseases align, a combined typhoid-cholera conjugate vaccines (TCV/CCVs), currently under development, could simplify programme implementation, reduce delivery contacts, and expand opportunities to protect children against both diseases (11). However, its potential value and likelihood of introduction may differ across countries according to cholera and typhoid burden, national policy priorities, and previous OCV and TCV use.</p>
+<p>Development and sustainable supply of CCV and TCV/CCV will require investment in clinical development, regulatory approval, manufacturing capacity, and supply preparation. Public health need alone does not necessarily translate into vaccine demand because national adoption also depends on product availability, financing, policy priorities, delivery capacity, and previous vaccination experience. Demand forecasting is therefore an important component of the business case for vaccines under development. Such forecasts estimate which countries may introduce a vaccine, when introduction may occur, and how many doses may subsequently be required, thereby informing assessments of potential market size, manufacturing needs, and investment viability, including expected net present value (NPV) and return on investment (ROI) (12, 13). Among these inputs, country introduction timing is particularly important because it determines when vaccine demand begins and how it develops over time. For CCV and TCV/CCV, forecasting must also account for alternative product pathways, including initial CCV introduction followed by transition to TCV/CCV, direct introduction of TCV/CCV, or continued use of CCV or TCV alone within the analysis period. Because neither product is currently available for country introduction, directly observed adoption data are unavailable. This study therefore aimed to forecast country-specific introduction years and product-transition pathways for CCV and TCV/CCV in 39 selected LMICs.</p>
+<h3>Methods</h3>
+<p>The study included 39 countries: 37 countries that had submitted at least one request to the global OCV stockpile between 2013, when stockpile was established, and 2025 (14), as well as India and Afghanistan. Although India and Afghanistan were not represented in the stockpile dataset, they were included because both countries were relevant to future CCV introduction. India may consider routine use of cholera vaccination, for which OCV has not been well suited, whereas Afghanistan was included because of its substantial recent acute watery diarrhea (AWD) burden, with 43,292 cases reported between January and May 2026-the highest cumulative total among the countries included in the corresponding World Health Organization (WHO) epidemiological update (15).</p>
+<p>Country-specific introduction timing and product-transition pathways for CCV and TCV/CCV were predicted through three sequential steps. First, CCV introduction times were estimated using an accelerated failure time (AFT) model fitted to historical OCV introduction data with relevant covariates. Second, the model-based estimates were calibrated by standardizing them to empirically observed post--WHO-prequalification (WHO PQ) introduction intervals for analogous vaccine transitions. Third, for projecting TCV/CCV introduction timing and product-transition pathways, TCV introduction priority index and previous country experience with OCV and TCV were incorporated in the calibrated country-specific CCV introduction year baseline. Following these three forecasting steps, a semi-quantitative scoring system was developed to assess countries according to potential barriers to integrating each of CCV and TCV/CCV into Expanded Programme on Immunization (EPI). The overall modeling frameworks are depicted in Figure S1.</p>
+<h3>CCV introduction years</h3>
+<h3>Accelerated failure time (AFT) model</h3>
+<p>To estimate the time to CCV introduction, parametric survival analysis was conducted using AFT models. The AFT approach was selected because it directly models the association between country-level characteristics and the timing of vaccine introduction (16). Within this framework, covariates are assumed to accelerate or decelerate the time to introduction, facilitating the interpretation of factors associated with earlier or later vaccine introduction.</p>
+<p>The general form of the AFT model is (16, 17): log(𝑇 𝑖 ) = 𝛽 ′ 𝑋 𝑖 + 𝜀 𝑖 , 𝑖 = 1, … , 𝑛, where 𝑇 𝑖 denotes the time to vaccine introduction for country 𝑖, 𝑋 𝑖 is a 𝑝 × 1 vector of observed covariates, 𝑝 denotes the number of covariates, 𝛽 is the corresponding 𝑝-dimensional vector of regression coefficient, and 𝜀 𝑖 represents the error term. Four parametric distributions were considered: exponential, Weibull, log-logistic, and log-normal distributions (18, 19).</p>
+<h3>Dependent variable</h3>
+<p>Because CCV is currently in development, OCV introduction data were used as a proxy for future CCV introduction. Accordingly, the dependent variable was defined as the time from the WHO prequalification (PQ) of Shanchol in September 2011 (index date) to the first OCV introduction. However, because the global OCV stockpile was established in 2013, stockpile data were unavailable between WHO PQ of Shanchol (20) and stockpile establishment. To address this gap, information on OCV use during this period was further identified through a literature review (21) and included in the outcome definition if it involved a reactive campaign followed by an additional OCV stockpile use. Countries were followed from the index date until either vaccine introduction or the end of the study period (2025). Countries that had not yet introduced the vaccine by the end of the observation period were treated as right-censored. The observation period was defined through 2025 because OCV stockpile data were available and updated through that year at the time of the current study (22).</p>
+<h3>Independent variables</h3>
+<p>An initial set of independent variables was identified based on previous literature (19, 23) and organized into three domains: health-related factors, socio-economic factors, and modifying factors. The variable type, time-varying status, and data source for each variable are presented in Table 1. In the health domain, higher cholera burden was hypothesized to increase the perceived public health benefits of vaccination and therefore accelerate vaccine introduction. Diphtheria tetanus toxoid and pertussis and MCV coverage were included as proxies for immunization program capacity (33). Previous introduction of pneumococcal conjugate vaccine (PCV) was considered an indicator of a country&#x27;s propensity to introduce new vaccines; countries that had introduced these vaccines earlier were hypothesized to introduce CCV sooner than countries with delayed introduction. OCV experience was measured using a weighted frequency of previous OCV requests, which accounted for both the number and context of OCV deployments (i.e., hotspot response, outbreak response, or humanitarian crisis) (22). Because this measure spans the entire observation window, it includes requests occurring after a country&#x27;s first OCV introduction and is therefore intended to capture each country&#x27;s overall accumulated engagement with OCV as of the forecasting origin rather than a temporally antecedent predictor of its own first introduction. Cholera intensity was defined based on whether cholera cases or deaths were reported each year, using official annual data reported to WHO through 2024 (27) and WHO weekly reports for 2025. For WHO weekly reports, countries were classified as having high cholera intensity if their outbreak risk levels were consistently reported as acute crisis or active in all reports published during the year.</p>
+<p>In the socio-economic domain, gross national income (GNI) per capita was included to account for differences in economic capacity that could influence vaccine introduction decisions. Democracy score was used to capture differences in governance and decision-making environments, with the hypothesis that more democratic countries may introduce new vaccines more rapidly. Cost per hospital bed-day was included as a proxy for the economic consequences, under the assumption that countries facing higher treatment costs may perceive greater value from vaccination.</p>
+<p>In the context of modifying factors, the number of neighboring introducers was included to capture potential policy diffusion effects, whereby vaccine introduction decisions in neighboring countries may influence national decision-making. WHO position paper was included to assess whether global recommendations accelerated introduction decisions (5). Gavi, the Vaccine Alliance (Gavi) eligibility, whether a country meets the criteria for Gavi support, was included as a country-level predictor of vaccine introduction timing.</p>
+<p>Missing values were addressed using variable-specific imputation methods, including United Nations (UN) Population Division projections, Gross domestic product (GDP) deflator adjustment, and last observation carried forward (LOCF).</p>
+<h3>Model selection and input data</h3>
+<p>Model selection was based on the Akaike Information Criterion (AIC), Bayesian Information Criterion (BIC), and the epidemiological plausibility of the estimated associations between covariates and the outcome. The final selected AFT model was applied to country-specific covariate profiles projected to the expected WHO PQ year of CCV (2034) to estimate the timing of CCV introduction. Future covariate values were derived using variable-specific methods; specifically, Gavi eligibility in 2034 was estimated based on projected GNI per capita. The data used to estimate country-specific CCV introduction years are presented in Table S1 and rationale for estimated WHO PQ year of CCV is presented in Table S2.</p>
+<h3>Standardization</h3>
+<p>Because CCV represents a conjugate-vaccine transition from the already available OCV rather than the introduction of a vaccine targeting an entirely new disease, it was expected to be introduced more rapidly than a fully new vaccine. To derive an empirically plausible adoption window, we examined country-level introduction intervals following WHO PQ for analogous vaccine replacements or transitions, including PCV, rotavirus vaccines (RV), meningococcal vaccines, and polio vaccines. The transitions examined included PCV7 to PCV10 or PCV13, PCV10 to PCV13, RV1 to RV5, meningococcal group A polysaccharide vaccine to meningococcal group A conjugate vaccine (MenAfriVac), and the replacement of trivalent oral poliovirus vaccine (OPV) with bivalent tOPV with bOPV accompanied by the introduction of inactivated poliovirus vaccine (IPV) (26, 34, 35). Across the eligible country-level transition observations, the interval between WHO PQ and introduction ranged from 1 to 12 years. The AFT projected CCV introduction times were therefore rescaled to this observed range using the min-max standardization method (36), preserving the relative ordering of countries while improving the empirical plausibility of the projected introduction timing.</p>
+<h3>TCV/CCV introduction years -Typhoid introduction priority index</h3>
+<p>A semi-quantitative scoring system was used to assess each country&#x27;s priority for TCV introduction. The scoring system comprised two indicators: typhoid disease burden and previous typhoid vaccination experience. Disease burden scores were assigned according to quintiles of the country&#x27;s mean annual typhoid DALY rates from 2019 to 2023. Vaccination experience scores were based on the introduction strategy (i.e., national immunization programme (NIP) or campaign) and year of introduction. The two indicator scores were summed and categorized to derive the TCV introduction priority index, which was subsequently used to determine country-specific adjustments to TCV/CCV introduction and CCV-to-TCV/CCV transition timing. Detailed scoring criteria and timing adjustments are provided in Tables S3.</p>
+<p>If the projected CCV introduction preceded assumed TCV/CCV WHO PQ (2036) (Table S2), countries were assumed to introduce CCV first and subsequently transition to TCV/CCV. Among countries expected to introduce CCV after TCV/CCV WHO PQ, those with high TCV introduction priority and prior experience with both OCV and TCV were assumed to introduce TCV/CCV earlier than the CCV baseline, whereas those with high priority but limited vaccine experience were assigned a similar timeline to CCV introduction. Countries with low-to-moderate priority were assumed to introduce TCV/CCV later than the CCV baseline. In all three cases, CCV was replaced by TCV/CCV. Countries with lower priority were assumed not to introduce TCV/CCV within the analysis period.</p>
+<h3>EPI barrier</h3>
+<p>To assess countries according to potential barriers to EPI integration for each of CCV and TCV/CCV, a semi-quantitative scoring system was developed. Country-level indicators were selected based on the WHO vaccine introduction decision framework (37, 38) and existing evidence (23) and grouped into three domains: disease characteristics, immunization system capacity, and country readiness. These indicators included disease intensity, previous OCV stockpile requests, experience with newer vaccine introductions, MCV coverage, political will, and Gavi eligibility. Each indicator was standardized and scored, with lower scores indicating fewer barriers. Indicators were weighted at 10% for disease characteristics, 30% for immunization system capacity, and 10% for country readiness, reflecting the greater importance of immunization system capacity for EPI integration. Weighted scores were summed and divided into tertiles to classify countries into low-, medium-, or high-barrier groups. For the CCV assessment, all indicators except typhoid disease intensity were included, whereas the TCV/CCV assessment included all indicators. Detailed indicator definitions and scoring criteria are provided in Table 2.</p>
+<h3>Results</h3>
+<p>Between 2011 and 2025, 34 of the 39 study countries had introduced OCV, while the remaining five countries were treated as right-censored: Philippines, Burundi, and Iran, had submitted requests to the OCV stockpile but had not received approval, whereas India and Afghanistan had not submitted requests to the stockpile at all. From the WHO PQ of OCV in September 2011, the observed time to OCV introduction ranged from approximately 7 months to 14 years (please see Figure S2).</p>
+<p>The three candidate models were selected from the initial specifications based on AIC, BIC, statistical significance, and epidemiological plausibility. Among the three candidate models presented in Table 3, Model 3 with Weibull distribution was selected as the final model, as it showed the lowest AIC and BIC alongside significant p-values. In Model 3, Gavi eligibility was associated with a 22% shorter time to vaccine introduction than non-eligibility (0.78; 95% CI, 0.61-0.98). Greater OCV experience and higher cholera intensity were also associated with shorter times to introduction, by 18% (0.82; 95% CI, 0.78-0.86) and 27% (0.73; 95% CI, 0.56-0.94), respectively. Kaplan-Meier curves for both CCV introductions before and after standardization are presented in Figure 1. Before standardizing, Model 3 estimated that 50% of the target countries would introduce CCV within 10.7 years (Figure 1 (A)). After rescaling, the median projected time to introduction decreased to 6.9 years (Figure 1 (B)). Twelve countries-South Sudan, Democratic Republic of the Congo, Sudan, Ethiopia, Mozambique, Malawi, Nigeria, Zambia, Yemen, Pakistan, Haiti, and Somalia-were projected to introduce CCV within 5 years (Figure 2). Most of these countries were classified as having acute or active cholera risk in the 2026 WHO report. In contrast, the eight countries projected to require at least 10 years-Lebanon, Guinea, Iraq, Côte d&#x27;Ivoire, Dominican Republic, Lao People&#x27;s Democratic Republic, Iran, and the Philippines-had no or only one previous OCV deployment and relatively few cholera cases reported to WHO. Countries with stronger immunization systems and higher cholera intensity generally had low barriers to CCV integration into EPI. However, projected introduction timing did not consistently align with barrier levels, as some countries expected to introduce CCV early still faced substantial implementation constraints. (Figure 2, Figure S3 (A)). For example, Sudan and Yemen were projected to introduce CCV relatively early but was classified as having high barriers to routine immunization integration. This would be due in part to limited experience introducing newer vaccines, and relatively low MCV coverage. Figure 4 presents the projected introduction timing alongside the assessed barriers to integration into EPI for TCV/CCV (Figure S3 (B)). The TCV/CCV assessment included 32 countries, excluding the seven countries projected to introduce CCV only due to lower TCV introduction priority. Yemen was similarly projected to introduce TCV/CCV relatively early but was classified as having high integration barriers because of its limited experience with newer vaccine introductions and low typhoid intensity. In contrast, Ghana, Kenya, Nepal, and Tanzania were classified as having relatively low integration barriers despite their comparatively long projected delays in introduction, owing to their Gavi eligibility and experience with newer vaccine introductions.</p>
+<h3>Discussion</h3>
+<p>This study estimated country-specific timelines for CCV and TCV/CCV introduction and assessed barriers to their integration into EPI. Gavi eligibility, previous OCV experience, and cholera intensity were associated with the timing of CCV introduction. Gavi eligibility may reduce financial constraints and facilitate access to procurement, planning, and technical support. Previous OCV experience may indicate operational capacity and sustained policy interest in cholera control, while greater cholera intensity may increase the urgency of vaccination. Earlier projected introduction generally corresponded to lower barriers to EPI integration. A similar pattern was observed in the TCV/CCV scenarios, with earlier introduction generally corresponding to lower integration barriers. Under these scenarios, countries followed one of three pathways: direct introduction of TCV/CCV, transition from CCV to TCV/CCV, or no TCV/CCV introduction within the analysis period.</p>
+<p>These findings are broadly consistent with previous research on Haemophilus influenzae type b (Hib) vaccine adoption, which identified disease burden and Gavi support as factors associated with shorter decision times (19). Research on barriers to PCV introduction has similarly highlighted Gavi eligibility as an important facilitator (23). Together, these findings suggest that financial and technical support can help translate public health need into vaccine adoption. Although higher vaccine prices have been associated with delayed vaccine introduction in previous studies, vaccine price was not included because CCV and TCV/CCV are still under development and their prices remain unknown.</p>
+<p>It is worth noting that early projected introduction in South Sudan, Sudan, Somalia, Yemen, and the Democratic Republic of the Congo partly reflects their extensive OCV stockpile experience and recent cholera reporting to WHO. However, limited immunization capacity in these countries may pose challenges to early vaccine introduction. The EPI integration barrier analysis provides an indirect indication of the feasibility of routine integration, taking such constraints into account. In addition, the CCV barrier classifications used in our analysis do not necessarily align with countries&#x27; current or expected near-term interest in OCV. For example, Somalia and Sudan showed high interest in OCV but faced high barriers to CCV integration, reflecting low MCV coverage and limited experience introducing newer vaccines. Conversely, some countries with limited apparent interest in OCV faced relatively low integration barriers because of Gavi eligibility and functional NITAGs meeting all six assessed criteria. OCV interest reflects current demand for cholera vaccination, whereas CCV integration barriers reflect the broader capacity and enabling environment for routine delivery in addition to the disease burden intensity. These assessments should therefore be interpreted alongside country-specific epidemiological, programmatic, and policy contexts. Depending on its eventual characteristics and delivery strategy, CCV could support a shift from reactive outbreak response toward more sustained preventive cholera control, with integration into routine immunization requiring sufficient country-level capacity.</p>
+<p>This study has several limitations. First, historical OCV introduction patterns were used as a proxy because no real-world CCV introduction data exist. Thus, the proxy reflects both a country&#x27;s decision to request the vaccine and the International Coordinating Group&#x27;s (ICG) approval rather than the country&#x27;s introduction decision alone. In addition, not only future CCV adoption through routine immunization but also, campaign -and outbreak-based use of CCV may differ from the campaign-and outbreak-based use of OCVs. Second, the small number of OCV introduction events limited statistical power and increased the risk of overfitting. Thus, projections may be sensitive to the selected AFT distribution and model specification. Third, future covariate values were estimated using LOCF, historical averages, or linear extrapolation, which may not capture unexpected changes in disease burden, financing, or healthsystem capacity. Fourth, although Gavi eligibility, previous OCV experience, and cholera intensity were associated with the timing of CCV introduction in the AFT model, these associations should not be interpreted as causal, as these indicators may also reflect unmeasured differences in health-system capacity, financing, and political commitment. In particular, previous OCV experience was measured using weighted request frequency over the entire 2011-2025 observation period and therefore included requests occurring after a country&#x27;s first observed vaccine introduction. Its association with the proxy outcome may thus reflect temporal overlap rather than a prospective relationship. This indicator was retained solely to characterize accumulated country engagement with OCV for the scenario-based projections. Fifth, the EPI barrier classifications were based on a semi-quantitative composite score and may not fully capture country-specific implementation constraints. The TCV/CCV timelines also depended on assumed WHO PQ years and predefined transition scenarios rather than an independently estimated statistical model. The estimated introduction years should therefore be interpreted as indicative timelines rather than precise predictions. Finally, it should be noted that the projections in the current study are the authors&#x27; own and do not represent Gavi forecasts, policies, or commitments; any potential support for CCV or TCV/CCV would be considered through Gavi&#x27;s Vaccine Investment Strategy process. Even if such support becomes available, countries&#x27; capacity to meet co-financing requirements may affect the feasibility and timing of introduction.</p>
+<p>Despite these limitations, this study provides policy-and market-relevant inputs for forecasting future demand for CCV and TCV/CCV. By estimating country-specific introduction timelines, identifying potential product-transition pathways, and assessing barriers to EPI integration, the analysis offers an early indication of where demand may emerge, how rapidly it may develop, and which countries may require additional programmatic or financing support before introduction. These projections may help vaccine developers, manufacturers, commercialization partners, and global health stakeholders assess potential market size, plan manufacturing and supply strategies, and evaluate expected returns on investment under alternative introduction scenarios. At the same time, the findings can support country-level and global planning by highlighting settings where early engagement, evidence generation, financing preparation, and immunization-system strengthening may be needed to facilitate future uptake. As CCV and TCV/CCV candidates progress through clinical development and more product-specific data become available, the forecasting framework should be refined and recalibrated to support more precise demand estimates and more actionable introduction planning.</p>
+<h3>Acknowledgements</h3>
+<p>The current study was supported by a grant from Prof. Joon Haeng Rhee through the Korea Support Committee (KSC) for International Vaccine Institute (IVI) (grant number: KSC202601-TCV-CCV). Additionally, the International Vaccine Institute gratefully acknowledges the partnership and financial contributions provided by the governments of the Republic of Korea, Sweden, Austria, Finland, India, Thailand, and the Philippines.</p>
+<h3>Competing interests</h3>
+<p>We would like to mention that IVI&#x27;s involved in current CCV development.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Time to CCV introduction: (A) before rescaling for Model 1-3 (B) after rescaling Model 3.</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. CCV introduction years by country with EPI barriers. EPI, Expanded Programme on Immunization; DR Congo, Democratic Republic of the Congo; Rep. of the Congo, Republic of the Congo; Dominican Rep., Dominican Republic; Lao PDR, Lao People&#x27;s Democratic Republic. Projected TCV/CCV introduction timing and vaccine-transition pathways are presented in Figure 3. Eight countries-South Sudan, Democratic Republic of the Congo, Sudan, Ethiopia, Mozambique, Malawi, Nigeria, and Zambia-were projected to introduce CCV in 2035-2036, and subsequently transition to TCV/CCV between 2038 and 2040. Countries with baseline CCV introduction projected after TCV/CCV WHO PQ and with high or low-moderate TCV introduction priority were assumed to skip CCV and introduce TCV/CCV directly, with the timing shifted 1 year earlier, left unchanged, or shifted 1 year later according to the scoring adjustment. Seven countries with low TCV introduction priority-Syria, Lebanon, Haiti, Dominican Republic, Iraq, Iran, and Lao People&#x27;s Democratic Republic-were projected to introduce CCV only and not TCV/CCV within the analysis period.</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. CCV and TCV/CCV introduction year by country and vaccine-transition pathways by country. DR Congo, Democratic Republic of the Congo; Rep. of the Congo, Republic of the Congo; Dominican Rep., Dominican Republic; Lao PDR, Lao People&#x27;s Democratic Republic.</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. TCV/CCV introduction years by country with EPI barriers. EPI, Expanded Programme on Immunization; DR Congo, Democratic Republic of the Congo; Rep. of the Congo, Republic of the Congo; Dominican Rep., Dominican Republic; Lao PDR, Lao People&#x27;s Democratic Republic.</p>
+<h3>Table 1.</h3>
+<p>Independent variables.DALYs, disability-adjusted for life year; MCV, measles-containing vaccine; DTP3, Diphtheria tetanus toxoid and pertussis; PCV, pneumococcal conjugate vaccine; OCV, oral cholera vaccine; GNI, gross national income; Gavi, Gavi, the Vaccine Alliance; IHME GBD, Institute for Health Metrics and Evaluation Global Burden of Disease; GTFCC, The Global Task Force on Cholera Control (GTFCC); WHO CHOICE, World Health Organization CHOosing Interventions that are Cost-Effective.</p>
+<h3>Table 2.</h3>
+<p>Scoring of the EPI barrier.</p>
+<h3>Table 3.</h3>
+<p>Analysis results of the Weibull AFT models.Akaike Information Criterion; BIC, Bayesian Information Criterion; GNI, gross national income; Gavi, Gavi, the Vaccine Alliance; OCV, oral cholera vaccine; DALY, disability-adjusted life year.</p>
+<h3>References</h3>
+<p>World Health Organization. Cholera kills more people for second consecutive year, while prevention and treatment available 2025 [Available from: https://www.who.int/news/item/12-09-2025- cholera-kills-more-people-for-second-consecutive-year-while-prevention-and-treatment-available.</p>
+<p>Global Task Force on Cholera Control. Ending cholera: a global roadmap to 2030.2017.</p>
+<p>Lee J-S, Choi W, Marks F, Clemens JD, Kim JH, Lynch J. Holistic approach to understanding the global impact of the oral cholera vaccine stockpile since inception. npj Vaccines. 2026.</p>
+<p>World Health Organization. Cholera vaccines: WHO position paper-August 2017-Vaccins anticholériques: Note de synthèse de l&#x27;OMS-août 2017. Weekly Epidemiological Record= Relevé épidémiologique hebdomadaire. 2017;92(34):477-98.</p>
+<p>Bi Q, Ferreras E, Pezzoli L, Legros D, Ivers LC, Date K, et al. Protection against cholera from killed whole-cell oral cholera vaccines: a systematic review and meta-analysis. The Lancet Infectious Diseases. 2017;17(10):1080-8.</p>
+<p>World Health Organization. Preventive cholera vaccination resumes as global supply reaches critical milestone 2026 [Available from: https://www.who.int/news/item/04-02-2026-preventive- cholera-vaccination-resumes-as-global-supply-reaches-critical-milestone.</p>
+<p>Jeon S, Kelly M, Yun J, Lee B, Park M, Whang Y, et al. Scalable production and immunogenicity of a cholera conjugate vaccine. Vaccine. 2021;39(47):6936-46.</p>
+<p>International Vaccine Institute. Age-descending Study to Evaluate the Safety and Immunogenicity of the Cholera Conjugate Vaccine in Adults and Children 2026 [Available from: https://clinicaltrials.gov/study/NCT07509047.</p>
+<p>World Health Organization. Typhoid vaccines: WHO position paper-March 2018-Vaccins antityphoïdiques: note de synthèse de l&#x27;OMS-mars 2018. Weekly Epidemiological Record= Relevé épidémiologique hebdomadaire. 2018;93(13):153-72.</p>
+<p>Jit M, Portnoy A, Pecenka C, Hausdorff WP, Gill C. Estimating the Value of Combination Vaccines: A Methodological Framework. Pharmacoeconomics. 2026;44(5):517-26.</p>
+<p>Walkinshaw DR, Wright MEE, Williams M, Scarapicchia TMF, Excler J-L, Wiley RE, et al. A Strep A vaccine global demand and return on investment forecast to inform industry research and development prioritization. npj Vaccines. 2023;8(1):113.</p>
+<p>Malvolti S, Pecenka C, Mantel CF, Malhame M, Lambach P. A Financial and Global Demand Analysis to Inform Decisions for Funding and Clinical Development of Group B Streptococcus Vaccines for Pregnant Women. Clinical Infectious Diseases. 2022;74(Supplement_1):S70-S9.</p>
+<p>World Health Organization. Oral Cholera Vaccine stockpile for cholera emergency response. Geneva: International Coordinating Group. 2013.</p>
+<p>World Health Organization. Multi-country outbreak of cholera: Epidemiological update no. 38.2026 3 August 2026.</p>
+<p>Choi S. A comparative simulation study for estimating accelerated failure time models. The Korean Data &amp; Information Science Society. 2018;29(6):1457-68.</p>
+<p>Faruk A, editor The comparison of proportional hazards and accelerated failure time models in analyzing the first birth interval survival data. Journal of Physics: Conference Series; 2018: IOP Publishing.</p>
+<p>Majeed A-F. Accelerated failure time models: An application in insurance attrition. The Journal of Risk Management and Insurance. 2020.</p>
+<p>Shearer JC, Stack ML, Richmond MR, Bear AP, Hajjeh RA, Bishai DM. Accelerating Policy Decisions to Adopt Haemophilus influenzae Type b Vaccine: A Global, Multivariable Analysis. PLOS Medicine. 2010;7(3):e1000249.</p>
+<p>Lopez AL, Gonzales MLA, Aldaba JG, Nair GB. Killed oral cholera vaccines: history, development and implementation challenges. Therapeutic advances in vaccines. 2014;2(5):123-36.</p>
+<p>Martin S, Lopez AL, Bellos A, Deen J, Ali M, Alberti K, et al. Post-licensure deployment of oral cholera vaccines: a systematic review. Bulletin of the World Health Organization. 2014;92:881-93.</p>
+<p>Global Task Force on Cholera Control. GTFCC OCV Dashboard 2026 [Available from: https://apps.epicentre-msf.org/public/app/gtfcc.</p>
+<p>Banerjee P, Huber J, Denti V, Sauer M, Weeks R, Dhaliwal BK, et al. Closing the pneumococcal conjugate vaccine (PCV) introduction gap: an archetype analysis of last-mile countries. Global Health Action. 2023;16(1):2281065.</p>
+<p>Institute for Health Metrics and Evaluation. GBD Results 2023 [Available from: https://vizhub.healthdata.org/gbd-results.</p>
+<p>International Vaccine Access Center (IVAC) JHBSoPH-h. VIEW-hub: Johns Hopkins Bloomberg School of Public Health; [Available from: https://view-hub.org/.</p>
+<p>World Health Organization. Cholera cases &amp; deaths (Official annual data reported to WHO) [Available from: https://worldhealthorg.shinyapps.io/Cholera/#section-world-regions.</p>
+<p>World Bank. GNI per capita, Atlas method (current US$) [Available from: https://data.worldbank.org/indicator/NY.GNP.PCAP.CD.</p>
+<p>United Nations. World Population Prospects 2024 [Available from: https://population.un.org/wpp/downloads?folder=Standard%20Projections&amp;group=Most%20used.</p>
+<p>World Health Organization. WHO-CHOICE estimates of cost for inpatient and outpatient health service delivery 2021 [Available from: https://www.who.int/publications/m/item/who-choice-estimates- of-cost-for-inpatient-and-outpatient-health-service-delivery.</p>
+<p>Global alliance for vaccines and immunization (GAVI). Eligibility policy 2026 [Available from: https://www.gavi.org/partner-countries/programmatic-policies/eligibility-policy.</p>
+<p>Miller MA, Flanders WD. A model to estimate the probability of hepatitis B-and Haemophilus influenzae type b-vaccine uptake into national vaccination programs. Vaccine. 2000;18(21):2223-30.</p>
+<p>Bwaka A, Bita A, Lingani C, Fernandez K, Durupt A, Mwenda JM, et al. Status of the Rollout of the Meningococcal Serogroup A Conjugate Vaccine in African Meningitis Belt Countries in 2018. The Journal of Infectious Diseases. 2019;220(Supplement_4):S140-S7.</p>
+<p>Pedreira C, Thrush E, Jauregui B. Systematization of the Introduction of IPV and Switch from tOPV to bOPV in the Americas. The Journal of Infectious Diseases. 2017;216(suppl_1):S76-S85.</p>
+<p>Han J, Kamber M. Data mining : concepts and techniques. 3rd ed. Burlington, MA: Elsevier; 2012. xxxv, 703 p. p.</p>
+<p>Choi WS, Sung Y, Kim J, Seok H, Choe YJ, Cheong C, et al. Prioritization of Vaccines for Introduction in the National Immunization Program in the Republic of Korea. Vaccines. 2024;12(8):886.</p>
+<p>World Health Organization. Principles and considerations for adding a vaccine to a national immunization program: from decision to implementation and monitoring 2014 [Available from: https://www.who.int/publications/i/item/9789241506892.</p>
 </div>
 </details>
 </div>
