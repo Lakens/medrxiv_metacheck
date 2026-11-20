@@ -199,7 +199,7 @@ Population With Mortality Comparable to Established Cardiovascular
 Disease: Disability-Adjusted Life Years Across AHA Stages, 2005 to 2023
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.05.26367395
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.05.26367395
 </p>
 </header>
 <div class="mc-main">
@@ -303,8 +303,8 @@ Your Statistical Inferences</a>.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 1 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 1 detected.</p>
 </div>
 </div>
 </div>
@@ -401,8 +401,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -752,9 +753,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -776,7 +781,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -791,9 +797,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -806,13 +830,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -832,6 +859,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -839,12 +872,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -945,6 +984,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -964,6 +1023,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1219,19 +1313,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1341,6 +1517,145 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Cardiovascular-kidney-metabolic (CKM) syndrome was defined in 2023 as a fivestage continuum, with stage 3 assigned on predicted rather than established cardiovascular disease. Whether that stage identifies a population whose mortality resembles clinical disease, and how health loss is distributed across stages, is unknown. Methods: We pooled nine National Health and Nutrition Examination Survey cycles (2005-2023) and assigned CKM stages 0-4 from measured risk factors, kidney function, urine albumin, selfreported cardiovascular disease, and 10-year PREVENT risk. Years lived with disability used Global Burden of Disease weights; years of life lost combined national death counts, linked mortality files, and period life tables. Results: In 2021-2023, 13.8%, 21.3%, 49.1%, 6.5%, and 9.3% of adults were in stages 0 to 4, respectively. Crude mortality was 6,709 per 100,000 person-years in stage 3, comparable to 6,375 in stage 4. Adjusted hazard ratios rose from 1.39 in stage 2 to 3.22 in stage 4, with no excess in stage 1 (0.99). CKM accounted for 20.0 million DALYs annually, with 76% of attributable years of life lost in stages 3-4. Lipid-lowering therapy was absent in 53.7% of stage 3 and 33.6% of stage 4 adults, a gap unchanged over 16 years. Stage 0 prevalence fell 2.3% per year and stage 1 rose 3.1% per year between 2006 and 2016. Conclusions: Risk-based stage 3 carries short-term mortality indistinguishable from established cardiovascular disease, yet the population continues to shift into stage 1, where mortality is normal, and stage 3 receives less intensive lipid-lowering treatment than stage 4.</p>
+<h3>Clinical Perspective</h3>
+<p>What Is New?  First quantification of disability-adjusted life years across all five AHA CKM stages. Riskbased stage 3 carries mortality statistically indistinguishable from stage 4 (6,709 versus 6,375 per 100,000 person-years), supporting the prognostic content of the staging framework.</p>
+<p> After age adjustment, stage 1 carries no excess mortality (HR 0.99), so excess risk begins at stage 2 and steepens through stages 3-4; yet stage 1 expanded by 3.1% per year between 2006 and 2016.</p>
+<p> Stages 3 and 4 generate 76% of attributable years of life lost, yet adults in stage 3 were 20 percentage points more likely to be untreated for lipid risk, a gap that has not narrowed since 2005.</p>
+<h3>What Are the Clinical Implications?</h3>
+<p> Screening yield for preventing death is concentrated in stages 3-4; stage 1 and 2 management should be justified by progression prevention rather than short-term mortality benefit.</p>
+<h3></h3>
+<p>The absence of excess mortality in stage 1 is a communication opportunity: patients can be told their near-term risk is normal, which may improve engagement in primordial prevention.</p>
+<p> Because burden metrics reward late-stage treatment, CKM programs that rely on DALYbased prioritization will systematically underfund the stage where the population is accumulating.</p>
+<h3>Nonstandard Abbreviations and Acronyms</h3>
+<p>CKM, cardiovascular-kidney-metabolic; DALY, disability-adjusted life year; YLD, years lived with disability; YLL, years of life lost; PAF, population attributable fraction; eGFR, estimated glomerular filtration rate; UACR, urine albumin-to-creatinine ratio; LMF, linked mortality file;</p>
+<h3>Introduction</h3>
+<p>In 2023 the American Heart Association proposed cardiovascular-kidney-metabolic (CKM) syndrome as a single construct linking adiposity, dysglycaemia, hypertension, dyslipidaemia, chronic kidney disease, and cardiovascular disease along a five-stage continuum from stage 0 (no risk factors) to stage 4 (clinical cardiovascular disease). 1 The framework has been rapidly adopted in epidemiology, and national estimates of stage distribution are now available. 2 Stage 3 is the least tested part of the framework. Unlike the other stages, it is assigned on predicted ten-year risk rather than on measured disease, and it combines adults with a PREVENT score of 20% or more and adults with a high-risk kidney profile. Whether this group has mortality similar to that of adults with established cardiovascular disease has not been tested against national death data. If it does, the stage identifies a group that warrants intensive prevention; if it does not, the label has limited prognostic value.</p>
+<p>National estimates describe how many people occupy each stage, but not how much health they lose. The distinction matters. A syndrome whose burden sits in advanced stages argues for case finding and secondary prevention; one whose burden sits in early stages argues for primordial prevention. Prevalence alone cannot adjudicate between the two, because a common early stage and a rare late stage can carry identical prevalence-weighted risk.</p>
+<p>Disability-adjusted life years (DALYs) resolve this by combining years lived with disability (YLD) and years of life lost (YLL), and by permitting decomposition across stages. DALYs are the standard metric of the Global Burden of Disease (GBD) study, 3 but to our knowledge they have never been estimated by CKM stage. Existing CKM work has examined single biomarkers across stages, 4,5 albuminuria prevalence, 6 and mortality, 7 but not health loss.</p>
+<p>We therefore estimated years lived with disability, years of life lost, and DALYs for each CKM stage among US adults from 2005 to 2023, and tested the mortality gradient that the framework implies. We had three questions. First, does a PREVENT-defined stage 3 carry mortality comparable to stage 4? Second, how is health loss distributed across stages, and does it sit where the deaths are? Third, how has the stage distribution moved over two decades, and does that movement point upstream or downstream of where the burden sits?</p>
+<h3>Methods</h3>
+<h3>Data sources and study population</h3>
+<p>We used nine National Health and Nutrition Examination Survey (NHANES) cycles: 2005-2006 through 2017-2018, the 2017-March 2020 pre-pandemic cycle, and 2021-2023. NHANES is a stratified, multistage probability sample of the non-institutionalised US population. 8 We restricted analyzes to adults aged 20 years or older who attended the mobile examination center and had a positive examination weight (Figure S1); variable definitions and source files for each cycle are listed in Table S2. The 2017-2018 cycle was retained for internal consistency checks but excluded from trend analyzes because it overlaps the 2017-March 2020 cycle.</p>
+<p>Because triglycerides are measured only in the fasting subsample, the analytic sample was restricted to fasting participants, and the fasting subsample weight (WTSAF2YR; WTSAFPRP for 2017-March 2020) was applied throughout. The final analytic sample comprised 3,057 adults in 2021-2023 and 23,951 across all cycles.</p>
+<h3>CKM staging</h3>
+<p>Stages were assigned hierarchically, with the highest applicable stage taking precedence (Table S1). Stage 4 required self-reported congestive heart failure, coronary heart disease, angina, myocardial infarction, or stroke. Stage 3 required the absence of clinical cardiovascular disease plus either a 10-year PREVENT total cardiovascular risk of 20% or greater, or high-risk chronic kidney disease (estimated glomerular filtration rate [eGFR] &lt;45 mL/min/1.73 m2 or urine albumin-to-creatinine ratio [UACR] &gt;=300 mg/g). Stage 2 required any of hypertension, diabetes, chronic kidney disease, hypertriglyceridaemia, metabolic syndrome, or low-density lipoprotein cholesterol &gt;=160 mg/dL. Stage 1 required overweight, obesity, abdominal obesity, or prediabetes. Stage 0 required none of the above.</p>
+<p>Hypertension was defined by measured systolic blood pressure &gt;=130 mm Hg or diastolic &gt;=80 mm Hg, or current antihypertensive medication; self-report of a prior diagnosis was deliberately excluded so that treated and controlled individuals were classified by current status. Diabetes was defined by self-report, glucose-lowering medication, or hemoglobin A1c &gt;=6.5%. Prediabetes was defined as hemoglobin A1c 5.7%-6.4% without diabetes. Kidney function was estimated with the 2021 CKD-EPI creatinine equation. 9 Stage 0 was assigned only when all five core inputs (body mass index, blood pressure, hemoglobin A1c, eGFR, and UACR) were observed, so that missing data could not create spurious health.</p>
+<p>Ten-year cardiovascular risk was computed with the PREVENT base equations, 10 implemented from the published coefficients and validated against the reference implementation. PREVENT was calculable for 75% of adults; participants younger than 30 years or with incomplete inputs could not meet the stage 3 risk criterion.</p>
+<h3>Disability weights and YLD</h3>
+<p>YLD were calculated as the product of stage-specific prevalence, disability weight, and population size. Disability weights were assigned at the level of GBD health states rather than conditions. Diabetes was assigned 0.049. For ischaemic heart disease and chronic ischaemic stroke we applied GBD severity distributions 11 to obtain severity-weighted averages (0.0731 and 0.0845, respectively). Heart failure used the GBD 2023 severity distribution (0.0923). 12 Chronic kidney disease weights were stratified by anaemia severity using hemoglobin and the GBD CKD severity table: stage 3 without anaemia 0, with mild, moderate, and severe anaemia 0.004, 0.052, and 0.149; stage 4 0.104 to 0.237; stage 5 (dialysis) 0.569 (Table S5). 13 Coexisting conditions were combined multiplicatively, DW = 1 -product(1 -DWi), as GBD does for comorbid sequelae. Stages 0 and 1 were assigned zero disability because adiposity, prediabetes, and hypertension are treated by GBD as risk factors without an associated sequela.</p>
+<h3>Mortality, YLL, and attributable burden</h3>
+<p>Vital status through 31 December 2019 was obtained from the public-use NHANES linked mortality files (LMF) for cycles 2005-2006 through 2017-2018, linked by participant sequence number. 14 We pooled these cycles, together with the 1999- 2000 and 2003-2004 cycles (2001-2002 was excluded because serum creatinine was not available in the public biochemistry file), to estimate the stage distribution of deaths within ten-year age bands and sex.</p>
+<p>National death counts for 2021-2023 by year, sex, and ten-year age band were obtained from the Centers for Disease Control and Prevention WONDER database. Stage-specific deaths were obtained by applying the LMF-derived stage distribution of deaths to national counts; the 15-24 year band was halved to approximate ages 20-24. YLL were computed as deaths multiplied by remaining life expectancy from the 2024 US period life tables. 15 Attributable burden was estimated with the population attributable fraction. Stage-specific hazard ratios (HR) were obtained from a Cox proportional hazards model on the pooled LMF cohort (27,012 participants; 4,706 deaths) with stage, age, sex, and race as covariates. The PAF was calculated as sum(pi(HRi-1)) / (1 + sum(pi(HRi-1))) using 2021-2023 stage prevalences, and attributable YLL were obtained by applying the PAF to total YLL, with the stage decomposition following each stage&#x27;s excess share. Cardiovascular deaths were identified from the underlying cause of death recode in the LMF (diseases of the heart or cerebrovascular disease), and causespecific hazard ratios were estimated with deaths from other causes censored. Rates were directly standardized to the 2020 US population.</p>
+<h3>Attribution to upstream exposures</h3>
+<p>Smoking status and physical inactivity lie outside the CKM definition and were therefore treated as upstream exposures rather than components of the syndrome. Current smoking was defined by self-report. Physical inactivity was defined as reporting no leisure-time moderate or vigorous activity; the item set changed in 2007, and the two instruments were harmonized into a single binary indicator. Both exposures were available in every cycle from 2005-2006 onwards.</p>
+<p>Hazard ratios were estimated in the same linked mortality cohort, with additional adjustment for the ratio of family income to poverty, educational attainment, and body mass index, so that the estimates would not merely reproduce socioeconomic position or adiposity. The population attributable fraction for the two exposures jointly was computed from their observed joint distribution in 2017-March 2020 and the adjusted hazard ratios for the four exposure combinations, using PAF = (sum p_s RR_s -1) / sum p_s RR_s, which accounts for the overlap between exposures. Attributable DALYs were obtained by applying this fraction to total CKM DALYs.</p>
+<h3>Statistical analysis</h3>
+<p>All prevalence estimates were survey-weighted with Taylor series linearisation accounting for strata and primary sampling units. Trends were modeled with log-linear segmented (joinpoint)</p>
+<h3>Results</h3>
+<h3>Stage distribution</h3>
+<p>In 2021-2023, 13.8% (95% CI, 11.7-15.9) of US adults were stage 0, 21.3% (19.3-23.4) stage 1, 49.1% (46.6-51.6) stage 2, 6.5% (5.3-7.7) stage 3, and 9.3% (7.8-10.7) stage 4 (Table 1). Stage 2 was the largest category and was driven predominantly by hypertension (69.1%) and diabetes (16.7%). Stage 3 and stage 4 differed in composition: participants in stage 3 were older (mean 72.7 versus 66.0 years) and had worse kidney function (mean eGFR 70.0 versus 78.5 mL/min/1.73 m2) and more chronic kidney disease (55.5% versus 37.9%).</p>
+<h3>Disability and mortality burden</h3>
+<p>CKM accounted for 4,093,294 YLD and 15.9 million attributable YLL per year, or 20.0 million DALYs (8,537 per 100,000 adults crude; 7,881 age-standardized) (Table 2, Figure 2). YLL accounted for 80% of the total, indicating that CKM in the United States is principally a mortality burden rather than a disability burden. Years of life lost per death fell from 29.8 in stage 0 to 10.1 in stage 3 and 13.1 in stage 4, the lowest value occurring in stage 3, whose members were the oldest.</p>
+<p>Burden was concentrated in the advanced stages (Figure 2, Central Illustration). Stage 4 generated 65% of YLD and 49.0% of attributable YLL; stage 3 generated 11.4% and 27.1%; stage 2 generated 23.2% and 23.9%. Stages 3 and 4 together, 15.8% of adults, accounted for 76% of attributable YLL. The population attributable fraction for CKM was 32.2% (95% CI, 18.5%-44.2%), meaning that one third of adult deaths would not occur if the whole population were at stage 0.</p>
+<p>The stage allocation of years of life lost was sensitive to age but not to sex. Using age-specific shares alone gave 4.1%, 9.4%, 34.4%, 21.6%, and 30.6% of years of life lost across stages 0 to 4, against 4.0%, 9.4%, 34.6%, 21.6%, and 30.4% when both age and sex were used. Ignoring age entirely shifted 5.5 percentage points of the total onto stage 4, confirming that age is the dominant driver of the stage distribution of death (Table S6).</p>
+<p>YLD rates differed by race and ethnicity (Table S7): 2,433 per 100,000 among non-Hispanic Black adults, 35% above non-Hispanic White adults (1,796), with intermediate rates in Hispanic adults (1,443) and the lowest rates among Asian and other adults (1,307). Stage 2 accounted for 55.1% of non-Hispanic Black adults, compared with 47.2% of White adults.</p>
+<p>Most adults in stage 3 entered through the risk criterion rather than the kidney criterion: 80.1% met the PREVENT threshold without high-risk kidney disease, 10.7% met both, and 9.2% entered through high-risk kidney disease alone. The kidney-only group was much younger (mean age 52.7 versus 75.5 years), so this small subset identifies adults more than two decades earlier in the life course than the risk-based majority.</p>
+<p>Age-standardized to the 2020 US population, the overall DALY rate was 7,881 per 100,000 (crude 8,584), and the stage distribution was 13.9%, 21.3%, 48.3%, 5.5%, and 8.4% for stages 0 to 4, against crude values of 13.8%, 21.3%, 49.1%, 6.5%, and 9.3%. Standardization therefore attenuated the apparent burden of the advanced stages.</p>
+<p>Burden was higher in men than in women (10,345 versus 6,886 DALYs per 100,000), and men accounted for 59.1% of total DALYs despite a slightly smaller population. DALYs per 100,000 rose from 943 at 20-24 years to 27,155 at 75-84 years (Table 5).</p>
+<h3>Age-adjusted mortality gradient</h3>
+<p>Unadjusted mortality rose steeply across stages (287, 390, 1,123, 6,709, and 6,375 per 100,000 person-years for stages 0-4), but most of that gradient was attributable to age. After adjustment, HRs relative to stage 0 were 0.99 (95% CI, 0.78-1.25) for stage 1, 1.39 (1.13-1.71) for stage 2, 2.21 (1.78-2.75) for stage 3, and 3.22 (2.60-3.99) for stage 4 (Table 3, Figure 3). Stages 2 through 4 were each significantly elevated; stage 1 was not.</p>
+<p>The similarity of stage 3 and stage 4 mortality (6,709 versus 6,375 per 100,000; adjusted HR 2.21 versus 3.22) suggests that a PREVENT-derived risk equivalent identifies a population whose short-term mortality is close to that of established cardiovascular disease.</p>
+<h3>Cause-specific cardiovascular mortality</h3>
+<p>The pattern held for cardiovascular death specifically. Crude cardiovascular mortality was 36 per 100,000 person-years in stage 0, 66 in stage 1, 272 in stage 2, 2,007 in stage 3, and 2,499 in stage 4, so absolute cardiovascular mortality in stage 3 approached that in stage 4 while both were more than fifty-fold higher than in stage 0. After adjustment for age, sex, and race, cause-specific hazard ratios were 1.26 (95% CI, 0.76-2.10) for stage 1, 2.27 (1.43-3.59) for stage 2, 4.19 (2.61-6.71) for stage 3, and 8.14 (5.11-12.97) for stage 4 (Table S8). This pattern reflects the older age structure of stage 3: in absolute terms a stage 3 adult faced a cardiovascular death rate four-fifths that of a stage 4 adult, while the adjusted relative hazard remained lower.</p>
+<h3>Treatment intensity at equal mortality</h3>
+<p>Adults in stage 3 had mortality close to that of stage 4 but received less intensive preventive treatment (Table 6). Blood pressure was at or above 130/80 mm Hg in 65.6% of adults in stage 3 and 50.1% in stage 4; low-density lipoprotein cholesterol was at or above 70 mg/dL in 78.4% and 64.5%, respectively. Lipid-lowering therapy was absent in 53.7% of adults in stage 3 compared with 33.6% in stage 4, a difference of 20.1 percentage points, whereas antihypertensive use was similar in the two stages (65.4% versus 62.5%). The gap was therefore concentrated in lipid management rather than in blood pressure treatment.</p>
+<p>Treatment intensity improved in both stages over the study period, but the gap between them did not close (Figure 5). The proportion of adults in stage 3 taking no lipid-lowering drug fell from 73.4% in 2005-2006 to 53.7% in 2021-2023, and the corresponding proportion in stage 4 fell from 54.1% to 33.6%. The absolute difference was 19.3 percentage points at the start of the period and 20.1 percentage points at the end. The proportion with low-density lipoprotein cholesterol at or above 70 mg/dL moved in parallel, from 92.7% to 78.4% in stage 3 and from 79.6% to 64.5% in stage 4, a gap that remained between 13 and 14 percentage points throughout.</p>
+<h3>Two-decade trend</h3>
+<p>Between 2006 and 2016, with a constant blood pressure protocol, stage 0 prevalence declined by 2.28% per year (95% CI, -3.36 to -1.19) and stage 1 rose by 3.11% per year (1.89 to 4.35); stage 2 declined modestly (-0.85% per year) and stages 3 and 4 were unchanged (0.06% and 0.27% per year, both non-significant) (Figure 1; Table S3). Joinpoint regression placed breakpoints at 2016 for stages 0, 1, and the composite of stages 2 and above, coinciding with the change in blood pressure instrumentation; the apparent reversal after 2016 should not be interpreted epidemiologically.</p>
+<p>Because the stage-specific mortality gradient did not change across the study period (likelihood ratio test for stage-by-period interaction, P=0.63), stage-specific HRs estimated from 2005-2018 were applied to 2021-2023 death counts.</p>
+<h3>Burden attributable to modifiable exposures</h3>
+<p>In the 16,220 participants with complete exposure and covariate data (1,767 deaths), current smoking carried an adjusted hazard ratio of 1.90 (95% CI, 1.68-2.15) and physical inactivity 1.65 (1.49-1.84) for all-cause mortality (Table 4). In 2017-March 2020, 16.2% of adults smoked, 44.8% were physically inactive, and 9.0% had both exposures. Current smoking accounted for 12.7% of CKM DALYs and physical inactivity for 22.6%.</p>
+<p>Because the two exposures co-occur, their joint attributable fraction was 30.5% (95% CI, 25.7-35.1), corresponding to 6.1 million DALYs per year (Figure 4). Physical inactivity therefore contributed roughly twice as much burden as smoking.</p>
+<h3>Sensitivity analyzes</h3>
+<p>Raising the PREVENT threshold to 30% reduced stage 3 prevalence from 6.5% to 2.1% but changed the PAF by only about 2 percentage points. Omitting the low-density lipoprotein criterion moved 2.8 percentage points from stage 2 to stages 0-1 and changed the PAF to 33.0%.</p>
+<p>Relaxing the stage 0 completeness rule had no effect, because all stage 0 participants in 2021-2023 already had complete core inputs. Assigning all conditions the mild or severe end of the GBD severity range moved YLD from 4.09 million to 2.97 million and 9.95 million, respectively, corresponding to DALYs of 19.5 to 26.5 million per year. The Monte Carlo 95% confidence interval for total DALYs was 8.9 to 29.8 million per year, dominated by uncertainty in the stagespecific hazard ratios rather than in prevalence (Table S4).</p>
+<h3>Discussion</h3>
+<p>In this nationally representative analysis, a staging framework built on predicted risk identified a population whose mortality was close to that of established cardiovascular disease, and CKM syndrome as a whole accounted for approximately 20.0 million DALYs per year among US adults, or 7,881 age-standardized DALYs per 100,000. Alongside that prognostic validation, the central finding is a dissociation between where the burden sits and where the population is moving. Burden is back-loaded: stages 3 and 4, 15.8% of adults, generated 76% of attributable years of life lost. But the population has been shifting upstream for two decades, with stage 1 expanding by 3.1% per year while stage 0 contracted by 2.3% per year, and no change in the advanced stages. This pattern has implications for how prevention is evaluated. Stage 1 carried no excess mortality after age adjustment (HR 0.99; 95% CI, 0.78-1.25), and stage 2 was moderately elevated (HR 1.39; 95% CI, 1.13-1.71). A prevention program justified on avoided deaths will therefore find almost nothing to do in the 21% of adults at stage 1. Its return is deferred: it accrues only when progression to stage 3 or 4 is prevented, which a cross-sectional DALY calculation cannot observe. Burden metrics, in other words, favor late-stage treatment, and the effect is likely to be larger for CKM than for conditions whose burden is concentrated earlier.</p>
+<p>Stage 3 mortality was close to that of stage 4. Stage 3 is defined by predicted risk rather than observed disease, and its members were older and more often had chronic kidney disease. That a risk equation identifies a group with near-identical short-term mortality to patients with established cardiovascular disease supports the staging framework&#x27;s construct validity and argues that risk-based staging adds information beyond diagnosis counts.</p>
+<p>Our estimates can be compared with existing CKM work. Hyun and colleagues reported stage distribution and risk-factor control gaps for 2021-2023 but did not estimate health loss. The 80% share of YLL in total DALYs contrasts with many chronic conditions in which YLD dominates. This reflects the lethality of the constituent diseases rather than measurement artefact: cardiovascular disease and chronic kidney disease are leading causes of death, and their disability weights, while non-trivial, are modest relative to the years of life lost.</p>
+<p>The analysis has several strengths. Risk factors were measured rather than self-reported, staging incorporated predicted risk rather than diagnosis alone, and disability weights were drawn from GBD health states with severity and anaemia stratification rather than applied uniformly. The mortality model rested on 27,012 participants and 4,706 deaths followed for up to two decades, which allowed the stage gradient to be estimated with reasonable precision and tested for stability over time.</p>
+<h3>Direct comparison with GBD is not possible, because GBD does not report burden by CKM stage.</h3>
+<p>The magnitude is nevertheless of the expected order: the syndrome&#x27;s constituents, ischaemic heart disease, stroke, diabetes, and chronic kidney disease, are among the leading contributors to DALYs in the United States, and our estimates aggregate them through a single staged framework rather than four separate cause categories. A recent GBD-based comparison of CKM burden across seven countries used DALY rates for ischaemic heart disease, diabetic kidney disease, and fatty liver disease rather than staged estimates, and therefore cannot serve as a numerical benchmark; no staged DALY estimate exists for the United States. 16 Two exposures that sit outside the CKM definition, current smoking and physical inactivity, accounted for almost a third of the syndrome&#x27;s burden. That fraction is large enough to change how the framework should be used. CKM staging describes who is at risk; it does not identify what is driving the risk. Smoking and inactivity are not stages, they are causes, and they are modifiable at the population level without any of the clinical infrastructure that stage 3 and 4 care requires.</p>
+<p>The difference between the two exposures is relevant to prevention policy. Physical inactivity contributed roughly twice the burden of smoking (22.6% versus 12.7%), despite tobacco control having a far more developed policy architecture. Physical activity has been the least institutionalised element of cardiovascular prevention, and these estimates suggest it deserves a share of the CKM agenda proportional to its contribution rather than to its current visibility.</p>
+<p>For clinicians, the implication is narrower than the policy one. A patient who meets the PREVENT threshold for stage 3 has a short-term prognosis indistinguishable from that of a patient with established cardiovascular disease, and the data suggest that this group is currently treated more like high-risk primary prevention than like disease. The treatment gap we observed is concentrated in lipid lowering: half of adults in stage 3 were taking no lipid-lowering drug and four in five had low-density lipoprotein cholesterol at or above 70 mg/dL, against one in three and two in three, respectively, in stage 4. Closing that gap does not require a new risk tool; it requires applying existing treatment recommendations to the group that tool already identifies.</p>
+<p>Our results should be interpreted with several limitations in mind. First, NHANES is crosssectional; stage at a single examination is used as a proxy for a lifelong trajectory, and progression cannot be observed. Second, the PAF is imprecise (95% CI, 18.5%-44.2%) because the linked mortality cohort contains 4,706 deaths across five stages; the descriptive stage-specific burden estimates do not share this limitation. Third, stage-specific HRs from 2005-2018 were applied to 2021-2023 deaths; the absence of a stage-by-period interaction supports this, but secular changes in treatment could still have altered absolute risks. Fourth, the transition from mercury to oscillometric blood pressure measurement in 2017 creates a discontinuity that precludes trend inference after 2016. Fifth, disability weights for ischaemic heart disease and stroke come from GBD 2013 severity distributions because updated distributions were not publicly accessible; the mild and severe bounds we report span the plausible range. Sixth, the DALY estimates assume a steady state; a cross-sectional design cannot capture the lag between exposure and death, so the burden of today&#x27;s stage 1 will appear only in future estimates. These limitations do not affect the central inference, which rests on the shape of the burden distribution rather than on its absolute level: every sensitivity analysis preserved the concentration of burden in stages 3 and 4.</p>
+<h3>Conclusions</h3>
+<p>CKM syndrome accounts for roughly 20.0 million DALYs annually among US adults, and that burden is concentrated in the 15.8% of adults at stages 3 and 4. Excess mortality begins at stage 2 and steepens through stages 3 and 4. Yet the population has been moving into stage 1 for two decades, where mortality is indistinguishable from that of adults with no risk factors at all.</p>
+<p>Closing that gap, between where burden is measured and where it is being generated, is the central challenge the CKM framework now faces. https://ftp.cdc.gov/pub/Health_Statistics/NCHS/datalinkage/linked_mortality/. Analysis code is available from the corresponding author on reasonable request. Points are cycle midpoints. The shaded region marks cycles after the 2017 change from mercury sphygmomanometry to oscillometric blood pressure measurement; trends are inferred only from 2006-2016. and attributable years of life lost. Stage 4 accounts for 52% of total DALYs. model was adjusted for age, sex, and race and fitted to 27,012 participants and 4,706 deaths in the pooled 1999-2018 linked mortality cohort. Error bars indicate 95% confidence intervals; the x axis is logarithmic. Central Illustration. Where CKM burden sits and how treatment differs across stages. A, Distribution of US adults across CKM stages 0 to 4, 2021-2023. B, Share of adults (upper bar) and share of attributable years of life lost (lower bar) by stage; stages 3 and 4 comprise 15.8% of adults but generate 76% of attributable years of life lost. C, Treatment intensity in stages 3 and 4, showing a lipid-lowering gap despite comparable mortality; the gap was 19.3 percentage points in 2005-2006 and 20.1 percentage points in 2021-2023. D, Composition of stage 3, with mean age shown above each bar: 80.1% entered through the PREVENT criterion alone, 10.7% through both criteria, and 9.2% through high-risk kidney disease alone. Colors denote stages 0 to 4 in panels A to C. Table 2. Annual YLD, attributable YLL, and DALYs by CKM stage, 2021-2023 Stage YLD Attributable YLL DALYs DALYs per 100,000 % of DALYs 0 0 0 0 0 0.0 1 0 0 0 0 0.0 2 946,854 3,795,000 4,741,854 2,026 23.7 3 465,588 4,308,000 4,773,588 2,040 23.9 4 2,680,853 7,782,000 10,462,853 4,471 52.4 Total 4,093,294 15,885,000 19,978,295 8,538 100.0 Table 3. Adjusted hazard ratios for all-cause mortality and population attributable fraction Stage Deaths, n Person-years Crude rate per 100,000 Adjusted HR (95% CI) Attributable YLL, % 0 99 34,483 287 1.00 (reference) 0.0 1 233 59,763 390 0.99 (0.78-1.25) 0.0 2 1,484 132,123 1,123 1.39 (1.13-1.71) 23.9 3 1,333 19,867 6,709 2.21 (1.78-2.75) 27.1 4 1,557 24,427 6,375 3.22 (2.60-3.99) 49.0</p>
+<h3>Supplemental Material</h3>
+<p>Figure S1. Study design and analytic samples. Table S1. Operational definitions of CKM stages.</p>
+<p>Table S2. Cross-cycle variable harmonization. Table S3. Stage distribution by cycle. Table S4.</p>
+<p>Sensitivity analyses. Table S5. Disability weights applied. Table S6. Sensitivity of the stage allocation of years of life lost. Table S7. Stage distribution and years lived with disability by race and ethnicity. Table S8. Cause-specific cardiovascular mortality by CKM stage.</p>
+<p>2009 2012 2015 2018 2022 Survey cycle (midpoint year) 0 10 20 30 40 50 60 Prevalence (%) Oscillometric BP Stage 0 Stage 1 Stage 2 Stage 3 Stage 4 0 1 2 3 4 CKM stage 0 2 4 6 8 10 12 DALYs per year (millions) 4.7 4.8 10.5 YLD Attributable YLL 0.6 1 2 3 5 10 Adjusted hazard ratio (95% CI, log scale) Stage 1 Stage 2 Stage 3 Stage 4 0.99 (0.78-1.25) 1.39 (1.13-1.71) 2.21 (1.78-2.75) 3.22 (2.60-3.99) Smoking Physical inactivity Joint 0 5 10 15 20 25 30 35 40 Population attributable fraction (%) 12.7% 22.6% 30.5% 95% CI 25.7-35.1</p>
+<h3>Acknowledgments</h3>
+<p>The authors thank the participants and staff of the National Health and Nutrition Examination Survey and the National Center for Health Statistics for making the data publicly available.</p>
+<p>Use of Artificial Intelligence: ChatGPT (OpenAI) was used solely to improve the clarity and readability of the English text. It was not used to generate data, perform analyzes, or interpret results. All authors reviewed and edited all content and take full responsibility for the manuscript.</p>
+<h3>Sources of Funding</h3>
+<p>This work was supported by the National Natural Science Foundation of China (grants 82608717 and 82374268). The funders had no role in the design of the study, the analysis, the interpretation of the data, or the decision to submit the manuscript.</p>
+<h3>Data Availability Statement</h3>
+<p>NHANES data are publicly available from the National Center for Health Statistics. Linked mortality files are available from</p>
+<h3>Disclosures</h3>
+<p>None. 2006  2008 2010 2012 2014 2016 2018 2020 2022Survey cycle (midpoint year) 30 40 50 60 70 80 90 100 Patients, % 54 73 34 54 A No lipid-lowering medication Stage 3 Stage 4 2006 2008 2010 2012 2014 2016 2018 2020 2022Survey cycle (midpoint year) regression with up to two breakpoints selected by Bayesian information criterion, and annual percentage change (APC) was reported for each segment with an average annual percentage change.</p>
+<p>Because NHANES changed from mercury sphygmomanometry to oscillometric devices in 2017, the primary trend analysis was restricted to 2006-2016, when the measurement protocol was constant; later cycles are shown but not used for inference. Uncertainty in the PAF and DALY was quantified by Monte Carlo simulation (4,000 draws) combining the covariance of the Cox model with multinomial sampling of stage prevalence. Five pre-specified sensitivity analyzes were performed: (1) PREVENT threshold of 30% rather than 20%; (2) omission of the low-density lipoprotein criterion; (3) relaxation of the stage 0 completeness rule; (4) disability weights set to the mild or severe end of the GBD severity range; and (5) alternative sources for the stage-specific distribution of deaths. Analyses used Python 3.13 (pandas, lifelines, statsmodels, matplotlib). This study is reported in accordance with the Strengthening the Reporting of Observational Studies in Epidemiology (STROBE) guidelines for cross-sectional studies; the completed checklist is provided as supplementary material.</p>
+<h3>2</h3>
+<p>Our stage prevalences (13.8%, 21.3%, 49.1%, 6.5%, 9.3%) differ by at most 3.0 percentage points from theirs, despite different operationalisations of hypertension and the PREVENT threshold, which supports the robustness of the underlying construct. Their analysis is confined to a single cycle and does not address mortality, time trends, or attributable burden. They also documented treatment gaps across stages 2 to 4; our treatment analysis differs in anchoring the gap to the mortality equivalence of stages 3 and 4. Kibbi and colleagues examined albuminuria within CKM stages,6 and Zuin and Piazza examined pulmonary embolism mortality in CKM,7 but neither quantified overall burden.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Survey-weighted prevalence of CKM stages among US adults, NHANES 2005-2023.</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Annual DALYs by CKM stage, 2021-2023, decomposed into years lived with disability</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Adjusted hazard ratios for all-cause mortality by CKM stage, relative to stage 0. The</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Population attributable fractions for current smoking and physical inactivity, estimated</p>
+<h3>Figure 5.</h3>
+<p>Figure 5. Persistence of the lipid-lowering gap between CKM stages 3 and 4, 2005 to 2023. A, Proportion of adults taking no lipid-lowering medication. B, Proportion with low-density lipoprotein cholesterol at or above 70 mg/dL.Both stages improved over time at similar rates, so the absolute difference between them was unchanged. The 2017-2018 cycle is omitted because it overlaps the 2017-March 2020 cycle.</p>
+<h3>Table 1 . Characteristics of US adults by CKM stage, NHANES 2021-2023 Values</h3>
+<p>are survey-weighted means or percentages. PREVENT indicates 10-year predicted total cardiovascular risk.</p>
+<h3>Table 4 . Adjusted hazard ratios and population attributable fractions for modifiable exposures outside the CKM definition</h3>
+<p>Hazard ratios adjusted for age, sex, race, family income-to-poverty ratio, education, and body mass index.Prevalences are from NHANES 2017-March 2020. The joint distribution was 48.1% with neither exposure, 7.2% with smoking only, 35.8% with physical inactivity only, and 9.0% with both. PAF indicates population attributable fraction.</p>
+<h3>Table 5 . DALYs by sex and age group, 2021-2023</h3>
+<p>Percentages for the age rows sum to 100% across ages 20-84; NHANES top-codes age at 80 years, so no participants contribute to an 85 years and older stratum in 2021-2023.</p>
+<h3>Table 6 . Treatment intensity in CKM stages 2 to 4, 2021-2023</h3>
+<p>Values are survey-weighted percentages of adults in each stage. Stage 3 comprises adults without clinical cardiovascular disease who meet the PREVENT risk criterion or have high-risk chronic kidney disease; stage 4 comprises adults with self-reported cardiovascular disease.</p>
+<h3>C 7 D</h3>
+<p>3 pp in 2006 to 20.1 pp in 2022How adults enter stage 3</p>
+<p>NOTE: This preprint reports new research that has not been certified by peer review and should not be used to guide clinical practice.</p>
+<h3>References</h3>
+<p>Ndumele CE, Rangaswami J, Chow SL, et al. Cardiovascular-kidney-metabolic health: a presidential advisory from the American Heart Association. Circulation. 2023;148:1606-1635.</p>
+<p>Hyun S, Sze CH, Khan T, et al. Contemporary burden, drivers, and risk-factor control gaps across cardiovascular-kidney-metabolic syndrome stages in US adults, 2021 to 2023. J Am Heart Assoc. 2026;e053440. doi:10.1161/JAHA.126.053440</p>
+<p>GBD 2021 Diseases and Injuries Collaborators. Global incidence, prevalence, years lived with disability (YLDs), disability-adjusted life-years (DALYs), and healthy life expectancy (HALE) for 371 diseases and injuries in 204 countries and territories and 811 subnational locations, 1990- 2021. Lancet. 2024;403:2133-2161.</p>
+<p>Fang Y, Pei X, Huang S, et al. Lipoprotein(a) and risk stratification for atherosclerotic cardiovascular disease across the cardiovascular-kidney-metabolic continuum. J Am Heart Assoc. 2026;e051179.</p>
+<p>Shi Y, Shen Y. Variations in single-point insulin sensitivity estimator index and the risk of cardiovascular disease in individuals with cardiovascular-kidney-metabolic syndrome stages 0 to</p>
+<p>J Am Heart Assoc. 2026;15:e051048.</p>
+<p>Kibbi R, Huang X, Krishnan V, et al. Albuminuria prevalence among US adults with cardiovascular-kidney-metabolic syndrome. J Am Heart Assoc. 2026;15:e045697.</p>
+<p>Zuin M, Piazza G. Pulmonary embolism-attributable mortality in patients with cardiovascular- kidney-metabolic syndrome in the United States, from 2018 to 2023. J Am Heart Assoc. 2026;15:e049795.</p>
+<p>Inker LA, Eneanya ND, Coresh J, et al. New creatinine-and cystatin C-based equations to estimate GFR without race. N Engl J Med. 2021;385:1737-1749.</p>
+<p>Khan SS, Matsushita K, Sang Y, et al. Development and validation of the American Heart Association&#x27;s PREVENT equations. Circulation. 2024;149:430-449.</p>
+<p>Salomon JA, Haagsma JA, Davis A, et al. Disability weights for the Global Burden of Disease 2013 study. Lancet Glob Health. 2015;3:e712-e723.</p>
+<p>GBD 2023 Heart Failure Collaborators. Severity distribution of heart failure in GBD 2023. Supplementary Table S1-S3.2025.</p>
+<p>Global Burden of Disease Collaborative Network. GBD 2021 Disability Weights. Seattle: Institute for Health Metrics and Evaluation; 2024.</p>
+<p>National Center for Health Statistics. Public-use linked mortality files, 2019. Available at: https://ftp.cdc.gov/pub/Health_Statistics/NCHS/datalinkage/linked_mortality/</p>
+<p>Arias E, Xu J, Tejada-Vera B. United States life tables, 2024. Natl Vital Stat Rep. 2026;75(5).</p>
+<p>Li L, Chen H, Liu P, Jia Z. National divergence in cardio-kidney-metabolic syndrome burden and implications for health policy: a global burden of disease analysis with projections to 2050. Front Public Health. 2026;14:1858041.</p>
 </div>
 </details>
 </div>
