@@ -197,7 +197,7 @@ VectBox Sync: a web application for vectorcardiographic analysis of
 ventricular synchrony from 12-lead electrocardiograms
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.09.26367663
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367663
 </p>
 </header>
 <div class="mc-main">
@@ -321,8 +321,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -672,9 +673,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -696,7 +701,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -711,9 +717,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -726,13 +750,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -752,6 +779,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -759,12 +792,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -865,6 +904,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -884,6 +943,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1139,19 +1233,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1261,6 +1437,84 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>We introduce VectBox Sync, a browser-based application that implements a published vectorcardiographic (VCG) dyssynchrony index for exploratory assessment of ventricular electrical synchrony from the 12-lead electrocardiogram (ECG). Despite guideline-directed patient selection, a substantial fraction of patients who receive cardiac resynchronization therapy (CRT) do not obtain the expected benefit. QRS duration and morphology remain the principal electrical criteria, yet they do not capture the three-dimensional trajectory of ventricular activation. VectBox Sync prioritizes native digital ECG recordings, including matrices and common clinical and research waveform formats; optional manufacturer-PDF import and externally digitized numerical files extend access when paper-like archives are the only available source. After optional preprocessing, the user selects a QRS interval, and the application calculates the dyssynchrony index relative to a calibrated control cutoff. It also provides companion VCG descriptors (voltage and speed integrals, loop angles, and planarity), together with VCG trajectories, synchrony-field maps, and a multilingual PDF report. Labeled conditions from the same session can be overlaid for comparison, for example across successive pacing settings. VectBox Sync makes this VCG-based assessment accessible through an integrated web application, providing quantitative descriptors that complement conventional ECG criteria. The application is available at https://vectbox.com/sync for research and educational use.</p>
+<h3>1 Introduction</h3>
+<p>Ventricular electrical dyssynchrony is a key factor in cardiac remodeling and in predicting response to cardiac resynchronization therapy (CRT). Despite guideline-directed selection, a substantial proportion of patients undergoing CRT do not achieve the expected clinical benefit [1]. 1 Beyond QRS duration and morphology on the standard 12-lead electrocardiogram (ECG), vectorcardiographic (VCG) descriptors summarize the spatial evolution of ventricular activation and can support quantitative synchrony assessment [2], including the three-dimensional QRS area [3, 4] and other metrics linked to CRT response [5]. Under normal conduction, ventricular depolarization is a relatively conserved space-time process: differences in the amount of electrically involved myocardium mainly change the scale of the cardiac vector rather than its activation trajectory. Voltage-time and speed-time integrals of that vector (VTI and STI) are then expected to co-scale, so their relationship is approximately preserved. Conduction disease changes the sequence of activation, not merely its amplitude; VTI and STI can then change differentially, and we proposed the deviation from the normal VTI-STI relationship as a dyssynchrony index: a global descriptor of that organizational change, complementary to QRS duration [2].</p>
+<p>That index was computed in our previous work with an internal analysis pipeline. VectBox Sync is a hosted web technology that makes the same workflow usable outside our laboratory, without local software installation. Its present use is exploratory research and teaching in that clinical setting: load a digital 12-lead ECG, select a QRS segment interactively, obtain the index and companion VCG descriptors with visualization, optionally compare labeled conditions from the same session, and export a reproducible report. Native digital files are preferred; when only printouts exist, users may digitize with validated external tools [6] [7] [8] or use VectBox Sync&#x27;s optional PDF path for common manufacturer layouts.</p>
+<p>This Technical article describes the technology, its development lineage, how it is used, its intended clinical and research role and limits, current problems, and planned developments.</p>
+<h3>2 History of development</h3>
+<p>We previously reported a VCG-based ventricular dyssynchrony index and a control-population cutoff for exploratory interpretation [2]. That analysis pipeline, implemented in MATLAB as well as in Python, already returned the index, companion VCG descriptors, and synchrony maps. In this article, we present VectBox Sync, a hosted browser application, to make the same method easier to use more widely without any installation. The application presented here is the first web version: it accepts native digital recordings and, optionally, manufacturer PDFs, and the analysis ends with a multilingual PDF report.</p>
+<h3>3 Description</h3>
+<h3>3.1 Architecture and how it is used</h3>
+<p>VectBox Sync is a hosted web application that delivers an end-to-end VCG synchrony pipeline (Figure 1a): a browser single-page client at /sync, a FastAPI backend over HTTPS, and containerized deployment (Docker Compose with TLS termination). The backend orchestrates multi-format import, optional preprocessing, Kors-based VCG reconstruction, synchrony analysis, and PDF report generation. Uploaded files are processed in memory; they are not retained server-side in the default guest workflow. Session continuity may be kept locally in the browser under the user&#x27;s control.</p>
+<p>Figure 1b shows the path from 12-lead ECG acquisition to a digital file and browser analysis on a laptop or phone. A typical session follows the steps in Figure 1a: (i) upload a digital ECG or optional manufacturer PDF; (ii) parse/extract to an N ×12 matrix (mV); (iii) optionally average beats and/or filter; (iv) select a QRS interval on an interactive 12-lead viewer; (v) compute the dyssynchrony index, companion VCG descriptors, trajectories, and synchrony-field maps; (vi) optionally retain the result as a labeled condition and repeat under another recording from the same session; (vii) download a multilingual PDF report. Native digital files are faster; a manufacturer PDF is the slowest input path and typically takes about 1-3 minutes from upload through report for a user already familiar with the interface. Atypical PDFs (raster scans or non-standard page geometry, for example several traces on one page) open an assisted gridconfirmation step that can prolong analysis time. The live application is at https://vectbox.com/sync.</p>
+<h3>3.2 Inputs</h3>
+<p>Preferred inputs already contain numerical samples (Table 1). All accepted files are normalized to a common internal matrix (N samples × 12 leads in mV; resampled to 1000 Hz when required). Matrices produced by external digitizers (.txt, .csv, or NumPy) are first-class inputs.</p>
+<h3>Category</h3>
+<p>Extensions / encoding Notes Optional PDF loading routes among common layouts (Table 2) using vector-first extraction when possible. Embedded digital payloads (e.g. DICOM/XML attachments) are preferred over ink reconstruction. When a continuous full-width rhythm strip is present on a non-simultaneous grid, it is digitized with per-lead time offsets to enable BIIXC averaging (below). Photograph/screenshot digitization is out of scope; a quality-assurance (QA) overlay supports visual review of PDF extraction (Figure 2). When automatic layout detection is uncertain-raster PDFs or non-standard page geometry-an assisted extraction view lets the user confirm the layout and adjust the lead grid before analysis.</p>
+<h3>Layout</h3>
+<p>Simultaneous leads Averaging</p>
+<p>Table 2: Compatible PDF layouts. with quality gates (beat counts, active leads, template correlation). Optional filters include bandpass, baseline wander removal, mains notch, and respiration-band suppression.</p>
+<h3>3.3 Preprocessing</h3>
+<h3>3.4 Synchrony analysis and reporting</h3>
+<p>On a user-selected sample interval, VectBox Sync reconstructs XYZ leads with the Kors transform [10] and computes the published dyssynchrony index [2], returning the scalar index relative to the calibrated control cutoff, X-Y and X-Z projections (Figure 3a, top left and top right), vector magnitude and vector displacement speed (Figure 3a, bottom left and bottom right), two derived maps (Figure 3b), and a multilingual PDF report (English, Spanish, Portuguese, German, French, Italian, Chinese, and Russian). The same view and report also list companion QRS-loop descriptors: the voltage-time integral of spatial vector magnitude (VTI), analogous to QRS area [3, 4], and the speed-time integral of spatial vector displacement speed (STI), which are the coordinates from which the index is derived; frontal and horizontal VCG angles; and a planarity scalar (unity for a perfectly planar loop). These companion quantities are descriptive loop-geometry outputs, not additional validated CRT-response classifiers. Analysis is refused for non-simultaneous data that have not been averaged. The dyssynchrony field is a polar (bullseye) view of the same index (Figure 3b, left panel): radius is the perpendicular distance from the patient&#x27;s voltage-speed (VTI-STI) coordinates to the control-population line, so the center corresponds to that relationship and larger radii to greater deviation. Color runs from green (below the cutoff) through yellow (at the cutoff) to red (above it); angular position encodes where the point lies along, and on which side of, the control line. In this framework the control line is the empirical expression of a conserved scale relationship (see Section 1). The index does not claim to measure delay between individual myocardial regions; it quantifies how far global ventricular electrical dynamics depart from the organized-normal VTI-STI relation [2]. A pure amplitude (scale) change should move a point along the line; a change in activation sequence should displace it off the line.</p>
+<p>The quadrant map plots the index against VTI (Figure 3b, right panel). Index and VTI thresholds organize four exploratory regions, drawn as a continuous contour map rather than four hard rectangles, and labeled by high versus low VTI and high versus low index. The regions are descriptive, not a validated CRT-response classifier.</p>
+<p>Within a session, successive analyses can be kept as labeled conditions and overlaid on the dyssynchrony field and quadrant maps, with a summary table in the PDF report. Intended exploratory uses include comparing left-ventricular lead sites or pacing vectors during CRT implant work-up, and comparing device settings after a CRT system has been implanted. The overlay displays electrical-synchrony differences across conditions; it does not prescribe lead placement or programming.</p>
+<h3>3.5 Technical validation</h3>
+<p>De-identified sample recordings were processed end to end to confirm that native digital files and optional manufacturer PDFs load across several formats and that, after QRS selection, the pipeline returns a finite dyssynchrony index and VCG outputs. Where averaging was used, averaging quality checks (beat counts, active leads, and template correlation) were also verified. As a secondary check of optional PDF loading, de-identified raw-data recordings were paired with manufacturer PDF exports of the same source in four common page layouts (12×1, 6×2, 3×4, and 6×2 sequential with a rhythm strip). After vector extraction, each PDF matrix was compared with its originating raw data (Pearson correlation and RMSE after subtracting each lead&#x27;s mean (demeaning), summarized as the median across the twelve leads). Agreement is summarized in Table 3</p>
+<h3>4 Clinical role</h3>
+<p>Guideline-directed CRT selection still leaves a substantial non-responder fraction [1], and QRS morphology alone does not fully capture the spatial and temporal complexity of ventricular activation [2]. Two recordings can share similar QRS duration and/or QRS area yet differ in the space-time organization of the vector trajectory; our index is aimed at that organizational difference. Moreover, the same space-time organization of depolarization may not be equally effective in two hearts with different distributions of viable myocardium (e.g., ischemic scar). There is therefore a clinical research need for reproducible, quantitative electrical-synchrony measures that go beyond duration and pattern reading-for exploratory candidate characterization, teaching of spatial activation concepts, and hypothesis-generating comparisons with imaging or device data [2] [3] [4] [5].</p>
+<p>In practice, applying such VCG-derived indices usually requires local scripts or ad hoc analysis workflows. Open-source desktop packages can already take a digital 12-lead ECG through automated VCG construction and measurement [11]. VectBox Sync is a hosted, install-free delivery layer for the published dyssynchrony method [2]: centers can apply the same Kors-based workflow and reference cutoff without re-implementing reconstruction, QRS selection, maps, or reporting. It complements, rather than replaces, standard ECG interpretation, imaging-based mechanical dyssynchrony assessment, device interrogation, and other electrical-dyssynchrony markers studied in CRT populations, including QRS area [3, 4] and related VCG measures [5]. Relative to dedicated digitization systems [6] [7] [8], its contribution is not superior ink recovery but end-to-end synchrony analysis on digital inputs, with PDF import only as a convenience path. Intended uses include standardized multicenter application of the index, VCG synchrony teaching, exploratory contrasts with QRS duration, morphology, or imaging markers, and withinsession comparison of pacing conditions (candidate left-ventricular sites or post-implant optimization). Broader clinical adoption will require prospective outcome studies and external validation beyond this Technical article. VectBox Sync is a research and teaching aid; it does not replace clinical judgment.</p>
+<h3>5 Current problems</h3>
+<p>Several limitations currently affect the applicability of the software and will need to be addressed in future work. The scientific validity of the dyssynchrony index rests on the prior publication [2]; this article does not redefine the metric or report new clinical outcomes, and external validation of the web-computed index in independent cohorts remains outstanding. More generally, VCG amplitude-and area-based parameters can be sensitive to heart-torso geometry and electrode placement [12]. The Sync dyssynchrony index, however, measures deviation from the control voltage-speed (VTI-STI) relationship rather than absolute amplitude or area alone. Under the scale argument above, a change in electrically involved myocardium or in volume-conductor gain should move a point along that line rather than off it; we previously argued that the resulting deviation is therefore likely relatively independent of non-synchrony factors such as cardiac mass and the electrical properties of non-cardiac intrathoracic tissue (volume-conductor effects) [2]. Absolute voltage-or area-derived quantities shown alongside the index should still be read with geometry and electrode-placement caveats in mind. Photograph or screenshot digitization is not supported. Raster manufacturer PDFs are handled by assisted grid confirmation rather than fully automatic vector extraction; very low-resolution scans may still fail, in which case users may obtain numerical data with validated digitizing tools and upload the resulting matrix [6] [7] [8]. On non-simultaneous printouts without a usable rhythm strip, averaging falls back to a per-lead strategy that does not restore inter-lead timing; BIIXC is used when the strip is available [9]. Closed-source distribution limits third-party code audit, mitigated by interactive review, optional QA overlays for PDF inputs, and the algorithmic description herein. The present interface is interactive and case-wise, and the hosted service does not provide longitudinal cloud archives by default; continuity relies on local browser storage and user-held PDF/CSV exports.</p>
+<h3>6 Future developments</h3>
+<p>Planned developments include broader clinical validation of the web-computed index against imaging and therapy-response endpoints, expansion of suite tools beyond Sync, and continued hardening of multi-format import for real-world digital ECGs. Prospective clinical studies correlating the index with CRT response and hard clinical outcomes will be essential to establish its clinical utility and assess its potential relevance to clinical guidelines.</p>
+<h3>7 Conclusion</h3>
+<p>VectBox Sync provides a web-based, end-to-end implementation of our previously reported VCGbased ventricular synchrony analysis for 12-lead ECGs [2], prioritizing native digital ECG inputs while also supporting manufacturer-provided PDFs and externally digitized waveform matrices. The application is available at https://vectbox.com/sync for research and educational use. Technical validation included end-to-end testing with de-identified sample recordings and assessment of waveform agreement between paired raw-data and PDF recordings (Table 3). Prospective clinical validation will be required to establish its performance in clinical settings.</p>
+<p>Funding. This Technical article received no external funding; costs were met from the authors&#x27; own resources.</p>
+<h3>Data availability.</h3>
+<p>De-identified validation figures will be made available upon reasonable request or as supplementary material. Uploaded user recordings are not retained on the server.</p>
+<h3>Software availability.</h3>
+<p>VectBox Sync is accessible at https://vectbox.com/sync (suite landing: https://vectbox.com). The implementation is proprietary; algorithmic details are specified in this article.</p>
+<h3>Conflicts of interest.</h3>
+<p>The authors declare no conflicts of interest.</p>
+<h3>Declaration of generative AI and AI-assisted technologies in the manuscript preparation process</h3>
+<p>During the preparation of this work the authors used Cursor in order to revise the wording and organization of the manuscript. After using this tool, the authors reviewed and edited the content as needed and take full responsibility for the content of the published article.</p>
+<p>Author contributions. R. Goldman: writing-review and editing; software testing. D. Spagnuolo: writing-review and editing; electrophysiology consultation. O. Chara: conceptualization of the dyssynchrony index; writing-review and editing. J. Fernández: conceptualization of the dyssynchrony index; design and implementation of the analysis pipeline; writing-original draft. All authors approved the final manuscript.</p>
+<h3>Declarations</h3>
+<p>Ethics approval. Not applicable: this manuscript describes software and technical validation on de-identified test recordings; no prospective human subjects data were collected for this study.</p>
+<h3>Figure 1 :</h3>
+<p>Figure 1: (a) End-to-end VectBox Sync pipeline in the hosted web application. Hosting is summarized in the top strip. Solid path: single-recording analysis. Dashed: optional withinsession comparison of labeled conditions (for example CRT implant sites or device settings). (b) From 12-lead ECG acquisition to a digital file and browser analysis (extraction, optional QRS averaging, Kors VCG reconstruction, and the ventricular dyssynchrony index) on a laptop or phone at vectbox.com/sync.</p>
+<h3>Figure 2 :</h3>
+<p>Figure 2: (a) QA overlay for PDF extraction from a vectorized 12×1 manufacturer PDF: blue marks the original ink and red the recovered trace. The rectangle marks the lead-II P-QRS-T window shown in (b) source PDF and (c) extracted polyline in the same pixel window without grid.</p>
+<h3>Figure 3 :</h3>
+<p>Figure3: Representative Sync PDF-report panels from a de-identified clinical recording: (a) X-Y and X-Z projections, vector magnitude, and vector displacement speed over the selected QRS window. Color on the two projections encodes time within that window, from its onset (0 ms) to its end, and the magnitude and speed axes use that same millisecond scale (1000 Hz; one sample = 1 ms); (b) dyssynchrony field (bullseye) and index-VTI quadrants. In both maps the black marker is the patient&#x27;s location. Quadrant labels name high versus low VTI and high versus low index; they are exploratory descriptors, not a validated CRT-response classifier.</p>
+<h3>Table 1 :</h3>
+<p>Input formats accepted by VectBox Sync by the date of submission.</p>
+<h3>Table 3 :</h3>
+<p>.</p>
+<p>On simultaneous recordings, optional beat averaging aligns each beat to the peak of the spatial vector magnitude (SVM), the instantaneous length of the three-dimensional cardiac vector. If that peak cannot be detected, alignment uses R peaks on lead II instead. An optional control on lead I allows users to include or exclude individual beats from the average. All detected beats are included by default, and any beat that would make the average unrepresentative can be left out. Pre-/post-R window lengths scale with median RR (approximately 0.38 RR before and 0.55 RR after R), capped to exclude neighbouring QRS complexes; the averaged beat is trimmed by default to the P-QRS-T triad plus short isoelectric margins.On non-simultaneous printouts, averaging is required before analysis. If a usable rhythm strip is available, VectBox Sync applies BIIXC[9]; otherwise it falls back to per-lead averaging</p>
+<h3>References</h3>
+<p>Claude Daubert, Nathalie Behar, Raphaël P. Martins, Philippe Mabo, and Christophe Leclercq. Avoiding non-responders to cardiac resynchronization therapy: a practical guide. European Heart Journal, 38(19):1463-1472, 2017. doi: 10.1093/eurheartj/ehw270.</p>
+<p>Juan M. F. Fernández, Damián N. Spagnuolo, María T. Politi, Iván A. Tello San- tacruz, Miguel Schiavone, César Cáceres Monié, Horacio A. Avaca, and Osvaldo Chara. Vectorcardiography-derived index allows a robust quantification of ventricular electrical synchrony. Scientific Reports, 12(1):9961, 2022. doi: 10.1038/s41598-022-14000-8.</p>
+<p>Caroline J. M. van Deursen, Kevin Vernooy, Elton Dudink, Lennart Bergfeldt, Harry J. G. M. Crijns, Frits W. Prinzen, and Liliane Wecke. Vectorcardiographic QRS area as a novel predictor of response to cardiac resynchronization therapy. Journal of Electrocardiology, 48 (1):45-52, 2015. doi: 10.1016/j.jelectrocard.2014.10.003.</p>
+<p>Antonius M. W. van Stipdonk, Iris ter Horst, Marielle Kloosterman, Elien B. Engels, Michiel Rienstra, Harry J. G. M. Crijns, Marc A. Vos, Isabelle C. van Gelder, Frits W. Prinzen, Mathias Meine, Alexander H. Maass, and Kevin Vernooy. QRS area is a strong determinant of outcome in cardiac resynchronization therapy. Circulation: Arrhythmia and Electrophys- iology, 11(12):e006497, 2018. doi: 10.1161/circep.118.006497.</p>
+<p>Larisa G. Tereshchenko, Alan Cheng, Jason Park, Nicholas Wold, Timothy E. Meyer, Michael R. Gold, Suneet Mittal, Jagmeet Singh, Kenneth M. Stein, and Kenneth A. Ellenbo- gen. Novel measure of electrical dyssynchrony predicts response in cardiac resynchronization therapy: Results from the SMART-AV trial. Heart Rhythm, 12(12):2402-2410, 2015. doi: 10.1016/j.hrthm.2015.08.009.</p>
+<p>Julian D. Fortune, Natalie E. Coppa, Kazi T. Haq, Hetal Patel, and Larisa G. Tereshchenko. Digitizing ECG image: A new method and open-source software code. Computer Methods and Programs in Biomedicine, 221:106890, 2022. doi: 10.1016/j.cmpb.2022.106890.</p>
+<p>Anthony Demolder, Viera Krešňáková, Michal Hojcka, Vladimír Boža, Andrej Iring, Adam Rafajdus, Simon Rovder, Timotej Palus, Martin Herman, Felix Bauer, Viktor Jurasek, Robert Hatala, Jozef Bartunek, Boris Vavrik, and Robert Herman. High precision ECG digitization using artificial intelligence. Journal of Electrocardiology, 90:153900, 2025. doi: 10.1016/j.jelectrocard.2025.153900.</p>
+<p>Mohammed Baydoun, Lise Safatly, Ossama K. Abou Hassan, Hassan Ghaziri, Ali El Hajj, and Hussain Isma&#x27;eel. High precision digitization of paper-based ECG records: A step to- ward machine learning. IEEE Journal of Translational Engineering in Health and Medicine, 7:1-8, 2019. doi: 10.1109/JTEHM.2019.2949784.</p>
+<p>Elisa Ramírez, Samuel Ruipérez-Campillo, Francisco Castells, Rubén Casado-Arroyo, and José Millet. Novel synchronization method for vectorcardiogram reconstruction from ECG printouts: A comprehensive validation approach. Biomedical Signal Processing and Control, 91:106027, 2024. doi: 10.1016/j.bspc.2024.106027.</p>
+<p>Jan A. Kors, Gerard van Herpen, A. C. Sittig, and Jan H. van Bemmel. Reconstruc- tion of the Frank vectorcardiogram from standard electrocardiographic leads: diagnostic comparison of different methods. European Heart Journal, 11(12):1083-1092, 1990. doi: 10.1093/oxfordjournals.eurheartj.a059647.</p>
+<p>Hans Friedrich Stabenau and Jonathan W. Waks. BRAVEHEART: Open-source software for automated electrocardiographic and vectorcardiographic analysis. Computer Methods and Programs in Biomedicine, 242:107798, 2023. doi: 10.1016/j.cmpb.2023.107798.</p>
+<p>Uyên Châu Nguyên, Mark Potse, François Regoli, Maria Luce Caputo, Giulio Conte, Romina Murzilli, Stefano Muzzarelli, Tiziano Moccetti, Enrico G. Caiani, Frits W. Prinzen, Rolf Krause, and Angelo Auricchio. An in-silico analysis of the effect of heart position and orientation on the ECG morphology and vectorcardiogram parameters in patients with heart failure and intraventricular conduction defects. Journal of Electrocardiology, 48(4): 617-625, 2015. doi: 10.1016/j.jelectrocard.2015.05.004.</p>
 </div>
 </details>
 </div>
