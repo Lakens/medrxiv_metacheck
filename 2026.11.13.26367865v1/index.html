@@ -196,7 +196,7 @@ PSEN1 loss-of-function variants do not cause early-onset Alzheimer’s
 disease
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.13.26367865
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.13.26367865
 </p>
 </header>
 <div class="mc-main">
@@ -320,8 +320,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -671,9 +672,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -695,7 +700,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -710,9 +716,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -725,13 +749,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -751,6 +778,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -758,12 +791,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -864,6 +903,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -883,6 +942,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1138,19 +1232,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1260,6 +1436,89 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>PSEN1 variants are the most common cause of familial early-onset Alzheimer&#x27;s disease (EOAD), but it is debated whether they act through a loss-or gain-of-function. Following a recent report of a duo with EOAD carrying a predicted loss-of-function (LoF) stop-gain variant (p.K109*) in PSEN1, we sought to determine whether PSEN1 LoF variants, as a class, cause EOAD. We identified 45 carriers of PSEN1 LoF variants predicted to trigger nonsense-mediated decay in the Alzheimer&#x27;s Disease Sequencing Project, UK Biobank, and BioVU databases. None of these carriers had a recorded diagnosis of early-onset dementia, and 17 were older than 65 years at last follow-up with no dementia or AD reported. Re-analysis of the reported ADassociated variant p.K109* revealed a cryptic splice site predicted to produce an in-frame deletion of 5 amino acids (p.K109_L113del). These results suggest that PSEN1 variants must produce an altered PSEN1 protein product to cause EOAD, while true null LoF PSEN1 alleles do not cause EOAD.</p>
+<h3>Main Text</h3>
+<p>The presenilin proteins are central in Alzheimer&#x27;s disease (AD). Together, PSEN1 and PSEN2 contain most of the identified mutations in familial AD (FAD), and their protein products serve as the catalytic subunits of the γ-secretase complex responsible for amyloid precursor protein (APP) cleavage and amyloid-β (Aβ) production [1] [2] [3] . Most pathogenic PSEN1 variants associated with FAD are missense mutations, with typical ages of onset ranging from 30-50 years and near complete penetrance 4 . However, it remains debated whether abnormal presenilin activity in AD is best understood as a gain of toxic function (GoF) or a loss of normal function (LoF). This ambiguity has hindered our mechanistic understanding of AD and the development of effective therapeutics.</p>
+<p>Because cleavage of APP by γ-secretase produces Aβ, proponents of the amyloid hypothesis of AD initially argued that PSEN1 mutations were gain-of-function, increasing the production of aggregation-prone Aβ42 5, 6 . However, studies of additional FAD PSEN1 mutations demonstrated that many actually impaired γ-secretase-dependent APP processing, decreasing production of both Aβ42 and Aβ40 7 . The ratio of Aβ42/Aβ40, or long to short Aβ products more generally, can be a strong predictor of mutation age-at-onset in FAD 8, 9 ; this supports the idea that PSEN1 mutations may drive disease by altering the enzymatic properties of γ-secretase, for example by shifting production towards longer Aβ peptides. However, it remains unclear whether these changes in Aβ processing are best understood as a gain or loss of PSEN1 function.</p>
+<p>More than 300 PSEN1 mutations, present at more than 20% of its amino acid residues, have been linked to FAD. This diffuse distribution is evocative of a LoF mechanism 10 . PSEN1 proteins with FAD mutations show reduced ability to rescue the effects of PSEN1-homolog knockouts in C. elegans and Drosophila, suggesting impairment of endogenous PSEN1 function 1 . Mice with conditional PSEN1 deletion show progressive memory loss, synaptic and neuronal loss, astrogliosis, and tau hyperphosphorylation without amyloid accumulation 1 , linking PSEN1 loss of function to neurodegeneration independent from effects on amyloid processing. Loss of amyloid-independent PSEN1 functions like Notch cleavage, calcium signaling, autophagy, or lysosomal homeostasis have thus been proposed to play a role in FAD 11 . However, high-quality reports of variants resulting in gene-level PSEN1 LoF in AD are limited, despite reports linking these mutations to other phenotypes related to loss of γ-secretase function [12] [13] [14] [15].</p>
+<p>A recent report of a father-son duo with early-onset AD (EOAD) harboring a stop-gain variant (K109*) in PSEN1 renewed interest in this critical question and provided some support for the possibility that PSEN1 mutations causing EOAD reflect a loss-of-function mechanism. Both father and son were heterozygous carriers of the K109* variant; the son developed dementia with amyloid-positive PET in his 30s, and the father had dementia in his 40s, with biopsyconfirmed pathology consistent with Alzheimer&#x27;s disease. After functional characterization of the K109* variant in cell and mouse models, the extent to which this variant caused the duo&#x27;s disease, and its potential mechanism, remained unclear 16.</p>
+<p>To understand whether gene-level PSEN1 LoF variants are causal for AD, we systematically searched for carriers of LoF variants in large clinical and population genetic databases: the Alzheimer&#x27;s Disease Sequencing Project (ADSP), which provides high-quality phenotyping for neurodegeneration including clinical and biomarker assessments, and population biobanks including UK Biobank (UKB), the All of Us Research Program (AoU), and Vanderbilt&#x27;s BioVU database, which together provide electronic health record data for over 1.1 million participants.</p>
+<p>We identified 58 individuals in the ADSP, UKB, and BioVU databases with 42 unique variants annotated as high confidence loss-of-function variants by LOFTEE 17 (Supplementary Tables 1 and 2). This included 6 splice variants affecting a splice donor or acceptor, and 36 frameshift and stop-gain variants. Two of the frameshift or stop-gain variants led to a premature stop in the last exon of PSEN1, likely resulting in a truncated protein that escapes nonsense-mediated decay 18 . Additionally, splice variants may lead to production of an altered protein that otherwise retains the wild-type reading frame 19 . To focus on true genetic LoF mutations, in which no or minimal protein is produced by the mutant allele, we considered only the 34 frameshift or stopgain mutations that were predicted to lead to nonsense-mediated decay as high-confidence LoF mutations.</p>
+<p>Of the 45 individuals carrying high-confidence PSEN1 LoF mutations, none had early-onset dementia. 42 individuals remained dementia-free through their last assessment, including 17 carriers who were observed past age 65 (Figure 1). Although 3 individuals had diagnoses of dementia past the age of 65, their onset ages are more similar to individuals with sporadic, lateonset dementia than the early onset observed in carriers of familial PSEN1 variants. We also identified fewer than 20 carriers of PSEN1 LoF mutations in the AoU database; while specific findings could not be disclosed under AoU data dissemination policies, the observed phenotypes were consistent with our conclusions. With the notable numbers of healthy, dementia-free individuals observed at older ages carrying high-confidence PSEN1 LoF mutations, these mutations as a class are unlikely to cause FAD.</p>
+<p>We also examined the phenotypes of the 13 individuals carrying mutations that may lead to the production of alternatively spliced or truncated PSEN1 protein (Figure 2, Supplementary Table 3). Of these individuals, 6 had early-onset mild cognitive impairment (MCI) or EOAD, with disease onset before age 65. All early-onset cases were splice variant carriers at the exon 9 acceptor site (14:73206385:G:A and 14:73206385:G:T). Three carriers of the G&gt;A variant were family members, as were two carriers of the G&gt;T variant; the third G&gt;T carrier was unrelated. These variants have been previously shown to cause familial AD. They result in in-frame skipping of exon 9 and produce a shortened, 438 amino acid protein product, with modified functions including amyloid processing and proteolytic cleavage 20 . Six other carriers of splice or truncation mutations had no diagnoses of MCI, AD, or dementia, while one individual, carrying a splice donor variant (14:73198130:G:C) predicted to result in in-frame skipping of exon 8, had MCI in her 70s. Thus, specific mutations that produce altered PSEN1 protein, including in-frame splice variants, may cause FAD, but these mutations are distinct from gene-level loss of function mutations.</p>
+<p>Given our finding that high confidence PSEN1 LoF mutations are unlikely to cause EOAD, we revisited the reported case of the father-son duo with EOAD harboring the exon 4 stop-gain mutation (K109*). We searched the son&#x27;s genome for additional variants that could explain the phenotype but did not identify any additional rare variants likely to cause EOAD. As this duo&#x27;s clinical features were clearly reminiscent of PSEN1 FAD, including onset in the 30s to 40s and substantial amyloid deposition in the basal ganglia 21 observed in the son&#x27;s amyloid PET scan, we re-evaluated the K109* mutation (c.325A&gt;T, Figure 3A) to ensure it was a true stop-gain loss of function mutation. Surprisingly, AlphaGenome predicted that the A&gt;T mutation creates a cryptic splice site donor at c.323, 15 nucleotides before the canonical exon 4 splice donor at c.338 (Figure 3B). Three sequence-based splicing predictors all supported increased use of this cryptic donor and decreased use of the canonical exon 4 donor for the alternate allele (Figure 3C).</p>
+<p>Although the K109* mutation may lead to a premature stop codon and nonsense mediated decay in a fraction of the PSEN1 mRNA produced by carriers of this mutation, a significant fraction of PSEN1 mRNA with the c.325A&gt;T mutation likely undergoes alternative splicing, removing 5 amino acids (p.K109_L113del) from the full-length protein, including the newly created stop codon (Figure 3D). This alternatively spliced mRNA would escape nonsense mediated decay and likely create a full-length protein product. Interestingly, the 5 amino acids removed by the cryptic splice site include sites previously linked to familial AD 22, 23 , suggesting that this alternatively spliced PSEN1 could act through similar mechanisms as known PSEN1 missense mutations.</p>
+<p>We reviewed our other high-confidence PSEN1 LoF mutations to determine whether any others may escape their loss of function effect through alternative splicing. Only one other mutation (a 68 base pair frameshift insertion at 14:73148090) had a SpliceAI predicted score over 0.5, the default cutoff for predicted splicing effects (Supplementary Table 4). The predicted use of a cryptic donor inside the insertion, rather than the canonical exon 3 donor, removes the frameshift, leading to an in-frame but altered protein product (p.N24_Q29delinsK). As this variant was only carried by one individual, observed as healthy into his 40s, it is unclear whether it leads to early-onset dementia. Overall, while certain mutations in PSEN1 that create altered PSEN1 protein may cause EOAD, true genetic LoF mutations, in which a frameshift or stop-gain in the mutated allele leads to nonsense mediated decay, appear not to cause EOAD.</p>
+<p>The case of the PSEN1 K109* variant presents a cautionary tale, illustrating that alternative splicing may be key to interpreting the effects of high-impact variants. Although the K109* variant was experimentally studied in two model systems, both designs inadvertently prevented the detection of alternative splicing events: the cell model used overexpression of PSEN1 cDNA lacking introns, and the gene editing strategy used to create a mouse K109* mutation also included a synonymous c.324G&gt;T mutation to aid in genotyping, which did not affect the K109* protein product but eliminated the GT motif at the cryptic splice site 16.</p>
+<p>Interestingly, a 1998 study of two autopsy-confirmed EOAD cases had previously claimed to identify a frameshift variant leading to premature truncation of the PSEN1 protein, providing what they argued was the first LoF mutation supporting a haploinsufficiency mechanism for PSEN1 in EOAD 24 . However, further mechanistic characterization revealed that an alternatively spliced protein with a single amino acid insertion (p.L113_I114insT) was in fact responsible for the disease phenotype 22 . Combined, these two cases illustrate both that novel PSEN1 FAD mutations identified as LoF are more likely to be in-frame splice isoforms, and that more generally, apparent nonsense or truncation mutations should be carefully screened for alternative splicing consequences 25, 26 . Recent work suggests that approximately 1 in 175 annotated nonsense variants may escape NMD through manufactured splice rescue 26 . PSEN1-mediated FAD seems to require production of an altered PSEN1 protein product. This is consistent with a toxic gain-of-function intrinsic to the mutant protein, such as alterations in APP processing that change the profile of Aβ peptides produced. While not examples of gene-level loss-of-function, these alterations could also be understood as a partial loss of normal function at the biochemical level, with impaired ability of γ-secretase to trim longer Aβ intermediates into shorter peptide species as one example 27 . An additional possibility is a dominant negative effect, in which the mutant protein interferes with the activity of wild-type PSEN1 1, 28 ; however, the existence of direct physical interactions between wild-type and mutant PSEN1 has been contested 29.</p>
+<p>Overall, our observation of numerous carriers of gene-level PSEN1 LoF mutations over the age of 65 without documented dementia suggests that this class of variants is not a Mendelian cause of early-onset Alzheimer&#x27;s disease. It is unlikely that PSEN1-mediated FAD is caused by PSEN1 haploinsufficiency; a single wild type PSEN1 allele appears sufficient to carry out ADrelevant PSEN1 functions. These findings provide a mechanistic rationale for pursuing alleleselective suppression of mutant PSEN1 in FAD, using approaches such as antisense oligonucleotides or siRNA. The apparent tolerance of heterozygous PSEN1 nonsense mutations in humans supports the potential of selectively targeting mutant PSEN1, while preserving wildtype allele expression, as a viable therapeutic strategy for PSEN1-mediated FAD. Figure 1: PSEN1 high confidence LoF mutation carriers in ADSP, BioVU, and UKB. Each marker represents one carrier (n = 45) of a frameshift or stop-gain PSEN1 variant predicted to lead to NMD, drawn at the variant&#x27;s position along the PSEN1 coding sequence. Controls (amber) are plotted above the gene at their age at last visit, and cases below the gene at their age at onset of AD (navy) or dementia (blue). Cases are labeled with their APOE genotype. Ages are grouped into 10-year bins to protect patient privacy.</p>
+<h3>Methods</h3>
+<h3>Cohorts</h3>
+<h3>Alzheimer&#x27;s Disease Sequencing Project (ADSP)</h3>
+<p>The Alzheimer&#x27;s Disease Sequencing Project is a National Institute on Aging-funded collaborative initiative that integrates genetic and phenotypic data from multiple wellcharacterized, ethnically diverse cohorts of individuals with Alzheimer&#x27;s disease and related dementias, as well as cognitively healthy controls, to investigate the genetic architecture of disease susceptibility and resilience. We analyzed WGS and WES data from the ADSP release 5, comprising 58,507 genomes from 67 contributing cohorts hosted at NIAGADS 30 . Sample relatedness was assessed using KING v2.3.55. MCI and AD diagnoses were made according to ADSP criteria, supported by clinical assessment and, where available, AD biomarkers and/or neuropathological confirmation.</p>
+<h3>UK Biobank (UKB)</h3>
+<p>The UK Biobank is a large, prospective, population-based cohort study of individuals aged 40-69 years recruited across England, Scotland, and Wales between 2006 and 2010, with extensive longitudinal data on participants&#x27; health, lifestyle, environmental exposures, genetics, and linked medical records. Whole-exome sequencing (WES) data were available for 454,787 UKB participants as described previously 31 . We defined last known age as the age at last visit to a UKB assessment center; many individuals had non-dementia ICD codes recorded after their last visit date, but we chose the more conservative definition of last assessment visit due to the possibility that a dementia diagnosis could be missed during an unrelated hospitalization. We searched for dementia diagnoses using field 42018 (Date of all cause dementia report).</p>
+<h3>BioVU</h3>
+<p>BioVU is Vanderbilt University Medical Center&#x27;s de-identified DNA biobank, comprising biological samples obtained from discarded blood collected during routine clinical care and linked to de-identified electronic health records to facilitate genotype-phenotype association studies. Through the Alliance for Genomic Discovery (AGD), a collaboration between Vanderbilt University Medical Center, Nashville Biosciences, Illumina, and industry partners, wholegenome sequencing was performed on 250,000 BioVU samples 32 . The resulting genomic data are linked to de-identified clinical records through Vanderbilt&#x27;s Synthetic Derivative. AD and dementia diagnoses were assigned using the relevant ICD-9 and ICD-10 codes. Last observed age was computed by subtracting the participant&#x27;s birth date from the date of their most recent ICD code.</p>
+<h3>All of Us Research Program (AoU)</h3>
+<p>The All of Us Research Program is a large-scale, longitudinal cohort study initiated by the National Institutes of Health to enroll over one million participants across the United States, with an emphasis on populations historically underrepresented in biomedical research, collecting comprehensive demographic, clinical, lifestyle, and genomic data to advance precision medicine. We used the v8 WGS release (N = 414,830). We searched for dementia diagnoses by querying EHR tables by concept ID 4182210 (Dementia). Last observed age was computed by subtracting the participant&#x27;s birth date from their most recent EHR code date, including visits, diagnoses, drug exposures, procedures, and deaths.</p>
+<h3>Loss of function variant identification</h3>
+<p>Only variants predicted by LOFTEE 17 to be high-confidence loss of function mutations in PSEN1 were considered. Each variant was annotated with Ensembl VEP through the Ensembl REST API (v116, GRCh38), using the LOFTEE plugin and the HGVS, exon/intron numbering and canonical/MANE options. Only consequences on the canonical PSEN1 transcript were kept (ENST00000324501.10; MANE Select, NM_000021.4; 467 amino acids, 12 exons). gnomAD v4.1 information was queried directly from the gnomAD GraphQL API by variant ID, because the VEP REST frequency fields missed some variants present in gnomAD. Three variants found in gnomAD v4.1 with a FILTER status other than PASS were removed. Additionally, two frameshift insertions located two base pairs apart (14:73170830:A:ACCTT and 14:73170832:A:ACC) were always identified in the same individuals and on the same sequencing reads, suggesting they represent a single insertion event that was split into two variant calls. Because the combined insertion is in-frame, we did not consider these variants to be LoF.</p>
+<p>Variants whose consequences included &quot;frameshift_variant&quot; or &quot;stop_gained&quot; were considered high-confidence LoF (labelled &quot;NMD&quot; in Supplementary Table 2) when they passed LOFTEE&#x27;s 50-bp rule, meaning that the premature termination codon lies more than 50 nt upstream of the last exon-exon junction, so nonsense-mediated decay is expected. Those that failed the rule were labelled &quot;Truncated&quot;, as they are predicted to escape NMD and produce a truncated protein. Variants whose only consequences were &quot;splice_donor_variant&quot; or &quot;splice_acceptor_variant&quot; were considered splice variants.</p>
+<h3>Splice prediction</h3>
+<p>Alternative splicing effects of the K109* variant (chr14:73,171,034:A:T) were predicted using three different models.</p>
+<p>AlphaGenome predictions were obtained from the AlphaGenome API 32 (Python client alphagenome 0.10.0), using the default ALL_FOLDS model (distilled from teacher models trained on all folds). Reference and alternate predictions were generated with predict_variant on a 1,048,576-bp (1 Mb) input interval centered on the variant. We requested the SPLICE_JUNCTIONS and SPLICE_SITE_USAGE outputs, restricted to brain (UBERON:0000955; ENCODE polyA+ RNA-seq). SpliceAI (v 1.3.1) was run with TensorFlow 2.15.1 and Keras 2.15.0 on Python 3.9.6. Per-base acceptor and donor probabilities for each allele were obtained by running the five bundled SpliceAI models on the GRCh38 reference and alternate sequences (5,000 nt of context on each side with a ±50 bp scoring window), following the custom-sequence usage in the SpliceAI documentation, and averaging their outputs as in the command-line tool.</p>
+<p>Pangolin 33 (v 1.0.2) was installed from its GitHub repository and run locally with PyTorch 2.15.0 (Python 3.11). Pangolin&#x27;s standard scores report only the largest change across its four tissues (heart, liver, brain, testis), so we ran the brain P(splice) models directly. The three brain ensemble members (v2 weights) were applied to the GRCh38 reference and alternate sequences (±500 nt around the variant, with 5,000 nt of flanking context on each side, + strand), with outputs averaged across members as performed in Pangolin&#x27;s default scoring.</p>
+<p>All other high-confidence LoF and splice variants were scored with SpliceAI v1.3.1 as described above, and the maximal delta scores (acceptor gain, acceptor loss, donor gain and donor loss), and the position of each affected site relative to the variant, were recorded (Supplementary Table 4). A variant was flagged as potentially splice-altering when its maximum delta score was above 0.5. Potential splice effects were modelled on the canonical PSEN1 transcript: a gain moved the nearest annotated splice site of the same type to the new position, and loss at an annotated site caused that exon to be skipped, unless a gain in the same run replaced the site.</p>
+<p>For high-confidence LoF variants, LoF was considered removed (&quot;Splice_LoF_removed&quot; = yes) when the predicted product rejoined the wild-type reading frame with no premature stop or frameshift. This occurred for exactly one variant (14:73148090:A:AGGTACAGTGTCTGTACTGTACGTACAGCCAGGTACAGTGTCTGTACTGTA CTGTAGTGTACTGTACTG), a frameshift insertion 16 nt before the canonical exon 3 donor. As SpliceAI predicted a loss of the canonical donor and gain of a cryptic donor 1nt into the insertion, the resulting 15nt difference in the predicted spliced RNA would restore the reading frame; thus, alternatively spliced mRNA with this variant would be predicted not to undergo NMD.</p>
+<h3>FiguresFigure 1 :</h3>
+<p>Figures</p>
+<h3>Figure 2 :</h3>
+<p>Figure 2: PSEN1 splice and truncation mutation carriers in ADSP, BioVU, and UKB. Each marker represents one carrier (n = 13) of a PSEN1 splice or truncation variant predicted as LoF by LOFTEE, drawn at the variant&#x27;s position along the PSEN1 coding sequence. Controls (amber) are plotted above the gene at their age at last visit, and cases below the gene at their age at onset of AD (navy) or MCI (light blue). Ages are grouped into 10-year bins to protect patient privacy.</p>
+<h3>Figure 3 :</h3>
+<p>Figure 3: PSEN1 c.325A&gt;T creates a cryptic splice site. A) PSEN1 gene model (GRCh38; ENST00000324501.10 / NM_000021.4) drawn to scale. The K109* variant (chr14:73,171,034:A:T, c.325A&gt;T) is indicated with a red arrow. B) AlphaGenome-predicted splice-junction usage from exon 4 to exon 5 in brain polyA+ RNA-seq (ENCODE, UBERON:0000955). Line width is proportional to the predicted usage value. C) Predicted use of the cryptic (c.323) and canonical (c.338) exon 4 donors from three sequence-based splicing predictors. Y-axis units differ per model: AlphaGenome shows splice-site usage from the same run as B, SpliceAI shows donor probability, and Pangolin shows brain splice-site probability. All three tools predict a gain of the cryptic donor and a loss of the canonical donor. D) mRNA and protein outcomes of the c.325A&gt;T mutation with canonical or cryptic splicing. The A&gt;T mutation turns codon 109 into a TAG stop, leading to nonsense mediated decay with canonical splicing. Cryptic splicing with the new c.323 GT splice site removes the stop, leading to an in-frame 5 amino acid deletion (p.K109_L113del).</p>
+<h3>References</h3>
+<p>Shen, J. &amp; Kelleher, R. J. The presenilin hypothesis of Alzheimer&#x27;s disease: Evidence for a loss-of-function pathogenic mechanism. Proc. Natl. Acad. Sci. 104, 403-409 (2007).</p>
+<p>Cacace, R., Sleegers, K. &amp; Van Broeckhoven, C. Molecular genetics of early-onset Alzheimer&#x27;s disease revisited. Alzheimers Dement. J. Alzheimers Assoc. 12, 733-748 (2016).</p>
+<p>Bagaria, J., Bagyinszky, E. &amp; An, S. S. A. Genetics, Functions, and Clinical Impact of Presenilin-1 (PSEN1) Gene. Int. J. Mol. Sci. 23, 10970 (2022).</p>
+<p>D&#x27;Argenio, V. &amp; Sarnataro, D. New Insights into the Molecular Bases of Familial Alzheimer&#x27;s Disease. J. Pers. Med. 10, 26 (2020).</p>
+<p>Citron, M. et al. Mutant presenilins of Alzheimer&#x27;s disease increase production of 42-residue amyloid β-protein in both transfected cells and transgenic mice. Nat. Med. 3, 67-72 (1997).</p>
+<p>Hardy, J. &amp; Selkoe, D. J. The Amyloid Hypothesis of Alzheimer&#x27;s Disease: Progress and Problems on the Road to Therapeutics. Science 297, 353-356 (2002).</p>
+<p>Sun, L., Zhou, R., Yang, G. &amp; Shi, Y. Analysis of 138 pathogenic mutations in presenilin-1 on the in vitro production of Aβ42 and Aβ40 peptides by γ-secretase. Proc. Natl. Acad. Sci. 114, E476-E485 (2017).</p>
+<p>Schultz, S. A. et al. γ-Secretase activity, clinical features, and biomarkers of autosomal dominant Alzheimer&#x27;s disease: cross-sectional and longitudinal analysis of the Dominantly Inherited Alzheimer Network observational study (DIAN-OBS). Lancet Neurol. 23, 913-924 (2024).</p>
+<p>Tang, N. &amp; Kepp, K. P. Aβ42/Aβ40 Ratios of Presenilin 1 Mutations Correlate with Clinical Onset of Alzheimer&#x27;s Disease. J. Alzheimer&#x27;s Dis. 66, 939-945 (2018).</p>
+<p>Kim, S. D. &amp; Kim, J. Sequence analyses of presenilin mutations linked to familial Alzheimer&#x27;s disease. Cell Stress Chaperones 13, 401-412 (2008).</p>
+<p>Weggen, S. &amp; Beher, D. Molecular consequences of amyloid precursor protein and presenilin mutations causing autosomal-dominant Alzheimer&#x27;s disease. Alzheimers Res. Ther. 4, 9 (2012).</p>
+<p>El Kadmiri, N. et al. Novel presenilin mutations within Moroccan patients with Early-Onset Alzheimer&#x27;s Disease. Neuroscience 269, 215-222 (2014).</p>
+<p>Palmieri, I. et al. PSEN1 Compound Heterozygous Mutations Associated with Cerebral Amyloid Angiopathy and Cognitive Decline Phenotype. Int. J. Mol. Sci. 22, 3870 (2021).</p>
+<p>You, C. et al. Identification and Clinical Analysis of the First Nonsense Mutation in the PSEN1 Gene in a Family With Acute Encephalopathy and Retinitis Pigmentosa. Front. Neurol. 11, (2020).</p>
+<p>Wang, B. et al. γ-Secretase Gene Mutations in Familial Acne Inversa. Science 330, 1065- 1065 (2010).</p>
+<p>Sanjuan-Ruiz, I. et al. The curious case of a heterozygous loss-of-function PSEN1 variant associated with early-onset Alzheimer&#x27;s disease. Mol. Neurodegener. Adv. 1, 4 (2025).</p>
+<p>Karczewski, K. J. et al. The mutational constraint spectrum quantified from variation in 141,456 humans. Nature 581, 434-443 (2020).</p>
+<p>Teran, N. A. et al. Nonsense-mediated decay is highly stable across individuals and tissues. Am. J. Hum. Genet. 108, 1401-1408 (2021).</p>
+<p>Oh, R. Y. et al. A systematic assessment of the impact of rare canonical splice site variants on splicing using functional and in silico methods. HGG Adv. 5, 100299 (2024).</p>
+<p>Steiner, H. et al. The biological and pathological function of the presenilin-1 Deltaexon 9 mutation is independent of its defect to undergo proteolytic processing. J. Biol. Chem. 274, 7615-7618 (1999).</p>
+<p>Villemagne, V. L. et al. High Striatal Amyloid β-Peptide Deposition Across Different Autosomal Alzheimer Disease Mutation Types. Arch. Neurol. 66, 1537-1544 (2009).</p>
+<p>De Jonghe, C. et al. Aberrant splicing in the presenilin-1 intron 4 mutation causes presenile Alzheimer&#x27;s disease by increased Abeta42 secretion. Hum. Mol. Genet. 8, 1529-1540 (1999).</p>
+<p>Finckh, U. et al. Novel mutations and repeated findings of mutations in familial Alzheimer disease. Neurogenetics 6, 85-89 (2005).</p>
+<p>Tysoe, C. et al. A presenilin-1 truncating mutation is present in two cases with autopsy- confirmed early-onset Alzheimer disease. Am. J. Hum. Genet. 62, 70-76 (1998).</p>
+<p>Kornak, U. et al. Alternative splicing of BUD13 determines the severity of a developmental disorder with lipodystrophy and progeroid features. Genet. Med. 24, 1927-1940 (2022).</p>
+<p>Haque, B. et al. Estimating the proportion of nonsense variants undergoing the newly described phenomenon of manufactured splice rescue. Eur. J. Hum. Genet. EJHG 32, 238- 242 (2024).</p>
+<p>Wolfe, M. S. Dysfunctional γ-secretase in familial Alzheimer&#x27;s disease. Neurochem. Res. 44, 5-11 (2019).</p>
+<p>Heilig, E. A., Gutti, U., Tai, T., Shen, J. &amp; Kelleher, R. J. Trans-Dominant Negative Effects of Pathogenic PSEN1 Mutations on γ-Secretase Activity and Aβ Production. J. Neurosci. 33, 11606-11617 (2013).</p>
+<p>Kurth, V. et al. Pathogenic Aβ production by heterozygous PSEN1 mutations is intrinsic to the mutant protein and not mediated by conformational hindrance of wild-type PSEN1. J. Biol. Chem. 299, 104997 (2023).</p>
+<p>Beecham, G. W. et al. The Alzheimer&#x27;s Disease Sequencing Project: Study design and sample selection. Neurol. Genet. 3, e194 (2017).</p>
+<p>Backman, J. D. et al. Exome sequencing and analysis of 454,787 UK Biobank participants. Nature 599, 628-634 (2021).</p>
+<p>Avsec, Ž. et al. Advancing regulatory variant effect prediction with AlphaGenome. Nature 649, 1206-1218 (2026).</p>
+<p>Zeng, T. &amp; Li, Y. I. Predicting RNA splicing from DNA sequence using Pangolin. Genome Biol. 23, 103 (2022).</p>
 </div>
 </details>
 </div>
