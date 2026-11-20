@@ -194,7 +194,7 @@ MetaCheck Report
 (no title found in the PDF)
 </p>
 <p class="meta">
-2026-11-12 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.09.26367683
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367683
 </p>
 </header>
 <div class="mc-main">
@@ -423,8 +423,8 @@ ethics approval statement.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 20 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 20 detected.</p>
 </div>
 </div>
 </div>
@@ -495,8 +495,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -866,9 +869,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -890,7 +897,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -905,9 +913,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -920,13 +946,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -946,6 +975,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -953,12 +988,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1059,6 +1100,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1078,6 +1139,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1333,19 +1429,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1455,6 +1633,162 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Cardiovascular risk factors have changed in the United States, but trends in prevalence, management, and predicted risk through the post-pandemic period remain incompletely characterized.</p>
+<p>periods (1999-2000 through 2021-2023) among 60,199 nonpregnant adults aged ≥20 years.</p>
+<p>Survey-weighted regression assessed age-standardized trends, subgroup differences, and measurement-change sensitivity. We assessed awareness, treatment, and control of hypertension, dyslipidemia, and diabetes. PREVENT equations estimated 10-and 30-year risks among adults without self-reported cardiovascular disease (CVD).</p>
+<p>Obesity increased from 47.4% to 57.2% (odds ratio [OR] per decade, 1.23; 95% CI, 1.16-1.30), with class III obesity more than doubling (4.7% to 9.7%). Diabetes increased from 8.2% to 12.7% (OR, 1.26; 95% CI, 1.19-1.34), while current smoking declined from 24.4% to 14.9% (OR, 0.76; 95% CI, 0.71-0.81). Hypertension, dyslipidemia, chronic kidney disease, and prior CVD showed no significant linear trends, although mean systolic blood pressure (BP) (124.2 to 120.2 mm Hg) and total cholesterol (203.6 to 188.1 mg/dL) declined, alongside improvements in other lipids. Hypertension and dyslipidemia awareness and treatment increased, but BP control peaked at 32.5% in 2013-2014 before declining to 21.5%, while LDL cholesterol control rose from 17.0% to 34.2%. Diabetes awareness increased, but treatment trends were nonsignificant.</p>
+<p>Glycemic control peaked at 51.2% in 2003-2004 before declining to 41.9% (P for nonlinearity &lt;0.001). Predicted 10-year total CVD risk declined from 5.66% to 5.28%; atherosclerotic CVD . (ASCVD) risk declined by 0.16 percentage points per decade (95% CI, -0.22 to -0.09), while 35 heart failure (HF) risk increased by 0.10 (95% CI, 0.03-0.17). Their 2021-2023 estimates were 36 nearly identical (3.20% and 3.19%, respectively); 30-year risks showed similar divergence. 37 Conclusions: Improvements in smoking, blood pressure, and lipids coexisted with rising obesity 38 and diabetes, declining blood pressure control after earlier gains, and divergent predicted 39 ASCVD and HF risks. 40</p>
+<h3>1. INTRODUCTION</h3>
+<p>Cardiovascular disease (CVD) remains the leading cause of death in the United States 1 . After decades of decline, age-adjusted CVD mortality began to level off around 2011 and increased during the COVID-19 pandemic 2, 3 . Improvements in major cardiovascular risk factors, particularly cholesterol, blood pressure (BP), and smoking, accounted for nearly half of the earlier decline in coronary deaths 4, 5 . These modifiable factors contribute substantially to myocardial infarction risk at the population level and are central to the American Heart Association&#x27;s Life&#x27;s Essential 8 framework 6, 7 . Tracking their trends is therefore essential to understanding progress in cardiovascular prevention.</p>
+<p>Previous analyses of the National Health and Nutrition Examination Survey (NHANES) have shown increasing obesity and diabetes, declining smoking and cholesterol levels, and improvements in BP control that were subsequently reversed through 2018 or March 2020 [8] [9] [10] [11].</p>
+<p>More recently, the National Center for Health Statistics (NCHS) reported estimates for individual risk factors, including obesity and cholesterol, from August 2021 through August 2023, the first post-pandemic NHANES cycle 12, 13 . However, changes in sampling design and medication questionnaires during this cycle pose challenges for comparisons with earlier periods 14.</p>
+<p>Meanwhile, the American Heart Association&#x27;s PREVENT equations offer a framework for estimating 10-and 30-year risks of total CVD, atherosclerotic cardiovascular disease (ASCVD), and heart failure (HF) using cardiovascular-kidney-metabolic risk factors [15] [16] [17].</p>
+<p>Recent studies have explored the clustering of cardiovascular risk factors, cardiometabolic risk and its management among adults with hypertension, and population-level risk estimates using the PREVENT equations [18] [19] [20] [21] . Nevertheless, few studies have examined major cardiovascular risk factors alongside their awareness, treatment, and control and predicted cardiovascular risk over the entire 1999-2023 period. Comparisons across NHANES cycles are further complicated by changes in HDL cholesterol assays, BP measurement devices, and medication questionnaires, which may affect observed trends. Examining these trends together, while accounting for changes in measurement, may provide a clearer picture of progress in cardiovascular prevention and help identify areas where important gaps remain.</p>
+<p>In this study, we examined trends in major cardiovascular risk factors among US adults from 1999-2000 through August 2021-August 2023. We assessed changes in the awareness, treatment, and control of hypertension, dyslipidemia, and diabetes, along with PREVENTpredicted cardiovascular risk. Using harmonized definitions, we evaluated the potential influence of measurement changes on observed trends and examined differences by sex, age, race and Hispanic origin, income, and education.</p>
+<h3>2. METHODS</h3>
+<p> &gt;METHODS</p>
+<h3>2.1. Study Design and Population</h3>
+<p>We analyzed data from 11 National Health and Nutrition Examination Survey (NHANES) periods spanning 1999-2000 through 2021-2023. NHANES uses a stratified, multistage probability sampling design to obtain nationally representative estimates of the civilian, noninstitutionalized US population. Participants complete household interviews and undergo standardized examinations at mobile examination centers (MECs). Following the interruption of data collection in March 2020, the National Center for Health Statistics (NCHS) combined the 2017-2018 data with the partial 2019-2020 data to create the 2017-March 2020 pre-pandemic file (eMethods) 14, [22] [23] [24] [25].</p>
+<p>. The study included nonpregnant adults aged 20 years or older who completed an MEC examination. Each survey period was treated as an independent cross-sectional sample, with analytic denominators varying according to the availability of data for each outcome. The study followed the STROBE and RECORD reporting guidelines 26, 27 . Detailed eligibility criteria and sample sizes are presented in eFigure 1 and eTables 1-2.</p>
+<h3>2.2. Outcomes and Harmonization</h3>
+<p>The primary outcomes were obesity, hypertension, dyslipidemia, diabetes, chronic kidney disease (CKD), current smoking, alcohol consumption, and prior cardiovascular disease (CVD).</p>
+<p>Obesity was defined as a body mass index (BMI) ≥30 kg/m² or waist circumference &gt;102 cm in men or &gt;88 cm in women 28 . Hypertension was defined as blood pressure ≥130/80 mm Hg, antihypertensive medication use, or self-reported diagnosis 29 . Dyslipidemia was defined as total cholesterol ≥240 mg/dL, low high-density lipoprotein (HDL) cholesterol (&lt;40 mg/dL in men or &lt;50 mg/dL in women), lipid-lowering medication use, or self-reported high cholesterol 30.</p>
+<p>Diabetes was defined as self-reported diagnosis, glycated hemoglobin (HbA1c) ≥6.5%, or glucose-lowering medication use 31 . CKD was defined as estimated glomerular filtration rate (eGFR) &lt;60 mL/min/1.73 m², urine albumin-to-creatinine ratio ≥30 mg/g, self-reported weak or failing kidneys, or dialysis 32 . eGFR was calculated using the race-free 2021 CKD Epidemiology Collaboration equation 33, 34 . Because kidney function was assessed at a single examination, CKD estimates were based on surveillance criteria rather than confirmation of persistent disease (eMethods).</p>
+<p>Additional outcomes included BMI-defined obesity classes, mean clinical and laboratory measurements. Prior CVD was defined as self-reported heart failure, coronary heart disease, angina, myocardial infarction, or stroke. Among adults meeting the respective disease definitions, we also assessed awareness, treatment, and control based on self-reported diagnosis, medication use, and established clinical thresholds (eMethods).</p>
+<p>Outcome definitions and measurements were harmonized across survey periods to account for changes in laboratory assays, blood pressure measurement devices, and medication questionnaires. Detailed definitions and harmonization procedures are provided in eMethods.</p>
+<h3>2.3. Predicted Cardiovascular Risk</h3>
+<p>We used the base American Heart Association PREVENT equations to estimate 10-year risks of total CVD, atherosclerotic cardiovascular disease (ASCVD), and heart failure among adults aged 30-79 years without self-reported CVD and with complete input data 15, 16 . We also estimated 30year risks among adults aged 30-59 years. The equations incorporate demographic, clinical, and laboratory measures, including blood pressure, cholesterol, diabetes, smoking, kidney function, and BMI. Input values outside the equations&#x27; valid ranges were capped at the nearest limit. Risk estimates were age-standardized, with further details provided in eMethods.</p>
+<h3>2.4. Statistical Analysis</h3>
+<p>All analyses accounted for the complex NHANES survey design using the appropriate examination, phlebotomy, or fasting subsample weights, along with masked strata and primary sampling units. Variances were estimated using Taylor series linearization. Prevalence and mean estimates were directly age-standardized to the 2000 US standard population using age groups of 20-39, 40-59, and ≥60 years, with modified age groups for PREVENT risk estimates 35.</p>
+<p>Confidence intervals for proportions were calculated using the Korn-Graubard method, and estimate reliability was evaluated according to NCHS standards (eMethods) 36, 37.</p>
+<p>We assessed temporal trends using pooled survey-weighted logistic regression for binary outcomes and linear regression for continuous outcomes, adjusting for age group. Survey-cycle midpoints were modeled as continuous time in decades, and survey weights were scaled to reflect differences in the duration of each survey period. Trends were reported as odds ratios, mean differences, or ratios per decade, as appropriate. We included quadratic time terms to assess nonlinearity and calculated absolute changes as the difference between estimates from the first and last survey cycles. To identify changes in the direction or magnitude of trends, we also performed joinpoint regression on age-standardized estimates, weighted by inverse variance and allowing a maximum of one joinpoint (eMethods) 38.</p>
+<p>Subgroup analyses were conducted by sex, age, race and Hispanic origin, family income-topoverty ratio, and education. Differences in temporal trends between subgroups were evaluated using time-by-subgroup interaction terms and design-based Wald tests. Sensitivity analyses examined alternative outcome definitions, changes in measurement methods and questionnaires, complete-case restrictions, missing-data adjustments, Asian-specific BMI thresholds, and exclusion of the 2021-2023 survey period (eMethods; eTables 5 and 7-9; eFigures 10-12, 16-17) 39.</p>
+<p>All statistical tests were two-sided, with P&lt;.05 considered statistically significant. P values were not adjusted for multiple comparisons; subgroup and sensitivity analyses should be considered exploratory. Analyses were performed using R version 4.5.2. Additional details of the statistical methods are provided in eMethods.</p>
+<h3>3. RESULTS</h3>
+<p> &gt;RESULTS</p>
+<h3>3.1. Study population</h3>
+<p>Of 119,555 NHANES participants, 66,553 were aged 20 years or older, of whom 61,741 underwent examination. After excluding 1,542 pregnant participants, 60,199 adults were included in the analysis (eFigure 1; eTable 1). From 1999-2000 to 2021-2023, mean age increased from 46.4 to 49.0 years, the proportion aged 60 years or older rose from 24.1% to 31.4%, and the proportion with a college degree increased from 21.8% to 34.0% (Table 1).</p>
+<p>Unless otherwise specified, prevalence estimates are age-standardized, comparisons are between the first and last survey cycles, and odds ratios (ORs) represent changes per decade.</p>
+<h3>3.2. Obesity</h3>
+<p>Obesity, defined by BMI or waist circumference, increased from 47.4% to 57.2% (OR, 1.23; 95% CI, 1.16-1.30) (Figure 1; Table 2). Over the same period, mean BMI rose from 28.0 to 29.7 kg/m² (eFigure 3). The prevalence of class III obesity more than doubled, from 4.7% to 9.7%, with the rate of increase accelerating after 2007-2008 (eFigure 2; eTable 6).</p>
+<p>Obesity increased across all subgroups with data available throughout the study period.</p>
+<p>However, the magnitude of the increase varied by age (P for interaction = 0.006), with the largest increase in odds among adults aged 20-39 years (OR, 1.27). Trends also differed by race and Hispanic origin (P = 0.045) and education (P = 0.048). Mexican American adults had the largest increase in odds (OR, 1.42), as did adults with some college education (OR, 1.32) within their respective subgroups. No significant differences in trends were observed by sex or income (Figure 4; eTable 4; eFigures 5-9).</p>
+<h3>3.3. Diabetes</h3>
+<p>Diabetes prevalence increased from 8.2% to 12.7% (OR, 1.26; 95% CI, 1.19-1.34). Most of this increase was attributable to diagnosed diabetes, which accounted for 4.1 of the 4.5 percentage-point increase. In contrast, undiagnosed diabetes changed little, from 1.7% to 2.1%, with no statistically significant trend (P = 0.060) (Figure 1; Table 2; eFigure 4).</p>
+<p>Diabetes prevalence increased significantly in most subgroups, although trends differed significantly only by race and Hispanic origin (P for interaction = 0.016). Mexican American adults had the largest increase in odds (OR, 1.33), whereas non-Hispanic Black adults had the highest prevalence in 2021-2023 (21.4%). No significant differences in trends were found by sex, age, income, or education (Figure 4; eTable 4; eFigure 7).</p>
+<p>Among adults with diabetes, awareness increased from 78.2% to 81.3% (OR, 1.13; 95% CI, 1.02-1.26). Glycemic control followed a different pattern. The proportion with HbA1c &lt;7% initially increased from 36.4% to 51.2% in 2003-2004, before declining to 41.9% in 2021-2023 (P for nonlinearity &lt;0.001) (Figure 2; Table 2; eTable 3).</p>
+<h3>3.4. Hypertension</h3>
+<p>Hypertension prevalence showed no significant linear trend, decreasing from 50.6% to 48.1% (OR, 0.96; 95% CI, 0.92-1.02) (Figure 1; Table 2). However, the proportion of adults with measured blood pressure ≥130/80 mm Hg declined from 44.0% to 37.2%, while antihypertensive medication use increased from 17.6% to 22.2% (eFigure 4). Mean systolic blood pressure also decreased, from 124.2 to 120.2 mm Hg (eFigure 3).</p>
+<p>Hypertension trends varied by age (P for interaction &lt;0.001) and education (P = 0.005). The largest decline in odds occurred among adults aged ≥60 years (OR, 0.85), whose prevalence fell from 80.2% to 73.0%. By education, odds declined most among college graduates (OR, 0.91) but increased among adults with some college education or an associate degree (OR, 1.07). No significant differences in trends were observed by sex, race and Hispanic origin, or income (Figure 4; eTable 4; eFigures 6 and 9).</p>
+<p>Among adults with hypertension, blood pressure control below 130/80 mm Hg initially improved from 14.2% to 32.5% in 2013-2014, before declining to 21.5% in 2021-2023. After 2013-2014, control decreased by an estimated 1.17 percentage points annually (95% CI, 0.70-1.64).</p>
+<p>Awareness followed a similar pattern, increasing from 45.6% to 66.8% before falling to 54.0%, whereas treatment remained relatively stable at approximately 38% after 2009-2010 (Figure 2; Table 2; eTable 6). When hypertension was defined using the higher threshold of 140/90 mm Hg, prevalence was 34.3% in both the first and last survey cycles (eTable 5; eFigure 10).</p>
+<h3>3.5. Dyslipidemia</h3>
+<p>Overall dyslipidemia prevalence showed no significant trend, declining from 57.5% to 53.4% (OR, 0.98; 95% CI, 0.94-1.03; P = 0.51) (Figure 1; Table 2). However, individual lipid measures improved over the study period. The prevalence of high total cholesterol (≥240 mg/dL) fell from 17.8% to 11.0%, and low HDL cholesterol from 39.3% to 26.7%, while lipid-lowering medication use doubled from 8.8% to 17.8% (eFigure 4). Mean total cholesterol decreased from 203.6 to 188.1 mg/dL, and mean fasting LDL cholesterol from 126.0 to 110.5 mg/dL (eFigure 3).</p>
+<p>Among adults with dyslipidemia, treatment increased from 13.8% to 28.4%. LDL cholesterol control below 100 mg/dL also improved, from 17.0% to 34.2% in the fasting subsample, with most of the improvement occurring by 2005-2006, with slower gains thereafter (Figure 2; Table 2). When low HDL cholesterol was excluded from the definition, dyslipidemia prevalence instead increased from 33.6% to 38.2% (OR, 1.10; 95% CI, 1.06-1.14) (eTable 5; eFigures 10-11).</p>
+<p>Dyslipidemia trends differed significantly by age (P for interaction &lt;0.001) and education (P = 0.011). Odds declined most among adults aged 20-39 years (OR, 0.90) but showed a borderline increase among those aged ≥60 years (OR, 1.06; P = 0.050). Across education groups, adults with a high school diploma or GED had the largest decline in odds (OR, 0.92). No significant differences in trends were found by sex, race and Hispanic origin, or income (Figure 4; eTable 4; eFigures 6 and 9).</p>
+<h3>3.6. Smoking and alcohol use</h3>
+<p>Current smoking declined from 24.4% to 14.9% (OR, 0.76; 95% CI, 0.71-0.81), representing the largest absolute decline among the primary outcomes (Figure 1; Table 2). Significant declines were observed across all subgroups except adults aged ≥60 years. However, the magnitude of the decline varied by age (P for interaction &lt;0.001), race and Hispanic origin (P = 0.011), income (P &lt;0.001), and education (P &lt;0.001). Adults aged 20-39 years had the largest decline in odds (OR, 0.64), whereas smoking remained relatively unchanged among those aged ≥60 years (OR, 0.99; P = 0.773). Among racial and ethnic groups, Mexican American adults had the largest decline (OR, 0.66). Declines were also greatest among adults in the highest-income group (OR, 0.62) and college graduates (OR, 0.64). Trends did not differ significantly by sex (Figure 4; eTable 4; eFigures 5-9).</p>
+<p>Monthly drinking increased from 51.3% to 55.8% (OR, 1.11; 95% CI, 1.03-1.20), although the difference between the first and last cycles was not statistically significant (4.4 percentage points; 95% CI, -1.9 to 10.7) (Figure 1; Table 2). Most of the increase occurred through 2011-2012, with no significant change thereafter (eTable 6; eFigure 13). Trends varied by sex (P for interaction &lt;0.001), age (P &lt;0.001), and race and Hispanic origin (P = 0.017). Monthly drinking increased significantly among women (OR, 1.22) but not men (OR, 1.01). Adults aged ≥60 years had the largest increase in odds among age groups (OR, 1.24), while non-Hispanic Black adults had the largest increase among racial and ethnic groups (OR, 1.24). No significant differences in trends were observed by income or education (Figure 4; eTable 4; eFigures 5-9).</p>
+<p>Among past-year drinkers, the proportion consuming more than 2 drinks per drinking day for men or more than 1 for women increased from 49.0% to 54.4% (OR, 1.08; 95% CI, 1.02-1.15).</p>
+<p>However, mean consumption remained unchanged at 2.78 drinks per drinking day in both the first and last survey cycles (Table 2; eFigure 15).</p>
+<h3>3.7. Chronic kidney disease and prior cardiovascular disease</h3>
+<p>Overall CKD prevalence showed no significant trend, declining from 14.7% to 13.5% (Figure 1; Table 2). However, eGFR-defined CKD declined significantly (OR, 0.91; 95% CI, 0.85-0.97), while self-reported weak or failing kidneys increased (OR, 1.19; 95% CI, 1.07-1.32) (eTable 3; eFigure 4). CKD trends differed by age (P for interaction &lt;0.001), with a significant decline observed only among adults aged ≥60 years (OR, 0.90). Trends in younger age groups were not significant. No significant differences in trends were observed by sex, race and Hispanic origin, income, or education (Figure 4; eTable 4; eFigure 6).</p>
+<p>Prior CVD prevalence also remained relatively stable, decreasing from 8.7% to 8.2% (Figure 1; Table 2). Trends differed significantly by income (P for interaction = 0.005), with a significant decline observed only in the highest-income group (OR, 0.85). Prior CVD also declined among adults aged ≥60 years (OR, 0.91; P = 0.009), although trends did not differ significantly across . age groups (P for interaction = 0.148). No significant differences in trends were found by sex, race and Hispanic origin, or education (Figure 4; eTable 4; eFigure 8). Among individual CVD conditions, angina declined from 3.1% to 1.4% (OR, 0.72; P &lt;0.001). Myocardial infarction also showed a significant declining trend (OR, 0.89; P = 0.017), although the difference between the first and last cycles was borderline significant (3.6% to 2.8%; P for change = 0.051). No significant linear trends were observed for heart failure, coronary heart disease, or stroke (Table 2; eTable 3; eFigure 15).</p>
+<h3>3.8. Predicted cardiovascular risk</h3>
+<p>Among 35,782 adults without reported CVD, mean predicted 10-year total CVD risk declined from 5.66% to 5.28% (-0.10 percentage points per decade; P = 0.045). Predicted 10-year ASCVD risk also decreased, from 3.66% to 3.20%, whereas predicted heart failure risk increased from 3.05% to 3.19%. By 2021-2023, predicted heart failure risk was nearly equal to predicted ASCVD risk (Figure 3; Table 2).</p>
+<p>A similar pattern emerged for 30-year risk estimates among adults aged 30-59 years. Predicted ASCVD risk declined from 9.95% to 8.91% (-0.40 percentage points per decade; P &lt;0.001), while predicted heart failure risk increased from 7.94% to 8.36% (0.31 percentage points per decade; P &lt;0.001) (Figure 3; Table 2). The proportion of adults with predicted 10-year total CVD risk ≥20% also declined significantly in the trend model (OR per decade, 0.89; 95% CI, 0.82-0.98), although the difference between the first and last cycles was not statistically significant (5.0% to 4.2%; P for change = 0.181) (Table 2; eTable 3; eFigure 14).</p>
+<h3>4. DISCUSSION</h3>
+<p>In this nationally representative analysis of US adults spanning 11 NHANES survey periods from 1999-2000 to 2021-2023, trends in cardiovascular risk factors varied considerably.</p>
+<p>Obesity, severe obesity, and diabetes became more prevalent, while current smoking and several lipid measures declined. Although measured blood pressure and cholesterol levels decreased and medication use increased, the overall prevalence of hypertension and dyslipidemia remained largely unchanged. Hypertension control improved until 2013-2014 but declined thereafter.</p>
+<p>Meanwhile, mean predicted 10-year atherosclerotic cardiovascular disease (ASCVD) risk decreased modestly, whereas predicted heart failure (HF) risk increased.</p>
+<p>These findings build on earlier NHANES studies documenting increases in obesity and diabetes alongside declines in smoking and cholesterol 9, 10, [40] [41] [42] [43] . Our obesity estimates for 2021-2023 were also consistent with those reported by the National Center for Health Statistics 12, 13 . A recent study examining PREVENT risk trends through 2017-2018 found that age-standardized total cardiovascular disease (CVD) risk remained stable, while ASCVD risk declined and heart failure (HF) risk increased 19 . We extend these findings through 2021-2023, incorporate 30-year risk estimates, and assess changes in risk factors and their management within the same analysis.</p>
+<p>Another study, using a hypertension threshold of 140/90 mm Hg, reported a decline in blood pressure control through 2017-2020, with no significant change between 2017-2020 and 2021-2023 44 . Differences in hypertension definitions and analytic methods may help explain variations between these findings and our trend estimates. Examining individual components helps explain why overall prevalence remained stable despite improvements in some measures. Hypertension prevalence changed little despite declining blood pressure and increasing medication use. Similarly, dyslipidemia prevalence remained stable, although high total cholesterol and low HDL cholesterol declined and treatment increased.</p>
+<p>Excluding low HDL cholesterol changed the dyslipidemia trend, highlighting the influence of its definition. Rising diabetes prevalence was driven mainly by diagnosed cases, while undiagnosed diabetes changed little. Glycemic control also declined after an early peak. These findings underscore the continued need for prevention, detection, and sustained management.</p>
+<p>Subgroup analyses revealed important differences in risk-factor trends. Obesity increased across all subgroups, with larger increases in odds among younger adults, Mexican American adults, and those with some college education. Diabetes trends differed by race and Hispanic origin.</p>
+<p>Smoking declined overall but changed little among adults aged 60 years or older, with varying declines across racial, income, and education groups. Hypertension trends differed by age and education, while monthly drinking increased among women and older adults, with differences by race and Hispanic origin. These findings show that overall improvements can mask important differences across population groups.</p>
+<p>A recent analysis of national mortality records also documented a nearly fourfold increase in metabolic multimorbidity among US decedents aged 25-44 years between 1999 and 2024, with higher prevalence among female and Black decedents 45 . Although based on death certificate data rather than population prevalence estimates, these findings provide complementary evidence of a growing burden of coexisting metabolic conditions among younger adults.</p>
+<p>The diverging trends in predicted ASCVD and HF risk highlight the need for prevention strategies that address obesity and diabetes alongside traditional atherosclerotic risk factors.</p>
+<p>However, PREVENT estimates reflect predicted risk rather than observed events and should be interpreted accordingly 15, 19, [46] [47] [48].</p>
+<p>Strengths of this study include nationally representative data spanning 11 survey periods, appropriate survey-design methods, harmonized definitions, assessment of composite outcomes and their components, and subgroup and sensitivity analyses. Several limitations warrant consideration. The repeated cross-sectional design cannot establish individual trajectories or causality. Some outcomes relied on self-reported diagnoses and behaviors, while single-occasion kidney measurements could not confirm persistent chronic kidney disease. Changes in laboratory assays, measurement devices, questionnaires, and the pandemic-related interruption may have affected comparisons despite harmonization and sensitivity analyses. PREVENT estimates were also limited by equation inputs and eligible age ranges and do not represent observed cardiovascular events.</p>
+<p>In conclusion, declines in smoking, cholesterol, and measured blood pressure were accompanied by rising obesity and diabetes, worsening hypertension control after its peak, and increasing predicted HF risk. These findings underscore the need for sustained cardiovascular prevention and management that addresses subgroup differences and both ASCVD and HF risk.</p>
+<p>were approved by the National Center for Health Statistics Research Ethics Review Board, and participants provided informed consent. This secondary analysis did not require additional institutional review board approval. adults, NHANES 1999-2000 to 2021-2023. Panels show trends in obesity (BMI ≥30 kg/m² or waist circumference &gt;102 cm in men or &gt;88 cm in women), hypertension, dyslipidemia, diabetes, chronic kidney disease (CKD), current smoking, alcohol consumption at least monthly during the past year, and prior cardiovascular disease (CVD). Points represent estimates for each survey period, with shaded bands indicating 95% confidence intervals (CIs). Odds ratios (ORs) per decade and P values were obtained from survey-weighted logistic regression adjusted for age group. Outcome definitions are detailed in the Methods. diabetes among US adults, NHANES 1999-2000 to 2021-2023. Estimates were age-standardized to the 2000 US population and restricted to adults with each condition. Awareness was based on self-reported diagnosis and treatment on medication use. Control was defined as blood pressure below 130/80 mm Hg for hypertension, fasting lowdensity lipoprotein (LDL) cholesterol below 100 mg/dL for dyslipidemia, and glycated hemoglobin (HbA1c) below 7% for diabetes. Dyslipidemia control was assessed in the fasting subsample. Shaded bands indicate 95% CIs. reported CVD, NHANES 1999-2000 to 2021-2023. Upper panels show mean predicted 10-year risks of total CVD, atherosclerotic CVD (ASCVD), and heart failure (HF) among adults aged 30-79 years. Lower panels show the corresponding 30year risks among adults aged 30-59 years. Risk estimates were calculated using the base PREVENT equations and age-standardized within the eligible age ranges. Shaded bands indicate 95% CIs. Changes per decade and P values were obtained from survey-weighted linear regression adjusted for age group. 2000 to 2021-2023. Points and horizontal lines represent ORs per decade and 95% CIs for obesity, hypertension, dyslipidemia, diabetes, CKD, current smoking, monthly alcohol consumption, and prior CVD. Estimates were obtained from survey-weighted logistic regression adjusted for age group, except in age-stratified analyses, which present age-specific estimates. The vertical reference line indicates an OR of 1.0. Analyses of all Hispanic adults were restricted to 2007-2008 through 2021-2023. P values for trends and interactions are reported in eTable 4.</p>
+<p>. Characteristic 1999-2000 2001-2002 2003-2004 2005-2006 2007-2008 2009-2010 2011-2012 2013-2014 2015-2016 2017-Mar 2020 2021-2023 Unweighted n 4187 4731 4523 4448 5650 5991 5262 5523 5404 8457 6023 Age, mean (SE), y 46.4 (0.4) 46.5 (0.5) 46.6 (0.5) 47.0 (0.7) 47.0 (0.4) 47.2 (0.5) 47.6 (0.8) 47.7 (0.4) 48.2 (0.6) 48.6 (0.5) 49.0 (0.5) Women, % 51.1 51.3 51.3 50.9 51.4 51.2 51.5 51.4 51.3 51.4 51.1 Age 20-39 y, % 40.3 37.3 37.9 36.7 37.0 36.3 35.6 35.5 35.5 35.5 34.8 Age 40-59 y, % 35.6 40.8 39.0 39.8 39.2 38.7 38.3 37.4 36.2 34.4 33.8 Age ≥60 y, % 24.1 21.9 23.0 23.5 23.9 25.0 26.1 27.2 28.3 30.1 31.4 Non-Hispanic White, % 69.9 72.6 72.3 72.1 69.8 68.1 66.5 66.0 64.0 62.7 60.1 Non-Hispanic Black, % 10.8 10.5 11.1 11.4 11.2 11.4 11.4 11.3 11.3 11.4 10.9 Mexican American, % 7.3 6.6 7.6 7.7 8.2 8.5 7.7 9.2 8.8 8.3 7.1 Other Hispanic, other race or multiracial, % 12.1 10.2 9.0 8.7 10.8 12.0 14.3 13.5 15.8 17.6 21.8 Less than high school, % 24.9 19.5 18.5 17.7 20.5 19.0 16.8 15.3 14.6 11.0 10.2 High school or GED, % 26.3 25.3 27.3 25.2 25.5 22.9 20.3 21.8 20.7 27.1 26.4 Some college or associate degree, % 27.0 29.4 31.2 31.4 28.8 30.4 32.0 32.7 32.5 30.5 29.5 College graduate or above, % 21.8 25.8 23.0 25.8 25.2 27.7 30.9 30.2 32.2 31.5 34.0 Income-to-poverty ratio ≤1.30, % 23.9 21.2 20.6 17.4 20.8 21.8 25.4 24.6 21.1 18.9 20.3 Income-to-poverty ratio 1.31-3.50, % 35.8 35.1 38.3 38.2 35.0 36.8 33.8 34.8 36.7 35.2 37.5 Income-to-poverty ratio &gt;3.50, % 40.3 43.8 41.1 44.5 44.3 41.5 40.8 40.6 42.3 45.9 42.3 Table 1. Characteristics of US adults aged ≥20 years, NHANES 1999-2000 to August 2021-August 2023. Demographic and socioeconomic characteristics of US adults aged ≥20 years across NHANES cycles from 1999-2000 through August 2021-August 2023. Values are unweighted sample sizes, survey-weighted means (SEs), or survey-weighted percentages. Pregnant participants were excluded. Abbreviations: NHANES, National Health and Nutrition Examination Survey; GED, General Educational Development; SE, standard error. Outcome 1999-2000 2021-2023 Change (95% CI) Trend measure Per decade (95% CI) P for trend P for nonlinearity Adiposity Obesity (BMI ≥30 or waist &gt;102 cm in men or &gt;88 cm in women), % 47.4 57.2 9.8 (4.2 to 15.3) OR 1.23 (1.16-1.30) &lt;0.001 0.072 Obesity by BMI ≥30 alone, % 30.2 40.3 10.2 (5.2 to 15.2) OR 1.28 (1.21-1.35) &lt;0.001 0.356 Abdominal obesity by waist circumference alone, % 46.6 56.2 9.6 (4.1 to 15.2) OR 1.22 (1.15-1.29) &lt;0.001 0.035 Underweight (BMI &lt;18.5), % 2.1 1.6 -0.4 (-1.2 to 0.3) OR 0.88 (0.78-1.00) 0.046 0.457 Normal weight (BMI 18.5-24.9), % 33.7 26.3 -7.5 (-11.8 to -3.1) OR 0.83 (0.79-0.88) &lt;0.001 0.672 Overweight (BMI 25.0-29.9), % 34.0 31.7 -2.3 (-5.2 to 0.7) OR 0.93 (0.90-0.97) &lt;0.001 0.922 Obesity class I (BMI 30.0-34.9), % 17.1 20.3 3.2 (0.5 to 5.9) OR 1.11 (1.06-1.16) &lt;0.001 0.022 Obesity class II (BMI 35.0-39.9), % 8.3 10.3 2.0 (0.2 to 3.8) OR 1.21 (1.13-1.28) &lt;0.001 0.920 Obesity class III (BMI ≥40), % 4.7 9.7 5.0 (3.2 to 6.9) OR 1.47 (1.35-1.59) &lt;0.001 0.838 Mean BMI, kg/m² 28.0 29.7 1.7 (1.0 to 2.4) Difference 0.89 (0.70-1.08) &lt;0.001 0.940 Mean waist circumference, cm 95.6 100.2 4.5 (2.7 to 6.3) Difference 2.20 (1.73-2.67) &lt;0.001 0.106 Hypertension and blood pressure Hypertension (BP ≥130/80 mm Hg, medication, or selfreported diagnosis), % 50.6 48.1 -2.5 (-6.0 to 1.1) OR 0.96 (0.92-1.02) 0.167 0.054 Measured BP ≥130/80 mm Hg, % 44.0 37.2 -6.8 (-10.1 to -3.5) OR 0.88 (0.84-0.92) &lt;0.001 &lt;0.001 Antihypertensive medication use, % 17.6 22.2 4.6 (2.2 to 7.1) OR 1.14 (1.08-1.20) &lt;0.001 &lt;0.001 Self-reported hypertension diagnosis, % 25.5 28.8 3.3 (0.4 to 6.2) OR 1.08 (1.03-1.14) 0.003 &lt;0.001 Mean systolic BP, mm Hg 124.2 120.2 -4.0 (-5.5 to -2.5) Difference -1.52 (-1.92 to -1.13) &lt;0.001 0.100 Mean diastolic BP, mm Hg 73.1 74.9 1.8 (0.8 to 2.7) Difference 1.02 (0.72-1.31) &lt;0.001 &lt;0.001 Dyslipidemia and lipids Dyslipidemia (total cholesterol ≥240 mg/dL, low HDL, medication, or self-reported diagnosis), % 57.5 53.4 -4.1 (-8.3 to 0.1) OR 0.98 (0.94-1.03) 0.507 0.956 Total cholesterol ≥240 mg/dL, % 17.8 11.0 -6.7 (-9.2 to -4.2) OR 0.73 (0.69-0.78) &lt;0.001 0.101 Low HDL (&lt;40 mg/dL in men, &lt;50 mg/dL in women), % 39.3 26.7 -12.7 (-17.4 to -7.9) OR 0.86 (0.82-0.91) &lt;0.001 0.383 Lipid-lowering medication use, % 8.8 17.8 9.0 (7.5 to 10.5) OR 1.30 (1.24-1.36) &lt;0.001 &lt;0.001 Self-reported high cholesterol, % 25.9 33.3 7.3 (5.1 to 9.5) OR 1.19 (1.14-1.24) &lt;0.001 0.002 Extended dyslipidemia (primary definition plus fasting LDL ≥160 mg/dL or triglycerides ≥150 mg/dL), % 67.8 57.4 -10.5 (-14.8 to -6.1) OR 0.87 (0.83-0.92) &lt;0.001 0.019 Fasting LDL ≥160 mg/dL, % 15.9 8.6 -7.3 (-10.8 to -3.8) OR 0.75 (0.68-0.83) &lt;0.001 0.027 Fasting triglycerides ≥150 mg/dL, % 33.1 20.9 -12.2 (-16.0 to -8.4) OR 0.68 (0.64-0.72) &lt;0.001 0.156 Mean total cholesterol, mg/dL 203.6 188.1 -15.5 (-18.9 to -12.1) Difference -8.02 (-9.05 to -6.99) &lt;0.001 0.049 Mean HDL cholesterol, mg/dL 50.3 53.3 3.0 (1.3 to 4.7) Difference 0.92 (0.50-1.34) &lt;0.001 0.011 Mean non-HDL cholesterol, mg/dL 153.3 134.8 -18.5 (-22.3 to -14.7) Difference -8.93 (-9.97 to -7.89) &lt;0.001 0.002 Mean fasting LDL cholesterol, mg/dL 126.0 110.5 -15.5 (-18.8 to -12.2) Difference -5.78 (-6.78 to -4.77) &lt;0.001 &lt;0.001 Mean fasting triglycerides, mg/dL 143.4 118.7 -24.6 (-35.0 to -14.3) Difference -18.45 (-21.53 to -15.37) &lt;0.001 0.018 Geometric mean fasting triglycerides, mg/dL 121.5 99.9 -21.6 (-28.0 to -15.2) Ratio 0.87 (0.86-0.88) &lt;0.001 0.002 Diabetes and glycemia Diabetes (self-reported diagnosis, HbA1c ≥6.5%, or medication), % 8.2 12.7 4.5 (2.7 to 6.3) OR 1.26 (1.19-1.34) &lt;0.001 0.211 Self-reported diagnosed diabetes, % 6.6 10.6 4.1 (2.5 to 5.7) OR 1.28 (1.21-1.37) &lt;0.001 0.262 HbA1c ≥6.5%, % 6.4 9.7 3.2 (1.5 to 5.0) OR 1.29 (1.20-1.38) &lt;0.001 0.782 Insulin or oral glucose-lowering medication use, % 5.4 8.9 3.6 (2.0 to 5.2) OR 1.28 (1.19-1.37) &lt;0.001 0.151 Undiagnosed diabetes (no diagnosis and HbA1c ≥6.5%), % 1.7 2.1 0.4 (-0.2 to 1.0) OR 1.10 (1.00-1.22) 0.060 0.291 Extended diabetes (primary definition plus fasting glucose ≥126 mg/dL), % 8.9 14.3 5.4 (2.4 to 8.4) OR 1.27 (1.17-1.37) &lt;0.001 0.174 Fasting glucose ≥126 mg/dL, % 6.9 10.4 3.4 (1.1 to 5.8) OR 1.28 (1.18-1.39) &lt;0.001 0.315 Mean HbA1c, % 5.43 5.68 0.25 (0.14 to 0.36) Difference 0.11 (0.09-0.13) &lt;0.001 0.071 Mean fasting glucose, mg/dL 100.9 108.0 7.1 (4.0 to 10.2) Difference 3.83 (2.98-4.68) &lt;0.001 0.413 Chronic kidney disease CKD (eGFR &lt;60 mL/min/1.73 m², UACR ≥30 mg/g, weak/failing kidneys, or dialysis), % 14.7 13.5 -1.2 (-3.2 to 0.9) OR 0.98 (0.93-1.03) 0.339 0.559 eGFR &lt;60 mL/min/1.73 m², % 5.4 5.3 -0.1 (-1.2 to 1.0) OR 0.91 (0.85-0.97) 0.006 0.975 UACR ≥30 mg/g, % 10.7 9.4 -1.3 (-2.7 to 0.1) OR 0.98 (0.93-1.03) 0.476 0.155 Self-reported weak or failing kidneys, % 2.4 2.5 0.0 (-1.0 to 1.0) OR 1.19 (1.07-1.32) 0.002 0.965 Dialysis in past 12 months, % -0.1 -0.1 (-0.2 to 0.1) OR 1.10 (0.88-1.39) 0.400 0.025 Mean eGFR, mL/min/1.73 m² 95.1 97.3 2.2 (1.0 to 3.5) Difference 1.30 (0.89-1.70) &lt;0.001 0.068 Smoking Current smoking, % 24.4 14.9 -9.5 (-13.2 to -5.8) OR 0.76 (0.71-0.81) &lt;0.001 0.158 Former smoking, % 25.0 22.1 -2.9 (-5.7 to -0.1) OR 0.95 (0.90-0.99) 0.019 0.942 Never smoking, % 50.6 63.0 12.4 (7.3 to 17.5) OR 1.25 (1.18-1.32) &lt;0.001 0.453 Quit ratio (former/ever smokers), % 49.3 58.6 9.2 (4.6 to 13.9) OR 1.18 (1.11-1.26) &lt;0.001 0.212 Alcohol Drinks at least monthly in past 12 months, % 51.3 55.8 4.4 (-1.9 to 10.7) OR 1.11 (1.03-1.20) 0.006 0.069 Mean drinks per drinking day among past-year drinkers 2.78 2.78 0.00 (-0.25 to 0.26) Difference -0.03 (-0.11 to 0.04) 0.364 0.590 Past-year drinkers exceeding &gt;2 drinks per drinking day (men) or &gt;1 (women), % 49.0 54.4 5.4 (0.5 to 10.3) OR 1.08 (1.02-1.15) 0.013 0.632 Prior cardiovascular disease Prior CVD (any), % 8.7 8.2 -0.5 (-2.1 to 1.1) OR 0.95 (0.89-1.02) 0.141 0.238 Heart failure, % 2.2 2.5 0.3 (-0.4 to 1.0) OR 0.99 (0.90-1.09) 0.838 0.581 Coronary heart disease, % 3.4 3.3 -0.0 (-0.8 to 0.7) OR 0.97 (0.87-1.07) 0.507 0.082 Angina, % 3.1 1.4 -1.6 (-2.5 to -0.8) OR 0.72 (0.64-0.80) &lt;0.001 0.221 Myocardial infarction, % 3.6 2.8 -0.8 (-1.6 to 0.0) OR 0.89 (0.82-0.98) 0.017 0.746 Stroke, % 2.5 3.1 0.6 (-0.3 to 1.4) OR 1.07 (0.98-1.17) 0.116 0.675 Awareness, treatment, and control among adults with each condition Hypertension awareness, % 45.6 54.0 8.4 (4.0 to 12.8) OR 1.20 (1.13-1.26) &lt;0.001 &lt;0.001 Hypertension treatment, % 27.8 38.0 10.3 (6.5 to 14.0) OR 1.25 (1.18-1.32) &lt;0.001 &lt;0.001 Hypertension control (BP &lt;130/80 mm Hg), % 14.2 21.5 7.3 (4.7 to 9.9) OR 1.27 (1.21-1.34) &lt;0.001 &lt;0.001 Dyslipidemia awareness, % 42.7 57.2 14.5 (10.6 to 18.3) OR 1.33 (1.26-1.40) &lt;0.001 0.007 Dyslipidemia treatment, % 13.8 28.4 14.6 (12.3 to 16.9) OR 1.36 (1.29-1.43) &lt;0.001 &lt;0.001 Dyslipidemia control (fasting LDL &lt;100 mg/dL), % 17.0 34.2 17.3 (12.8 to 21.7) OR 1.44 (1.34-1.55) &lt;0.001 &lt;0.001 Diabetes awareness, % 78.2 81.3 3.0 (-6.4 to 12.5) OR 1.13 (1.02-1.26) 0.018 0.739 Diabetes treatment, % 57.6 68.5 10.9 (0.3 to 21.5) OR 1.08 (0.99-1.18) 0.082 0.461 Diabetes control (HbA1c &lt;7%), % 36.4 41.9 5.6 (-8.6 to 19.8) OR 1.02 (0.93-1.12) 0.704 &lt;0.001 PREVENT predicted risk 10-year total CVD risk, mean % 5.66 5.28 -0.39 (-0.74 to -0.03) Difference -0.10 (-0.21 to -0.00) 0.045 0.551 10-year ASCVD risk, mean % 3.66 3.20 -0.45 (-0.70 to -0.21) Difference -0.16 (-0.22 to -0.09) &lt;0.001 0.241 10-year heart failure risk, mean % 3.05 3.19 0.14 (-0.09 to 0.37) Difference 0.10 (0.03-0.17) 0.004 0.588 10-year total CVD risk &lt;5%, % 64.5 65.4 0.9 (-2.4 to 4.2) OR 0.99 (0.92-1.06) 0.722 0.959 10-year total CVD risk 5 to &lt;7.5%, % 10.3 10.4 0.1 (-2.2 to 2.4) OR 1.03 (0.96-1.11) 0.398 0.333 10-year total CVD risk 7.5 to &lt;20%, % 20.1 20.0 -0.2 (-1.9 to 1.6) OR 1.03 (0.98-1.09) 0.267 0.251 10-year total CVD risk ≥20%, % 5.0 4.2 -0.8 (-2.0 to 0.4) OR 0.89 (0.82-0.98) 0.013 0.997 10-year total CVD risk ≥7.5%, % 25.2 24.2 -1.0 (-2.9 to 0.9) OR 0.99 (0.92-1.06) 0.696 0.305 30-year total CVD risk, mean % (ages 30-59) 15.32 14.14 -1.18 (-2.19 to -0.17) Difference -0.37 (-0.63 to -0.12) 0.004 0.857 30-year ASCVD risk, mean % (ages 30-59) 9.95 8.91 -1.04 (-1.77 to -0.31) Difference -0.40 (-0.58 to -0.22) &lt;0.001 0.808 30-year heart failure risk, mean % (ages 30-59) 7.94 8.36 0.42 (-0.21 to 1.05) Difference 0.31 (0.14-0.48) &lt;0.001 0.661 Table 2. Age-standardized prevalence and mean levels of cardiovascular risk factors among US adults, NHANES 1999-2000 to 2021-2023, with trends per decade</p>
+<h3>Acknowledgments</h3>
+<p>None.</p>
+<h3>Funding:</h3>
+<p>The authors received no funding for this study.</p>
+<p>Data Availability: All data used in this study are publicly available through the National Health and Nutrition Examination Survey (NHANES), conducted by the National Center for Health Statistics, Centers for Disease Control and Prevention (https://www.cdc.gov/nchs/nhanes/). No new datasets were generated for this study.</p>
+<h3>Conflicts of Interest:</h3>
+<p>The authors declare no conflicts of interest.</p>
+<p>Author Contributions Hafiz M Ahmed: Conceptualization, Methodology, Project administration, Supervision, Investigation, Data curation, Formal analysis, Software, Visualization, Writing -original draft, Writing -review &amp; editing. Nawal Younas: Investigation, Data curation, Visualization, Writing -original draft, Writingreview &amp; editing. Muhammad Owais: Investigation, Data curation, Validation, Writing -original draft, Writingreview &amp; editing.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Age-standardized prevalence of major cardiovascular risk factors among US</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Trends in awareness, treatment, and control of hypertension, dyslipidemia, and</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Trends in PREVENT-predicted cardiovascular risk among US adults without self-</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Subgroup trends in cardiovascular risk factors among US adults, NHANES 1999-</p>
+<h3>Abbreviations:</h3>
+<p>AHA, American Heart Association; ASCVD, atherosclerotic cardiovascular 44 disease; BMI, body mass index; BP, blood pressure; CI, confidence interval; CKD, chronic Declarations Ethics Approval and Informed Consent: This study used publicly available, deidentified data from the National Health and Nutrition Examination Survey (NHANES). NHANES protocols kidney disease; COVID-19, coronavirus disease 2019; CVD, cardiovascular disease; eGFR,</p>
+<h3>References</h3>
+<p>Martin SS, Aday AW, Allen NB, Almarzooq ZI, Anderson CAM, Arora P, et al. 2025 heart disease and stroke statistics: a report of US and global data from the American Heart Association. Circulation. 2025;151:e41-e660. doi:10.1161/CIR.0000000000001303</p>
+<p>Woodruff RC, Tong X, Khan SS, Shah NS, Jackson SL, Loustalot F, et al. Trends in cardiovascular disease mortality rates and excess deaths, 2010-2022. Am J Prev Med. 2024;66(4):582-589. doi:10.1016/j.amepre.2023.11.009</p>
+<p>Sidney S, Quesenberry CP Jr, Jaffe MG, Sorel M, Nguyen-Huynh MN, Kushi LH, et al. Recent trends in cardiovascular mortality in the United States and public health goals. JAMA Cardiol. 2016;1:594-599. doi:10.1001/jamacardio.2016.1326</p>
+<p>Ford ES, Ajani UA, Croft JB, Critchley JA, Labarthe DR, Kottke TE, et al. Explaining the decrease in U.S. deaths from coronary disease, 1980-2000. N Engl J Med. 2007;356:2388-2398. doi:10.1056/NEJMsa053935</p>
+<p>Mensah GA, Wei GS, Sorlie PD, Fine LJ, Rosenberg Y, Kaufmann PG, et al. Decline in cardiovascular mortality: possible causes and implications. Circ Res. 2017;120:366-380. doi:10.1161/CIRCRESAHA.116.309115</p>
+<p>Yusuf S, Hawken S, Ôunpuu S, Dans T, Avezum A, Lanas F, et al. Effect of potentially modifiable risk factors associated with myocardial infarction in 52 countries (the INTERHEART study): case-control study. Lancet. 2004;364:937-952. doi:10.1016/S0140-6736(04)17018-9</p>
+<p>Lloyd-Jones DM, Allen NB, Anderson CAM, Black T, Brewer LC, Foraker RE, et al. Life&#x27;s Essential 8: updating and enhancing the American Heart Association&#x27;s construct of cardiovascular health: a presidential advisory from the American Heart Association. Circulation. 2022;146:e18-e43. doi:10.1161/CIR.0000000000001078</p>
+<p>Aggarwal R, Yeh RW, Joynt Maddox KE, Wadhera RK. Cardiovascular risk factor prevalence, treatment, and control in US adults aged 20 to 44 years, 2009 to March 2020. JAMA. 2023;329:899-909. doi:10.1001/jama.2023.2307</p>
+<p>He J, Zhu Z, Bundy JD, Dorans KS, Chen J, Hamm LL. Trends in cardiovascular risk factors in US adults by race and ethnicity and socioeconomic status, 1999-2018. JAMA. 2021;326:1286-1298. doi:10.1001/jama.2021.15187</p>
+<p>O&#x27;Hearn M, Lauren BN, Wong JB, Kim DD, Mozaffarian D. Trends and disparities in cardiometabolic health among U.S. adults, 1999-2018. J Am Coll Cardiol. 2022;80:138-151. doi:10.1016/j.jacc.2022.04.046</p>
+<p>Muntner P, Hardy ST, Fine LJ, Jaeger BC, Wozniak G, Levitan EB, et al. Trends in blood pressure control among US adults with hypertension, 1999-2000 to 2017-2018. JAMA. 2020;324:1190-1200. doi:10.1001/jama.2020.14545</p>
+<p>Carroll MD, Fryar CD, Gwira JA, Iniguez M. Total and high-density lipoprotein cholesterol in adults: United States, August 2021-August 2023. NCHS Data Brief. 2024;(515):1-8. doi:10.15620/cdc/165796</p>
+<p>Emmerich SD, Fryar CD, Stierman B, Ogden CL. Obesity and severe obesity prevalence in adults: United States, August 2021-August 2023. NCHS Data Brief. 2024;(508). Hyattsville, MD: National Center for Health Statistics. doi:10.15620/cdc/159281</p>
+<p>Terry AL, Chiappa MM, McAllister J, Woodwell DA, Graber JE. Plan and operations of the National Health and Nutrition Examination Survey, August 2021-August 2023. Vital Health Stat 1.2024;(66). Hyattsville, MD: National Center for Health Statistics. doi:10.15620/cdc/151927</p>
+<p>Khan SS, Matsushita K, Sang Y, Ballew SH, Grams ME, Surapaneni A, et al. Development and validation of the American Heart Association&#x27;s PREVENT equations. Circulation. 2024;149:430-449. doi:10.1161/CIRCULATIONAHA.123.067626</p>
+<p>Khan SS, Coresh J, Pencina MJ, Ndumele CE, Rangaswami J, Chow SL, et al. Novel prediction equations for absolute risk assessment of total cardiovascular disease incorporating cardiovascular-kidney-metabolic health: a scientific statement from the American Heart Association. Circulation. 2023;148:1982-2004. doi:10.1161/CIR.0000000000001191</p>
+<p>Ndumele CE, Rangaswami J, Chow SL, Neeland IJ, Tuttle KR, Khan SS, et al. Cardiovascular-kidney-metabolic health: a presidential advisory from the American Heart Association. Circulation. 2023;148:1606-1635. doi:10.1161/CIR.0000000000001184</p>
+<p>Faridi KF, Malik D, Essa M, Yang H, Spatz ES, Krumholz HM, Lu Y. 10-year and 30-year risks of cardiovascular disease in the U.S. population. J Am Coll Cardiol. 2025;85:2239-2249. doi:10.1016/j.jacc.2025.03.546</p>
+<p>Drexler Y, Goldwasser O, McCarley C, Land D, Naranjo C, Mechery V, et al. U.S. trends in 10-year cardiovascular risk scores over 2 decades. JACC Adv. 2026. Article 103307. doi:10.1016/j.jacadv.2026.103307</p>
+<p>Lee HH, Crawford EB, Cho SMJ, Krawisz AK, Juraschek SP, Cluett JL, et al. Trends in prevalence, treatment, and control of cardiometabolic risk factors among adults with hypertension in the United States, 1999-2023. J Am Coll Cardiol. 2025;86:2577-2593. doi:10.1016/j.jacc.2025.09.1607</p>
+<p>Couch CA, Mascarenhas R, Stierman B, Fryar CD. Prevalence of cardiovascular disease risk factors in adults: United States, August 2021-August 2023. NCHS Data Brief. 2025;(540):1-9. doi:10.15620/cdc/174623</p>
+<p>Akinbami LJ, Chen TC, Davy O, Ogden CL, Fink S, Clark J, et al. National Health and Nutrition Examination Survey, 2017-March 2020 prepandemic file: sample design, estimation, and analytic guidelines. Vital Health Stat 2.2022;(190):1-27.</p>
+<p>National Center for Health Statistics. National Health and Nutrition Examination Survey: analytic guidelines, 1999-2010. Hyattsville, MD: National Center for Health Statistics; 2013.</p>
+<p>National Center for Health Statistics. Brief overview of sample design, nonresponse bias assessment, and analytic guidelines for NHANES August 2021-August 2023. Hyattsville, MD: National Center for Health Statistics; 2024. https://wwwn.cdc.gov/nchs/nhanes/continuousnhanes/overviewbrief.aspx?Cycle=2021-2023</p>
+<p>von Elm E, Altman DG, Egger M, Pocock SJ, Gøtzsche PC, Vandenbroucke JP; STROBE Initiative. The Strengthening the Reporting of Observational Studies in Epidemiology (STROBE) statement: guidelines for reporting observational studies. PLoS Med. 2007;4:e296. doi:10.1371/journal.pmed.0040296.</p>
+<p>Benchimol EI, Smeeth L, Guttmann A, Harron K, Moher D, Petersen I, et al. The REporting of studies Conducted using Observational Routinely-collected health Data (RECORD) statement.</p>
+<p>PLoS Med. 2015;12:e1001885. doi:10.1371/journal.pmed.1001885</p>
+<p>National Cholesterol Education Program (NCEP) Expert Panel on Detection, Evaluation, and Treatment of High Blood Cholesterol in Adults (Adult Treatment Panel III). Third report of the National Cholesterol Education Program (NCEP) Expert Panel on Detection, Evaluation, and Treatment of High Blood Cholesterol in Adults (Adult Treatment Panel III): final report. Circulation. 2002;106:3143-3421. doi:10.1161/circ.106.25.3143</p>
+<p>Whelton PK, Carey RM, Aronow WS, Casey DE Jr, Collins KJ, Dennison Himmelfarb C, et al. 2017 ACC/AHA/AAPA/ABC/ACPM/AGS/APhA/ASH/ASPC/NMA/PCNA guideline for the prevention, detection, evaluation, and management of high blood pressure in adults: a report of the American College of Cardiology/American Heart Association Task Force on Clinical Practice Guidelines. Hypertension. 2018;71:e13-e115. doi:10.1161/HYP.0000000000000065</p>
+<p>Grundy SM, Stone NJ, Bailey AL, Beam C, Birtcher KK, Blumenthal RS, et al. 2018 cholesterol: executive summary: a report of the American College of Cardiology/American Heart Association Task Force on Clinical Practice Guidelines. Circulation. 2019;139:e1046-e1081. doi:10.1161/CIR.0000000000000624</p>
+<p>American Diabetes Association Professional Practice Committee. 2. Diagnosis and classification of diabetes: Standards of Care in Diabetes-2025. Diabetes Care. 2025;48(Suppl 1):S27-S49. doi:10.2337/dc25-S002.</p>
+<p>Kidney Disease: Improving Global Outcomes (KDIGO) CKD Work Group. KDIGO 2024 clinical practice guideline for the evaluation and management of chronic kidney disease. Kidney Int. 2024;105(Suppl 4):S117-S314. doi:10.1016/j.kint.2023.10.018</p>
+<p>Inker LA, Eneanya ND, Coresh J, Tighiouart H, Wang D, Sang Y, et al. New creatinine-and cystatin C-based equations to estimate GFR without race. N Engl J Med. 2021;385:1737-1749. doi:10.1056/NEJMoa2102953</p>
+<p>Selvin E, Manzi J, Stevens LA, Van Lente F, Lacher DA, Levey AS, Coresh J. Calibration of serum creatinine in the National Health and Nutrition Examination Surveys (NHANES) 1988- 1994, 1999-2004. Am J Kidney Dis. 2007;50:918-926. doi:10.1053/j.ajkd.2007.08.020</p>
+<p>Klein RJ, Schoenborn CA. Age adjustment using the 2000 projected U.S. population. Healthy People 2010 Stat Notes. 2001;(20):1-10.</p>
+<p>Parker JD, Talih M, Malec DJ, Beresovsky V, Carroll M, Gonzalez JF, et al. National Center for Health Statistics data presentation standards for proportions. Vital Health Stat 2.2017;(175):1-22.</p>
+<p>Ingram DD, Malec DJ, Makuc DM, Kruszon-Moran D, Gindi RM, Albert M, et al. National Center for Health Statistics guidelines for analysis of trends. Vital Health Stat 2.2018;(179):1- 71.</p>
+<p>Kim HJ, Fay MP, Feuer EJ, Midthune DN. Permutation tests for joinpoint regression with applications to cancer rates. Stat Med. 2000;19:335-351. doi:10.1002/(SICI)1097-0258(20000215)19:3&lt;335::AID-SIM336&gt;3.0.CO;2-Z.</p>
+<p>WHO Expert Consultation. Appropriate body-mass index for Asian populations and its implications for policy and intervention strategies. Lancet. 2004;363:157-163. doi:10.1016/S0140-6736(03)15268-3</p>
+<p>Hales CM, Fryar CD, Carroll MD, Freedman DS, Ogden CL. Trends in obesity and severe obesity prevalence in US youth and adults by sex and age, 2007-2008 to 2015-2016. JAMA. 2018;319:1723-1725. doi:10.1001/jama.2018.3060</p>
+<p>Wang L, Li X, Wang Z, Bancks MP, Carnethon MR, Greenland P, et al. Trends in prevalence of diabetes and control of risk factors in diabetes among US adults, 1999-2018. JAMA. 2021;326:704-716. doi:10.1001/jama.2021.9883</p>
+<p>Carroll MD, Kit BK, Lacher DA, Shero ST, Mussolino ME. Trends in lipids and lipoproteins in US adults, 1988-2010. JAMA. 2012;308:1545-1554. doi:10.1001/jama.2012.13260</p>
+<p>Cornelius ME, Loretan CG, Jamal A, Davis Lynn BC, Mayer M, Alcantara IC, Neff L. Tobacco product use among adults-United States, 2021. MMWR Morb Mortal Wkly Rep. 2023;72:475-483. doi:10.15585/mmwr.mm7218a1</p>
+<p>Hardy ST, Jaeger BC, Foti K, Ghazi L, Wozniak G, Muntner P. Trends in blood pressure control among US adults with hypertension, 2013-2014 to 2021-2023. Am J Hypertens. 2025;38:120-128. doi:10.1093/ajh/hpae141</p>
+<p>Ahmed HM, ur Rehman U, Owais M, Saeed MY. The accelerating crisis of metabolic multimorbidity in young U.S. adults: a 26-year analysis of national trends, disparities, and projections to 2031. Nutr Metab Cardiovasc Dis. 2026;36:104858. doi:10.1016/j.numecd.2026.104858</p>
+<p>Rayani A, Sharma G, Spitz JA. Atherosclerotic cardiovascular disease risk estimates using 517 the new Predicting Risk of Cardiovascular Disease Events equations: implications for statin use. 518 Curr Cardiol Rep. 2025;27:107. doi:10.1007/s11886-025-02244-5</p>
+<p>519 47. Diao JA, Shi I, Murthy VL, Buckley TA, Patel CJ, Pierson E, et al. Projected changes in 520 statin and antihypertensive therapy eligibility with the AHA PREVENT cardiovascular risk 521 equations. JAMA. 2024;332:989-1000. doi:10.1001/jama.2024.12537</p>
+<p>522 48. Anderson TS, Wilson LM, Sussman JB. Atherosclerotic cardiovascular disease risk estimates 523 using the Predicting Risk of Cardiovascular Disease Events equations. JAMA Intern Med. 524 2024;184:963-970. doi:10.1001/jamainternmed.2024.1302</p>
+<p>525 Estimates were age-standardized to the 2000 US standard population, with PREVENT risk estimates standardized within their respective eligible age ranges. Absolute change was calculated as the difference between the 2021-2023 and first-cycle estimates. Trends were assessed using survey-weighted regression adjusted for age group and expressed as odds ratios (ORs), mean differences, or ratios per decade, as appropriate. P values for nonlinearity were based on a quadratic time term. LDL cholesterol, triglycerides, and glucose were assessed in the fasting subsample. Treatment and control estimates were restricted to adults meeting the primary definition of each condition. Dialysis was first assessed in 2001- 2002; therefore, its absolute change and trend were calculated from 2001-2002 to 2021-2023. Abbreviations: ASCVD, atherosclerotic cardiovascular disease; BMI, body mass index; BP, blood pressure; CI, confidence interval; CKD, chronic kidney disease; CVD, cardiovascular disease; DBP, diastolic blood pressure; eGFR, estimated glomerular filtration rate; HbA1c, glycated hemoglobin; HDL, high-density lipoprotein; LDL, low-density lipoprotein; OR, odds ratio; PREVENT, Predicting Risk of Cardiovascular Disease Events; SBP, systolic blood pressure; TC, total cholesterol; TG, triglycerides; UACR, urine albumin-to-creatinine ratio.</p>
 </div>
 </details>
 </div>
