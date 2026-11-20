@@ -196,7 +196,7 @@ Enrollees and Early Lessons from an Agentic Healthcare Platform with
 Physicians in the Loop
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.12.26367291
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.12.26367291
 </p>
 </header>
 <div class="mc-main">
@@ -307,8 +307,8 @@ Your Statistical Inferences</a>.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 8 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 8 detected.</p>
 </div>
 </div>
 </div>
@@ -405,8 +405,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -757,9 +758,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -781,7 +786,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -796,9 +802,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -811,13 +835,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -837,6 +864,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -844,12 +877,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -950,6 +989,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -969,6 +1028,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1224,19 +1318,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1346,6 +1522,103 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>We characterized users of a personalized agentic health platform with physicians in the loop. They were older, sicker, and more care-fragmented than digital-first care is assumed to attract. This profile reshaped our team&#x27;s priorities for safety and care design.</p>
+<h3>Introduction</h3>
+<p>Primary care faces growing challenges in meeting patient demand, maintaining continuity, and coordinating increasingly complex care. One estimate suggests that primary care physicians would require twenty-seven hours per day to deliver all care to their assigned patients, while the proportion of Americans with an established source of primary care has declined in the past two decades. 2, 3 Agentic healthcare platforms integrating large language models (LLMs) offer potential solutions to these challenges by reducing administrative burden, expanding access to care, and supporting guideline-concordant clinical decision-making. [4] [5] [6] [7] [8] Approximately one in three US adults now use artificial intelligence (AI) chatbots for health-related information. 9 Despite this rapid expansion, little is known about who receives care from agentic healthcare platforms. Existing evidence comes largely from clinician-delivered telemedicine and is conflicting. Studies of direct-to-consumer telemedicine have generally identified younger, healthier patients with fewer comorbidities, [10] [11] [12] while other investigations have reported greater utilization among individuals with chronic conditions. 13 These findings may not transfer to agentic healthcare platforms. Telemedicine still requires a clinician at every encounter, whereas agentic healthcare platforms leverage LLMs to offer continuous conversations on demand, including when traditional care is least available. 14 Platforms that eliminate traditional barriers related to cost, insurance coverage, and appointment availability may serve substantially different populations. 9, 15, 16 Regulatory reporting does not fill this gap: despite FDA draft guidance 17 , public summaries of FDA-authorized AI devices rarely report patient characteristics. 18, 19 Agentic healthcare platforms may, like direct-to-consumer telemedicine, attract younger and healthier users seeking convenience. Alternatively, they may disproportionately attract patients with multiple comorbidities, functional disorders, and fragmented care. In addition to managing complex health conditions, these patients must coordinate care across many clinicians 20 , and their health records are often scattered among multiple health systems. 21 They also account for more primary care visit time and send more patient portal messages. 22, 23 Continuous asynchronous access and consolidated health data may be especially valuable to them, but this group may also be more vulnerable to triage and escalation errors. 24 Because AI performance depends on the population in which it is deployed and LLM evaluations rarely use data from real patients, 25, 26 understanding the users served by agentic healthcare platforms is essential to enabling the rigorous evaluation of the safety, quality, and value of care provided. 18, 27 To address the relative lack of agentic healthcare platform consumer data, we conducted a retrospective case study to characterize enrollees of Lotus AI, an agentic healthcare platform that integrates LLMs to provide around-the-clock personalized health guidance, longitudinal patient engagement, and clinical triage with physician oversight and escalation when indicated. We categorized patients by age, sex, chronic disease burden, functional disorder burden, and care fragmentation, and compared our patient population with national benchmarks.</p>
+<h3>The Platform</h3>
+<p>Lotus AI consists of two LLM agent loops (Figure 1). The patient-facing Lotus agent converses directly with users around the clock. At enrollment, patients consent to retrieval of their health record from a health information exchange (HIE) and patient portals; the agent then reasons over the linked record, synced wearable data, chat history, Lotus care history, and a curated knowledge base of clinical guidelines and literature. An escalation algorithm determines which requests require physician review. Escalations route to Cortex, a clinical decision support agent used by Lotus physicians with access to the same patient records. Escalations have three outcomes: lab orders, prescriptions, and follow-up messages.</p>
+<p>Cortex may suggest the best action but physician approval is always required. The service was free to patients during the study period.</p>
+<h3>Methods</h3>
+<h3>Study Population</h3>
+<p>We included users who completed onboarding between February 1 and July 31, 2026, sent at least one message to the agent in that period, and had at least one ICD-10-coded condition dated on or after October 1, 2015 (the US ICD-10 transition), indicating both active use and successful record linkage. A condition&#x27;s date was its recorded date or, if absent, its onset date.</p>
+<h3>Data collection</h3>
+<p>Date of birth and sex assigned at birth were collected from identity verification platforms and HIE. Age was calculated as 2026 minus birth year. We extracted Fast Healthcare Interoperability Resources Conditions, Encounters, and Practitioners for all cohort users from HIE and measured platform activity as the number of escalations, laboratory orders, and prescriptions during the study period. Advarra IRB reviewed the study (Pro00094483) and determined it exempt.</p>
+<h3>Chronic and Functional Conditions</h3>
+<p>We mapped the 10 chronic conditions in the 2024 National Health Interview Survey (NHIS) to ICD-10 codes (Table S1) and applied them to Condition records with usable dates and ICD-10 coding. We defined fourteen functional somatic disorders from the literature: irritable bowel syndrome, fibromyalgia, myalgic encephalomyelitis/chronic fatigue syndrome, functional dyspepsia, functional constipation, functional diarrhea, cyclic vomiting syndrome, interstitial cystitis/bladder pain syndrome, functional neurologic disorder, postural orthostatic tachycardia syndrome, mast cell activation syndrome, long COVID, temporomandibular disorder, and complex regional pain syndrome type 1 (Table S2).</p>
+<h3>Care Fragmentation analysis</h3>
+<p>For the year before the study period (February 1, 2025, to January 31, 2026), we identified ambulatory evaluation and management visits (CPT 99202-99215) with an associated provider&#x27;s National Provider Identifier (NPI). Following established guidance, we assessed fragmentation only among users with at least four such visits, 28 calculating the usual provider of care (UPC) index 29 (share of visits to the most frequently seen provider) and the reversed Bice-Boxerman continuity of care index (rBBI = 1 -BBI), 30 the probability that two randomly selected visits were with different providers. We classified rBBI above 0.85 as high, 0.70 to 0.85 as medium, and below 0.70 as low fragmentation. 31</p>
+<h3>Statistical Analysis</h3>
+<p>Age-band prevalences are reported with Wilson 95% confidence intervals, and differences from published NHIS estimates with MOVER 95% confidence intervals, 32, 33 which combine our Wilson intervals with the NHIS design-based intervals. Binary outcomes were compared with Fisher&#x27;s exact test and summarized as conditional maximum-likelihood odds ratios with exact 95% confidence intervals. Adjusted odds ratios came from logistic regression (Wald 95% confidence intervals), adjusting for age and sex and, for high fragmentation, the logarithm of the number of provider visits, since rBBI depends on visit count. Count outcomes were compared with the two-sided Mann-Whitney U test, and 95% confidence intervals for ratios of means and for each group&#x27;s share of total activity were estimated by a nonparametric bootstrap with 2,000 user-level resamples and the percentile method. All p values are two-sided; analyses were performed in Python with SciPy and statsmodels.</p>
+<h3>Results</h3>
+<h3>Study population.</h3>
+<p>A total of 3,223 users met inclusion criteria. Median age was 51 years, and 62.1% were male (Table 1). These users had 12,219 eligible visits (83.4% had an associated NPI) and 430,442 eligible Condition records.</p>
+<p>Table 1. Lotus user demographic distribution Characteristic n % Total population 3,223 100.0 Age, years 18-24 158 4.9 25-34 484 15.0 35-44 577 17.9 45-54 613 19.0 55-64 650 20.2 65-74 466 14.5 75+ 275 8.5 Missing 0 0.0 Sex Female 1,219 37.8 Male 2,001 62.1 Missing 3 0.1  Chronic and functional disorder prevalence. Overall, 1,906 users (59.1%) had at least one NHIS chronic condition and 584 (18.1%) had a functional disorder. In every age band, chronic condition prevalence exceeded 2024 NHIS estimates (Figure 2): 33.2% vs. 26.2% at 18 to 44 years (difference, 7.0 percentage points; 95% CI, 4.2 to 9.9), 65.6% vs. 61.5% at 45 to 64 years (4.1; 1.2 to 6.9), and 90.8% vs. 86.5% at 65 years or older (4.3; 1.9 to 6.4).</p>
+<p>Platform activity among users with functional disorders. Users with a functional disorder generated more escalations (mean, 2.62 vs. 1.47 per user; ratio of means, 1.78; 95% CI, 1.42 to 2.21; P&lt;0.001) and were more likely to have any escalation (47.4% vs. 41.7%; OR, 1.26; 95% CI, 1.05 to 1.52; P=0.01). The excess was in testing, not prescribing (Figure 3). Laboratory orders were placed for 11.1% vs. 6.6% (OR, 1.77; 95% CI, 1.29 to 2.41; P&lt;0.001), at 2.6 times the per-user rate (0.96 vs. 0.37; 95% CI for ratio, 1.67 to 3.93); users with a functional disorder were 18.1% of the cohort but accounted for 36.6% (95% CI, 26.3 to 46.6) of all laboratory orders. Prescriptions did not differ (9.8% vs. 11.1%; OR, 0.86; 95% CI, 0.63 to 1.17; P=0.38; 0.48 vs. 0.50 per user; ratio, 0.97; 95% CI, 0.48 to 1.68).</p>
+<h3>Care fragmentation.</h3>
+<p>In all, 952 users (29.5%) had at least four prior visits with an identifiable provider; they averaged 8.8 visits across 4.8 providers. The most frequently seen provider accounted for a median of 40% of a user&#x27;s visits (UPC 0.40; IQR 0.29 to 0.54). 44.4% of users had high fragmentation indicated by rBBI (43.6% at 18 to 44 years, 45.9% at 45 to 64, and 43.7% at 65 or older; Table 2).</p>
+<h3>Functional disorders and care fragmentation.</h3>
+<p>Users with a functional disorder were more likely to meet the four-visit threshold (51.7% vs. 24.6%; age-and sex-adjusted OR, 3.07; 95% CI, 2.52 to 3.72; P&lt;0.001) and, among those assessed, more likely to have high fragmentation (53.6% vs. 40.2%; OR, 1.72; 95% CI, 1.30 to 2.29; P&lt;0.001), an association that persisted after adjustment for age, sex, and visit count (adjusted OR, 1.41; 95% CI, 1.05 to 1.89; P=0.02). They made up 38.3% of the high-fragmentation group vs. 26.5% and 26.4% of the medium and low groups. Chronic conditions, by contrast, predicted inclusion in the analysis (adjusted OR, 3.77; 95% CI, 3.07 to 4.61) but not high fragmentation (adjusted OR, 1.12; 95% CI, 0.76 to 1.65; P=0.55).</p>
+<p>Table 2. Prior-year healthcare utilization and care fragmentation among Lotus users, by age group and functional disorder diagnosis rBBI category, % e Group n (%) a Mean visits b Mean providers c Median UPC d High (&gt;0.85) Medium (0.70-0.85) Low (&lt;0.70) All users 952 (100.0) 8.83 4.78 0.40 44.4 29.7 25.8 Age, years 18-44 257 (27.0) 7.84 4.42 0.43 43.6 24.5 31.9 45-64 329 (34.6) 8.57 4.76 0.40 45.9 28.9 25.2 65+ 366 (38.4) 9.77 5.05 0.40 43.7 34.2 22.1 Functional disorder diagnosis Yes 302 (31.7) 10.75 5.75 0.36 53.6 24.8 21.5 No 650 (68.3) 7.94 4.33 0.43 40.2 32.0 27.8 Abbreviations: rBBI, reversed Bice-Boxerman Index; UPC, Usual Provider of Care index.</p>
+<h3>Discussion</h3>
+<p>Users of our care platform were older and predominantly male, with substantial chronic disease burden, functional disorder prevalence, and fragmented prior care. These observed differences from other users of digital-first care 12, 13, 34 suggest that removing barriers of cost, scheduling, and gatekeeping may attract a unique population with distinct care needs and support the transferable lesson that routine characterization of deployed AI care populations against national benchmarks is critical to inform evaluation, safety monitoring, and quality improvement. Our study reports our approach to evaluating users of an AI health product and identifies three priorities for our platform and the broader development of LLMenabled primary care.</p>
+<p>First, the high chronic disease burden in our cohort calls for a platform designed to support monitoring, treatment adjustment, and coordination across conditions. Chronic disease management is a potentially high-value use of AI-led care, but must be considered a core component of the platform&#x27;s workload rather than an edge case. Early studies suggest AI-led chronic disease management is feasible, but evidence remains limited around long-term clinical effectiveness, cultural competency, and algorithmic bias. 35, 36 Second, functional disorders need dedicated workflows that address diagnostic uncertainty and guide appropriate testing and referral. These conditions are difficult to diagnose and manage, drive disproportionate acute and chronic care utilization, 37 and have risen in incidence since COVID-19, [38] [39] [40] [41] even as primary care capacity has shrunk. 42 On our platform, users with functional disorders generated disproportionately more escalations and laboratory orders, but not more prescriptions, the same pattern of uncertainty-driven testing described in outpatient settings. A platform that can assemble scattered records and synthesize long histories is well placed to help, but only if grounded in evidence-based practices 43 : validating explanations of symptoms, testing informed by prior workups, and stepped referral to psychological care when indicated. These safeguards are necessary to avoid amplifying low-yield testing.</p>
+<p>Third, substantial care fragmentation highlights the need to coordinate care across providers and evaluate whether the platform improves continuity. Among assessed users, care was spread across nearly five providers, and the share with highly fragmented care (44%) exceeded estimates for Medicare beneficiaries (26%) 44 and older Veterans (33%). 45 Fragmentation was similar across age bands, including adults aged 18-44, a group rarely studied. Users with functional disorders had greater fragmentation even after adjustment for visit count, reinforcing the need for workflows that address both clinical management and care coordination. For the platform, this means routing escalations to a consistent clinical team and sharing summaries across providers. We are working to assess fragmentation at enrollment and over time as one indicator of how our platform influences care continuity through information sharing and integrated care coordination.</p>
+<h3>Limitations</h3>
+<p>This cross-sectional study describes self-selected users of a single platform, limiting generalizability to other settings and populations. Comparisons with national estimates should be interpreted cautiously because diagnoses identified through ICD-10 codes may differ from self-reported conditions in surveys such as NHIS. Our literature-informed definition of functional disorders has not been formally validated. Fragmentation estimates apply only to users with at least four prior visits and may be affected by year-to-year variation in utilization and differences in care capture between linked records and comparator claims data. Finally, we did not evaluate clinical outcomes or whether the platform improves care.</p>
+<h3>Conclusion</h3>
+<p>Users of our personalized agentic health platform with physicians-in-the-loop had high chronic and functional disease burdens and arrived with highly fragmented prior care. These findings highlight the need for chronic disease management, dedicated functional disorder workflows, and care coordination in LLMbased care platforms. To achieve the promise of safe, equitable, and high-value care, we believe AI-led platforms need to characterize their users early and against national benchmarks, across demographics, chronic and functional disease burden, and fragmentation. Capturing and reporting these profiles should inform safety thresholds, care pathways, and evaluation metrics to ensure these platforms are designed for the needs of the patients they actually serve.</p>
+<h3>Figure 1</h3>
+<p>Figure 1 Lotus app system architecture From left to right: users chat with Lotus Agent, an LLM with tools and access to user-specific chat history, health records, Lotus actions, wearable data, and a general knowledge base containing research papers and clinical guidelines. An escalation algorithm determines when to create a request for the Cortex Agent, which has access to the same data and can chat with licensed physicians. Physicians can create lab orders, prescription, and follow-up messages on the platform.</p>
+<h3>Figure 2</h3>
+<p>Figure 2 Chronic condition prevalence among Lotus users, stratified by age The figure shows the percentage of users with at least one chronic condition, as defined by the National Health Interview Survey (NHIS), by age group. Markers show the percentage in each age group, with error bars indicating 95% confidence intervals; the number of users in each age group is shown below its label. Colored horizontal lines show the percentage for users aged 18 to 44, 45 to 64, and 65 years or older, with shaded bands indicating 95% confidence intervals and the value labeled above each band. Dashed gray lines show the corresponding 2024 NHIS national estimates for the same age bands, with gray bands indicating 95% confidence intervals and the value labeled below each band.</p>
+<h3>Figure 3</h3>
+<p>Figure 3 Lab orders and prescriptions for Lotus users with and without functional disorders Panel A shows lab orders and Panel B shows prescriptions per user. Each curve shows the percentage of users with at least the number of lab orders or prescriptions indicated on the horizontal axis, which is plotted on a logarithmic scale; the value at 1 is the percentage of users with any lab order or prescription. The solid line shows users with a functional disorder, and the dotted line shows users without a functional disorder. Curves that lie higher or extend farther to the right indicate that a larger share of users had more lab orders or prescriptions.</p>
+<h3>a</h3>
+<p>Percent of the analytic cohort (N = 952): Lotus users with ≥4 ambulatory visits in the 12 months before enrollment. b Mean number of ambulatory visits per user in the 12 months before enrollment. c Mean number of distinct clinicians seen per user over the same period. d UPC is the proportion of a user&#x27;s visits made to their most frequently seen provider (range 0-1); higher values indicate greater continuity of care.e rBBI is 1 minus the Bice-Boxerman Continuity of Care Index, which reflects both the number of distinct providers and how evenly visits are spread across them (range 0-1); higher values indicate greater fragmentation.</p>
+<h3>References</h3>
+<p>Porter J, Boyd C, Skandari MR, Laiteerapong N. Revisiting the time needed to provide adult primary care. J Gen Intern Med 2023;38:147-155. DOI: 10.1007/s11606-022-07707-x.</p>
+<p>Levine DM, Linder JA, Landon BE. Characteristics of Americans with primary care and changes over time, 2002-2015. JAMA Intern Med 2020;180:463. DOI: 10.1001/jamainternmed.2019.6282.</p>
+<p>Ganguli I, Shi Z, Orav EJ, Rao A, Ray KN, Mehrotra A. Declining use of primary care among commercially insured adults in the United States, 2008-2016. Ann Intern Med 2020;172:240-247. DOI: 10.7326/M19-1834.</p>
+<p>Zeltzer D, Kugler Z, Hayat L, et al. Comparison of initial artificial intelligence (AI) and final physician recommendations in AI-assisted virtual urgent care visits. Ann Intern Med 2025;178:498-506. DOI: 10.7326/ANNALS-24-03283.</p>
+<p>Pavuluri S, Sangal R, Sather J, Taylor RA. Balancing act: the complex role of artificial intelligence in addressing burnout and healthcare workforce dynamics. BMJ Health Care Inform 2024;31:e101120. DOI: 10.1136/bmjhci-2024-101120.</p>
+<p>Thirunavukarasu AJ, Ting DSJ, Elangovan K, Gutierrez L, Tan TF, Ting DSW. Large language models in medicine. Nat Med 2023;29:1930-1940. DOI: 10.1038/s41591-023-02448-8.</p>
+<p>Katonai G, Arvai N, Mesko B. AI and primary care: scoping review. J Med Internet Res 2025;27:e65950. DOI: 10.2196/65950.</p>
+<p>Osonuga A, Osonuga AA, Fidelis SC, Osonuga GC, Juckes J, Olawade DB. Bridging the digital divide: artificial intelligence as a catalyst for health equity in primary care settings. Int J Med Inform 2025;204:106051. DOI: 10.1016/j.ijmedinf.2025.106051.</p>
+<p>KFF. KFF Health Misinformation Tracking Poll: artificial intelligence and health information. San Francisco: KFF, August 15, 2024. (https://www.kff.org/public-opinion/kff-health- misinformation-tracking-poll-artificial-intelligence-and-health-information/.)</p>
+<p>Spithoff S, Arnott CA, Visanji A, et al. Direct-to-consumer commercial virtual care: a scoping review. BMJ Open 2026;16:e105555. DOI: 10.1136/bmjopen-2025-105555.</p>
+<p>Jain T, Mehrotra A. Comparison of direct-to-consumer telemedicine visits with primary care visits. JAMA Netw Open 2020;3:e2028392. DOI: 10.1001/jamanetworkopen.2020.28392.</p>
+<p>Zhang B, Li L, Lu Y, et al. Temporal trends and sociodemographic differences in telemedicine utilization, 2019-2024. J Gen Intern Med 2026;41:2407-2415. DOI: 10.1007/s11606-025-09964-y.</p>
+<p>Chang E, Penfold RB, Berkman ND. Patient characteristics and telemedicine use in the US, 2022. JAMA Netw Open 2024;7:e243354. DOI: 10.1001/jamanetworkopen.2024.3354.</p>
+<p>Costa-Gomes B, Tolmachev P, Taysom E, et al. Public use of a generalist LLM chatbot for health queries. Nat Health 2026;1:689-696. DOI: 10.1038/s44360-026-00117-x.</p>
+<p>Uscher-Pines L, Mehrotra A. Analysis of Teladoc use seems to indicate expanded access to care for patients without prior connection to a provider. Health Aff (Millwood) 2014;33:258-264. DOI: 10.1377/hlthaff.2013.0989.</p>
+<p>Hazhir S, Langarizadeh M, Bahariniya S, Valizadeh Laktarashi H, Hami A, Fatemi Aghda SA. The development and use of chatbots in enhancing health care access for underserved and vulnerable populations: a scoping review. BMC Public Health 2025;26:410. DOI: 10.1186/s12889-025-25814-2.</p>
+<p>Artificial intelligence-enabled device software functions: lifecycle management and marketing submission recommendations. Silver Spring, MD: Food and Drug Administration, Center for Devices and Radiological Health, January 6, 2025. (https://www.fda.gov/regulatory- information/search-fda-guidance-documents/artificial-intelligence-enabled-device-software- functions-lifecycle-management-and-marketing.)</p>
+<p>Muralidharan V, Adewale BA, Huang CJ, et al. A scoping review of reporting gaps in FDA- approved AI medical devices. NPJ Digit Med 2024;7:273. DOI: 10.1038/s41746-024-01270-x.</p>
+<p>Windecker D, Baj G, Shiri I, et al. Generalizability of FDA-approved AI-enabled medical devices for clinical use. JAMA Netw Open 2025;8:e258052. DOI: 10.1001/jamanetworkopen.2025.8052.</p>
+<p>Prior A, Vestergaard CH, Vedsted P, et al. Healthcare fragmentation, multimorbidity, potentially inappropriate medication, and mortality: a Danish nationwide cohort study. BMC Med 2023;21:305. DOI: 10.1186/s12916-023-03021-3.</p>
+<p>Individuals&#x27; access and use of patient portals and smartphone health apps, 2024. Washington, DC: Office of the National Coordinator for Health Information Technology. (https://healthit.gov/data/data-briefs/individuals-access-and-use-patient-portals-and-smartphone- health-apps-2024/.)</p>
+<p>Chivela FL, Burch AE, Asagbra O. An assessment of patient portal messaging use by patients with multiple chronic conditions living in rural communities: retrospective analysis. J Med Internet Res 2023;25:e44399. DOI: 10.2196/44399.</p>
+<p>Gopfert A, Deeny SR, Fisher R, Stafford M. Primary care consultation length by deprivation and multimorbidity in England: an observational study using electronic patient records. Br J Gen Pract 2021;71:e185-e192. DOI: 10.3399/bjgp20X714029.</p>
+<p>Ramaswamy A, Tyagi A, Hugo H, et al. ChatGPT Health performance in a structured test of triage recommendations. Nat Med 2026;32:1671-1675. DOI: 10.1038/s41591-026-04297-7.</p>
+<p>Finlayson SG, Subbaswamy A, Singh K, et al. The clinician and dataset shift in artificial intelligence. N Engl J Med 2021;385:283-286. DOI: 10.1056/NEJMc2104626.</p>
+<p>Bedi S, Liu Y, Orr-Ewing L, et al. Testing and evaluation of health care applications of large language models: a systematic review. JAMA 2025;333:319. DOI: 10.1001/jama.2024.21700.</p>
+<p>Vasey B, Nagendran M, Campbell B, et al. Reporting guideline for the early-stage clinical evaluation of decision support systems driven by artificial intelligence: DECIDE-AI. Nat Med 2022;28:924-933. DOI: 10.1038/s41591-022-01772-9.</p>
+<p>Rosenberg NA, Zulman DM. Measures of care fragmentation: mathematical insights from population genetics. Health Serv Res 2020;55:318-327. DOI: 10.1111/1475-6773.13263.</p>
+<p>Breslau N, Haug MR. Service delivery structure and continuity of care: a case study of a pediatric practice in process of reorganization. J Health Soc Behav 1976;17:339. DOI: 10.2307/2136712.</p>
+<p>Bice TW, Boxerman SB. A quantitative measure of continuity of care. Med Care 1977;15:347- 349. DOI: 10.1097/00005650-197704000-00010.</p>
+<p>Kern LM, Lau JD, Rajan M, et al. Associations among claims-based care fragmentation, self- reported gaps in care coordination, and self-reported adverse events. BMC Health Serv Res 2024;24:1045. DOI: 10.1186/s12913-024-11440-y.</p>
+<p>Zou GY, Donner A. Construction of confidence limits about effect measures: a general approach. Stat Med 2008;27:1693-1702. DOI: 10.1002/sim.3095.</p>
+<p>Newcombe RG. Interval estimation for the difference between independent proportions: comparison of eleven methods. Stat Med 1998;17:873-890. DOI: 10.1002/(SICI)1097-0258(19980430)17:8&lt;873::AID-SIM779&gt;3.0.CO;2-I.</p>
+<p>Wilkens J, Thulesius H, Ekman B. From office to digital primary care services: analysing income-related inequalities in utilization. Int J Equity Health 2024;23:86. DOI: 10.1186/s12939-024-02184-6.</p>
+<p>Du Y, Yang P, Liu Y, Deng C, Li X. Artificial intelligence in chronic disease self-management: current applications and future directions. Front Public Health 2025;13:1689911. DOI: 10.3389/fpubh.2025.1689911.</p>
+<p>Hwang M, Zheng Y, Cho Y, Jiang Y. AI applications for chronic condition self-management: scoping review. J Med Internet Res 2025;27:e59632. DOI: 10.2196/59632.</p>
+<p>Barsky AJ, Orav EJ, Bates DW. Somatization increases medical utilization and costs independent of psychiatric and medical comorbidity. Arch Gen Psychiatry 2005;62:903. DOI: 10.1001/archpsyc.62.8.903.</p>
+<p>Hull M, Parnes M, Jankovic J. Increased incidence of functional (psychogenic) movement disorders in children and adults amid the COVID-19 pandemic: a cross-sectional study. Neurol Clin Pract 2021;11. DOI: 10.1212/CPJ.0000000000001082.</p>
+<p>Almario CV, Choi SY, Chey WD, Spiegel BMR. Trends in prevalence of Rome IV disorders of gut-brain interaction during the COVID-19 pandemic: results from a nationally representative sample of over 160,000 people in the US. Neurogastroenterol Motil 2026;38:e70020. DOI: 10.1111/nmo.70020.</p>
+<p>Berlot R, Asan L, Nicholson TR, Stanton B, Pollak TA, Edwards MJ. Functional neurological disorder following COVID-19: results from a large international electronic health record database. Eur J Neurol 2025;32:e70459. DOI: 10.1111/ene.70459.</p>
+<p>Palsson O, Simren M, Sperber AD, Bangdiwala S, Hreinsson JP, Aziz I. The prevalence and burden of disorders of gut-brain interaction (DGBI) before vs after the COVID-19 pandemic. Clin Gastroenterol Hepatol 2026;24:1151-1160. DOI: 10.1016/j.cgh.2025.07.012.</p>
+<p>Morgan KM, Karadakic R, Barnett ML. Primary care clinicians available for new patient visits. JAMA Intern Med 2026;186:378. DOI: 10.1001/jamainternmed.2025.7465.</p>
+<p>Löwe B, Toussaint A, Rosmalen JGM, et al. Persistent physical symptoms: definition, genesis, and management. Lancet 2024;403:2649-2662. DOI: 10.1016/S0140-6736(24)00623-8.</p>
+<p>Kern LM, Ringel JB, Rajan M, et al. Ambulatory care fragmentation and total health care costs. Med Care 2024;62:277-284. DOI: 10.1097/MLR.0000000000001982.</p>
+<p>Rajan M, Helmer D, Rowneki M, Fried D, Kern LM. Ambulatory care fragmentation and hospitalization among veterans with diabetes. Am J Manag Care 2021;27:155-160. DOI: 10.37765/ajmc.2021.88509.</p>
 </div>
 </details>
 </div>
