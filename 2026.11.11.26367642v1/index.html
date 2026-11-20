@@ -198,7 +198,7 @@ and Risks in Aging (EMFRA) scale: reliability, structural validity, and
 concurrent validity
 </p>
 <p class="meta">
-2026-11-12 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.11.26367642
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.11.26367642
 </p>
 </header>
 <div class="mc-main">
@@ -470,8 +470,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -892,9 +895,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -916,7 +923,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -931,9 +939,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -946,13 +972,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -972,6 +1001,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -979,12 +1014,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1085,6 +1126,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1104,6 +1165,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1359,19 +1455,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1481,6 +1659,225 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: EMFRA is a brief scale developed to assess physical, cognitive, emotional, and social functioning in older adults. This study examined its initial psychometric properties.</p>
+<p>Methods: A cross-sectional study was conducted with 201 older adults aged ≥65 years without a diagnosis of dementia, recruited from the community, day-care and nursing centres from Madrid. Dimensional structure was examined through bootstrap parallel analysis (PA), bootstrap exploratory graph analysis (EGA), and factor analysis (FA), followed by progressive item refinement. Internal consistency, test-retest reliability in a subsample (n = 22), SEM, MDC95, floor and ceiling effects, and associations with SPPB, MoCA, Barthel Index, and HADS were assessed.</p>
+<p>Results: The 21-item version did not reproduce the four hypothesized domains, yielding a threedimensional solution with limited stability. A nine-item version comprised two factors, Autonomy and Psychological Distress, although FA fit was limited (TLI = 0.80; RMSEA = 0.13). A low hierarchical omega (0.409) did not support a total score, whereas factor reliability was adequate (ω = 0.840 and 0.785). Test-retest ICCs were 0.82 and 0.78, with wide 95% CIs.</p>
+<p>No floor or ceiling effects were observed. Autonomy correlated with SPPB (r = 0.751), MoCA (r = 0.697), and Barthel (r = 0.56), and Psychological Distress with HADS (r = 0.625).</p>
+<p>Conclusions: The nine-item EMFRA shows preliminary evidence of a two-factor structure whose factors should be scored separately. Its temporal reliability and measurement error remain uncertain, and external validation is required before clinical implementation.</p>
+<h3>1. Introduction.</h3>
+<p>Functioning in older adults cannot be adequately characterized by chronological age or the presence of individual health conditions. People of similar ages may differ substantially in their physical and mental capacities and in their ability to perform everyday activities. The World Health Organization&#x27;s framework for healthy aging defines functional ability through the interaction between intrinsic capacity and the environment in which a person lives (Beard et al., 2016). Intrinsic capacity encompasses the physical and mental capacities of an individual, with locomotion, vitality, cognition, psychological capacity, and sensory function proposed as its principal domains (Cesari et al., 2018). Functional ability has a broader meaning because it also reflects the environmental conditions that enable or restrict the expression of these capacities.</p>
+<p>The distinction is relevant to measurement: scores describing impairments in specific capacities cannot be assumed to represent an individual&#x27;s functioning across different everyday contexts.</p>
+<p>The operationalization of these constructs remains inconsistent. Schwab et al. (2025) documented substantial variation in the definitions, dimensions, and assessment approaches used to examine functional capacity and functional ability in older populations. Such differences complicate comparisons between studies and raise questions about the meaning of summary scores obtained from heterogeneous indicators. Chang et al. (2024) developed a functional ability index incorporating intrinsic capacity and environmental characteristics, illustrating how the World Health Organization&#x27;s conceptual framework can inform the selection and organization of measurement indicators. Evidence from the ICOPE-Care program further indicates that declines in intrinsic capacity occur in different combinations rather than following a uniform pattern across older adults (De Souto Barreto et al., 2024). These findings support the clinical relevance of identifying specific areas of difficulty, although the dimensions represented by an assessment instrument and the interpretation of its scores require separate justification.</p>
+<p>The International Classification of Functioning, Disability and Health (ICF) provides a framework for examining functioning through body functions and structures, activities, participation, and contextual factors (World Health Organization, 2001). Its conceptual scope extends beyond the identification of impairments and recognizes that functioning is influenced by the circumstances in which activities are performed. The Integrated Care for Older People (ICOPE) guidance applies a related concern to clinical assessment by recommending the identification of declines in intrinsic capacity and the evaluation of social and support needs to inform subsequent care planning (World Health Organization, 2024). These frameworks provide a rationale for multidimensional assessment, but they do not prescribe a single measurement structure. The selection of domains, the relationships expected among their indicators, and the interpretation of the resulting scores remain decisions that must be justified for each assessment instrument.</p>
+<p>The Evaluation of Multidimensional Functioning and Risks in Aging (EMFRA) scale was developed as a brief assessment of functioning and potential health-related risks in older adults.</p>
+<p>Its original conceptual framework comprised four domains: physical function, cognitive function, emotional status, and social situation. Item development was informed by the ICF and by evidence concerning factors associated with adverse health outcomes in older populations.</p>
+<p>An initial pool of 24 items underwent evaluation by 15 experts, followed by cognitive interviews with 10 clinicians and 10 older adults. The resulting 21-item version incorporated modifications intended to improve the relevance and comprehensibility of its content (Fierro-Marrero, Reina-Varona, Pardo-Montero, et al., 2025). This development process provided preliminary evidence of content validity for the proposed assessment framework. The empirical relationships among the items, the dimensionality of their responses, and the reliability of the resulting scores had not yet been examined.</p>
+<p>The distinction between content validity and other sources of measurement evidence is particularly relevant to EMFRA. Content validity concerns the extent to which the content of an instrument is relevant, comprehensive, and comprehensible for its intended construct, . population, and purpose (Mokkink et al., 2025; Terwee et al., 2018). The internal structure of item responses addresses a different question: whether the observed associations among indicators support the proposed organization of the scores. These properties must be considered in relation to the instrument&#x27;s conceptual development. As discussed by Boateng et al. (2018), decisions concerning item selection and dimensionality can alter the content represented by a scale. This issue deserves attention when an instrument combines indicators of clinically distinct aspects of functioning. Limited correlations between items may reflect difficulties in representing a common latent dimension, but they may also arise because the indicators describe different attributes. Reducing the number of items on statistical grounds may improve the internal consistency of the retained scores while restricting their conceptual coverage. The adequacy of such decisions depends on the intended measurement model and the interpretation assigned to the resulting dimensions.</p>
+<p>The evaluation of EMFRA scores therefore requires empirical examination of dimensionality without assuming that the four domains established during content development necessarily correspond to four latent factors. Exploratory factor analysis (FA) and exploratory graph analysis (EGA) can provide complementary information about the organization of item responses, although their findings must be interpreted in relation to the conceptual framework and the characteristics of the data (H. F. Golino &amp; Epskamp, 2017). Reliability estimates address the consistency or stability of scores under specified measurement conditions. Their interpretation depends on the population, the score structure, and the measurement procedure.</p>
+<p>Evidence concerning the relationships between EMFRA scores and established clinical measures can further inform their interpretation, provided that the expected associations are grounded in the constructs represented by the respective measures. These sources of evidence address distinct measurement questions and should not be treated as interchangeable (Prinsen et al., 2018).</p>
+<p>The present study aimed to examine the psychometric properties of scores derived from the 21item EMFRA scale in older adults. The internal structure of item responses was investigated . using complementary exploratory approaches, and internal consistency and test-retest reliability were examined for the resulting scores. Score distributions, including floor and ceiling effects, were also assessed. Relationships with established measures of physical performance, cognitive functioning, emotional symptoms, and functional independence were investigated to obtain evidence relevant to score interpretation. The analyses also examined the correspondence between the empirical dimensional structure and the conceptual framework established during the development of EMFRA.</p>
+<h3>2. Methods.</h3>
+<p> &gt;Methods.</p>
+<h3>2.1. Sample.</h3>
+<p>Participants were recruited from community and healthcare settings in the Community of Madrid, Spain. Recruitment was conducted across settings serving individuals with different health conditions, levels of functional independence, and care needs, with the aim of including a heterogeneous older adult population. Recruitment sites included Clínica Universitaria La Salle; five STIMA day-care centers located in Princesa, Embajadores, Aluche, Moratalaz, and Hortaleza; and the Valdeluz Arroyomolinos nursing home. A total of 204 older adults aged 65 years or older were recruited, of whom 201 were included in the analyses. The remaining three participants were excluded because they did not complete the assessment due to time constraints.</p>
+<p>Eligibility was determined using two criteria: (1) age ≥65 years and (2) absence of a medically established diagnosis of dementia. No other eligibility restrictions were applied regarding pain, chronic conditions, mobility (even including subjects with wheelchair use), functional independence, or cognitive functioning. Individuals with cognitive difficulties were therefore eligible if they had no medical diagnosis of dementia.</p>
+<p>This study followed the ethical principles of the Declaration of Helsinki and was approved by the Ethics Committee of the Hospital Clínico San Carlos, Madrid, Spain (nº 23/398-E), with all . participants being informed about the aim and methods of the study and signing the informed consent.</p>
+<h3>2.2. Assessments.</h3>
+<p>Following written informed consent, participants provided sociodemographic information through verbally administered questions covering age, sex, educational level, years of formal education, marital status, and employment status. Anthropometric information, including height, weight, and body mass index (BMI), was also collected. Clinical history was documented using open-ended questions addressing previous or current pain, surgical procedures, and the presence of musculoskeletal, neurological, psychological, metabolic, or other health conditions. The conditions reported by participants were subsequently coded and grouped into musculoskeletal, neurological, psychological, metabolic, and other categories.</p>
+<p>Physical functioning tests were applied including the Short Physical Performance Battery (SPPB) (Guralnik et al., 1994), a global cognitive function measure with the Montreal Cognitive Assessment (MoCA) 8.1 Spanish version (Gómez-Moreno et al., 2022; Nasreddine, 2018; Nasreddine et al., 2005), depression and anxiety traits with the Spanish version of the Hospital Anxiety and Depression Scale (HADS) (Herrero et al., 2003; Herrmann, 1997), and independency in basic activities of daily living with the Spanish version of the Barthel Index (Cabañero-Martínez et al., 2009).</p>
+<p>The Evaluation of Multidimensional Functioning and Risks in Aging (EMFRA) scale was also administered. The instrument combines self-reported information with cognitive and physical performance tasks, including assessments of handgrip strength and gait speed (Fierro-Marrero, Reina-Varona, Pardo-Montero, et al., 2025). The time required to complete the EMFRA assessment was recorded.</p>
+<p>In addition, a second assessment of the EMFRA scale was provided after 2 to 10 days from the initial evaluation to explore test-retest reliability properties of the scale.</p>
+<h3>2.2.1. Response distribution of EMFRA items</h3>
+<p>A descriptive analysis of response distributions of EMFRA items was reported to check on possibly skewed responses. Mean, SD, minimum, maximum values, quantiles of (0-2 point responses) would be reported, along with the skew and kurtosis. In addition, the frequency of response categories would be reported.</p>
+<h3>2.2. Item-level test-retest reliability</h3>
+<p>Item-level test-retest reliability was evaluated in participants who completed both EMFRA assessments. For each item, contingency tables were constructed to examine the distribution of responses across the two administrations. Agreement was quantified using Gwet&#x27;s weighted AC2 coefficient (Gwet, 2008a (Gwet, , 2008b)), which is less sensitive than Cohen&#x27;s kappa to certain imbalances in response-category prevalence and marginal distributions (Gwet, 2008a).</p>
+<p>Radical weighting matrices were applied to all items except Item 2 (gait speed), for which a custom weighting matrix was specified to assign greater penalties to disagreements involving the &quot;unable to walk&quot; category. Agreement coefficients were interpreted using the conventional classification proposed by Landis &amp; Koch (1977), recognizing that these thresholds were originally developed for kappa statistics and were used here as descriptive guidelines.</p>
+<p>Items exhibiting very low test-retest agreement were considered for potential exclusion during the subsequent psychometric evaluation. The weighting schemes, item-level contingency tables, and corresponding agreement estimates are reported in the Supplementary Material (SM).</p>
+<h3>2.3. Structural validity.</h3>
+<p> &gt;Structural validity.</p>
+<h3>2.3.1. Correlation matrix, and matrix performance.</h3>
+<p>. Preliminary analyses examined the correlation structure of the EMFRA items using polychoric correlations, given the ordinal nature of the response categories and the assumption of underlying continuous variables. Under these conditions, polychoric correlations may provide more appropriate estimates of the associations between items than Pearson or Spearman correlations (Ekström, 2011a (Ekström, , 2011b;; Holgado-Tello et al., 2010; Pearson &amp; Pearson, 1922).</p>
+<p>Previous research has also examined their performance in dimensionality analyses involving ordinal variables (Ekström, 2011b; Markos &amp; Tsigilis, 2024).</p>
+<p>Pairwise 3 × 3 contingency tables were inspected to identify response-category combinations with zero frequencies. A continuity correction of 0.5 was applied when necessary. The resulting correlation matrix was examined for symmetry and positive semidefiniteness (PSD) through inspection of its eigenvalues (Zhang, 2011).</p>
+<p>For descriptive purposes, the polychoric and anti-image matrices were reported both in full and filtered for low correlation values (-0.29 to 0.29) (Akoglu, 2018; Chan, 2003). Kaiser-Meyer-Olkin (KMO) and item-level measures of sampling adequacy (MSA) were reported. In line with Lorenzo-Seva &amp; Ferrando (2021), lower KMO or MSA values were not considered as criteria for rejecting factorability, or elimination of items, as these indices may decrease with low zeroorder correlations, low number of items, and with higher number of factors.</p>
+<h3>2.3.2. Combined dimensional structure analysis.</h3>
+<p>The dimensional structure of EMFRA was analysed using a two-way method employing a customized Horn&#x27;s Parallel Analysis (PA) employing bootstrap resamples, based on factors, and the bootstrap Exploratory Graph Analysis (EGA) (Finch &amp; Monahan, 2008; H. F. Golino &amp; Epskamp, 2017; Horn, 1965). Horn&#x27;s PA and EGA currently present the best, and similar performance among the different factorial methods for accurately detecting the number of factors in instruments with similar characteristics as EMFRA. The use of the best possible method based on the context of the research (sample size, expected number of items per factor, number of factors, correlation between factors, and type of correlation matrix, among other issues), is suggested in previous research (H. F. Golino &amp; Epskamp, 2017). Based on this, different simulation studies indicate a good performance of the widely employed PA in multidimensional scales, as well as of EGA (H. Golino et al., 2020; H. F. Golino &amp; Epskamp, 2017; Markos &amp; Tsigilis, 2024). Overall, the performance of both methods is similar, and it has not yet been established in which specific context they clearly differ (H. Golino et al., 2020; H. F. Golino &amp; Epskamp, 2017; Markos &amp; Tsigilis, 2024). Additionally, both methods present excellent performance under simulations with asymmetrical response distributions while employing polychoric correlation matrices (Markos &amp; Tsigilis, 2024). Authors such as Garcia-Garzon et al. (2019), suggest the possibility of employing both methods in combination. In addition, both methods would be conducted employing bootstrap resamples to consider the stability of the detected dimensions across other samples.</p>
+<p>Both procedures incorporated bootstrap resampling to examine the stability of the estimated dimensional solutions across resamples of the observed data. Given the absence of an established decision framework for integrating the results of bootstrap PA and bootstrap EGA, dimensional retention was evaluated using four considerations: (1) convergence between the dimensional solutions identified by PA and EGA; (2) the performance of the corresponding factor-analytic solution, including global model fit and residual-based indices; (3) the stability of the EGA solution, assessed through the frequency with which the number of communities was recovered across bootstrap resamples and the structural consistency of those communities; and (4) the relative improvement of successive solutions in relation to the preceding considerations. These sources of evidence were interpreted jointly, rather than treating any single global fit index or conventional cutoff as a definitive criterion for dimensional retention.</p>
+<h3>2.3.3. Bootstrap PA and factor analysis</h3>
+<p>A customized two-step bootstrap PA procedure was conducted, given the benefits associated with considering population-based parameters (Finch &amp; Monahan, 2008). A null eigenvalue distribution was generated through 1,000 random permutations, and a bootstrap distribution of sample eigenvalues was independently generated through 1,000 bootstrap resamples of the observed data, both computing polychoric matrices and extracting factor-based eigenvalues via the Minimum Residual method. Factor retention required that the lower bound of the bootstrap eigenvalue distribution (P5) exceeded the 95th percentile of the permuted null distribution (P95). The number of retained factors subsequently guided a FA employing the Minimum</p>
+<p>Residual method with Oblimin rotation and 1000 iterations for parameter estimation.</p>
+<p>Dimensional performance was evaluated using multiple indices, including the R² , chi-square statistic, TLI, RMSEA, and RMSR, following established cutoff criteria (Hu &amp; Bentler, 1999).</p>
+<p>Model fit was determined by combining the chi-square test (p ≥ .05 indicating excellent fit) and TLI (≥ .95 indicating excellent fit), yielding either excellent or poor model fit. Error fit was determined by combining RMSEA and RMSR, with RMSEA values ≤ .05 indicating good, ≤ .06 acceptable, and &gt; .06 poor residual fit, and RMSR values ≤ .05 indicating good, ≤ .06 acceptable, ≤ .07 adequate, ≤ .08 marginal, and &gt; .08 poor residual fit. When both indicators within each category converged, a single classification was assigned; when they diverged, a composite range label was reported reflecting the worst-to-best classification across indicators (e.g., poor-to-acceptable residual fit).</p>
+<p>Item-level performance was evaluated using communalities, factor loadings, and cross-loadings obtained from the oblimin-rotated factor solution. An item was considered a candidate for elimination if it met at least one of the following criteria: (1) low factor loadings, defined as absolute loadings below 0.30 on all factors; (2) substantial cross-loadings, defined as absolute loadings of at least 0.50 on two or more factors; or (3) low communality, defined as a value below 0.30.</p>
+<h3>2.3.4. Model performance through Bootstrap and empirical EGA.</h3>
+<p>The network structure in EGA was estimated using the graphical LASSO (glasso) model, which has shown superior performance compared with the alternative TMFG network estimation method (Christensen, Garrido, Guerra-Peña, et al., 2023; H. Golino et al., 2020). Community detection was performed using the walktrap algorithm for multidimensional solutions, while the Louvain algorithm was specified for cases where a unidimensional structure was detected (Christensen, Garrido, Guerra-Peña, et al., 2023; Christensen, 2024).</p>
+<p>Bootstrap EGA with 1,000 resampling iterations was employed to evaluate the stability of the dimensional solution. Dimensional performance was assessed through the frequency distribution of the number of communities identified across bootstrap iterations, reporting the modal solution and its difference in frequency relative to the second, third and fourth most frequent solutions. Structural consistency of the empirical EGA solution was also assessed, defined as the proportion of iterations replicating the same community assignment as in the empirical solution.</p>
+<p>Item performance was evaluated based on: 1) replicability of each item to its empirically assigned community across bootstrap iterations, with instability defined as a replicability rate ≤0.75; 2) item-level diagnostics identifying minor dimensions (MiD), two-item dimensions (TwD), and multidimensional behaviour (MuD) (Christensen, Garrido, Guerra-Peña, et al., 2023); 3) redundancy assessed through weighted topological overlap (wTO) using the MBR method, with a cut-off of ≥0.25, in addition, to the zero-order and partial correlation between both items (Christensen, Garrido, &amp; Golino, 2023); 4) low community loadings across all communities, defined as an absolute loading &lt;0.30; and 5) high cross-loadings across communities, defined when both primary and secondary absolute community loadings were ≥0.50, computed via the revised net loads method with Oblimin rotation.</p>
+<h3>2.3.5. Model acceptability and item reduction criteria.</h3>
+<p>The results of FA and EGA were considered jointly to evaluate dimensional solutions and guide item reduction across successive models. Model acceptability was assessed by integrating the four sources of evidence described previously. These indicators were considered collectively, without requiring every global fit index to satisfy a fixed cutoff for dimensional retention. When the available evidence indicated limitations in a given solution, item-level diagnostic indicators were examined to identify candidates for elimination and guide subsequent model refinement.</p>
+<p>Item reduction followed a predefined hierarchy based on the identification of unfavourable diagnostic indicators across FA and EGA. Items identified as problematic by both methods were given the highest priority for potential elimination, followed by items identified exclusively through FA and, subsequently, those identified exclusively through EGA. Identification as a candidate did not necessarily imply elimination, as decisions were made within the broader evaluation of successive dimensional solutions.</p>
+<p>A summary table provided in SM documented the candidate items identified at each stage of model refinement, their corresponding FA and EGA diagnostic indicators, and the decisions to retain or eliminate each item.</p>
+<h3>2.3.6. Factor naming and score calculation.</h3>
+<p>The final model fulfilling the dimensional criteria (with FA and EGA) was reported with the previously mentioned measures. Additionally, factor scores for the factors identified through PA and FA were calculated employing the ten Berge method for preserving the correlation structure between latent factors, and therefore preserving the obliquity (Estabrook &amp; Neale, 2013; Ten Berge et al., 1999). Factor scores were then calculated as linear combinations of item responses and their corresponding weights. To ensure interpretability, items with negative regression weights were reverse-coded prior to score computation using the transformation 2 , so that higher scores consistently reflected higher levels of the latent construct.</p>
+<p>Based on the loadings, a name for each detected factor was proposed based on research team consensus and a literature search.</p>
+<h3>2.4. Factor-level internal consistency.</h3>
+<p>. Internal consistency was estimated using McDonald&#x27;s omega coefficient, which does not require the assumption of tau-equivalent item contributions (Shaw, 2021). Reliability was examined for the complete item set and for the subsets of items primarily associated with each retained factor. For the complete item set, a Schmid-Leiman hierarchical decomposition was used to examine the contributions of general and group factors to score reliability. The reported indices included omega total (ωt), representing the proportion of composite-score variance attributable to the common factors collectively, and hierarchical omega (ωh), representing the proportion attributable specifically to the general factor. Additional omega estimates for the general and group factors were reported to characterize their respective contributions to reliable score variance. Explained common variance (ECV) was also calculated to quantify the proportion of common variance accounted for by the general factor and to inform the assessment of essential unidimensionality.</p>
+<p>Subscale-level internal consistency was estimated separately for the subsets of items with their primary loadings on each retained factor. Items with negative scoring weights were reversecoded for the item-subset calculations, as specified in the scoring procedure. Omega coefficients above 0.70 were interpreted as indicative of acceptable internal consistency, using this threshold as a conventional guideline rather than an absolute criterion (McNeish, 2018). 2.5. Factor-level test-retest reliability, standard error of measurement, and minimum detectable change.</p>
+<p>Test-retest reliability was estimated using the intraclass correlation coefficient (ICC 2,1) following the framework of Shrout and Fleiss (1979) and current reporting recommendations (Koo &amp; Li, 2016). ICC was considered adequate when &gt;0.75 (Fleiss, 1999). Standard error of measurement (SEM) was calculated employing formula 5.7 indicated by de Vet et al. (2011), and Minimal Detectable Change at the 95% confidence level (MDC95) was computed with SEM, the square root of the number of measurement time points (2), and the critical 97.5th percentile value of Student&#x27;s t distribution with the included sample size (Vet et al., 2011).</p>
+<h3>2.6. Factor-level floor-ceiling effects.</h3>
+<p>Floor and ceiling effects would be analysed checking on whether more than a 15% of subjects reached the minimum and maximal score within the factor (McHorney &amp; Tarlov, 1995; Vet et al., 2011).</p>
+<p>Factor floor and ceiling effects were evaluated for each factor score under three independent, non-mutually exclusive criteria. First, exact floor and ceiling effects were considered when the observed factor score equalled exactly the minimum or maximum possible scale value. Second, floor and ceiling effects were assessed by examining whether subjects scored at the minimum (0) or maximum (2) on all items showing the highest loading on each factor. Third, factor scores falling within the lowest or highest 10% of the maximum possible scale value were also considered indicative of floor or ceiling effects. A floor or ceiling effect was considered present when more than 15% of subjects met any of these criteria (McHorney &amp; Tarlov, 1995; Vet et al., 2011). For each criterion, the absolute and relative frequency of subjects meeting the condition was reported. Additionally, the corresponding raw score range and its equivalent percentage of the maximum possible scale score were indicated as a reference for interpreting the magnitude of each criterion.</p>
+<h3>2.7. Factor-level concurrent validity</h3>
+<p>Pairwise analyses between factor scores and relevant clinical measures would be analysed.</p>
+<p>These would include physical function with SPPB, global cognitive function with MoCA, anxiety and depression traits separately and combined with HADS, and independency in basic ADL with the Barthel index. The relationship with these predictors and the factor score would be analysed with an Ordinal Regression Model (ORM) employing a logistic distribution. ORM provides a semi-parametric framework that does not require the outcome distribution to be continuous and is robust to extreme values when compared to ordinary least squares method (Harrell, 2015). The relationship would be accounted with each clinical measure considering the Nagelkerke R², and Pearson&#x27;s linear correlation coefficient. In addition, regression coefficients (β), and bootstrap 95% percentile confidence intervals (2,000 resamples), and Spearman correlation coefficients would be reported.</p>
+<p>All the mentioned analyses were conducted using R Software v.4.6.0 (R Core Team, 2026). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. URL https://www.R-project.org/). Packages, syntax, and functions employed are provided in SM.</p>
+<h3>3. Results.</h3>
+<p> &gt;Results.</p>
+<h3>3.1. Sample characteristics.</h3>
+<p>A total of 204 older adults were recruited, of whom 201 completed the full assessment, with three participants excluded due to time constraints to complete the evaluation. The sample had a mean age of 77.2 ± 9.1 years (range: 65-99), and a mean BMI of 26.57 ± 4.71 (range: 15.81-43.56), indicating a tendency toward overweight, but with high variability. The sample was predominantly composed of women (66%), with most participants being married (41%), or widowed (40%), and retired (84%), see SM. A large proportion had completed university-level education (43%), with a mean of 16.49 ± 5.59 years of formal education (range: 0-31), see Table 1.</p>
+<p>The majority presented a past or current musculoskeletal condition (69%), with low back and neck the most common locations (23% each). Only a smaller proportion presented neurological (22%) or psychological conditions (8%), with stroke (7%), and depression (6%) being the most prevalent, respectively. Additionally, 52% of the sample had some form of metabolic condition, most commonly hypertension (31%). Other conditions such as cancer, gastrointestinal surgery, or cardiac disorders were relatively uncommon, see SM.</p>
+<p>Overall, the sample showed heterogeneous characteristics, with a general tendency toward good physical function (SPPB: 9.04 ± 3.63; range: 0-12), mild cognitive impairment (MoCA: 20.56 ± 5.89, 5-30 range) (Malek-Ahmadi &amp; Nikkhahmanesh, 2024), low levels of anxiety and depression traits (HADS Total: 9.3 ± 6.5, 0-30 range), and almost complete independence in basic ADL (Barthel Index: 90.0 ± 17.8, 5-100 range). Administration time of EMFRA was analysed from 16 subjects, lasting 13.12 ± 2.27 minutes (11.31-17.27 range), see Table 1.</p>
+<p>Further information is provided in SM.</p>
+<p>--Table 1 Overall, although response patterns were heterogeneous, there was a general tendency toward more favorable (better) trait levels across items, see Figure 1, and SM. Most items showed high levels of stability over time. Specifically, five items demonstrated &quot;almost perfect&quot; reliability (Items 2, 3, 4, 10, and 16), while eleven items showed &quot;substantial&quot; reliability (Items 1, 5, 6, 7, 12, 13, 14, 17, 19, 20, and 21). In addition, four items presented &quot;moderate&quot; reliability (Items 8, 9, 11, and 18), and one item showed &quot;fair&quot; reliability (Item 15 -Life satisfaction), see Figure 2. Despite its lower reliability, Item 15 was retained to evaluate its contribution within the final factorial structure and overall reliability of the factors.</p>
+<h3>3.4. Dimensional analysis.</h3>
+<p>The initial model, comprising all 21 EMFRA items, yielded a three-factor solution in bootstrap PA, while bootstrap EGA identified three communities as the most frequently recovered dimensional solution. However, the FA solution showed poor global fit (proportion of variance: MR1 = 0.199, MR2 = 0.138, and MR3 = 0.075; χ² = 992.86, p &lt; 0.001; TLI = 0.45; RMSEA = 0.18; RMSR = 0.07). Bootstrap EGA also indicated limited dimensional stability. Three-and four-community solutions were recovered in 42% and 34% of bootstrap samples, respectively, while structural consistency was low across the three empirical dimensions (Dim 1: 30.8%; Dim 2: 19.7%; Dim 3: 15.1%).</p>
+<p>Three successive reduced models (Reduced Models A-C) were examined through the progressive elimination of items identified as problematic according to the FA and EGA diagnostic criteria. The final retained solution, Reduced Model C, comprised nine items and showed convergence between bootstrap PA and bootstrap EGA, both supporting a twodimensional structure. The bootstrap PA results and the distribution of dimensional solutions identified through bootstrap EGA for the final model are presented in Figures 3 and 4, respectively.</p>
+<p>Compared with the initial model, Reduced Model C showed improved FA fit indices (proportion of variance: MR1 = 0.297 and MR2 = 0.211; χ² = 86.82, p &lt; 0.001; TLI = 0.80; RMSEA = 0.13; RMSR = 0.05). Nevertheless, the TLI and RMSEA continued to indicate limitations in global model fit. Bootstrap EGA provided stronger evidence of dimensional stability, with two communities recovered in 82.6% of bootstrap samples and structural consistency of 80.3% and 92.4% for Dim 1 and Dim 2, respectively. The empirical EGA network for Reduced Model C is presented in Figure 5, while the corresponding factor loadings and community loadings are shown in Figure 6.</p>
+<p>Reduced Model C was retained on the basis of convergence between PA and EGA, improved dimensional stability, and relative improvement in FA fit and residual indices. The remaining discrepancies in global fit were considered when interpreting the retained solution. Detailed results for the successive models, including item-level diagnostic indicators and item retention or elimination decisions, are provided in the SM. Internal consistency for the Reduced Model C was good at the total scale level, with an omega total (ωt) of 0.864. However, hierarchical omega (ωh) was low (0.409), and the Explained Common Variance (ECV) was 0.327, indicating that despite the strong reliability of the full scale, only a small-to-moderate proportion of the common variance was attributable to a single general factor, supporting the existence of two distinguishable group factors rather than an essentially unidimensional structure, see Figure 7.</p>
+<p>Subscale-level internal consistency, calculated from the main loading items of each factor, was good for Factor 1 (ω = 0.840, 5 items) and acceptable for Factor 2 (ω = 0.785, 4 items), both exceeding the 0.7 threshold. The omega decomposition by component and the item-level Schmid-Leiman solution are reported in SM.</p>
+<p>---Fig 7. Hierarchical Omega ---3.6. Factor naming.</p>
+<p>. The two retained factors were interpreted according to the content of their primary contributing items and the pattern of factor loadings.</p>
+<p>Factor 1, designated &quot;Autonomy&quot;, comprised five primary indicators: gait speed, handgrip strength, socioludic activities, attention-inhibition, and money arithmetic. These items represented aspects of physical performance, cognitive functioning relevant to everyday activities, and participation in socioludic activities. Their shared contribution was interpreted as reflecting a dimension associated with functional autonomy, although the factor does not encompass all components of autonomy or independence in daily life.</p>
+<p>Factor 2, designated &quot;Psychological Distress&quot;, comprised four primary indicators: sadness, loneliness, life satisfaction, and fatigue. These items represented emotional discomfort, subjective social experience, satisfaction with life, and perceived fatigue. Their shared contribution was interpreted as reflecting psychological distress, while recognizing that fatigue may also be influenced by physical health and other non-psychological factors. Collectively, these indicators align with the conceptual attributes of psychological distress described in the literature (Ridner, 2004).</p>
+<p>Factor weightings, calculated preserving the obliquity, were reported as follows: The score computation of both factors ranged from 0 points to their respective maximum possible scores (2.696 for Autonomy and 2.732 for Psychological Distress). Each factor yielded 19,683 possible scores, with maximum gaps of 0.009 between consecutive values. The scale can therefore be treated as continuous at two decimals, and scores should be reported with no more than two decimal places, as additional decimals do not provide meaningful precision.</p>
+<p>Factor 1 (Autonomy) showed a mean of 1.75 ± 0.62, with observed values ranging from 0.36 (13.4% of the maximum scale value) to 2.69 (99.8%). The distribution was relatively symmetric (skewness = -0.32) and platykurtic (kurtosis = -1.13), with quartiles at Q1 = 1.20 (44.5%), median = 1.86 (69%), and Q3 = 2.33 (86.4%), indicating a tendency toward higher functional levels (see Figure 8).</p>
+<p>Factor 2 (Psychological Distress) presented a lower mean of 0.97 ± 0.57, with a wider observed range (0.09, 3.3%, to 2.69, 98.5%). The distribution showed positive skewness (0.59) and mild leptokurtosis (0.43), with quartiles at Q1 = 0.52 (19%), median = 0.93 (34%), and Q3 = 1.32 (48.3%), suggesting that most participants reported low levels of distress, with fewer cases at higher values, see Figure 8.</p>
+<p>--Figure 8. Factor response distribution -3.8. Factor-level test-retest reliability, SEM, and MDC.</p>
+<p>Both factors showed favourable point estimates of test-retest reliability. The intraclass correlation coefficient was 0.82 for Autonomy (95% CI: 0.613-0.923) and 0.78 for Psychological Distress (95% CI: 0.532-0.901). However, the relatively wide confidence intervals indicated uncertainty in the precision of these estimates, particularly given the limited number of participants included in the retest assessment.</p>
+<p>The standard error of measurement (SEM) was 0.187 for Autonomy and 0.297 for Psychological Distress, corresponding to approximately 7% and 11% of their respective theoretical score ranges.</p>
+<p>The minimum detectable change at the 95% confidence level (MDC95) was 0.551 for Autonomy and 0.872 for Psychological Distress, corresponding to 20.5% and 32.0% of the theoretical score ranges, respectively.</p>
+<p>3.9. Factor-level floor-ceiling effects.</p>
+<p>No floor or ceiling effects were observed for either factor under the exact score criterion, as no participants obtained the minimum or maximum possible factor score. Under the primary items criterion, floor effects were negligible for Autonomy (0%) but more frequent for Psychological Distress, with 12.9% of participants scoring at the minimum on all primary items, below but close to the 15% threshold. Ceiling effects under this criterion were minor for both factors, affecting 10.9% of participants for Autonomy and only 2% for Psychological Distress.</p>
+<p>Similarly, under the within 10% range criterion, results remained below the 15% threshold across both factors and extremes, with values ranging from 3% (Psychological Distress ceiling) to 12.4% (Psychological Distress floor). Overall, no substantial floor or ceiling effects were detected for either factor.</p>
+<h3>3.10. Factor-level concurrent validity.</h3>
+<p>The ordinal regression analyses showed significant associations between both EMFRA factors and all clinical variables, although the strength and direction of these relationships differed notably across predictors.</p>
+<p>For Factor 1 (Autonomy), the strongest positive association was observed with physical performance (SPPB) (R² = 0.53, r = 0.75), indicating a strong positive relationship. This suggests that a substantial proportion of the variability in autonomy is explained by lower-extremity physical function. However, this relationship may be partially influenced by mathematical coupling, as gait speed contributes to both SPPB and the Autonomy factor.</p>
+<p>A strong positive association was also found with global cognitive function (MoCA) (R² = 0.47, r = 0.70), and a moderate one with independence in basic ADLs (Barthel Index) (R² = 0.32, r = 0.56). In contrast, depressive symptoms showed a moderate negative association (R² = 0.18, r = -0.41), while anxiety (R² = 0.02, r = -0.12) and total HADS (R² = 0.09, r = -0.29) showed negligible-to-small relationships. These findings indicate that Autonomy is primarily related to physical functioning, global cognitive function, and independence in ADL domains, with a limited contribution from emotional factors, see Table 2, and Figure 9.</p>
+<p>---Table 2 The present study examined the initial psychometric properties of EMFRA, including its dimensional structure, internal consistency, temporal reliability, measurement error, floor and ceiling effects, and associations with established measures of functioning. The principal finding was a nine-item solution comprising two dimensions, Autonomy and Psychological Distress, which differed from the four domains proposed during instrument development. The retained factors showed internal consistency and associations with external measures consistent with the proposed interpretation. However, limitations of global FA fit, explained variance, and in the precision of test-retest estimates indicate that the psychometric evidence remains preliminary.</p>
+<p>EMFRA was originally developed to assess physical, cognitive, emotional, and social aspects of functioning in older adults (Fierro-Marrero, Reina-Varona, Pardo-Montero, et al., 2025). Its development involved an initial pool of 24 items distributed across four domains, subsequently reduced to 21 items before the present psychometric evaluation. The empirical results did not reproduce the proposed four-dimensional organization. Instead, both bootstrap PA and bootstrap EGA converged on a three-dimensional solution with poor fit and limited dimensional stability.</p>
+<p>This discrepancy may be particularly attributable to the limited item pool per domain, with only five-to-six items per domain, which likely provided an insufficient coverage to represent each intended dimension. Some overlap between domains may also be expected, given the interrelated nature of functioning in later life. A more robust development approach would have involved generating a larger item pool from the outset, enabling the construction of both an extended and a reduced version of the scale while better preserving the intended dimensional coverage.</p>
+<p>Following a progressive item refinement process, the Reduced Model C composed of nine items, showed a stable structure. PA and EGA converged on a two-dimensional solution, with two communities recovered in 82.6% of bootstrap samples and structural consistency of 80.3% and 92.4% for the respective dimensions. Nevertheless, FA performance remained limited (TLI = 0.80; RMSEA = 0.13). Global fit indices have shown poor performance as criteria for.</p>
+<p>selecting the number of factors in exploratory FA, where conventional cutoffs are not sufficiently reliable (Montoya &amp; Edwards, 2021). This fact allows the presence of poor model fit with a consistently recovered dimensional structure, as observed in Reduced Model C. In addition, bootstrap methods in both PA and EGA allow to internally validate the model structure across possible samples. These considerations support evaluating PA and EGA convergence, dimensional stability, and FA fit jointly, but they do not justify disregarding the remaining misfit (Garcia-Garzon et al., 2019). Reduced Model C therefore represents the most defensible configuration among those examined, and its performance was considered acceptable given the exploratory stage of scale validation.</p>
+<p>Notably, the two main factors remained relatively stable between the full 21-item model and Reduced Model C, suggesting that the detected structure was not an artefact of the item reduction process. Nevertheless, item elimination narrowed the set of indicators available to describe functioning. Indicators grouped within these factors in the full model, such as gait assistance, social interaction, balance loss, memory difficulty, concentration difficulty, and irritability, were not retained, and the four originally proposed domains are no longer represented as separate dimensions. Because the content validity evidence obtained during instrument development (Fierro-Marrero, Reina-Varona, Pardo-Montero, et al., 2025) refers to the original item set, the comprehensiveness of the nine-item version should be additionally analysed through a new content validity process (Terwee et al., 2018).</p>
+<p>The Autonomy factor comprised gait speed, handgrip strength, socioludic activity, attentioninhibition, and money arithmetic. These indicators combine aspects of physical performance, cognitive abilities relevant to everyday tasks, and social participation. This cross-domain composition is compatible with a construct related to functional independence, particularly in instrumental ADL, although the few items will only provide a partial coverage of the whole construct assessment. A relevant feature of this factor is the integration of performance-based tests, and self-reported measures addressing everyday functioning. This may be relevant given the discordance reported between self-reported and directly measured functioning in older.</p>
+<p>adults, where older adults may over or even underestimate their physical performance depending on certain individual features (Liu et al., 2026; Schmidle et al., 2023). Therefore, the inclusion of performance-based indicators within Autonomy may reduce such biases.</p>
+<p>The Psychological Distress factor comprised sadness, loneliness, life satisfaction, and fatigue.</p>
+<p>The first three indicators reflect related aspects of emotional experience and subjective wellbeing, although they do not necessarily represent identical psychological processes. Fatigue introduces a broader component whose interpretation requires particular caution. In older adults, fatigue may be associated with physical health conditions, activity limitations, and psychological symptoms (Yu et al., 2010). In the present sample, fatigue showed its strongest association with sadness (ρ = 0.52), while its association with balance loss was also notable (ρ = 0.41). This pattern suggests that the multidimensional scope of fatigue, including psychological and even physical components may contribute to Psychological Distress. In the full model, this factor additionally included balance loss, memory difficulty, concentration difficulty, and irritability, a grouping compatible with the reported co-occurrence of emotional and cognitive difficulties in older adults (Biringer et al., 2005; Dufouil et al., 1996). However, these indicators were not retained, and the narrower final configuration provides a more specific basis for interpreting the factor.</p>
+<p>The internal consistency findings have important implications for score interpretation. Although ωt was 0.864, ωh (0.409), and ECV (0.327) indicated that a substantial proportion of the reliable variance was not attributable to a single general factor (Reise, 2012). The present results consequently provide limited support for calculating a single EMFRA score intended to represent general functioning. This is particularly relevant in geriatric assessment, where domain-specific profiling is essential for targeted assessments (Brown et al., 1988; Fierro-Marrero, Reina-Varona, Paris-Alemany, et al., 2025). Reliability was instead good for Autonomy (ω = 0.840) and acceptable for Psychological Distress (ω = 0.785), both exceeding the recommended threshold of 0.70 (McNeish, 2018), supporting the separate use of both factors. These subscale coefficients also include variance shared with the general factor (Reise, 2012), but given the weakness of this factor, most of their reliable variance is likely specific to each dimension, which is also observed through the modest interfactor correlation (Phi = -0.316) reported in SM. Finally, the proportion of total item variance explained by each factor was modest (29.7% for Autonomy and 21.1% for Psychological Distress). This is not unexpected given the multidimensional nature of both constructs and the limited number of items retained per factor in a brief screening instrument.</p>
+<p>Test-retest reliability findings were less conclusive. Although the factor-level ICCs were 0.82 for Autonomy and 0.78 for Psychological Distress, their respective 95% CIs (0.613-0.923 and 0.532-0.901) indicate considerable uncertainty in the underlying reliability estimates. At the item level, Loneliness (AC2 = 0.46, 95%CI 0.19-0.74) and Life Satisfaction (AC2 = 0.39, 95%CI 0.12-0.67) showed the lowest agreements. They were retained because the imprecision of their estimates did not allow taking a definitive decision, and because they presented substantial loadings on Psychological Distress, so their exclusion could have substantially altered the composition of the factor.</p>
+<p>Nevertheless, their structural contribution should not obviate their limited temporal reliability, a relevant fact for item exclusion. Regarding SEM and MDC95, Autonomy showed values of 0.187 and 0.551 respectively (approximately 7% and 20.5% of the theoretical score range) and 0.297 and 0.872 respectively for Psychological Distress (approximately 11% and 32%). With the current data, the latter values indicate that considerable changes over time would be required to reliably confirm any change in the factor score. Taken together the current evidence is insufficient to support the use of either factor for monitoring individual changes over time.</p>
+<p>Associations with established measures provided initial evidence consistent with the proposed names of the factors. Autonomy showed strong associations with SPPB (r = 0.751) and MoCA (r = 0.697), together with a moderate association with Barthel (r = 0.56). These findings correspond to the physical and cognitive content of the retained indicators. However, the association with SPPB should be interpreted with caution, as gait speed contributes to both measures and this overlap may have inflated the correlation. The moderate association with.</p>
+<p>Barthel is consistent with the partial coverage of basic ADL within Autonomy. Psychological Distress showed a stronger association with HADS (r = 0.625) than with measures of physical performance, global cognitive functioning, or independence in ADL. This pattern is compatible with the emotional content of the factor and provides preliminary evidence of differentiated relationships with external constructs.</p>
+<p>No pronounced floor or ceiling effects were observed for either factor. This finding is relevant given the characteristics of the sample, which was predominantly composed of participants with preserved independence in ADL (Barthel score: 90.02 ± 17.84), and low levels of depressive and anxiety traits (HADS depression: 3.9 ± 3.37; HADS anxiety: 5.38 ± 3.89). In such a sample, scores could be expected to cluster near to the ceiling of Autonomy and the floor of the Psychological Distress. The absence of these effects suggests that both factors discriminate adequately among older adults with high autonomy and good psychological well-being. Future studies should examine whether this also holds in sample with a poorer health state.</p>
+<h3>4.1. Clinical implications.</h3>
+<p>The nine-item EMFRA may be useful for the preliminary characterization of functioning in settings where comprehensive geriatric assessment is difficult to implement, such as primary care. Its two-dimensional structure allows clinicians to screen for autonomy, and psychological distress separately, helping to identify which dimensions may require a more thorough assessment, and to orientate referral decisions, for instance toward physiotherapy, occupational therapy, or psychology, without substantially increasing assessment burden. In addition, combining performance-based and self-reported items may reduce the biases associated with relying on self-report alone (Liu et al., 2026; Schmidle et al., 2023). Nonetheless, diagnostic thresholds, predictive accuracy, administration time, and feasibility across settings have not yet been established. EMFRA should therefore not currently be used for individual clinical classification, nor for monitoring changes over time.</p>
+<h3>4.2. Study Limitations and Future Research</h3>
+<p>The dimensional analyses were conducted in one single sample, without validation in an external sample. Bootstrap methods, allowed to internally validate the structure, but only within the available data. Moreover, participants predominantly showed independence in ADLs and relatively good physical and cognitive functioning, and these sample characteristics may have shaped the observed structure. Both the three-factor structure of the 21-item version and the two-factor structure of the 9-item version, should therefore be examined in external samples that include older adults with greater physical dependency, cognitive impairment, or psychosocial difficulties, across different settings.</p>
+<p>A second limitation concerns the naming of both factors. The labels Autonomy and Psychological Distress were assigned based on the contribution of each item to its factor, and on the available literature, but no formal content validation was performed. Future studies should examine whether the retained items adequately represent the proposed dimensions.</p>
+<p>A particularly important limitation is the small subsample used to assess test-retest reliability SEM and MDC95. Only 22 participants completed the repeated assessment, which resulted in imprecise estimates. This imprecision limited decisions on whether to retain or exclude items with low reliability, and prevented a confident estimate of the minimum change in factor scores required to be considered a true change.</p>
+<p>Finally, other psychometric properties were not examined, such as the predictive validity, responsiveness, or how the floor or ceiling effects of EMFRA compare with those of other instruments assessing the same constructs. Future research should also determine whether EMFRA can be feasibly implemented in routine healthcare settings and whether it improves clinicians&#x27; decisions about further assessment or referral.</p>
+<h3>5. Conclusions.</h3>
+<p>. The present study provides the first psychometric evidence of EMFRA.</p>
+<p>The original 21-item version did not reproduce the four hypothesized domains but yielded a three-dimensional solution. Item refinement provided a nine-item version composed of two dimensions, Autonomy and Psychological Distress, on which bootstrap PA, and bootstrap EGA, converged and showed improved dimensional stability, although with limited fit. Both factors showed adequate internal consistency, no floor or ceiling effects, and associations with established clinical measures consistent with their interpretation. EMFRA should be scored and interpreted through its two factors separately, and not through a single total score. Test-retest reliability, SEM and MDC95 remain uncertain. Future studies should confirm the dimensional structure in an external sample, provide further psychometric properties, and evaluate its feasibility and performance across clinical settings. The authors wish to thank the STIMA day-care centres of Princesa, Embajadores, Aluche, Moratalaz, and Hortaleza, and the Valdeluz Arroyomolinos nursing home for their collaboration and commitment to this project, without which the recruitment of participants would not have been possible. 33 41 25 5 35 60 62 8 30 51 39 10 28 58 14 16 29 55 5 18 77 35 58 7 50 44 6 8 25 66 57 36 6 35 58 7 39 52 9 54 39 7 7 36 56 95 3 2 2 25 73 16 38 46 36 31 33 87 11 2 3 16 80 Item 21. Help availability Item 20. Communication difficulty Item 19. Social-ludic activities Item 18. Social interaction Item 17. Family interaction Item 16. Economical difficulty Item 15. Life satisfaction Item 14. Self-efficacy difficulty Item 13. Irritability Item 12. Sadness Item 11. Loneliness Item 10. Cognitive activities Item 9. Concentration difficulty Item 8. Memory difficulty Item 7. Attention-inhibition Item 6. Arithmetics for money Item 5. Fatigue Item 4. Balance loss Item 3. Gait assistance Item 2. Gait speed Item 1. Hand-grip strength 0% 25% 50% 75% 100% Percentage of responses EMFRA Items Response 0 1 2 0 1 2 Density of responses Item 21. Help availability Item 20. Communication difficulty Item 19. Social-ludic activities Item 18. Social interaction Item 17. Family interaction Item 16. Economical difficulty Item 15. Life satisfaction Item 14. Self-efficacy difficulty Item 13. Irritability Item 12. Sadness Item 11. Loneliness Item 10. Cognitive activities Item 9. Concentration difficulty Item 8. Memory difficulty Item 7. Attention-inhibition Item 6. Arithmetics for money Item 5. Fatigue Item 4. Balance loss Item 3. Gait assistance Item 2. Gait speed Item 1. Hand-grip strength 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 Test-retest Gwet&#x27;s AC2 (Radical Items 1,3-21; Custom Item 2) EMFRA Items AC2 0.00 0.25 0.50 0.75 1.00 Factor Loadings -Reduced Model B 0.71 0.02 0.50 0.02 0.45 -0.02 0.41 -0.01 0.37 -0.12 -0.04 0.13 -0.24 0.18 0.01 0.61 0.04 0.57 -0.20 0.31 0.09 -0.34 Socio-Ludic act. Econ. diff. Life satisf. Sadness Loneliness Atten-Inhib Arithmetic money Fatigue Balance loss Gait speed Grip strength 1 2 Community Community Loadings -Reduced Model B 0.69 -0.02 0.03 0.84 -0.03 0.11 -0.35 0.38 0.07 -0.17 0.48 0.13 0.56 0.04 -0.22 0.63 0.13 -0.25 0.42 0.06 -0.34 0.07 0.81 0.03 0.01 0.74 -0.02 0.05 0.52 -0.05 0.17 -0.56 -0.01 0.05 0.04 1.00 0.22 -0.35 -0.21 0.61 -0.05 0.09 0.81 -0.06 0.09 Socio-Ludic act. Social interact. Family interact. Econ. diff. Life satisf. Self-eff. diff. Sadness Loneliness Cognitive act. Atten-Inhib Arithmetic money Fatigue Balance loss Gait speed Grip strength MR1 MR2 MR3 Factor Factor Loadings -Reduced Model A 0.60 -0.08 -0.06 0.43 0.01 -0.01 0.37 0.08 0.17 0.40 0.03 0.02 0.28 0.05 0.45 -0.00 0.60 0.01 -0.00 0.54 0.01 -0.03 0.32 -0.13 -0.17 0.29 0.01 -0.00 0.28 0.00 -0.06 -0.18 0.43 0.04 -0.35 0.11 -0.06 -0.00 0.62 0.21 -0.02 0.18 0.01 0.12 -0.16 Socio-Ludic act. Social interact. Family interact. Econ. diff. Life satisf. Self-eff. diff. Sadness Loneliness Cognitive act. Atten-Inhib Arithmetic money Fatigue Balance loss Gait speed Grip strength 1 2 3 Community Community Loadings -Reduced Model A 0.74 0.04 0.83 0.00 -0.18 0.53 0.62 -0.02 0.64 0.02 0.04 0.78 0.04 0.83 0.15 -0.53 0.74 -0.04 Socio-Ludic act. Life satisf. Sadness Loneliness Atten-Inhib Arithmetic money Fatigue Gait speed Grip strength MR1 MR2 Factor Factor Loadings -Reduced Model C 0.65 0.03 0.45 -0.00 0.44 -0.11 0.43 0.02 0.40 -0.02 0.02 0.63 0.01 0.56 -0.09 0.34 0.09 -0.33 Socio-Ludic act.</p>
+<p>Life satisf. Sadness Loneliness Atten-Inhib Arithmetic money Fatigue Gait speed Grip strength 1 2 Community Community Loadings -Reduced Model C Factor loadings -1.0 -0.5 0.0 0.5 1.0 Community loading -1.0 -0.5 0.0 0.5 1.0 Hierarchical Omega -Reduced Model C F1* F2* g Gait speed Grip strength Socio-Ludic act. Atten-Inhib Arithmetic money Sadness-Loneliness-Life satisf. Fatigue-0.7 0.6 0.6 0.5 0.5 -0.7 -0.6 -0.4 -0.4 0.5 0.4 0.4 0.3 0.4 0.4 0.4 0.4 0.4 0 5 10 15 20 25 0 1 2 3 Factor 1: Autonomy (Score) Frequency (n) 0 5 10 15 20 25 0 1 2 3 Factor 2: Psychological Distress (Score) Frequency (n)</p>
+<p>Table 1. Descriptive continuous demographic variables Variable Mean ± SD Min Q1 Median Q3 Max Skewness Kurtosis Age (years) 77.19 ± 9.07 65.00 69.00 77.00 84.00 99.00 0.35 -1.04 Height (m) 1.62 ± 0.1 1.37 1.55 1.60 1.69 1.85 0.24 -0.36 Weight (kg) 69.66 ± 14.08 42.00 60.00 68.00 80.00 128.00 0.68 0.97 Body Mass Index (kg/m²) 26.57 ± 4.71 15.81 23.51 25.97 29.07 43.56 0.80 1.29 Years of formal education 16.49 ± 5.59 0.00 13.00 16.00 20.00 31.00 -0.17 -0.04 SPPB -Balance score 2.91 ± 1.38 0.00 2.00 4.00 4.00 4.00 -0.81 -0.82 Gait time in 2.4m (s) 3.25 ± 1.69 1.39 2.03 2.64 3.99 11.39 1.83 4.22 SPPB -Gait speed score 3.21 ± 1.22 0.00 3.00 4.00 4.00 4.00 -1.37 0.64 FTSTS (s) 11.59 ± 4.3 5.38 8.76 10.71 13.66 33.16 1.41 3.26 SPPB -FTSTS score 2.93 ± 1.45 0.00 2.00 4.00 4.00 4.00 -1.04 -0.44 SPPB -Total score 9.04 ± 3.63 0.00 7.00 11.00 12.00 12.00 -1.04 -0.18 MoCA (raw score) 20.56 ± 5.89 5.00 16.00 21.00 25.00 30.00 -0.35 -0.84 MoCA (educationadjusted) 20.78 ± 5.68 6.00 16.00 22.00 25.00 30.00 -0.33 -0.87 Handgrip strength (kg) 22.26 ± 7.93 8.67 16.63 20.57 27.37 45.33 0.74 -0.08 Barthel Index -Total score 90.02 ± 17.84 5.00 90.00 100.00 100.00 100.00 -2.47 6.33 HADS -Anxiety score 5.38 ± 3.89 0.00 2.00 5.00 7.00 19.00 0.99 0.70 HADS -Depression score 3.9 ± 3.37 0.00 1.00 3.00 6.00 16.00 1.03 0.67 HADS -Total score 9.28 ± 6.49 0.00 5.00 8.00 13.00 30.00 1.05 0.77 EMFRA administration time (min) 13.12 ± 2.27 9.70 11.31 12.82 14.38 17.27 0.33 -1.05</p>
+<p>Table 2. Concurrent validity between EMFRA factors and clinical variables Outcome Predictor N Nagelkerke pseudo-R² Pearson (r) Spearman (ρ) Regression coefficient Boot 95%CI Percentile Factor 1 -Autonomy SPPB score 201 0.52911906 0.751 0.773 0.528 (0.447, 0.64) Factor 1 -Autonomy MoCA score 201 0.46639980 0.697 0.697 0.281 (0.234, 0.341) Factor 1 -Autonomy HADS Anxiety 201 0.01676392 -0.122 -0.077 -0.058 (-0.12, 0.004) Factor 1 -Autonomy HADS Depression 201 0.17556033 -0.414 -0.394 -0.240 (-0.318, -0.171) Factor 1 -Autonomy HADS Total 201 0.08603825 -0.288 -0.257 -0.082 (-0.124, -0.046) Factor 1 -Autonomy Barthel Index 201 0.32176089 0.560 0.625 0.074 (0.054, 0.105) Factor 2 -Psychological distress SPPB score 201 0.07837237 -0.273 -0.282 -0.145 (-0.229, -0.066) Factor 2 -Psychological distress MoCA score 201 0.07441690 -0.291 -0.263 -0.083 (-0.124, -0.042) Factor 2 -Psychological distress HADS Anxiety 201 0.27701016 0.566 0.511 0.289 (0.218, 0.373) Factor 2 -Psychological distress HADS Depression 201 0.28001647 0.550 0.559 0.339 (0.246, 0.459) Factor 2 -Psychological distress HADS Total 201 0.35332116 0.625 0.590 0.208 (0.16, 0.266) Factor 2 -Psychological distress Barthel Index 201 0.09401456 -0.306 -0.337 -0.033 (-0.052, -0.017)</p>
+<h3>8. Funding.</h3>
+<p>The project that gave rise to these results received the support of a fellowship from &quot;la Caixa&quot; Foundation (ID 100010434). The fellowship code is &quot;LCF/BQ/DR22/11950015&quot;. In addition, this article belongs to the project &quot;EMFRA: Transformando la Evaluación Multidimensional de . 4 6 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 Factor Eigenvalue Retention: Bootstrap P5 (one-sided 95% CI) &gt; P95 null | Retained: 3 Not retained: 18 | n_boot = 1000 Parallel Analysis + Bootstrap -Full Model -1 0 1 2 3 4 5 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 Factor Eigenvalue Retention: Bootstrap P5 (one-sided 95% CI) &gt; P95 null | Retained: 3 Not retained: 12 | n_boot = 1000 Parallel Analysis + Bootstrap -Reduced Model A -1 0 1 2 3 4 1 2 3 4 5 6 7 8 9 10 11 Factor Eigenvalue Retention: Bootstrap P5 (one-sided 95% CI) &gt; P95 null | Retained: 2 Not retained: 9 | n_boot = 1000 Parallel Analysis + Bootstrap -Reduced Model B 0 1 2 3 1 2 3 4 5 6 7 8 9 Factor Eigenvalue Retention: Bootstrap P5 (one-sided 95% CI) &gt; P95 null | Retained: 2 Not retained: 7 | n_boot = 1000 Parallel Analysis + Bootstrap -Reduced Model C CI90% bootstrap band CI90% bootstrap -Not retained CI90% bootstrap -Retained Null reference Null mean (permut.) P95 null (permut.) 0% 11.6% 42.4% 34.4% 9.9% 1.6% 0.1% 0% 65.4% 31.7% 2.9% 0% 0% 0% 0.1% 31.1% 47.3% 18.4% 3.1% 0% 0% 0% 82.6% 17.4% 0% 0% 0% 0% Reduced Model B Reduced Model C Full Model Reduced Model A 1 2 3 4 5 6 7 1 2 3 4 5 6 7 0% 25% 50% 75% 100% 0% 25% 50% 75% 100% Number of dimensions Percentage of bootstrap samples Grip strength Gait speed Gait assist. Arithmetic money Atten-Inhib Social interact. Socio-Ludic act. Balance loss Fatigue Memory diff. Concentr. diff. Loneliness Sadness Irritability Self-eff. diff. Life satisf. Cognitive act. Econ. diff. Family interact. Communic. diff. Help avail. Full Model Grip strength Gait speed Arithmetic money Atten-Inhib Socio-Ludic act. Balance loss Fatigue Loneliness Sadness Self-eff. diff. Life satisf. Family interact. Cognitive act. Econ. diff. Social interact. Reduced Model A Grip strength Gait speed Balance loss Arithmetic money Atten-Inhib Econ. diff. Socio-Ludic act. Fatigue Loneliness Sadness Life satisf. Reduced Model B Grip strength Gait speed Arithmetic money Atten-Inhib Socio-Ludic act. Fatigue Loneliness Sadness Life satisf. Reduced Model C 1 2 3 1 2 0.68 -0.02 0.01 0.88 -0.01 -0.01 -0.93 0.07 0.13 -0.34 0.46 -0.12 -0.16 0.52 -0.04 0.51 -0.01 0.19 0.50 0.06 0.31 -0.21 0.29 -0.05 -0.07 0.46 -0.06 0.28 0.12 0.61 0.03 0.70 -0.01 -0.01 0.73 0.07 0.20 0.44 -0.09 0.07 0.60 0.01 0.17 -0.47 0.08 0.22 0.12 -0.73 0.16 -0.29 0.38 0.59 0.08 0.14 0.80 -0.02 0.03 -0.09 0.17 -0.30 0.02 -0.05 0.29 Help avail. Communic. diff. Socio-Ludic act. Social interact. Family interact. Econ. diff. Life satisf. Self-eff. diff. Irritability Sadness Loneliness Cognitive act. Concentr. diff. Memory diff. Atten-Inhib Arithmetic money Fatigue Balance loss Gait assist. Gait speed Grip strength MR1 MR2 MR3 Factor Factor Loadings -Full Model 0.55 0.01 -0.01 0.54 -0.01 -0.02 0.36 0.00 -0.01 0.35 0.02 0.00 0.28 0.06 0.20 0.23 -0.00 0.16 -0.63 0.01 0.00 0.00 0.60 0.05 0.03 0.42 -0.11 0.00 0.42 0.04 -0.02 0.38 -0.03 -0.00 0.35 0.01 -0.09 0.30 -0.22 -0.04 0.23 0.02 0.00 0.16 0.01 0.08 -0.26 0.06 0.05 0.06 0.43 -0.04 -0.14 0.35 -0.02 -0.02 0.10 -0.01 0.11 -0.11 0.06 -0.01 -0.38 Help avail. Communic. diff. Socio-Ludic act. Social interact. Family interact. Econ. diff. Life satisf. Self-eff. diff. Irritability Sadness Loneliness Cognitive act. Concentr. diff. Memory diff. Atten-Inhib Arithmetic money Fatigue Balance loss Gait assist. Gait speed Grip strength 1 2 3 Community Community Loadings -Full Model 0.75 0.04 0.89 0.03 -0.39 0.34 -0.15 0.59 0.57 -0.06 0.60 -0.02 0.06 0.78 0.04 0.80 0.12 -0.52 0.09 0.31 0.74 -0.02 Socio-Ludic act. Econ. diff. Life satisf. Sadness Loneliness Atten-Inhib Arithmetic money Fatigue Balance loss Gait speed Grip strength MR1 MR2 Factor .</p>
+<p>Descriptives --3.2. Item response distributions of EMFRA All three response categories were represented across the sample for each of the 21 EMFRA items. Items 1 (Grip Strength) and 19 (Socioludic Activity) showed relatively balanced response distributions. Higher frequencies of the lowest category were observed in Items 3 (Gait Assistance), 4 (Balance Loss), 9 (Concentration Difficulty), 11 (Loneliness), 14 (Self-efficacy Difficulty), 16 (Economic Difficulty), and 20 (Communication Difficulty). In contrast, the highest category was more frequent in Items 2 (Gait Speed), 6 (Money Arithmetic), 7 (Attention-Inhibition), 10 (Cognitive Activities), 15 (Life Satisfaction), 17 (Family Interaction), 18 (Social Interaction), and 21 (Help Availability). The middle category was most common in Items 5 (Fatigue), 8 (Memory Difficulty), 12 (Sadness), and 13 (Irritability).</p>
+<h3>.--</h3>
+<p>Figure 1. Item response distribution -3.3. Item-level test-retest reliability Due to the low number of subjects analysed in test-retest measures (22 subjects), wide 95%CI prevented drawing clear conclusions about the real test-retest reliability value, and therefore their possible exclusion could not be clearly established.</p>
+<h3>--Figure 2.</h3>
+<p>Item level reliability -3.3. Polychoric correlation matrix, KMO and MSA.Prior checks revealed a total of 81 pairwise response combinations of zero frequency. This yielded a polychoric matrix with symmetry but not PSD with one negative eigenvalue. PSD was achieved with the continuity correction of 0.5 applied to zero frequency response combinations and employed for the subsequent analyses. Polychoric matrix, and anti-image matrix are reported in SM.The overall KMO yielded 0.43, with most items presenting low-to-moderate values, with Item 21 (Help availability) being the lowest MSA value (0.09). However, these did not prevent subsequent analyses(Lorenzo-Seva &amp; Ferrando, 2021).</p>
+<p>---Fig 3. Bootstrap PA Reduced Model C ------Fig 4. Dimensional solution bootstrap EGA Reduced Model C ------Fig 5. Empirical EGA Network Reduced Model C ------Fig 6. Factor loadings and Community Loadings Reduced Model C ---3.5. Internal consistency.</p>
+<p>GS = Gait speed; HGS = Grip strength; SLA = Socio-Ludic act. ; AttIn = Atten-Inhib; AM = Arithmetic money; SAD = Sadness; LON = Loneliness; LS = Life satisf. ; FAT = Fatigue. Indicators marked with * denote reverse-coded scores computed as X i * = 2 -X i prior to factor score estimation.</p>
+<p>. Concurrent validity ------Figure9. Concurrent plot Autonomy ---For Factor 2 (Psychological Distress), the pattern was reversed. Moderate associations were observed with emotional symptoms, particularly HADS total score (R² = 0.35, r = 0.63), followed by depression (R² = 0.28, r = 0.55) and anxiety (R² = 0.28, r = 0.57). In contrast, physical performance (SPPB) (R² = 0.08, r = -0.27), global cognitive function (MoCA) (R² = 0.07, r = -0.29) and independence in basic ADL (Barthel index) (R² = 0.09, r = -0.31) showed negligible-to-small negative associations, explaining only a minimal association. These results indicate that Psychological Distress factor is related as expected with emotional features, and not as related to physical functioning domains, global cognitive performance, or independence in basic ADL, see Table2, and Figure10.---Figure10. Concurrent plot psychological distress ---4. Discussion.</p>
+<h3>Fragilidad</h3>
+<p>en Adultos Mayores. Creación, Validación Psicométrcia y Evaluación de la Sensibilidad al Cambio en un Ensayo Clínico&quot;, managed by the Universidad Rey Juan Carlos (Grant A696) and funded through the &quot;IV Call for Research Grants in Physiotherapy&quot; by the Illustrious Professional College of Physiotherapists of the Community of Madrid. 9. Acknowledgments.</p>
+<h3>References</h3>
+<p>Bibliography.</p>
+<p>Akoglu, H. (2018). User&#x27;s guide to correlation coefficients. Turkish Journal of Emergency Medicine, 18(3), 91-93. https://doi.org/10.1016/j.tjem.2018.08.001</p>
+<p>Beard, J. R., Officer, A., De Carvalho, I. A., Sadana, R., Pot, A. M., Michel, J.-P., Lloyd- Sherlock, P., Epping-Jordan, J. E., Peeters, G. M. E. E. (Geeske), Mahanani, W. R., Thiyagarajan, J. A., &amp; Chatterji, S. (2016). The World report on ageing and health: A policy framework for healthy ageing. The Lancet, 387(10033), 2145-2154. https://doi.org/10.1016/S0140-6736(15)00516-4</p>
+<p>Biringer, E., Mykletun, A., Dahl, A. A., Smith, A. D., Engedal, K., Nygaard, H. A., &amp; Lund, A. (2005). The association between depression, anxiety, and cognitive function in the elderly general population-The Hordaland Health Study. International Journal of Geriatric Psychiatry, 20(10), 989-997. https://doi.org/10.1002/gps.1390</p>
+<p>Social, and Behavioral Research: A Primer. Frontiers in Public Health, 6, 149. https://doi.org/10.3389/fpubh.2018.00149</p>
+<p>Brown, A. S., Brummel-Smith, K., Burgess, L., D&#x27;Agostino, R. B., Goldschmidt, J. W., Halter, J. B., Hazzard, W. R., Jahnigen, D. W., Phelps, C., Raskind, M., Schrier, R. W., Sox Jr., H. C., Williams, S. V., &amp; Wykle, M. (1988). National Institutes of Health Consensus Development Conference Statement: Geriatric Assessment Methods for Clinical Decision-making. Journal of the American Geriatrics Society, 36(4), 342-347. https://doi.org/10.1111/j.1532-5415.1988.tb02362.x</p>
+<p>Cabañero-Martínez, M. J., Cabrero-García, J., Richart-Martínez, M., &amp; Muñoz- Mendoza, C. L. (2009). The Spanish versions of the Barthel index (BI) and the Katz index (KI) of activities of daily living (ADL): A structured review. Archives of Gerontology and Geriatrics, 49(1), e77-84. https://doi.org/10.1016/j.archger.2008.09.006</p>
+<p>Cesari, M., Araujo De Carvalho, I., Amuthavalli Thiyagarajan, J., Cooper, C., Martin, F. C., Reginster, J.-Y., Vellas, B., &amp; Beard, J. R. (2018). Evidence for the Domains Supporting the Construct of Intrinsic Capacity. The Journals of Gerontology: Series A, 73(12), 1653-1660. https://doi.org/10.1093/gerona/gly011</p>
+<p>Chan, Y. H. (2003). Biostatistics 104: Correlational analysis. Singapore Medical Journal, 44(12), 614-619.</p>
+<p>Chang, Y., Sapkota, S., Thapa, B., Ma, L., Sheng, L., Wang, C., Chhetri, J. K., &amp; Chan, P. (2024). Development and validation of a functional ability index for older adults: A multicohort study. Age and Ageing, 53(10), afae231. https://doi.org/10.1093/ageing/afae231</p>
+<p>Christensen, A. P. (2024). Unidimensional community detection: A monte carlo simulation, grid search, and comparison. Psychological Methods. https://doi.org/10.1037/met0000692</p>
+<p>Christensen, A. P., Garrido, L. E., &amp; Golino, H. (2023). Unique Variable Analysis: A Network Psychometrics Method to Detect Local Dependence. Multivariate . Behavioral Research, 58(6), 1165-1182. https://doi.org/10.1080/00273171.2023.2194606</p>
+<p>Christensen, A. P., Garrido, L. E., Guerra-Peña, K., &amp; Golino, H. (2023). Comparing community detection algorithms in psychometric networks: A Monte Carlo simulation. Behavior Research Methods, 56(3), 1485-1505. https://doi.org/10.3758/s13428-023-02106-4</p>
+<p>De Souto Barreto, P., Gonzalez-Bautista, E., Bischoff-Ferrari, H. A., Pelegrim De Oliveira, V., Gorga Bandeira De Mello, R., Andrieu, S., Berbon, C., Tavassoli, N., Beard, J. R., Rolland, Y., Soto Martín, M. E., &amp; Vellas, B. (2024). Real-life intrinsic capacity screening data from the ICOPE-Care program. Nature Aging, 4(9), 1279-1289. https://doi.org/10.1038/s43587-024-00684-2</p>
+<p>Dufouil, C., Fuhrer, R., Dartigues, J. F., &amp; Alpérovitch, A. (1996). Longitudinal analysis of the association between depressive symptomatology and cognitive deterioration. American Journal of Epidemiology, 144(7), 634-641. https://doi.org/10.1093/oxfordjournals.aje.a008974</p>
+<p>Ekström, J. (2011a). A Generalized Definition of the Polychoric Correlation Coefficient. https://escholarship.org/uc/item/583610fv</p>
+<p>Ekström, J. (2011b, October 25). On the Relation Between the Polychoric Correlation Coefficient and Spearman&#x27;s Rank Correlation Coefficient. https://api.semanticscholar.org/CorpusID:126004421</p>
+<p>Estabrook, R., &amp; Neale, M. (2013). A Comparison of Factor Score Estimation Methods in the Presence of Missing Data: Reliability and an Application to Nicotine Dependence. Multivariate Behavioral Research, 48(1), 1-27. https://doi.org/10.1080/00273171.2012.730072</p>
+<p>Fierro-Marrero, J., Reina-Varona, Á., Pardo-Montero, J., Paris-Alemany, A., &amp; La Touche, R. (2025). Development and content validity of the evaluation of multidimensional functioning and risks in aging scale. PeerJ, 13, e20108. https://doi.org/10.7717/peerj.20108.</p>
+<p>Fierro-Marrero, J., Reina-Varona, Á., Paris-Alemany, A., &amp; La Touche, R. (2025). Frailty in Geriatrics: A Critical Review with Content Analysis of Instruments, Overlapping Constructs, and Challenges in Diagnosis and Prognostic Precision. Journal of Clinical Medicine, 14(6), 1808. https://doi.org/10.3390/jcm14061808</p>
+<p>Finch, H., &amp; Monahan, P. (2008). A Bootstrap Generalization of Modified Parallel Analysis for IRT Dimensionality Assessment. Applied Measurement in Education, 21(2), 119-140. https://doi.org/10.1080/08957340801926102</p>
+<p>Fleiss, J. L. (1999). The Design and Analysis of Clinical Experiments (1st edn). Wiley. https://doi.org/10.1002/9781118032923</p>
+<p>Garcia-Garzon, E., Abad, F. J., &amp; Garrido, L. E. (2019). Searching for G: A New Evaluation of SPM-LS Dimensionality. Journal of Intelligence, 7(3), 14. https://doi.org/10.3390/jintelligence7030014</p>
+<p>Golino, H. F., &amp; Epskamp, S. (2017). Exploratory graph analysis: A new approach for estimating the number of dimensions in psychological research. PLOS ONE, 12(6), e0174035. https://doi.org/10.1371/journal.pone.0174035</p>
+<p>Golino, H., Shi, D., Christensen, A. P., Garrido, L. E., Nieto, M. D., Sadana, R., Thiyagarajan, J. A., &amp; Martinez-Molina, A. (2020). Investigating the performance of exploratory graph analysis and traditional techniques to identify the number of latent factors: A simulation and tutorial. Psychological Methods, 25(3), 292- 320. https://doi.org/10.1037/met0000255</p>
+<p>Gómez-Moreno, S. M., Cuadrado, M. L., Cruz-Orduña, I., Martínez-Acebes, E. M., Gordo-Mañas, R., Fernández-Pérez, C., &amp; García-Ramos, R. (2022).</p>
+<p>Neurología, 37(9), 726-734. https://doi.org/10.1016/j.nrl.2019.11.006</p>
+<p>Guralnik, J. M., Simonsick, E. M., Ferrucci, L., Glynn, R. J., Berkman, L. F., Blazer, D. G., Scherr, P. A., &amp; Wallace, R. B. (1994). A short physical performance battery assessing lower extremity function: Association with self-reported disability and . prediction of mortality and nursing home admission. Journal of Gerontology, 49(2), M85-94. https://doi.org/10.1093/geronj/49.2.m85</p>
+<p>Gwet, K. L. (2008a). Computing inter-rater reliability and its variance in the presence of high agreement. British Journal of Mathematical and Statistical Psychology, 61(1), 29-48. https://doi.org/10.1348/000711006X126600</p>
+<p>Gwet, K. L. (2008b). Intrarater Reliability. In R. B. D&#x27;Agostino, L. Sullivan, &amp; J. Massaro (Eds), Wiley Encyclopedia of Clinical Trials (1st edn, pp. 1-13). Wiley. https://doi.org/10.1002/9780471462422.eoct631</p>
+<p>Harrell, J. (2015). Regression Modeling Strategies: With Applications to Linear Models, Logistic and Ordinal Regression, and Survival Analysis (2nd ed. 2015). Springer. https://doi.org/10.1007/978-3-319-19425-7</p>
+<p>Herrero, M. J., Blanch, J., Peri, J. M., Pablo, J. D., Pintor, L., &amp; Bulbena, A. (2003). A validation study of the hospital anxiety and depression scale (HADS) in a Spanish population. General Hospital Psychiatry, 25(4), 277-283. https://doi.org/10.1016/S0163-8343(03)00043-4</p>
+<p>Herrmann, C. (1997). International experiences with the Hospital Anxiety and Depression Scale-A review of validation data and clinical results. Journal of Psychosomatic Research, 42(1), 17-41. https://doi.org/10.1016/S0022-3999(96)00216-4</p>
+<p>Holgado-Tello, F. P., Chacón-Moscoso, S., Barbero-García, I., &amp; Vila-Abad, E. (2010). Polychoric versus Pearson correlations in exploratory and confirmatory factor analysis of ordinal variables. Quality &amp; Quantity, 44(1), 153-166. https://doi.org/10.1007/s11135-008-9190-y</p>
+<p>Horn, J. L. (1965). A Rationale and Test for the Number of Factors in Factor Analysis. Psychometrika, 30(2), 179-185. https://doi.org/10.1007/BF02289447 Modeling: A Multidisciplinary Journal, 6(1), 1-55. https://doi.org/10.1080/10705519909540118</p>
+<p>Koo, T. K., &amp; Li, M. Y. (2016). A Guideline of Selecting and Reporting Intraclass Correlation Coefficients for Reliability Research. Journal of Chiropractic Medicine, 15(2), 155-163. https://doi.org/10.1016/j.jcm.2016.02.012</p>
+<p>Landis, J. R., &amp; Koch, G. G. (1977). The Measurement of Observer Agreement for Categorical Data. Biometrics, 33(1), Article 1. https://doi.org/10.2307/2529310</p>
+<p>Liu, C., Chang, W.-P., &amp; Wang, I. (2026). Discordance Between Self-Report and Performance-Based Measures Among At-Risk Older Adults: A Secondary Data Analysis. American Journal of Occupational Therapy, 80(4), 662-669. https://doi.org/10.5014/ajot.2026.051408</p>
+<p>Lorenzo-Seva, U., &amp; Ferrando, P. J. (2021). MSA: The forgotten index for identifying inappropriate items before computing exploratory item factor analysis. Methodology, 17(4), 296-306. https://doi.org/10.5964/meth.7185</p>
+<p>Malek-Ahmadi, M., &amp; Nikkhahmanesh, N. (2024). Meta-analysis of Montreal cognitive assessment diagnostic accuracy in amnestic mild cognitive impairment. Frontiers in Psychology, 15. https://doi.org/10.3389/fpsyg.2024.1369766</p>
+<p>Markos, A., &amp; Tsigilis, N. (2024). Dimensionality assessment in ordinal data: A comparison between parallel analysis and exploratory graph analysis. Frontiers in Psychology, 15, 1359111. https://doi.org/10.3389/fpsyg.2024.1359111</p>
+<p>McHorney, C. A., &amp; Tarlov, A. R. (1995). Individual-patient monitoring in clinical practice: Are available health status surveys adequate? Quality of Life Research, 4(4), 293-307. https://doi.org/10.1007/BF01593882</p>
+<p>McNeish, D. (2018). Thanks coefficient alpha, we&#x27;ll take it from here. Psychological Methods, 23(3), 412-433. https://doi.org/10.1037/met0000144</p>
+<p>Mokkink, L. B., Herbelet, S., Tuinman, P. R., &amp; Terwee, C. B. (2025). Content validity: Judging the relevance, comprehensiveness, and comprehensibility of an outcome measurement instrument -a COSMIN perspective. Journal of Clinical Epidemiology, 185, 111879. https://doi.org/10.1016/j.jclinepi.2025.111879</p>
+<p>Montoya, A. K., &amp; Edwards, M. C. (2021). The Poor Fit of Model Fit for Selecting Number of Factors in Exploratory Factor Analysis for Scale Evaluation. Educational and Psychological Measurement, 81(3), 413-440. https://doi.org/10.1177/0013164420942899</p>
+<p>Nasreddine, Z. S. (2018). MoCA 8.1: Instructions for Administration and Scoring - Spain/Spanish Version (Version 8.1). MoCA Test. https://www.mocatest.org</p>
+<p>Nasreddine, Z. S., Phillips, N. A., Bédirian, V., Charbonneau, S., Whitehead, V., Collin, I., Cummings, J. L., &amp; Chertkow, H. (2005). The Montreal Cognitive Assessment, MoCA: A Brief Screening Tool For Mild Cognitive Impairment. Journal of the American Geriatrics Society, 53(4), 695-699. https://doi.org/10.1111/j.1532-5415.2005.53221.x</p>
+<p>Pearson, K., &amp; Pearson, E. S. (1922). On Polychoric Coefficients of Correlation. Biometrika, 14(1/2), 127. https://doi.org/10.2307/2331858</p>
+<p>Prinsen, C. A. C., Mokkink, L. B., Bouter, L. M., Alonso, J., Patrick, D. L., De Vet, H. C. W., &amp; Terwee, C. B. (2018). COSMIN guideline for systematic reviews of patient-reported outcome measures. Quality of Life Research, 27(5), 1147- 1157. https://doi.org/10.1007/s11136-018-1798-3</p>
+<p>R Core Team. (2026). R: A Language and Environment for Statistical Computing. R Foundation for Statistical Computing. https://doi.org/10.32614/R.manuals</p>
+<p>Reise, S. P. (2012). The Rediscovery of Bifactor Measurement Models. Multivariate Behavioral Research, 47(5), 667-696. https://doi.org/10.1080/00273171.2012.715555</p>
+<p>Ridner, S. H. (2004). Psychological distress: Concept analysis. Journal of Advanced Nursing, 45(5), 536-545. https://doi.org/10.1046/j.1365-2648.2003.02938.x</p>
+<p>Schmidle, S., Gulde, P., Koster, R., Soaz, C., &amp; Hermsdörfer, J. (2023). The relationship between self-reported physical frailty and sensor-based physical . activity measures in older adults -a multicentric cross-sectional study. BMC Geriatrics, 23(1), 43. https://doi.org/10.1186/s12877-022-03711-2</p>
+<p>Schwab, L., De Baets, S., De Keyser, E., Moreels, T., Tambeur, J., &amp; De Vriendt, P. (2025). Functional Capacity and Functional Ability in an Aging Population: A Scoping Review. The Gerontologist, 65(7), gnaf141. https://doi.org/10.1093/geront/gnaf141</p>
+<p>Shaw, B. P. (2021). Meeting assumptions in the estimation of reliability. The Stata Journal, 21(4), 1021-1027. https://doi.org/10.1177/1536867X211063407</p>
+<p>Shrout, P. E., &amp; Fleiss, J. L. (1979). Intraclass correlations: Uses in assessing rater reliability. Psychological Bulletin, 86(2), 420-428. https://doi.org/10.1037//0033-2909.86.2.420</p>
+<p>Ten Berge, J. M. F., Krijnen, W. P., Wansbeek, T., &amp; Shapiro, A. (1999). Some new results on correlation-preserving factor scores prediction methods. Linear Algebra and Its Applications, 289(1-3), 311-318. https://doi.org/10.1016/S0024-3795(97)10007-6</p>
+<p>Terwee, C. B., Prinsen, C. A. C., Chiarotto, A., Westerman, M. J., Patrick, D. L., Alonso, J., Bouter, L. M., De Vet, H. C. W., &amp; Mokkink, L. B. (2018). COSMIN methodology for evaluating the content validity of patient-reported outcome measures: A Delphi study. Quality of Life Research, 27(5), 1159-1170. https://doi.org/10.1007/s11136-018-1829-0</p>
+<p>Vet, H. C. W. de, Terwee, C. B., Mokkink, L. B., &amp; Knol, D. L. (2011). Measurement in Medicine: A Practical Guide.</p>
+<p>World Health Organization (Ed.). (2001). International classification of functioning, disability and health: ICF. World Health Organization.</p>
+<p>World Health Organization. (2024). Integrated Care for Older People (ICOPE): Guidance for Person-Centred Assessment and Pathways in Primary Care (2nd edn). World Health Organization. . https://iris.who.int/server/api/core/bitstreams/7516b015-e205-43d1-883f- 01f2c31af261/content</p>
+<p>Yu, D. S. F., Lee, D. T. F., &amp; Man, N. W. (2010). Fatigue among older people: A review of the research literature. International Journal of Nursing Studies, 47(2), 216- 228. https://doi.org/10.1016/j.ijnurstu.2009.05.009</p>
+<p>Zhang, F. (2011). Matrix Theory: Basic Results and Techniques. Springer New York. https://doi.org/10.1007/978-1-4614-1099-7</p>
+<p>Author contributions. JFM: conceptualization, methodology development, research, data curation, formal analysis, funding acquisition, data visualization, writing -original draft, writing -review and editing.</p>
+<p>AGG, LCD, SMB: research, data curation. APA and RLT: conceptualization, methodology development, project administration, supervision, funding acquisition, project administration, supervision, writing -review and editing.</p>
 </div>
 </details>
 </div>
