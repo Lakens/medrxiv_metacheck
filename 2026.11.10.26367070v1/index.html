@@ -195,7 +195,7 @@ MetaCheck Report
 Cancer risk and survival outcomes in germline POT1 variant carriers
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.10.26367070
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.10.26367070
 </p>
 </header>
 <div class="mc-main">
@@ -330,8 +330,8 @@ ethics approval statement.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 40 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 40 detected.</p>
 </div>
 </div>
 </div>
@@ -414,8 +414,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -798,9 +801,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -822,7 +829,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -837,9 +845,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -852,13 +878,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -878,6 +907,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -885,12 +920,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -991,6 +1032,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1010,6 +1071,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1265,19 +1361,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1387,6 +1565,140 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: The prevalence of germline POT1 variants, spectrum of associated tumors, cancer risk and survival outcomes are incompletely described, and clinical management guidelines vary. We evaluated POT1 variant carriers in three biobanks and a clinical cohort to address these limitations.</p>
+<p>Methods: Prevalence, cancer spectrum and risk associated with germline POT1 pathogenic/likely pathogenic and additional functionally assessed variants were evaluated in Penn Medicine Biobank (PMBB; n=51,172), Geisinger MyCode (MyCode; n=220,582), UK Biobank (UKBB; n=469,558) and a Penn Medicine clinical cohort.</p>
+<p>Results: Estimated POT1 variant prevalence ranged from 1:1,279 to 1:2,902. Compared to noncarriers, cancer diagnoses were more frequent among POT1 variant carriers in PMBB (OR 3.41, 95%CI 1.81-6.43, p=1.88x10 -4 ), MyCode (OR 2.23, 95%CI 1.31-3.79, p=0.003), and UKBB (OR 1.40, 95%CI 1.07-1.84, p=0.015). Cancer incidence increased beginning in the mid-30s, without evidence of increased mortality. Along with previously described cancer types, lung cancer was associated with POT1 variant carriers in two biobank cohorts.</p>
+<p>Conclusion: POT1 is a cancer susceptibility gene associated with a moderate (1.5-3.5-fold) increased cancer risk. Variants are relatively frequent and predispose to a broad tumor spectrum and increased incidence starting in the mid-30s, without increasing mortality. These findings expand understanding of POT1-associated disease and provide data to inform clinical management.</p>
+<p>Participants carrying POT1 variants were identified from three biobank cohorts and a genetics clinic.</p>
+<p>Demographic and clinical variables are described in Supplementary Methods.</p>
+<p>PMBB is an electronic health record (EHR)-linked biobank of genomic and other biomarker data. 29 PMBB includes 51,172 individuals with exome sequence data performed in collaboration with the Regeneron Genetics Center. This study was carried out under IRB protocol 832122.</p>
+<p>The DiscovEHR study consists of a subset of individuals who consented to participate in the Geisinger MyCode Community Health Initiative. 30 Exome sequencing on 220,582 participants with EHR data was performed in collaboration with the Regeneron Genetics Center.</p>
+<p>UKBB participants with POT1 variants were ascertained from a population-based cohort study of 469,558 participants with whole exome sequencing (UKBB projects 69929, 54389) with linkage to electronic health records and the UK National Cancer Registration and Analysis Service (NCRAS). 31 The UKBB is approved by the UK Biobank Research Ethics Committee.</p>
+<p>Twenty-one patient-participants from 18 families with POT1 variants identified clinically were evaluated between May 2017 and September 2025. Patients had genetic testing identifying a POT1 variant based on either a personal or family history of cancer or a known familial POT1 variant. Chart review was carried out under IRB protocol 854086. The clinical patients did not overlap with the PMBB identified.</p>
+<h3>[div-01]</h3>
+<p>Office: 215-662-4740 (knathans@upenn.edu) Manuscript word count: 4023</p>
+<h3>INTRODUCTION</h3>
+<p>Protection of Telomeres 1 (POT1) protein is a highly conserved subunit of the shelterin telomere binding complex, which binds and protects human telomere ends and regulates telomere length. [1] [2] [3] Loss of POT1 function causes unprotected telomere ends, leading to aberrant telomere lengthening and chromosomal abnormalities, which promotes tumorigenesis. [4] [5] [6] [7] Germline POT1 pathogenic variants (PVs) associated with cancer predisposition were first identified in high-risk melanoma families, and melanoma remains the most commonly reported malignancy. 8, 9 However, POT1 PVs have since been described in families and cohorts with glioma, angiosarcoma, colorectal, prostate, lung, and nonmedullary thyroid cancers, as well as lymphoid and myeloid malignancies, particularly chronic lymphocytic leukemia (CLL). [10] [11] [12] [13] [14] [15] [16] [17] [18] [19] [20] [21] [22] These reports have largely relied on small, clinic-based or diseasespecific cohorts, limiting phenotypic breadth and precluding reliable cancer risk estimation.</p>
+<p>Cancer risk associated with POT1 PVs in the general population has not been characterized. A clinical testing cohort of 227 individuals with POT1 PVs were significantly more likely to develop multiple tumors, particularly melanoma and sarcoma. 23 A pan-cancer cohort of 23 patients reported increased risks of papillary thyroid cancer and CLL, as well as younger age at cancer diagnosis. 24 These two retrospective studies using cohorts with prior genetic testing had limited phenotyping, and may provide inflated risk estimates, as the calculated odds ratios for cancer risk from cohorts with genetic testing for clinical reasons can be substantially higher than population-based cohorts. 25 In addition to reporting on a clinical cohort, one of the aforementioned studies evaluated hematologic malignancy risk in the UKBB, which found higher lymphoid malignancy rates in POT1 variant carriers 22 . Another study evaluated prevalence of pathogenic variants in familial melanoma genes, including POT1, only evaluating known cancer associations, and replicating them in cutaneous melanoma, hematologic malignant neoplasms, and thyroid cancer. 26 The limited data on cancer risk, and lack of data on time to cancer onset and mortality in POT1 PV carriers, have contributed to markedly discrepant clinical guidelines. One guideline recommends intensive surveillance resembling that for Li-Fraumeni syndrome, including melanoma surveillance, CBC, annual whole-body and brain imaging starting at age 18. 27 In contrast, a UK expert group recommended surveillance only for melanoma, citing insufficient evidence for broader surveillance. 28 Given increasing identification of POT1 variants through multigene panel testing, population-based data are urgently needed to inform evidence-based management. Additionally, knowledge of pathogenicity of POT1 variants remains limited, although recent functional studies have provided data on variants that are not confirmed pathogenic or likely pathogenic, but result in reduced POT1 function. Herein, we describe the prevalence of POT1 P/LPVs, spectrum of malignant neoplasms, cancer risk and survival outcomes in individuals with germline POT1 P/LPVs from three biobanks and a clinical cohort, coupled with an expanded understanding of pathogenic variants based on functional studies. patients.</p>
+<h3>Variant annotation and classification</h3>
+<p>Two types of POT1 variants were considered in this analysis: 1) pathogenic/likely pathogenic variants (P/LPV) including the common variant c.1851_1852del, p.Asp617fs; and 2) missense variants which substantially impair POT1 function, which are referred to as &quot;reduced function missense&quot; (RFM) variants (Supplementary Table 1). Variants identified in the biobank cohorts were classified as P/LPV using the Variant Effect Predictor (VEP) and AutoGVP, 32 based on calls in ClinVar. 33 Although p.Asp617fs is not expected to cause nonsense mediated decay, multiple lines of evidence support pathogenicity including downstream variants co-segregating with disease, functional evidence (Supplementary Figure 1); it is called likely pathogenic or pathogenic by three groups in ClinVar (SCV000655168.10). RFM variants were determined by allele depletion studies in deep mutation scanning in locally haploid human stem cells as previously described. 4, [34] [35] [36] [37] One clinical cohort participant with a POT1 variant of uncertain significance (c.817C&gt;T, p.R273W) was included, as the variant was determined to be an RFM. This patient&#x27;s personal and family history also were consistent with POT1 tumor predisposition (Family 1, Supplementary Figure 2). Analyses were conducted for P/LPVs (including p.Asp617fs variant carriers), and P/LPV + RFM.</p>
+<h3>Phenotypic data</h3>
+<p>For POT1 variant carriers identified in the biobank cohorts (PMBB, MyCode and UKBB), cancer diagnoses were extracted using ICD-9/10 codes and cancer registry data specific to each biobank, requiring at least two ICD code instances. Details are in Supplementary Methods. Cancer, family history and other medical history phenotypes were characterized in individuals with POT1 P/LPVs or RFMs from the PMBB and the clinical cohort via EHR review at Penn Medicine. Patient identifiers used in supplemental materials were not known to anyone outside of the research group and are not identifying. Individuals with known germline P/LPVs in additional cancer predisposition genes were excluded from analysis. Permission from four clinical cohort families to publish their modified family history was obtained (Supplementary Figure 2).</p>
+<h3>Statistical analyses</h3>
+<p>Continuous variables are presented as mean (SD); categorical variables as counts and percentages.</p>
+<p>Group comparisons used t tests, Mann-Whitney U tests, or Fisher exact tests, as appropriate, details in Supplementary Methods. Logistic regression models estimated cancer risk odds ratios (ORs) with adjustment for year of birth, sex, smoking history, and body mass index. Time-to-event analyses used Cox proportional hazards models adjusted for year of birth, sex, smoking history, ancestry, and body mass index. Odds ratios and hazard ratios are reported with 95% confidence intervals (CIs) and exact P values. Statistical significance was defined as 2-sided P &lt; .05. Analyses were conducted using R version 4.1.0 and SAS Enterprise Guide version 8.3.</p>
+<h3>RESULTS</h3>
+<h3>Prevalence and distribution of germline P/LP variants in POT1</h3>
+<p>We considered two groups of variants in POT1: 1) P/LPVs including c.1851_1852del (p.Asp617fs); and 2) P/LPVs and reduced function missense variants as determined in previous allele depletion studies 4, [34] [35] [36] [37] (RFM; Supplementary Table 1). Across biobanks, the prevalence of POT1 germline P/LPVs ranged from 1:1,279 to 1:2,902 (Figure 1a); with the inclusion of RFM, the rate ranged from 1:1,163 to 1:2,398. Variants were distributed throughout the POT1 gene, predominantly within known functional domains (Figure 1b). The p.Asp617fs variant was the most frequent, accounting for 6.8% of PMBB, 18.5% of MyCode, and 25.4% of UKBB POT1 variants.</p>
+<p>Nineteen of 89 variants included in this study were identified as RFM, which constituted 67/461 (14.5%) variant carriers identified across the biobank cohorts. Of the 19 missense POT1 variants identified as RFM variants, 13/19 (68%) localize to the N-terminal DNA-binding OB1/OB2 domains, with 6/19 (32%) occurring in the C-terminal OB3/HJR region involved in TPP1 interaction and shelterin complex assembly.</p>
+<h3>Cancer risk for individuals with POT1 variants in biobank cohorts</h3>
+<p>To further delineate the phenotype of individuals with POT1 variants identified in an unbiased fashion, we utilized the PMBB, MyCode, and UKBB biobanks (Supplementary Table 2). We found a significantly increased risk of all cancers across biobanks for POT1 P/LPVs: PMBB (OR 3.41, 95%CI 1.81-6.43, p=1.88x10 -4 ), MyCode (OR 2.23, 95%CI 1.31-3.79, p=0.003), and UKBB (OR 1.40, 95%CI 1.07-1.84, p=0.015) (Table 1). A similar increased cancer risk was observed with the inclusion of RFM variants: PMBB (OR 3.98, 95%CI 2.15-7.37, p=8.20x10 -6 ), MyCode (OR 1.78, 95% CI 1.08-2.95, p=0.024), and UKBB (OR 1.45, 95% CI 1.13-1.86, p=0.004) (Supplementary Table 3).</p>
+<p>We evaluated association of cancer risk with POT1 P/LPVs in both broader cancer categories and specific cancer types across biobanks (Table 1). In the PMBB, elevated cancer risk included the grouped ICD-10 code male genital organ cancers (OR 3.49, 95% CI 1.52-8.03, p=0.006); and specific codes for bronchus and lung (OR 3.22, 95% CI 1.15-9.06, p=0.044), prostate cancer (OR 3.09, 95% CI 1.21-7.90, p=0.026), CLL (OR 8.47, 95% CI 2.60-27.55, p=0.007) and melanoma (OR 4.45, 95% CI 1.58-12.52, p=0.016). In MyCode, along with an increased risk of myeloid/lymphoid malignancies (OR 3.26, 95% CI 1.29-8.23, p=0.012), an increased risk for lip, oral cavity, pharynx (OR 4.61, 95% CI 1.10-19.4, p=0.036), respiratory and intrathoracic organs (OR 3.63, 95% CI 1.37-9.60, p=0.009), bone and articular cartilage (OR 17.28, 95% CI 4.19-71.30, p=8.08x10 -5 ), and unknown primary (OR 2.98, 95% CI 1.39-6.40, p=0.005) was observed. Increased risk for neoplasm of bronchus and lung (OR 4.30, 95% CI 1.66-11.10, p=0.003), CLL (OR 5.92, 95% CI 1.43-24.40, p=0.014), and melanoma (OR 4.03, 95% CI 1.44-11.30, p=0.008) was found. In the UKBB, the only grouped ICD-10 code with an elevated cancer risk was myeloid/lymphoid malignancies (OR 5.7, 95% CI 3.73-8.72, p=9.97x10 -16 ); the specific diagnosis of CLL also was significantly increased (OR 7.13, 95% CI 3.16-16.12, p=2.30x10 -6 ).</p>
+<p>Including RFM variants in the analysis, the only significant associations that changed were in the PMBB dataset. Urinary tract cancers were significantly associated with POT1 variant carrier status (OR 3.05, 95% CI 1.20-7.76, p=0.031), and bronchus and lung cancers were no longer significantly associated with carrier status (OR 2.90, 95% CI 1.04-8.11, p=0.059) (Supplementary Table 3).</p>
+<h3>Detailed phenotyping of individuals with POT1 variants in Penn Medicine Biobank (PMBB) cohort</h3>
+<p>Forty-four PMBB patient-participants carried POT1 pathogenic or likely pathogenic, or reduced function missense variants. Demographic characteristics are presented in Supplementary Table 4. Overall, 28/44 (63.6%) of these PMBB participants had a personal history of at least one malignancy, including 39 solid malignant neoplasms (13 types), and five hematologic malignancies (two types) (Supplementary Tables 4, 5). Eleven of 28 (39.3%) had multiple primary cancer diagnoses. The average number of primary solid and/or hematologic neoplasm diagnoses was 1.8 for PMBB participants with POT1 LP/P or RFM variants (Figure 2).</p>
+<p>The average age of earliest cancer diagnosis was 56.6 (SD=12.1, range 26-79) with the earliest age of cancer diagnosis melanoma between ages 26-30 years (Figure 2; Supplementary Tables 5, 6). Other cancers diagnosed before age 40 in this cohort included Hodgkin lymphoma (within age range of 26-30), CLL (within age range 36-40), renal cell carcinoma, Hodgkin lymphoma, and breast cancer (all within the age range of 36-40).</p>
+<p>On average, unaffected individuals were younger than affected individuals at time of last assessment, 52.0 (SD=18.0) vs 65.3 (SD=11.9) years (p=0.003). Cancers known to be associated with POT1 were commonly observed, including melanoma (15.9%) and CLL (9.1%). We also observed frequent diagnoses of cancers not previously described as associated with POT1 P/LPVs, including non-small cell lung cancer (NSCLC) (9.1%; 10.8% of individuals over age 50), renal cancer (9.1%), and prostate cancer (30.8% of all males; 21.6% of males over age 50; average age diagnosis 61.9 years, SD=9.5, range 51-79) (Supplementary Tables 5, 6).</p>
+<h3>Detailed phenotyping through EHR review of adults with POT1 variants in Penn Medicine clinical cohort</h3>
+<p>Twenty-one Penn Medicine patients evaluated in a genetics clinic carried POT1 variants with demographic characteristics presented in Supplementary Table 4. Thirteen individuals (61.9%) had at least one neoplasm, including 37 with solid malignant neoplasms (10 types), and eight hematologic malignancies (seven types) (Supplementary Tables 4, 5). Among affected individuals, 69.2% clinically ascertained had multiple primary cancer diagnoses (excluding non-melanoma skin cancer), compared to 39.3% in PMBB cohort (p=NS). The average number of primary solid and/or hematologic neoplasm diagnoses was 2.4 (3.7 for clinical cohort; 1.8 for PMBB participants) (Figure 2). The average age of earliest cancer diagnosis was 50.5 (SD=13.1, range 29-68) for the clinical cohort compared to 56.6 (SD=12.1, range 26-79) for the PMBB cohort (p=0.08) (Figure 2; Supplementary Table 6). The earliest age of cancer diagnosis was Hodgkin Lymphoma within age range 26-30 (Supplementary Table 6). The only other cancer diagnosed before age 40 in the clinical cohort was melanoma (within age range 26-30).</p>
+<p>On average, unaffected individuals were younger than affected individuals at time of last assessment, 45.8 years (SD=11.98) vs 61.8 (SD=11.7) years (p=0.008). Cancers known to be associated with POT1 P/LPs were commonly observed, including melanoma (33.3%) and CLL (14.3%). We observed the previously reported JAK2 p.V617F variant in two of the three patients with hematological neoplasms that had somatic sequencing data available (Supplementary Table 7). We observed frequent diagnoses of cancers not previously described as associated with POT1 P/LPVs, including non-small cell lung cancer (NSCLC) (14.3%; 23.1% of individuals over age 50), renal cancer (9.5%), and prostate cancer (27.3% of all males; 50% of males over age 50; one diagnosed in the age range 51-55, one in the age range of 56-60, and another in the age range of 66-70years; Supplementary Tables 5, 6).</p>
+<p>In the clinical cohort, 19 individuals (90.5%) had a family history of cancer, most commonly hematologic, lung cancers and melanoma. Seven probands had additional family members who tested positive (selected pedigrees in Supplementary Figure 2). In families with more than one generation with individuals testing positive for POT1 variants, consistent evidence of anticipation was not observed, as the majority did not have cases of earlier onset of cancer in successive generations.</p>
+<h3>Cancer incidence, survival and telomere length in biobank POT1 variant carriers</h3>
+<p>Cancer incidence was calculated for individuals with POT1 P/LPVs (Figure 3A) and for individuals with POT1 P/LPVs and RFM (Figure 3B). In PMBB P/LPV POT1 carriers, the cumulative risk of cancer by age 50 was 20.2% (95% CI 5.6%-32.6%) and 72.3% by age 80 (95% CI 46.5%-85.7%). With RFM included, the cumulative risk of cancer was 20.8% by age 50 (95% CI 6.8%-32.7%) and 76.7% by age 80 (95% CI 53.1%-88.4%). Carrier risk first exceeded the noncarrier estimate at age 37.0 years in both groups. For P/LPV MyCode carriers, the cumulative risk of cancer by age 50 was 13.6% (95% CI 4.3%-22.0%) and 56.9% by age 80 (95% CI 33.1%-72.3%). Similar analyses with the inclusion of RFM showed the cumulative cancer risk estimate of 11.7% by age 50 (95% CI 3.7%-19.0%) and 50.7% by age 80 (95% CI 30.8%-67.2%). Compared to the general population, cancer risk first exceeded the population-based estimate at approximately age 40 years for both groups. Lastly, in P/LPV UKBB carriers, the cumulative risk of cancer by age 50 was 3.1% (95% CI 0.9%-5.1%) and 42.3% by age 80 (95% CI 32.7%-50.5%). Compared to the general population, cancer risk first exceeded the populationbased estimate at age 60.9 years. With the inclusion of RFM, the cumulative cancer risk estimate was 2.9% by age 50 (95% CI 1.0%-4.8%) and 42.9% by age 80 (95% CI 34.2%-40.4%), with cancer risk exceeding the population-based estimate at age 60.8 years.</p>
+<p>Overall survival did not differ between POT1 carriers and non-carriers in UKBB, including when stratified by cancer status (Figure 4). Additional survival analyses were run for PMBB and MyCode that also showed no difference in survival, though there were less than 20 deaths in each of these cohorts (Supplementary Figure 3). POT1 variant carriers had significantly longer telomeres than non-carriers (p=8.25x10 -4 ). We found a non-significant increase in telomere length in individuals with cancer vs.</p>
+<p>those without (p=0.66, Figure 4), which may be age-related as individuals with cancer were significantly older (p=2.25x10 -11 ).</p>
+<h3>DISCUSSION</h3>
+<p>We have characterized the prevalence and clinical spectrum of POT1 germline P/LPVs in large, clinically diverse population-scale cohorts. By leveraging biobank-scale genomic data, we reduced phenotypic ascertainment bias inherent to prior clinic-based studies and provide the population-based estimates of POT1-associated cancer risk. In the biobank cohort evaluated here, POT1 variants were present in approximately 1 in 1200 to 2500 individuals. The prevalence estimates suggest that POT1 tumor predisposition may be more common than previously appreciated, and that approximately 137,000-286,000 individuals in the United States may be variant carriers. This prevalence is comparable to other autosomal dominant cancer susceptibility conditions, such as NF1. 38 The higher frequency of POT1 variants in the PMBB likely reflects both the higher proportion of Ashkenazi Jewish patients in the cohort with a known founder variant (p.Ile78Thr; 9% of Penn Medicine patients reported here), 39 and as Penn Medicine is a tertiary referral center. Our findings emphasize the importance of considering POT1 as part of germline genetic testing in individuals with multiple primary cancer diagnoses or a significant family history of cancer.</p>
+<p>Across the three biobank cohorts and clinically ascertained patients, we observed a wide spectrum of cancers consistent with known POT1 cancer associations, including melanoma, myeloid and lymphoid neoplasms, papillary thyroid cancer, and rarely glioblastoma and sarcoma. Within the biobank cohorts, POT1-associated tumor types that had significant associations in at least two of the cohorts studied included myeloid and lymphoid neoplasms (MyCode and UKBB), CLL (PMBB, MyCode and UKBB) and melanoma (PMBB and MyCode), confirming known associations. Although patients with other cancers suggested to be associated with POT1 P/LP variants, including thyroid cancer, glioblastoma and sarcoma, were observed, they did not reach significance in the biobanks studied as being more common than in the non-POT1 variant population. A previous clinical cohort study suggested that breast cancer susceptibility as part of the POT1-related tumor spectrum 40 ; increased risk for breast cancer was not observed in our biobank analyses. POT1 variants were associated with an increased risk of bronchus/lung cancer in two of the three biobank cohorts; a significantly increased risk of 3.2-fold was seen in PMBB, 4.3-fold in MyCode, and non-significantly increased risk of 1.5 in the UKBB. In the PMBB cohort, we found that 9.1% of participants had bronchus/lung cancer with an average age of diagnosis of 64.2 years (SD=12.0, range 47-75) earlier the United States population average age of diagnosis of 70 years. 41 Four of four PMBB participants with NSCLC had a history of smoking. Two prior publications also have suggested that POT1 variants may be associated with an increased risk of lung cancer. 22, 42 We observed a variable association of POT1 variants with prostate cancer. In the PMBB cohort, 30.8% of all males had prostate cancer. The average age of diagnosis of prostate cancer in PMBB participants was 61.9 years (SD=9.5, range 51-79) with most Gleason 6 or 7, younger than the United States average age of diagnosis of 67 years. 41 In the UKBB, a non-significant increased risk of prostate cancer was observed, which may be due to differences in UK surveillance guidelines. However, in MyCode no men with prostate cancer were identified. A retrospective series from a commercial testing laboratory also suggested an association with prostate cancer (p=0.018, OR 2.4, 95% CI 1.14-5.06). 23 The role of POT1 as a susceptibility gene for lung and prostate cancers warrants further investigation in large ongoing studies of these diseases as increased risk was observed in this study in some of the cohorts, although the number of cases for these cancer types was small.</p>
+<p>Our population-based analyses support that POT1 variants are associated with moderate increase in cancer risk with odds ratios ranging from 1.40 to 3.41. A wide spectrum and high incidence of multiple cancers in individuals with POT1 P/LPVs (69.2% of the clinical cohort) underscores the broad cancer predisposition. In PMBB and MyCode, cancer incidence curves did not diverge from non-carriers until beginning in the mid-30s; in UKBB, divergence occurred after age 60. Pediatric cancers were not reported in any individuals in the PMBB clinical or biobank cohort with deep phenotyping or observed in the MyCode cohort, suggesting that POT1 variants are not associated with childhood cancers. These findings are similar to a case series with median age of diagnosis of first primary in the 40s, and only one of 44 individuals was reported to have a pediatric cancer. 40 In the PMBB cohort, the earliest age of cancer diagnoses was within the age range 26-30 years (melanoma), and in the Penn Medicine clinical cohort the youngest diagnoses were at lymphoma and melanoma, both between ages 26-30 years.</p>
+<p>The lower than anticipated overall cancer risk and lack of increased mortality rate, likely is reflective of similar age of cancer diagnosis to the general population and identification of indolent cancers, such as CLL and low-grade prostate cancer. 43, 44 A prior study suggested genetic anticipation with offspring who carried the same germline variant developing cancer several decades earlier than their parents. 45 We did not observe clear evidence of anticipation in the seven families with multiple family members with POT1 P/LPVs. We also did not observe a significant association between z-adjusted telomere length and cancer risk in the UKBB, recognizing that it is an imperfect surrogate for directly measuring telomere length. 46 As telomeres reset during embryogenesis, 47 anticipation would not be expected biologically, though telomere dynamics are still under study and may be more complex than previously appreciated. Use of telomere length to predict cancer risk in POT1 variant carriers is not supported by our data, although further studies should be done.</p>
+<p>We note several limitations of this study, including the reliance on structured EHR data for MyCode, requiring three instances of a diagnosis, and cancer registry data in UKBB for phenotypic information.</p>
+<p>The characteristics of each biobank cohort likely impacted frequency of POT1 variants and disease associations. Participants in the UKBB are known to be a &quot;healthy volunteer&quot; population, 48 and UKBB and MyCode cohorts have limited ancestral diversity. We did not observe some of the rare tumor types known to be associated with POT1 variants, including cardiac angiosarcoma. Further, the number of events (deaths) in the survival analyses for PMBB and MyCode was under 20, which lead to unstable estimates of mortality. Thus, even larger sample sets of POT1 variant carriers may be needed to refine rates of associated rare cancers and mortality estimates.</p>
+<p>Currently, providers have two vastly discrepant guidelines for the clinical management of patients with POT1 variants; the current study provides critical data to inform these guidelines moving forward. As we found that POT1 variants confer a moderately increased risk of cancer risk (1.5-3.5-fold) and no evidence for increased mortality, limited surveillance is a reasonable option. Given the multiple reports of POT1 variants in melanoma cohorts, 8, 9, 16 increased risk in the biobanks, and melanoma diagnoses in the 20s, our data support dermatology surveillance starting at age 18 years with consideration of surveillance every 6 months. Annual CBC starting at age 18 is also reasonable given the increased risk for hematologic malignancy observed, also as a relatively non-invasive and cost-effective test.</p>
+<p>However, it is unknown whether early detection will change outcome. 49 Currently, the U.S Preventative Services Task Force (USPSTF) recommends annual low dose computed tomography (LDCT) as surveillance for lung cancer in adults aged 50 to 80 with a twenty-pack year history. 50 Our observation of NSCLC diagnoses suggest emphasizing the importance uptake of LDCT surveillance for POT1 variant carriers with a smoking history in concordance with USPSTF recommendations. Consideration also could be given to prostate specific antigen screening of men with POT1 P/LPVs starting at age 45, consistent with guidelines for high risk men, 51, 52 as a relatively non-invasive test, given the increased risk of prostate observed in one of the biobanks and prior studies. 17, 23 These recommendations expand upon current population-based surveillance guidelines. If more intensive surveillance is considered, several points emerge based on our data regarding timing and type. These data suggest starting surveillance at age 35 would be reasonable to consider, rather than age 18. Additionally, our data do not support a significantly increased risk of brain tumors in patients with POT1 variants, suggesting that surveillance could be based on family history. All extensive imaging should be considered in the context of shared decision-making with patients and may depend upon their personal and family cancer history.</p>
+<p>Prospective studies to explore surveillance protocols and management guidelines are needed to optimize early cancer detection strategies and improve patient outcomes for individuals with POT1 P/LPVs. pathogenic/likely pathogenic POT1 variants in the Penn Medicine Biobank (PMBB), MyCode and UK Biobank (UKBB). P/LPV = pathogenic and likely pathogenic variants, RFM = reduced function missense b. Diagram of the identified POT1 variants annotated relative to the conserved protein domains. OB denotes Oligonucleotide/Oligosaccharide Binding (OB) fold domains. HJR denotes the embedded Holliday junction resolvase-like domain. individuals with POT1 variants ascertained at Penn Medicine. P/LP = pathogenic/likely pathogenic, RFM = reduced function missense, PMBB = Penn Medicine Biobank, Clinical = individual from the clinically-ascertained Penn Medicine cohort, , M = male, F = female, SCC = squamous cell carcinoma, CLL = chronic lymphocytic leukemia. b. MyCode (HR 1.78, 95% CI 1.08-2.95, p=0.024), UKBB (HR 1.45, 95% CI 1.13-1.86, p=0.004). for UKBB b. P/LPV+ RFM for UKBB. c. Survival probability of P/LPV + RFM carriers vs. non-carriers with and without cancer, UKBB d. POT1 carriers telomere length by age at assessment and cancer status..</p>
+<h3>FIGURES</h3>
+<p>Funding/Support: Research reported in this publication was supported by National Cancer Institute of the National Institutes of Health under grant number P30 CA016520 (KLN), U01 CA2232836 (KLN), R01-HL131744 (DH) and by the Intramural Research program of the Division of Cancer Epidemiology and Genetics, National Cancer Institute, Rockville, MD. Additional funding was provided by the Breast Cancer Research Foundation (KLN); the Basser Center for BRCA (KLN); Gray Foundation (KLN); and American Cancer Society (133396-RSG-19-029-01-DMC). The PMBB is supported by Perelman School of Medicine at University of Pennsylvania, a gift from the Smilow family, and the National Center for Advancing Translational Sciences of the National Institutes of Health under CTSA award number UL1TR001878.</p>
+<h3>Data Availability:</h3>
+<p>The data that support the findings of this study are available from the corresponding author upon request, depending upon the limitations of any legal agreement.</p>
+<h3>Conflict of Interest Disclosures:</h3>
+<p>There are no conflicts of interest to disclose.</p>
+<p>Author Contributions: ACR, BIS and KLN had full access to all the data in the study and take responsibility for the integrity of the data and the accuracy of the data analysis. Concept and design: ACR, BIS, JK, DRS, KLN Acquisition, analysis, or interpretation of data: ACR, BIS, JK, BSW, AM, AD, JH, JL, DC, RGC, PMB, DH, DRS, KLN Drafting of the manuscript: ACR, BIS, KLN Critical review of the manuscript for important intellectual content: all authors Statistical analysis: BIS, JK, BSW, KLN Obtained funding: DH, DRS, KLN Administrative, technical, or material support: MR, TRH, SC, TC, AD Supervision: DH, DRS, KLN Additional Contributions: We acknowledge the Penn Medicine BioBank (PMBB) providing data and thank the patient-participants of Penn Medicine who consented to participate in this research program.</p>
+<p>We would also like to thank the Penn Medicine BioBank team and Regeneron Genetics Center for providing genetic variant data for analysis. The authors are grateful to participants of the MyCode Community Initiative for use of their genomic clinical data, without whom parts of the study are not feasible. We thank the Geisinger-Regeneron Genetics DiscovEHR Collaboration for access to the genotype and phenotype data. We also acknowledge that this work used the computational resources of the NIH High Performance Computing Biowulf cluster. We thank Jenny Li for assistance with data visualization..</p>
+<h3>Figure 1 :</h3>
+<p>Figure 1: Prevalence and distribution of POT1 variants. a. Estimated prevalence of germline</p>
+<h3>Figure 2 :</h3>
+<p>Figure 2: Summary of phenotypes including solid or hematologic malignancy history for</p>
+<h3>Figure 3 :</h3>
+<p>Figure 3: Cumulative incidence of all cancers in three biobank cohorts. a. P/LPV for PMBB (HR 3.41, 95% CI 1.81-6.43, p=1.88x10 -4 ), MyCode (HR 2.23, 95% CI 1.31-3.79, p=0.003), UKBB (HR 1.40, 95% CI 1.07-1.4, p=0.015) b. P/LPV+ RFM for PMBB (HR 3.98, 95%CI 2.15-7.37, p=8.20x10 -6 ),</p>
+<h3>Figure 4 :</h3>
+<p>Figure 4: POT1 variant carriers survival probability and telomere length in UKBB. a. P/LPV only</p>
+<h3>Figure 1</h3>
+<p>Figure 1. a.</p>
+<h3>Table 1 : Estimate of cancer risk for individuals with POT1 variants (P/LPVs).</h3>
+<p>Cancer risk was estimated using grouped ICD-10 codes and individual ICD-10 codes (Methods, Supplementary Methods)</p>
+<p>Collaborators (Penn Medicine Biobank): Daniel J. Rader, Marylyn D. Ritchie, JoEllen Weaver, Nawar Naseer, Giorgio Sirugo, Afiya Poindexter, Jenna Dever, Aidan Harvey, Sydney Linn, Naman Srivastava, Meghan Livingstone, Fred Vadivieso, Stephanie DerOhannessian, Teo Tran, Julia Stephanowski, Salma Santos, Ned Haubein, Joseph Dunn, Anurag Verma, Colleen Morse Kripke, Marjorie Risman, Renae Judy, Colin Wollack, Shefali Verma, Scott Damrauer, Yuki Bradford, Scott Dudek, Theodore Drivas, Zachary Rodriguez. Ethics Declaration: This study was approved by the University of Pennsylvania IRB, protocol #813913. This research has been conducted using the UK Biobank Resource under Application Number 54389. Geisinger data was collected and analyzed under the Geisinger IRB approved protocol #2021-0818. Disclaimer: This research was supported in part by the Intramural Research Program of the National Institutes of Health (NIH). The contributions of the NIH authors are considered Works of the United States Government. The findings and conclusions presented in this paper are those of the author(s) and do not necessarily reflect the views of the NIH or the U.S. Department of Health and Human Services.</p>
+<h3>References</h3>
+<p>Wang F, Podell ER, Zaug AJ et al. 2007. The POT1-TPP1 telomere complex is a telomerase processivity factor. Nature 445: 506-510.</p>
+<p>Loayza D, De Lange T. 2003. POT1 as a terminal transducer of TRF1 telomere length control. Nature 423: 1013-1018.</p>
+<p>Baumann P, Cech TR. 2001. Pot1, the putative telomere end-binding protein in fission yeast and humans. Science 292: 1171-1175.</p>
+<p>Kim WT, Hennick K, Johnson J et al. 2021. Cancer-associated POT1 mutations lead to telomere elongation without induction of a DNA damage response. EMBO J 40: e107346.</p>
+<p>Hockemeyer D, Daniels JP, Takai H, de Lange T. 2006. Recent expansion of the telomeric complex in rodents: Two distinct POT1 proteins protect mouse telomeres. Cell 126: 63-77.</p>
+<p>Hockemeyer D, Sfeir AJ, Shay JW, Wright WE, de Lange T. 2005. POT1 protects telomeres from a transient DNA damage response and determines how human chromosomes end. EMBO J 24: 2667-2678.</p>
+<p>Wu L, Multani AS, He H et al. 2006. Pot1 deficiency initiates DNA damage checkpoint activation and aberrant homologous recombination at telomeres. Cell 126: 49-62.</p>
+<p>Robles-Espinoza CD, Harland M, Ramsay AJ et al. 2014. POT1 loss-of-function variants predispose to familial melanoma. Nat Genet 46: 478-481.</p>
+<p>Shi J, Yang XR, Ballew B et al. 2014. Rare missense variants in POT1 predispose to familial cutaneous malignant melanoma. Nat Genet 46: 482-486.</p>
+<p>Speedy HE, Kinnersley B, Chubb D et al. 2016. Germ line mutations in shelterin complex genes are associated with familial chronic lymphocytic leukemia. Blood 128: 2319-2326.</p>
+<p>Bainbridge MN, Armstrong GN, Gramatges MM et al. 2015. Germline mutations in shelterin complex genes are associated with familial glioma. J Natl Cancer Inst 107: dju384.</p>
+<p>Calvete O, Garcia-Pavia P, Domínguez F et al. 2017. The wide spectrum of POT1 gene variants correlates with multiple cancer types. Eur J Hum Genet 25: 1278-1281.</p>
+<p>Calvete O, Martinez P, Garcia-Pavia P et al. 2015. A mutation in the POT1 gene is responsible for cardiac angiosarcoma in TP53-negative Li-Fraumeni-like families. Nat Commun 6: 8383.</p>
+<p>Chubb D, Broderick P, Dobbins SE et al. 2016. Rare disruptive mutations and their contribution to the heritable risk of colorectal cancer. Nat Commun 7: 11883.</p>
+<p>Srivastava A, Miao B, Skopelitou D et al. 2020. A germline mutation in the POT1 gene is a candidate for familial non-medullary thyroid cancer. Cancers (Basel) 12: 1441.</p>
+<p>Simonin-Wilmer I, Ossio R, Leddin EM et al. 2023. Population-based analysis of POT1 variants in a cutaneous melanoma case-control cohort. J Med Genet 60: 692-696.</p>
+<p>Baptista Freitas M, Desmyter L, Badoer C et al. 2024. POT1 tumour predisposition: a broader spectrum of associated malignancies and proposal for additional screening program. Eur J Hum Genet. doi: 10.1038/s41431-024-01611-0.</p>
+<p>Ballinger ML, Pattnaik S, Mundra PA et al. 2023. Heritable defects in telomere and mitotic function selectively predispose to sarcomas. Science 379: 253-260.</p>
+<p>Jajosky AN, Mitchell AL, Akgul M et al. 2022. Identification of a cancer-predisposing germline POT1 p.Ile49Metfs*7 variant by targeted sequencing of a splenic marginal zone lymphoma. Genes (Basel) 13: 591.</p>
+<p>Lim TL, Lieberman DB, Davis AR et al. 2022. Germline POT1 variants can predispose to myeloid and lymphoid neoplasms. Leukemia 36: 283-287.</p>
+<p>McMaster ML, Sun C, Landi MT et al. 2018. Germline mutations in Protection of Telomeres 1 in two families with Hodgkin lymphoma. Br J Haematol 181: 372-377.</p>
+<p>Davidson-Swinton HR, Iyer S, Kolchinski A, et al. Lymphoid malignancy and clonality in the POT1- mediated long telomere syndrome. Blood. 2026;147(19):2226-2237.</p>
+<p>Herrera-Mullar J, Fulk K, Brannan T et al. 2023. Characterization of POT1 tumor predisposition syndrome: tumor prevalence in a clinically diverse hereditary cancer cohort. Genet Med 25: 100937..</p>
+<p>Brock PL, Webster M, Liyanarachchi S et al. 2025. Germline POT1 variants in a pan-cancer cohort. JCO Precis Oncol 9: e2400946.</p>
+<p>Hu C, Hart SN, Gnanaolivu R et al. 2021. A population-based study of genes previously implicated in breast cancer. N Engl J Med 384: 440-451.</p>
+<p>Goldstein AM, Kim J, Haley J et al. 2026. Prevalence of Familial Melanoma Genes and Cancer Risk Among Genomically Ascertained Individuals. JAMA Dermatology 162: 692-700.</p>
+<p>Accardo ML, Osborne J, Else T. 1993-2025. POT1 tumor predisposition. In Adam MP, Feldman J, Mirzaa GM et al (eds): GeneReviews®. Seattle, WA: University of Washington.</p>
+<p>Tsoulaki O, Evans DG, Sinha K et al. 2025. UK clinical practice guidelines for the management of patients with constitutional POT1 pathogenic variants. J Med Genet. doi: 10.1136/jmg-2025-110638.</p>
+<p>Verma A, Damrauer SM, Naseer N et al. 2022. The Penn Medicine BioBank: towards a genomics- enabled learning healthcare system to accelerate precision medicine in a diverse population. J Pers Med 12: 1974.</p>
+<p>Dewey FE, Murray MF, Overton JD et al. 2016. Distribution and clinical impact of functional variants in 50,726 whole-exome sequences from the DiscovEHR study. Science 354: aaf6814.</p>
+<p>Bycroft C, Freeman C, Petkova D et al. 2018. The UK Biobank resource with deep phenotyping and genomic data. Nature 562: 203-209.</p>
+<p>Kim J, Naqvi AS, Corbett RJ et al. 2024. AutoGVP: a dockerized workflow integrating ClinVar and InterVar germline sequence variant classification. Bioinformatics 40: btae114.</p>
+<p>Landrum MJ, Lee JM, Benson M et al. 2018. ClinVar: improving access to variant interpretations and supporting evidence. Nucleic Acids Res 46: D1062-D1067.</p>
+<p>Donovan S, Shannon KM, Bollag G. 2002. GTPase activating proteins: critical regulators of intracellular signaling. Biochim Biophys Acta 1602: 23-45.</p>
+<p>Martin A, Schabort J, Bartke-Croughan R et al. 2025. Active telomere elongation by a subclass of cancer-associated POT1 mutations. Genes Dev 39: 445-462.</p>
+<p>Chen C, Gu P, Wu J et al. 2017. Structural insights into POT1-TPP1 interaction and POT1 C- terminal mutations in human cancer. Nat Commun 8: 14929.</p>
+<p>Eriksson BM, Persson BA. 1988. Determination of 5-hydroxytryptamine and 5-hydroxyindoleacetic acid in plasma by direct injection in coupled-column liquid chromatography with electrochemical detection. J Chromatogr 459: 351-360.</p>
+<p>Uusitalo E, Leppävirta J, Koffert A et al. 2015. Incidence and mortality of neurofibromatosis: a total population study in Finland. J Invest Dermatol 135: 904-906.</p>
+<p>Abu Shtaya A, Kedar I, Bazak L et al. 2024. A POT1 founder variant associated with early onset recurrent melanoma and various solid malignancies. Genes (Basel) 15: 355.</p>
+<p>Abu Shtaya A, Aloni S, Eskin-Schwartz M et al. 2026. Germline POT1 variants are associated with long telomeres and an unexpected broad spectrum of malignancies. Genet Med Open 4, 104483.</p>
+<p>Siegel RL, Kratzer TB, Giaquinto AN, Sung H, Jemal A. 2025. Cancer statistics, 2025. CA Cancer J Clin 75: 10-45.</p>
+<p>Martino S, De Summa S, Pilato B et al. 2024. Case report: germline POT1 mutation in a patient with GIST and lung adenocarcinoma. Front Oncol 14: 1419739.</p>
+<p>National Comprehensive Cancer Network. 2026. NCCN Clinical Practice Guidelines in Oncology: Prostate Cancer. Version 4.2026.</p>
+<p>CLL Trialists&#x27; Collaborative Group. 1999. Chemotherapeutic options in chronic lymphocytic leukemia: a meta-analysis of the randomized trials. J Natl Cancer Inst 91: 861-868.</p>
+<p>DeBoy EA, Tassia MG, Schratz KE et al. 2023. Familial clonal hematopoiesis in a long telomere syndrome. N Engl J Med 388: 2422-2433.</p>
+<p>Lai TP, Wright WE, Shay JW. 2018. Comparison of telomere length measurement methods. Philos Trans R Soc Lond B Biol Sci 373: 20160451.</p>
+<p>Schaetzlein S, Lucas-Hahn A, Lemme E et al. 2004. Telomere length is reset during early mammalian embryogenesis. Proc Natl Acad Sci U S A 101: 8034-8038.</p>
+<p>Fry A, Littlejohns TJ, Sudlow C et al. 2017. Comparison of sociodemographic and health-related characteristics of UK Biobank participants with those of the general population. Am J Epidemiol 186: 1026-1034.</p>
+<p>Hoechstetter MA, Wendtner CM. 2025. Clinical trials in early-stage CLL: what has been learned and what&#x27;s next? Leuk Lymphoma 66: 378-388.</p>
+<p>Krist AH, Davidson KW, Mangione CM et al. 2021. Screening for lung cancer: US Preventive Services Task Force recommendation statement. JAMA 325: 962-970.</p>
+<p>Lin DW, Carlsson S, Filson CP, et al. Updates to Early Detection of Prostate Cancer: AUA/SUO Guideline (2026). J Urol. 0(0).</p>
+<p>American Cancer Society. (2010). American Cancer Society guideline for the early detection of prostate cancer: Update 2010. CA: A Cancer Journal for Clinicians 60(2), 70-93.</p>
 </div>
 </details>
 </div>
