@@ -195,7 +195,7 @@ MetaCheck Report
 ED Community Care -Online Versus In-Person
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.11.26367167
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.11.26367167
 </p>
 </header>
 <div class="mc-main">
@@ -517,8 +517,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -1017,9 +1020,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -1041,7 +1048,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -1056,9 +1064,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -1071,13 +1097,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1097,6 +1126,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -1104,12 +1139,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1210,6 +1251,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1229,6 +1290,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1484,19 +1580,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1606,6 +1784,232 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Objective: Eating disorders are serious conditions which sometimes require intensive treatment and are undertreated worldwide. Care can be provided in the community in different treatment delivery modes that could increase access to evidence-based treatment and avoid the negative impacts of delayed interventions. This systematic review and metaanalysis investigated the comparative effectiveness of adult eating disorder community care delivered via in-person, online and mixed (blended/hybrid) modes to provide a global perspective and recommendations for the use of telemedicine in the field. Method: The databases MEDLINE, Embase, PsychINFO, Emcare, Scopus and Web of Science were searched on 22 nd June 2025. Inclusion criteria specified quasi-experimental studies which compared two or more treatment delivery modes. The Joanna Briggs Institute risk of bias tool for quasi-experimental studies was used for quality assessments. Qualitative synthesis and meta-analyses were conducted. Results: The daycare/intensive outpatient programme studies showed non-inferiority of inperson and online treatment programmes: EDE-Q Global score (-0.00 [95% CI: -0.23, 0.22]); anxiety (GAD-7/OASIS) (-0.05 [95% CI: -0.31, 0.20]); BMI (0.06 [95% CI: -0.20, 0.33]); and depression (BDI-2/PHQ-9/CES-D) (0.07 [95% CI: -0.31, 0.44]).</p>
+<p>The outpatient studies showed non-significant differences between in-person and online treatment programmes: anxiety (GAD-7/PROMIS) (0.28 [95% CI: -0.48, 1.04]); depression (PHQ-9/PROMIS) (0.58 [95% CI: -0.59, 1.75]); and EDE-Q Global score (0.73 [95% CI: -0.91, 2.36]). For all measures, better outcomes were indicated for online care.</p>
+<p>Discussion: Comparisons with mixed treatment delivery mode are lacking, but findings provide credence to the viability of online care as being on par or even better under certain conditions than in-person care.</p>
+<p>• Daycare/intensive outpatient programmes for adults were non-inferior delivered inperson or online for BMI, eating disorder, depression, and anxiety symptoms. identified by database alerts and an updated search on 15 th October 2026. Forward and backward citation searching in eligible articles were used to identify further reports. The search strategy for OVID MEDLINE is shown in Table 1. Table 1 Search Strategy for Databases Keywords and Medical Subject Headings (OVID MEDLINE) 1. exp eating disorder/ OR &quot;eating disorder*&quot; OR &quot;disordered eating&quot; OR anorexia OR bulimia OR &quot;binge eating&quot; OR ARFID OR &quot;avoidant restrictive food intake disorder&quot; OR OSFED OR &quot;other specified feeding or eating • Outpatient programmes for adults showed non-significant differences delivered inperson or online for eating disorder, depression, and anxiety symptoms.</p>
+<h3>[div-01]</h3>
+<p>But findings suggest a possible superiority of online treatment.</p>
+<p>• Research on community care delivered in mixed mode is sparse.</p>
+<p>• The evidence base is very small, particularly for the outpatient studies indicating the need for more high-quality quasi-experimental studies and ideally well designed randomised controlled trials.</p>
+<h3>INTRODUCTION</h3>
+<p>Eating disorders (EDs) are serious conditions which sometimes require intensive treatment and are undertreated worldwide (Fairburn &amp; Patel, 2014). Care can be provided in the community (Abbate-Daga et al., 2015) in different treatment delivery modes that could increase access to evidence-based treatment, at lower cost and avoid the negative impacts of delayed interventions, such as hospitalisation and chronic illness. Due to the severe consequences of untreated EDs, alongside promotion of understanding about EDs, prevention and early detection, the prompt and effective treatment of EDs is imperative. In the absence of randomised controlled trials (RCTs) the next best evidence base quasi-experimental (QE) studies were used in this systematic review and meta-analysis to investigate the comparative effectiveness of in-person, online and mixed (blended/hybrid) ED community care for adults to provide a global perspective and recommendations for the use of telemedicine in the field.</p>
+<p>Telemedicine is particularly important in unprecedented times, such as the COVID-19 pandemic, when in-person treatment is not possible. Although improvement may take longer than in in-person treatment (Baudinet et al., 2023; Zimmerman et al., 2021), virtual ED treatment showed promise as an effective, accessible and scalable treatment option prior to the COVID-19 pandemic especially in increasing treatment capacity and addressing barriers to treatment such as stigma, time constraints, lack of local services, long waiting lists (Hamid, 2023) with the caveat that in some circumstances telemedicine may have detrimental impacts.</p>
+<p>For example, age and race disparities may be exacerbated (Rivera et al., 2021), it may be difficult to separate the home and treatment environment as well as increased social isolation (Catenacci &amp; Couturier, 2023). Group therapy can be difficult to implement online due to lack of connection between patient and therapist (Schlissel et al., 2023). Further problems of virtual ED treatment include Internet connectivity issues, reduced therapeutic alliance (Shaw et al., 2021), practical difficulties of observing online meals (Brothwood et al., 2021), anxiety about seeing self on video, and the increased opportunity for patients to be deceptive and mask their symptoms (Fernandez-Aranda, Casas, et al., 2020). However, while online ED treatment proffers less accountability, it may reduce the competitive learning of harmful ED behaviours between patients that can occur in in-person treatment (Feldhege et al., 2021; Zipfel et al., 2002); there is increased parental involvement, patients can have their culturally appropriate home food (Catenacci &amp; Couturier, 2023) and despite emotional aspects and creative group sessions in particular being harder to address, practical skills such as problemsolving may be easier to implement online (Baudinet et al., 2023).</p>
+<h3>ED Community Care -Online Versus In-Person P a g e | 5</h3>
+<p>The COVID-19 pandemic caused increased ED symptoms and increased rates of presentation and referrals for EDs of all types across all age groups to both inpatient and community medical settings (Devoe et al., 2023; Friars et al., 2023). In a systematic review it was found that compared to pre-pandemic, there was a 48% increase in hospital admissions across different countries during the pandemic (Devoe et al., 2023). Barrett and Richardson (2020) and Campbell et al. (2022) found that the pandemic resulted in ED referrals being made at lower BMIs, shorter illness duration, and higher levels of medical compromise. Silen and Keski-Rahkonen (2022) observed that the increased incidence and hospitalisation rates for EDs during the pandemic were a consequence of the restrictions imposed on daily activities including exercise, lack of social support and isolation, harmful social media exposure, and increased difficulties in accessing treatment. Virtual treatment allows continuity of care when in-person care is not possible. Due to the increased pressure on ED services and the restrictions imposed, the COVID-19 pandemic caused a rapid shift from in-person consultations to online and mixed community treatment delivery (Plumley et al., 2021).</p>
+<p>Virtual ED treatment has continued into the post-pandemic era and is proliferating. While this transition has been largely successful for outpatient ED care, daycare (DC) presents more challenges (Gorrell et al., 2022), and research is needed to understand how to exploit these novel modes of treatment delivery to optimise eating disorder treatment. This systematic review and meta-analysis aimed to undertake an exhaustive search of the literature to identify all quasi-experimental (QE) studies reporting the comparative effectiveness of in-person vs. online vs. mixed (blended/hybrid) ED community care for adults. It is contended that this systematic review and meta-analysis is the first to synthesise all the research comparing the effectiveness of different modes of ED community care delivery for adults globally.</p>
+<h3>METHOD</h3>
+<p>This systematic review and meta-analysis was conducted as part of the thesis submission for the award of PhD in Medicine (University College London, UK) and in accordance with the Preferred Reporting Items for Systematic Reviews and Meta-Analyses (PRISMA) guidelines (Moher et al., 2009; Page et al., 2021). The search, screening, quality assessment and data extraction processes were undertaken independently, with PhD supervision. The study aimed to investigate the comparative effectiveness of in-person vs. online vs. mixed (blended/hybrid) ED community care delivery in adult services globally.</p>
+<h3>Eligibility Criteria</h3>
+<p>Using the PICOS framework (Moher et al., 2009)  There were no date, geographical, gender or language restrictions, but only English language reports were identified. To optimise the evidence included, only studies published in peerreviewed journals were considered; not grey literature such as study protocols or conference abstracts.</p>
+<h3>Search Strategy</h3>
+<p>The electronic databases MEDLINE, Embase, PsychINFO, Emcare, Scopus and Web of Science were searched from inception through 22 nd June 2025. No further articles were disorders&quot; OR &quot;atypical anorexia nervosa&quot; 2. exp telemedicine/ OR traditional OR face to face OR in-person OR virtual OR online OR mixed OR hybrid OR blended OR videoconferenc* OR webconferenc* OR teleconferenc* OR remote treatment OR telehealth OR teletherapy OR telemedicine 3. exp ambulatory care/ OR outpatient* OR &quot;intensive outpatient*&quot; OR daycare OR &quot;day care&quot; OR &quot;day treatment&quot; OR &quot;day hospital*&quot; OR &quot;partial hospital*&quot; OR &quot;higher level of care&quot; OR &quot;community care&quot; OR &quot;community treatment&quot; OR &quot;routine clinical practice&quot;</p>
+<h3>4. 1 AND 2 AND 3</h3>
+<p> &gt;1 AND 2 AND 3</p>
+<h3>Quality Assessments</h3>
+<p>The risk of bias in the included studies was critically appraised using the Joanna Briggs Institute (JBI) tool for critically appraising quasi-experimental (Q-E) intervention studies.</p>
+<p>The JBI tool for Q-E studies assesses whether precautions were used to mitigate risk of bias and to manage other factors linked to study quality. The questions are answered as being met (yes), unmet (no), unclear, or not applicable; and assessed at study, outcome or result level as appropriate. This tool only considers the internal validity (biases due to study design) and statistical conclusion validity (biases due to methods of statistical analysis) constructs. A qualitative judgement is then made to rate the overall bias in a study as low, moderate, high, or critical risk, but this judgement excludes the statistical conclusion validity construct as only the internal validity construct affects risk of bias (Barker et al., 2024).</p>
+<h3>Data Extraction and Analysis</h3>
+<p>Study and participants&#x27; characteristics, study findings, as well as means and standard deviations for selected outcomes and sample sizes from the included studies were extracted into Microsoft Word tables. Following narrative synthesis, random effects meta-analyses were conducted using IBM SPSS Statistics (Version 30) and a change score calculator generated using Claude AI (https://claude.ai/ accessed 7 July 2025).</p>
+<p>Change-from-baseline between group effect size, standardised mean difference (SMD) was the effect size used in the daycare/intensive outpatient programme (DC-IOP) meta-analyses.</p>
+<p>Post-treatment between group effect size (SMD) without using change scores was used in the outpatient treatment (OP) meta-analyses. The SMDs, in this case Hedges&#x27; (adjusted) g are interpreted according to the thresholds provided by Cohen (1988) of0.2 = small effect size,0.5 = medium effect size, and0.8 = large effect size. It was planned that in the event of insufficient data post-treatment between group meta-analyses (without using change scores) would be conducted.</p>
+<p>An inverse variance, random effects model was used and is the default choice for metaanalysing Q-E studies as heterogeneity is expected to be high. The extent of heterogeneity, I² (0% to 100%) was calculated. I² thresholds are low at &lt; 40%; moderate at 30-60%; substantial at 50-90%; and considerable at 75-100% (Higgins &amp; Thomas, 2019, p. 259).</p>
+<p>To assess non-inferiority of the intervention (in-person) and comparison (online) groups, the non-inferiority margin was set at Hedges&#x27; g &lt; 0.1. Thus, an effect size g &lt; 0.1 was considered acceptable for demonstrating non-inferiority, ideally with the whole 95% confidence interval within the region g = +/-0.1 (Irish et al., 2022).</p>
+<p>The strength of the whole body of evidence was assessed using the Grades of Recommendation, Assessment, Development and Evaluation (GRADE) approach which is based on five criteria: indirectness; study limitations -risk of bias; inconsistency; imprecision; and publication bias (Higgins &amp; Thomas, 2019, p. 389). Confidence in the effect estimates can be categorised as &#x27;high,&#x27; &#x27;moderate,&#x27; &#x27;low&#x27; or &#x27;very low.&#x27; Non-randomised studies of interventions (e.g. Q-E studies) start with &quot;low&quot; confidence in the effect estimates because of the potential bias from lack of randomisation (i.e. selection bias and confounding) (Higgins &amp; Thomas, 2019, p. 391). The GRADE approach allows Q-E studies (observational) to be upgraded according to three criteria: large effects, dose-response and plausible confounding (Higgins &amp; Thomas, 2019, p. 396).</p>
+<p>Various standardised, reliable, and validated instruments which are established in the ED field were consistently used in the included studies. The outcome measures selected for metaanalysis are shown in Table 2.</p>
+<p>Table 2 Outcome Measures Meta-Analysed Outcome Measure Description Eating Disorder Examination Questionnaire (EDE-Q) (Fairburn &amp; Beglin, 1994) Measures eating disorder cognitive (attitudinal) psychopathology on four subscales (dietary restraint and eating, weight, shape concerns) and a global score with items rated for the past 28 days. Eating disorder (binge eating and compensatory) behaviours are rated as the number of episodes in the past 28 days but do not contribute to the subscale scores. Objective bulimic episodes (OBEs) are differentiated from subjective bulimic episodes (SBEs).</p>
+<p>Beck Depression Inventory (BDI-2) (Beck et al., 1988) A 21-item screening tool that assesses the intensity of depression as minimal, mild, moderate or severe rated for the past two weeks.</p>
+<h3>Centre for Epidemiological Studies Depression Scale</h3>
+<p>(CES-D) (Orme et al., 1986) A 20-item measure determining severity of depression rated for the past week.</p>
+<p>Patient Health Questionnaire (PHQ-9) (Kroenke et al., 2001) A brief 9-item measure that assesses the severity of depression as mild, moderate, moderately severe or severe rated for the past two weeks.</p>
+<p>Generalized Anxiety Disorder (GAD-7) (Spitzer et al., 2006) A brief 7-item screening tool that assesses the severity of generalised anxiety disorder rated for the past two weeks.</p>
+<p>Overall Anxiety Severity and Impairment Scale (OASIS) (Norman et al., 2006) A brief 5-item measure that can be used to assess severity across anxiety disorders and subsyndromal anxiety rated for the past week.</p>
+<h3>Patient-Reported Outcomes Measurement Information</h3>
+<p>System (PROMIS) -Anxiety Scale -Short Form 8a (Pilkonis et al., 2011) A brief 8-item measure assessing severity of anxiety rated for the past 7 days</p>
+<h3>Patient-Reported Outcomes Measurement Information</h3>
+<p>System (PROMIS) -Depression Scale -Short Form 8a (Pilkonis et al., 2011) A brief 8-item measure assessing severity of depression rated for the past 7 days.</p>
+<h3>Body Mass Index (BMI)</h3>
+<p>A measure of body fat based on height and weight.</p>
+<p>Increased admission to discharge BMI indicates a positive outcome -weight gain from treatment.</p>
+<p>None of the meta-analyses included a minimum of 10 studies, thus no funnel plots were undertaken (Higgins &amp; Thomas, 2019, p. 365). Instead, publication bias was explored by comparing fixed and random effects estimates and visually inspecting forest plots for trends indicating possible publication bias (Higgins &amp; Thomas, 2019, p. 367). Sensitivity-analyses were performed to evaluate the robustness of the results to variations in quality of the studies, type of ED, and to explore heterogeneity.</p>
+<h3>RESULTS</h3>
+<p>In all 2193 reports were identified, 891 abstracts were screened, and 11 full text reports were assessed for eligibility. Nine single report quasi-experimental (Q-E) studies were included in this systematic review and meta-analysis. However, as full data for Robinson et al. (2024) were not available, and there was insufficient information to assess study quality this study is described but not critically appraised or meta-analysed (N = 978: 8 studies). The study selection process is described in Figure 1. Records identified from: Databases (n = 2193) Registers (n = 0) Additional records identified from other sources (n =0) Records removed before screening: Duplicate records removed (n = 1302) Records marked as ineligible by automation tools (n = 0) Records removed for other reasons (n =0) Records (abstracts) screened (n = 891) Records excluded (n = 880) Reports sought for retrieval (n = 11) Reports not retrieved (n = 880) Reports assessed for eligibility (n = 11) Reports excluded: Not multiple modes (n = 2) Studies included in review (n = 9) Reports of included studies (n = 9) Identification of studies via databases and registers Identification Screening The included quasi-experimental (Q-E) studies were critically appraised for risk of bias (internal validity) by converting the responses to scores: Yes = 1, Unclear = 2, No = 3, and Not Applicable = 0. Questions with multiple responses were averaged and the range of scores is 0-27 with lower scores indicating better quality studies. A quality judgement was made according to high-quality = 0-6; moderate quality = 7-13; low quality = 14-20; and insufficient quality = 21-27. It is important to note that these judgments pertain to the comparative quality of these Q-E studies and not in relation to the overall evidence hierarchy in which Q-E studies are considered inferior to randomised controlled trials (RCTs). The quality assessment is presented in Table 3.</p>
+<p>Table 3 JBI Critical Appraisal Findings Study Blalock et al. (2025) Carr et al. (2022) Levinson et al. (2021) Ortiz et al. (2023) Penwell et al. (2023) Raykos et al. (2021) Robinson et al. (2024) Steiger et al. (2021) Thaler et al. (2024) Total Score (0-27) 11 14 13.8 13.6 12.4 13 NA 12 14 Risk of Bias Moderate High Moderate Moderate Moderate Moderate NA Moderate High QUALITY JUDGEMNET MODERATE LOW MODERATE MODERATE MODERATE MODERATE NA MODERATE LOW Not Applicable (NA)</p>
+<h3>Critical Appraisal Summary</h3>
+<p>The included Q-E studies were moderate in methodological quality with only two (Carr et al., 2022; Thaler et al., 2024) being rated as low quality which is encouraging. These Q-E studies are good quality Q-E studies, but they are placed below well-designed RCTs in the evidence hierarchy (Nelson, 2025, p. 42). In the absence of RCTs, however, these studies are the best available evidence base and allow reasonable confidence in the reliability and validity of the review findings.</p>
+<p>When interpreting the outcome of quality assessments, it is important to consider whether poor reporting was likely to influence the scores. Bias in the studies, could exaggerate or underestimate the true effect size.</p>
+<p>In all studies: 1) temporal precedence was clear -that is the cause (interventions) came before the effect (outcomes measured); 2) selection bias and allocation bias were mitigated by using a comparison group; 3) confounding factors were reduced by ensuring participants in the comparison group were similar (i.e., from the same population-clinic); and 4) performance bias was diminished by providing similar treatment to participants in the comparison group except for the mode of treatment delivery.</p>
+<p>The main area of identified risk was the potential for detection bias; a serious concern in all the studies, as only one set of pre-post outcome measurements were taken which makes it difficult to determine whether any changes observed are due to the intervention rather than other factors. Other forms of detection bias were attenuated by using self-report measures which are considered reliable despite respondent/recall bias issues, and both groups were assessed in the same way using patient reported outcome measures (PROMs). However, all studies which measured BMI were downrated as BMI was not measured in the same way in the comparison group; conducted onsite (in-person programmes) or by self-report (online programmes) and self-reported weighing can be inaccurate, for example, due to using home scales or from participants being deceptive about their weight.</p>
+<h3>Study and Participants&#x27; Characteristics</h3>
+<p>In the included studies, the mean age ranged from 19-31 years, participants were predominantly White, female, and all studies included variant EDs except Carr et al. (2022) and Robinson et al. (2024) which only included anorexia nervosa (AN) subtypes. Five of the eight studies were large studies with more than 100 participants (Blalock et al., 2025; Penwell et al., 2023; Raykos et al., 2021; Steiger et al., 2021; Thaler et al., 2024), two were mediumsize studies (Levinson et al., 2021; Ortiz et al., 2023), and one can be considered as small (Carr et al., 2022). All studies were conducted in western countries (UK, Australia, Canada and the US), with the majority being US studies.</p>
+<p>All the studies were quasi-experimental (Q-E) in design, and each compared an in-person cohort to an online cohort with only Robinson et al. (2024) including a mixed (blended/hybrid) comparison group. For one study, Blalock et al. (2025) the in-person cohort was recruited during the period when COVID-19 pandemic restrictions were lifted and compared to an online cohort treated during lockdown restrictions, at the same clinic. Due to the time overlap this study mitigates historical artefacts from disparate time periods impacting outcomes differently. The other studies compared a historical pre-pandemic inperson daycare/intensive outpatient programme cohort or outpatient cohort to a pandemic online daycare/intensive outpatient programme cohort or outpatient cohort treated at the same clinic.</p>
+<p>These studies represent &quot;a natural experiment&quot; due to the forced switch to online care which allowed the evaluation of the impact of online care on all participants rather than just those who would agree to randomisation in a randomised controlled trial (RCT) or who would opt for online care, thus likely increases the generalisability of the findings. However, as participants were not randomised to the interventions, cohort effects (e.g. influence of the pandemic) and participant characteristics (e.g. treatment preference) may have affected treatment response.</p>
+<p>Community care in higher level of care (HLOC) is based on a multidisciplinary team approach while all first-line evidence-based approaches such as cognitive behaviour therapy (CBT) and family-based treatment (FBT) tend to be outpatient care (Levinson et al., 2021). In the included studies in-person and online treatments were comparable in format although online versions tended to provide fewer hours of care per day per week. Some components of ED treatment can be difficult to deliver online such as family meals during family therapy, mirror exposure in CBT-ED, and in-session weighing (Raykos et al., 2021). In online programmes weight monitoring was typically via self-report or from a support person/general practitioner although Thaler et al. (2024) reported in-clinic weighing was done, if possible, but primarily it was virtual.</p>
+<h3>P a g e | 16</h3>
+<p>Although Penwell et al. (2023) conducted a survey at six months post-discharge it was not reported due to limited sample size. None of the studies reported follow-up on outcomes; a limitation that needs to be addressed in future research to evaluate whether treatment effects are maintained in the long-term.</p>
+<p>Four studies did not report comorbidities (Carr et al., 2022; Ortiz et al., 2023; Steiger et al., 2021; Thaler et al., 2024), while two studies omitted information on ethnicities (Steiger et al., 2021; Thaler et al., 2024). Four studies reported a mix of ethnicities in both treatment arms (Blalock et al., 2025; Carr et al., 2022; Levinson et al., 2021; Penwell et al., 2023). Data on comorbidities are required to elucidate any confounders and reporting on minority groups is critical for improving treatment for underserved populations. A range of factors such as access to better healthcare, food, and reduced stress, can result in consistently better health in high versus low socioeconomic status participants, but no study specified the socioeconomic status of participants. This is of particular concern as such data are needed to identify marginalised populations and to strive to deliver equitable, inclusive and evidencebased treatments.</p>
+<p>Study and participants&#x27; characteristics are presented in Table 4.</p>
+<p>Table 4 Study and Participants&#x27; Characteristics Study Setting/Sample type Intervention Comparison Treatment (Int.) Treatment (Comp.) Blalock et al. (2025) US ED private health care system In-person IOP mid 2021-mid 2022 Online IOP Jan 2021-mid 2022 In-person 1, 1hr group sessions weekly 2, 3 hr group sessions weekly 1 hr individual or family therapy weekly ½ hr dietician appointment weekly Medical monitoring onsite weekly Meal monitoring onsite Onsite weighing Online 3, 3 hr group sessions weekly 1 hr individual or family therapy weekly 1/2 hr dietician appointment weekly Regular remote medical monitoring weekly Meal monitoring via Recovery Record app Remote weight monitoring Carr et al. (2022) UK ED service Maudsley Hospital In-person DC Feb 2018-Jan 2020 Duration: 28.06 (12.49) weeks Online DC Sept 2019-May 2021 Duration: 30.85 (13.97) weeks In-person Meal support Group sessions (psychoeducational, creative, practical, goal setting, MBT) Individual psychological therapy Onsite weighing Online Meal support Group sessions (psychoeducational, creative, goal setting, MBT) Individual psychological therapy or CRT or pre-therapy ACT-based treatment 1:1 check in calls Self-reported weight ED Community Care -Online Versus In-Person P a g e | 18 Levinson et al. (2021) US ED IOP In-person IOP Mar 2018-Mar 2020 Duration: 12 (8.03) weeks Online IOP Mar 2020-Jan 2021 Duration: 11.07 (6.3) weeks In-person 3 individual therapy meetings 2 dietitian appointments 1 meeting with a prescriber 1-2 meal groups a day 1-2 group sessions (exposure therapy, challenging thoughts, DBT skills, perfectionism, body image) per week Onsite weighing Online 3 individual therapy meetings 2 dietitian appointments 1 meeting with a prescriber 1-2 meal groups a day 1-2 group sessions (exposure therapy, challenging thoughts, DBT skills, perfectionism, body image) per week Self-reported weight Ortiz et al. (2023) US ED DC/IOP In-person DC/IOP Jan 2019-Mar 2020 Duration: 7.82 (4.48) weeks Online DC/IOP Mar 2020-Sep 2021 Duration: 7.34 (2.85) weeks In-person CBT-based: Psychoeducation, meal support, self-monitoring, cognitive restructuring, therapy and nutrition appointments, family support, group sessions (body image, exposure therapy), breaks with other patients Onsite open weighing Online CBT-based: Psychoeducation, meal support, self-monitoring, cognitive restructuring, therapy and nutrition appointments, family support, group sessions (body image, exposure therapy), breaks between Zoom sessions Self-reported weight Penwell et al. (2023) US ED DC In-person DC Online DC In-person Online Oct 2019-Feb 2020 Duration: 36 (15) weeks Mar 2020-Aug 2020 Duration: 35 (15) weeks Group therapy Supported meals Individual therapy x1 weekly Family therapy x 1 weekly Nutrition therapy x1 weekly Psychiatric consultation as needed Onsite weighing Group therapy (initially limited by time constraintsadvanced modules added later) Support groups for racial and sexual minorities Individual therapy x1 weekly Family therapy x1 weekly Nutrition therapy x1 weekly Psychiatric consultation as needed Self-reported weight A break for meal preparation and household issues Raykos et al. (2021) Australian ED OP In-person OP 2018-2020 Online OP 2020 In-person FBT CBT-ED CBT-10 Online FBT CBT-ED CBT-10 Robinson et al. (2024) UK private ED DC In-person DC Online DC Mixed DC NR NR Steiger et al. (2021) Canadian ED OP In-person OP Sept 2017-Feb 2020 Duration: 10-14 weeks Online OP Apr 2020-May 2021 Duration: 10 weeks In-person Motivational and CBTbased: Online Motivational and CBTbased: ED Community Care -Online Versus In-Person P a g e | 20 Group therapy (psychoeducation, ED symptom management, distress tolerance) weekly Individual sessions bimonthly Adjunctive nutritional and pharmacological consultations Group therapy (psychoeducation, ED symptom management, distress tolerance) weekly Individual sessions bimonthly Adjunctive nutritional and pharmacological consultations Thaler et al. (2024) Canadian ED DC In-person DC Jan 2017-Dec 2019 Duration: 12-16 weeks Online DC Mar 2020-Dec 2022 Duration: 16 weeks In-person Meal support, group therapy based on CBT, DBT, nutritional and psychoeducational approaches Onsite weighing Online Meal support, group therapy based on CBT, DBT, nutritional and psychoeducational approaches Self-report or onsite weighing Study Participants (Int. vs. Comp.) Mean Age -Years (SD) Range Gender (birth sex) % Diagnosis DSM 5 % (Int.) Diagnosis DSM 5 % (Comp.) Blalock et al. (2025) N = 270 In-person = 39 Online = 231 In-person: 19.51 (6.98) 12-42 Online: 28.03 (11.09) 12-63 &lt;18 = 13.7% In-person: female (89.7) Online: female (84.8) In-person AN-R (38.5) AN-BP (5.1) BN (2.6) BED (7.7) Online AN-R (16.9) AN-BP (6.9) BN (6.5) BED (19.5) ED Community Care -Online Versus In-Person P a g e | 21 ARFID (2.6) OSFED (43.6) ARFID (3) OSFED (47.2) Carr et al. (2022) N = 29 In-person = 16 Online = 13 In-person: 25.12 (6.71) Online: 26.85 (6.94) In-person: female (87.5) Online: female (92.3) In-person AN-R (87.5) AN-BP (12.5) Online AN-R (84.6) AN-BP (15.4) Levinson et al. (2021) N = 93 In-person = 60 Online = 33 In-person: 25.07 (7.88) 15-47 Online: 24.52 (9.27) 15-47 In-person: female (91.67) Online: female (90.91) In-person AN (43.33) BN (18.18) OSFED (36.67) BED (83.33) ARFID (16.67) Online AN (42.4) BN (12.12) OSFED (30.03) BED (12.12) ARFID (3.03) Ortiz et al. (2023) N = 92 In-person = 46 Online = 46 In-person: 20.76 (2.86) 16-30 Online: 19.38 (3.08) 16-30 In-person: female (91.32) Online: female (93.47) In-person AN (65.21) BN (13.00) OSFED (17.32) BED (2.17) Online AN (54.34) BN (8.70) OSFED (36.96) BED (0) Penwell et al. (2023) N = 140 In-person = 70 Online = 70 In-person: 23.3 (9.3) Online: 23.1 (10.4) In-person: female (95.7) Online: female (98.6) In-person AN-R (32.9) AN-BP (17.1) BN (15.7) BED (5.7) OSFED (27.1) ARFID (1.4) Online AN-R (32.9) AN-BP (14.3) BN (11.4) BED (10.0) OSFED (30.0) ARFID (1.4) ED Community Care -Online Versus In-Person P a g e | 22 Raykos et al. (2021) N = 120 In-person = 95 Online = 25 In-person: NR Online: 24.4 (7.6) 16-47 In-person: female (NR) Online: female (93) In-person (NR) Online AN (48) BN (20) OSFED (28) UFED (4) Robinson et al. (2024) NR NR NR In-person AN Online AN Mixed AN Steiger et al. (2021) N = 125 In-person = 49 Online = 76 In-person: 30.22 (9.9) Online: 28.41 (10.3) In-person: female (93.9) Online: female (85.5) In-person AN (32.7) BN (24.5) OSFED (26.5) ARFID (16.3) Online AN (42.1) BN (27.6) OSFED (27.6) ARFID (2.6) Thaler et al. (2024) N = 109 In-person = 55 Online = 54 In-person: 31.29 (10.22) Online: 30.50 (8.53) In-person: NR Online: NR Combined sample: female (91) In-person AN-R (25.5) AN-BP (23.6) BN (18.2) OSFED (29) ARFID (3.6) Online AN-R (22.6) AN-BP (32.1) BN (15.1) OSFED (28.3) ARFID (1.9) Study Comorbidities % (Int.) Co-morbidities % (Comp.) Ethnicity % (Int.) Ethnicity % (Comp.) Socio-economic Status Blalock et al. (2025) In-person Depression (12.8) Anxiety (15.4) Online Depression (50.2) Anxiety (54.5) In-person White (76.9) Black (2.6) Online White (75.6) Black (3.5) NR ED Community Care -Online Versus In-Person P a g e | 23 SUD (0) Borderline PD (0) ADHD (2.6) SUD (3.5) Borderline PD (2.6) ADHD (2.6) Asian (2.6) Hispanic/Latinx (2.6) Multiracial (7.7) Asian (3.9) Hispanic/Latinx (3.5) Multiracial (3) Carr et al. (2022) NR NR In-person White (87.5) Other combined (12.5) Online White (92.3) Other combined (7.7) NR Levinson et al. (2021) NR: In-person Combined total: MDD (24.7) GAD (18.3) BP-I/II (4.3) OCD (11.8) PTSD (6.5) SAD (2.2) NR: Online Combined total: MDD (24.7) GAD (18.3) BP-I/II (4.3) OCD (11.8) PTSD (6.5) SAD (2.2) In-person White (98.33) Black (1.67) Hispanic (0) Asian (0) Multiracial/biracial (0) Online White (90.91) Black (3.03) Hispanic (0) Asian (3.03) Multiracial/biracial (3.03) NR Ortiz et al. (2023) NR NR In-person White (100) Black (0) Hispanic (0) Asian (0) Online White (84.78) Black (4.34) Hispanic (4.34) Asian (6.52) NR Penwell et al. (2023) In-person Mood disorders (65.7) Anxiety disorders (57.2) Obsessive compulsive and related disorders (7.1) Online Mood disorders (58.6) Anxiety disorders (64.3) Obsessive compulsive and related disorders (15.7) In-person Caucasian (84.3) African American (2.9) Asian or Pacific Islander (1.4) Online Caucasian (82.3) African American (2.9) Asian or Pacific Islander (2.9) NR ED Community Care -Online Versus In-Person P a g e | 24 SUD (8.6) Personality disorders (1.4) SUD (14.3) Personality disorders (2.9) Hispanic (4.3) Multiracial (2.9) Other (4.3) Hispanic (7.1) Multiracial (4.3) Other (NR)</p>
+<h3>Meta-Analyses</h3>
+<p>Statistically significant summary effect sizes (p ≤ 0.05), extent of heterogeneity (I² ), and GRADE ratings for the included studies are presented in Table 5.</p>
+<p>Change-from-baseline between group effect size, standardised mean difference (SMD), in this case Hedges&#x27; (adjusted) g was the effect size used in the meta-analyses of the daycare/intensive outpatient programme (DC-IOP) studies. As the outpatient treatment (OP) studies did not provide the required data only post-treatment between group effect size (without change scores) could be calculated which needs extra caution in interpretation of the results as baseline comparability cannot be assumed in quasi-experimental (Q-E) studies.</p>
+<p>A null value of zero shows equivalence for the two groups. The 95% confidence interval (CI) is the range within which the true value can be found 95% of the time. If the CI includes the null value, the effect estimate is not significant (p &gt; 0.05). When the CI excludes the null value, the effect estimate is statistically significant (p ≤ 0.05); it is unlikely to be due to chance and the null hypothesis of no difference between the groups can be rejected. Largely (or moderately) overlapping CIs suggest that estimates are similar enough for a summary estimate to be appropriate.</p>
+<p>Table 5 Meta-Analyses (in-person vs. online comparisons) DC-IOP Studies (t = 6) Outcome k(n) SMD (95% CI) I² GRADE Rating EDE-Q Global Score 5 (624) -0.00 (-0.23, 0.22) 0.33 Low BMI 4(228) 0.06 (-0.20, 0.33) 0.00 Very Low (b) Depression (BDI-2/PHQ-9/CES-D) 3 (503) 0.07 (-0.31, 0.44) 0.69 Very Low (c, d) Anxiety (GAD-7/OASIS) 2 (232) -0.05 (-0.31, 0.20) 0.00 Very Low (d) OP Studies (t =2) Outcome k(n) SMD (95% CI) I² GRADE Rating EDE-Q Global Score 2 (209) 0.73 (-0.91, 2.36) 0.96 Very Low (c, d) Depression (PHQ-9/PROMIS) 2 (206) 0.58 (-0.59, 1.75) 0.93 Very Low (c, d) Anxiety (GAD-7/PROMIS) 2 (205) 0.28 (-0.48, 1.04) 0.83 Very Low (c, d) t = total number of studies in the subgroup; k = total number of studies in the meta-analysis; n = total number of participants in the meta-analysis; Eating Disorder Examination Questionnaire (EDE-Q); Body Mass Index (BMI); Beck Depression Inventory (BDI-2); Centre for Epidemiological Studies Depression Scale (CES-D); Patient Health Questionnaire (PHQ-9); Generalised Anxiety Disorder-7 (GAD-7); Overall Anxiety Severity and Impairment Scale (OASIS); Patient-Reported Outcomes Measurement Information System (PROMIS-Depression); Patient-Reported Outcomes Measurement Information System (PROMIS-Anxiety); GRADE ratings: a = indirectness; b = study limitations (risk of bias); c = inconsistency; d = imprecision; e = publication bias As evident from Table 5 for the DC-IOP studies the effect sizes for the differences between the intervention (in-person) and comparison (online) groups fall below the non-inferiority margin set at Hedges&#x27; g &lt; 0.1 and the effect sizes are not statistically significant. Although the 95% CIs are broader than g = +/-0.1, the two treatment delivery modes can still arguably be considered non-inferior (comparable) in effectiveness showing similar improvements in eating disorder symptoms (EDE-Q Global score), BMI, depression and anxiety symptoms.</p>
+<p>For the OP studies posttreatment between group effect sizes (without change scores) were calculated which do not account for baseline variability and need to be interpreted with caution. Table 5 shows that the effect sizes for the differences between the intervention (inperson) and comparison (online) groups do not fall below the non-inferiority margin set at Hedges&#x27; g &lt; 0.1 but the effect sizes are not statistically significant so the null hypothesis of equivalence between the two groups cannot be rejected based on these results . Thus, the two treatment delivery modes can be considered comparable in effectiveness showing similar improvements in eating disorder symptoms (EDE-Q Global score), depression and anxiety symptoms. However, compared to the DC-IOP studies the OP studies showed larger between group differences, though non-significant, indicating possible type 2 error.</p>
+<p>Sensitivity analyses showed robustness of the pooled estimates regarding study quality and type of ED. Heterogeneity was more of a concern for the OP studies and could be improved by using change-from-baseline between group effect sizes and by comparing similar OP treatments with homogenous participants (e.g., matching severity and type of ED). Analyses undertaken reinforced that publication bias was not of great concern in this study and the search strategy was exhaustive, but searching grey literature would have increased certainty in the findings. These results are limited by the small number of included studies. The GRADE ratings for the outcomes were mostly very low and decrease the credibility of the results. Despite the drawbacks, the results of this systematic review and meta-analysis are likely to be the best in the field so far as the data are derived exclusively from QE studiesthe best evidence base currently available.</p>
+<h3>DISCUSSION</h3>
+<h3>Is Telemedicine a Viable Option? Narrative Synthesis</h3>
+<p>This systematic review and meta-analysis aimed to compare the effectiveness of in-person vs.</p>
+<p>online vs. mixed (blended/hybrid) modes of ED community care delivery for adults globally.</p>
+<p>The majority of the included studies were of moderate methodological quality (internal validity) despite low-very low, GRADE ratings. Certainty in the findings is attenuated by the small number of included studies, but despite several studies being underpowered all studies used reliable and valid patient reported outcome measures, thus increasing the credibility of the research.</p>
+<p>Recruitment bias was mitigated by selecting participants in both groups from the same population (ED clinic). However, as participants were recruited during different time periods there may be confounding by temporal factors, in particular the COVID-19 pandemic context in all studies for the online cohorts; results may be different in non-pandemic cohorts and generalisability despite a mix of ethnicities in most studies is limited to a predominantly White, female, and high-income western population.</p>
+<p>Co-morbidities were present in the samples allowing some generalisability to a broader population. But studies did not report whether participants were receiving any additional pharmacological or psychotherapeutic treatments outside of the study which could have confounded the findings.</p>
+<p>Compliance with the programmes, a possible confounder was described by all but one study (Raykos et al., 2021) and can be considered moderate indicating that these treatments are acceptable to participants.</p>
+<p>Improving compliance could lead to better outcomes. Factors affecting compliance such as baseline ED symptom severity; type of ED diagnosis; information technology (IT) difficulties; absence of face-to-face contact; confidentiality/patient privacy and data security issues need to be evaluated. Monetary incentives were not offered in any of the studies which aligns with routine clinical care, but adding motivational interviewing components could improve adherence and ultimately the outcomes.</p>
+<p>Adverse effects were not reported in any study. This lack of reporting may be concealing adverse events, but on the contrary, does imply that the interventions did not have any negative effects; patient safety would need clarification before dissemination. In a service evaluation of an ED DC programme for adults in Surrey (UK), Obiekezie et al. (2022) reported that online and mixed (blended/hybrid) DC, for a sample of AN patients with either subtype or unspecified AN, was relatively safe alongside weekly in-person physical health monitoring and regular health investigations to manage risks to health.</p>
+<p>Two possible confounders that need to be considered are history of ED and past ED treatment which were not described in the included studies. A negative past experience of ED or its treatment may reduce expectations for successful treatment and adversely bias the results.</p>
+<p>Similarly, prior experience with and expectations of online/mixed treatment were not accounted for and could affect treatment impact.</p>
+<p>Follow-up was not reported in any included study which is a critical limitation. It is suggested that a follow-up of at least six months is required to clarify whether any benefits from the treatments are sustained and at least two to three years follow-up is necessary to assess whether the programmes increase abstinence from an ED in this study population.</p>
+<h3>Meta-Analyses</h3>
+<p>The daycare/intensive outpatient programme (DC-IOP) studies can be considered as showing non-inferiority of in-person and online treatment programmes: EDE-Q Global score (-0.00 [95% CI: -0.23, 0.22]); anxiety (GAD-7/OASIS) (-0.05 [95% CI: -0.31, 0.20]); BMI (0.06 [95% CI: -0.20, 0.33]); and depression (BDI-2/PHQ-9/CES-D) (0.07 [95% CI: -0.31, 0.44]) all fall well below the non-inferiority margin set at Hedges&#x27; g &lt; 0.1 although the 95% CIs are broader than g = +/-0.1.</p>
+<p>Further, these effect sizes are not statistically significant (i.e. the null hypothesis of no difference cannot be rejected). The outpatient treatment (OP) studies did not show non-inferiority of in-person and online treatment programmes: anxiety (GAD-7/PROMIS) (0.28 [95% CI: -0.48, 1.04]); depression (PHQ-9/PROMIS) (0.58 [95% CI: -0.59, 1.75]); and EDE-Q Global score (0.73 [95% CI: -0.91, 2.36]) all fall above the non-inferiority margin set at Hedges&#x27; g &lt; 0.1 but the effect sizes are not statistically significant (i.e. the null hypothesis of no difference cannot be rejected).</p>
+<p>For depression and ED symptoms differences exceeded the minimally important difference, MID: SMD = 0.5 (Norman et al., 2003); possibly with larger sample sizes these differences could reach statistical significance thus would be clinically important. It must be noted that most of the effect sizes in the OP studies were very imprecise as evident from extremely wide confidence intervals.</p>
+<p>The null hypothesis of equivalence between the two groups cannot be rejected based on these meta-analyses results. Thus, the two treatment delivery modes can be considered comparable in effectiveness showing similar improvements in eating disorder symptoms (EDE-Q Global score), BMI, depression and anxiety symptoms. However, compared to the DC-IOP studies the OP studies showed larger between group differences which were non-significant indicating possible type 2 error. Moreover, the DC-IOP studies were analysed using change scores while for the OP studies posttreatment between group effect sizes (without change scores) were used which do not account for baseline variability.</p>
+<p>For the DC-IOP studies by considering the direction of the effects it is evident that there is slightly or marginally more improvement in anxiety and BMI respectively, in the in-person group, while the online group showed slightly more improvement in depression symptoms.</p>
+<p>ED symptoms (EDE-Q Global score), however, showed similar benefits for both treatment delivery modes. Anxiety may have been elevated in the online cohort due to the context of the COVID-19 pandemic and BMI may have been inaccurate in the online group as a consequence of reduced accountability allowing for deception/falsification by patients and from using unreliable home scales for weight monitoring. Similarly, the pandemic context could have reduced depression symptoms in the online group due to families being isolated together and having more time to support family members with an ED.</p>
+<p>Examining the direction of effects for the OP studies shows slightly more improvement in the online group than in the in-person group on all measures: eating disorder symptoms (EDE-Q Global score), depression and anxiety symptoms. An explanation for the enhanced benefits of online OP treatment may be the pandemic context resulting in more support from family in cases where ED patients were isolated with family. Research is needed to confirm whether these differences were due to COVID-19 pandemic environmental influences or arise from the mode of treatment delivery.</p>
+<p>Heterogeneity (I² ) was a concern in the OP studies reducing confidence in the pooled OP findings. Publication bias was judged to be undetected and sensitivity analyses demonstrated the results to be robust across variation in study quality and type of ED; thus, increasing confidence in the pooled estimates.</p>
+<h3>GRADE Ratings</h3>
+<p>The strength of the whole body of evidence, the GRADE ratings for all the outcomes of the included studies were very low except for the DC-IOP studies for which the EDE-Q Global score was rated slightly better, as low. The GRADE ratings could be improved by reducing heterogeneity via the use of change-from-baseline between group effect sizes and by comparing equivalent treatment programmes with homogenous participants (e.g., matching severity and type of ED); increasing reporting and methodological quality; and utilising larger sample sizes to increase precision.</p>
+<h3>Comparison to the Literature</h3>
+<p>The extant literature indicates that online OP treatment is a promising alternative to in-person treatment. Outpatient cognitive behaviour therapy (CBT) and family therapy delivered online have shown comparable effectiveness to in-person delivery with similar therapeutic alliance and satisfaction with both modes of treatment delivery (Couturier et al., 2021). Additionally, treatment completion rate (adherence) has been found to be higher for online versus in-person treatment in outpatient mental health clinics prior to the pandemic (Mishkind et al., 2021).</p>
+<p>There is less evidence for the effectiveness of DC-IOP, particularly in adult populations. Blalock et al. (2020) reported that an online IOP for adults was feasible, acceptable and improved ED symptoms, mood, self-esteem, and quality of life. Plumley et al. (2021) described a DC for adults which was transitioned to online delivery during the COVID-19 pandemic; improvements were found for BMI, ED symptoms and mood with high patientrated therapeutic alliance. Online DC was compared to in-person DC treatment by Zimmerman et al. (2021) for a range of psychiatric disorders including eating disorders. Both modes of treatment delivery were comparable for patient satisfaction, reduced symptoms and suicidality, better functioning and coping ability, as well as positive mental health and general wellbeing. The only differences noted were that length of stay was longer (so possibly treatment response was slower) and treatment completion rate (adherence) was higher for the online cohort. Moreover, some patients commented that they would not have opted for in-person treatment even without pandemic restrictions, thus highlighting the appeal of online/mixed care.</p>
+<p>In the UK Stewart et al. (2021) explored the transition to online OP ED treatment delivery mode early in the COVID-19 pandemic in a small sample of young people, carers and clinicians. Findings showed treatment was satisfactory, therapeutic alliance was adequate and technological competency was reported. Patients who transitioned from in-person to online care rather than starting care online during lockdown found therapy less effective. Patients and their carers differed on their preferences for treatment once the restrictions were lifted, with the latter being more likely to opt for online rather than in-person appointments. It is highlighted that the increased accessibility offered by online care especially for underserved populations needs to be balanced with an acceptable level of therapeutic engagement.</p>
+<p>A study in the same service two years later reported that online OP ED treatment delivery mode may be acceptable even if not preferred by those seeking and delivering ED treatment.</p>
+<p>It was observed that attitudes toward online treatment post-pandemic remained mostly the same as during the pandemic despite both in-person and online modes now typically being offered in the UK beyond the forced switch implemented during the COVID-19 pandemic.</p>
+<p>Young people, carers and clinicians continued to prefer the initial assessment, early treatment sessions and the last session to be in-person, with the middle and latter sessions being slightly more preferred in a mixed delivery mode by carers in particular. In this study forming therapeutic alliance and talking about emotional issues was found to be easier via in-person mode (Baudinet et al., 2023).</p>
+<p>However, as Stewart et al. (2021) and Baudinet et al. (2023) both used a sample of young people in an outpatient setting the findings while likely to be relevant for adult patients and DC-IOP treatment as well, need to be replicated in the latter population/treatment mode.</p>
+<p>Evidence on the comparative effectiveness of in-person and online versus mixed (blended/hybrid) ED treatment delivery in the community is limited. In this systematic review and meta-analysis only one study compared all three treatment delivery modes reporting non-significant differences between the different modes, which is encouraging as it shows promise also for mixed mode ED community treatment delivery (Robinson et al., 2024).</p>
+<h3>Future Research</h3>
+<p>A notable limitation of online/mixed (blended/hybrid) ED treatment delivery is the risk to patients due to reduced accountability and difficulty in detecting and responding promptly to a crisis as options for immediate action are restricted. Moreover, the convenience of not leaving home for treatment and not having to be seen could promote avoidance and negatively impact the therapeutic alliance (Stewart et al., 2021). Patient safety and adverse effects of these treatments need to be investigated thoroughly, and systems put in place (e.g.</p>
+<p>in-person health monitoring where possible or daily check-ins with each patient) to support patients before online and mixed treatment delivery modes can be considered a viable option.</p>
+<p>Telemedicine requires patients to have adequate literacy and IT skills, tends to reach a better educated, more affluent population and has been almost exclusively researched in White females (Wood et al., 2020). Despite benefits such as increased comfort, less disruption to education and family life, and reduced travel costs, online treatment places increased pressure on carers particularly in monitoring physical health risk at home (Serrano-Troncoso et al., 2020; Vuillier et al., 2021). Neurodiverse individuals, such as those with ADHD or autism, and those with social anxiety or who are physically vulnerable, may prefer online or mixed treatment; online treatment may attenuate pre-session anxiety and enhance ease of discussing sensitive issues (Baudinet et al., 2023; Webb et al., 2022). However, those with weak Internet connectivity, using their mobiles as their main device, and lacking private space which impacts on ease of discussing emotional difficulties (especially in domestic abuse situations) are likely to have a poorer therapeutic experience (Stewart et al., 2021).</p>
+<p>It is necessary to address the requirements of those who are poorer, less educated, those with learning disability, severe co-morbid mental or medical illnesses, and males with EDs. In a US study Cachelin et al. (2000) reported that less acculturated ethnic minorities have a lower likelihood of seeking and receiving treatment for an ED and this warrants further research.</p>
+<p>More recently, James et al. (2017) noted the need to ensure research using novel technologies adequately represents minority populations to reduce current health disparities. In four of the included studies (Blalock et al., 2025; Levinson et al., 2021; Ortiz et al., 2023; Penwell et al., 2023) despite the majority of patients being White there was a trend of greater representation of racial/ethnic minorities in the online group versus the in-person group; this preference requires more exploration.</p>
+<p>Research is needed regarding patient and health provider barriers which hinder uptake of ED community care including stigma, denying the illness, low motivation to seek treatment, high cost of treatment, time constraints, lack of adequate IT skills, low mental health literacy, limited availability of trained therapists, and lack of local ED services in remote rural areas (Ali et al., 2017). In particular socioeconomic status, race -minority bias and literacy are factors that could impact engagement with online treatment, and more research is needed to attenuate these health inequities (James et al., 2017).</p>
+<p>Older age, and low level of education indicative of low socio-economic status, are commonly cited barriers to uptake of telemedicine (Barbosa et al., 2021). Niemeyer and Knaevelsrud (2023) observed that individuals with low socio-economic status were less likely to be offered outpatient psychotherapy in Germany than those with moderate-high socio-economic status. However, contrary to reports that older adults may find it harder to engage with technological interventions Rienecke et al. (2024) observed high satisfaction with an online ED intensive outpatient programme (IOP) and no statistically significant differences were found between different age groups including adults aged over 40 years, albeit in a primarily female and White patient group.</p>
+<p>In Blalock et al. (2025) although the online IOP group consisted of significantly older patients than the in-person IOP group, both modes of treatment delivery were similarly effective suggesting that older age is not necessarily a barrier to engaging in online IOP treatment. Other barriers to effective ED treatment include difficulties during transitions (e.g. from young people ED services to adult ED services; geographical -home to university services; and between inpatient and community -outpatient care), and inadequate availability of outpatient care provision leading to pressure being placed on primary care general practitioners (GPs) (Shekar, 2022); online care could be advantageous in such circumstances. As well as research on improving the online therapeutic alliance, qualitative research is required to determine patient-carer-health provider values, preferences, satisfaction, and experiences regarding the different treatment delivery modes; and in particular to explore reasons for treatment dropout or non-improvement, in order to improve ED community care and maximise compliance. In addition, how treatment outcomes are affected by baseline severity of ED symptoms, type of ED diagnosis and demographics such as age, gender and ethnicity need to be investigated to optimise ED community care. It is necessary to understand who would or would not benefit from the different modes of treatment delivery to provide targeted individualised patient-centred care and to determine whether online/mixed treatment delivery modes do increase access to evidence-based treatment for underserved populations.</p>
+<p>Better consistent reporting of participant retention, follow-up data, adverse effects, comorbidities, co-interventions, history of ED, any past ED treatment, inclusion of minority groups and particularly reporting of socioeconomic status is recommended. Protective factors need further exploration; improved self-esteem, coping mechanisms and quality of life. It is important to identify the specific components of in-person, online and mixed delivery modes that are most effective for the community treatment of EDs to provide an individualised and optimal dose of care. Research is essential to clarify whether the findings can be transferred to countries beyond high income western countries and to different healthcare systems.</p>
+<p>Further, cost-effectiveness trials are required to support the argument for the widespread implementation of online/mixed modes of ED community care delivery with regard to resource use and opportunity cost; mixed delivery mode in particular could reduce costs and retain effectiveness.</p>
+<p>Meal support, group and family/multi-family sessions are particularly difficult to implement online and require more development (Baudinet et al., 2023; Webb et al., 2022). Brothwood et al. (2021) observed that between therapy social interactions that occur in in-person treatment are lost in online treatment and alternatives need to be found to create deeper connections; trusting relationships online. Beat (2024) noted that peer relationships, intercarer connections and therapeutic alliance were difficult to develop in online treatment and proposed that mixed mode treatment may attenuate this challenge by, for example, offering initial in-person sessions; more research on mixed care is recommended. Matthews et al. (2019)suggested that patients should be motivationally ready to engage with intensive ED treatment programmes such as daycare (DC). It has been observed that patients with AN were the least satisfied with online therapy compared to patients with other ED diagnoses (Fernandez-Aranda, Munguia, et al., 2020); this may be due to the ego-syntonic nature of their illness and high ambivalence towards recovery which may impede engagement with treatment (Abbate-Daga et al., 2013). Those with AN may benefit from increased support, the nature of which should be a focus of future research.</p>
+<p>Long-term outcomes of online and mixed treatment delivery need to be evaluated in relation to in-person care. Baudinet et al. (2023) reported that current evidence indicates therapeutic alliance and early treatment response significantly affect post-treatment outcomes and as the provision of online treatment early in treatment may prolong treatment it is important for future research to determine whether this leads to worse outcomes.</p>
+<p>Therapists can be less satisfied with online/mixed (blended/hybrid) modes of psychotherapy than patients and carers; this barrier to telemedicine implementation needs to be addressed to maximise treatment benefits (Shaw et al., 2021). McFarlane et al. (2015) suggested implementing tailored approaches encompassing patient preferences and Zimmerman et al. (2021) highlighted that compensation (insurance reimbursement) for online/mixed treatment modes needs to be in parity with in-person treatment delivery to ensure virtual care is available as a viable treatment option. Particularly relevant, Catenacci and Couturier (2023) have suggested specific improvements to online daycare (DC) programmes that merit exploration: (1) increasing involvement and support for family/carers; (2) screening suitability for online care; (3) providing more meal support and increased frequency of in-person check-ins; (4) managing rules and patient expectations in advance; (5) increasing communication with healthcare providers; (6) ensuring patients have a reliable Internet connection; and (7) utilising a hybrid delivery mode.</p>
+<p>Finally, the field would benefit from more high-quality quasi-experimental (QE) studies allowing for change score meta-analyses and ideally randomised controlled trials (RCTs) with adequate power are needed so that effect sizes can be definitively determined.</p>
+<p>Before dissemination and implementation positive results would require replication outside of pandemic times and in large high-quality RCTs with lengthy follow-up.</p>
+<h3>Limitations</h3>
+<p>The main drawback of this systematic review and meta-analysis is that only an independent researcher conducted the review processes, however, this was under PhD supervision.</p>
+<p>Other drawbacks include: (1) the OP studies did not provide the data required to conduct change score meta-analyses so the less reliable post-treatment between group effect sizes (without change scores) were calculated; (2) grey literature was not searched but it is contended that the search was exhaustive; (3) all online samples were studied during the pandemic, thus environmental issues may have affected the results; 4) the outcome measures meta-analysed were all patient reported outcome measures (PROMs) which are liable to recall bias; and (5) certainty in the findings of this review is attenuated by the small number of included studies and only one study compared mixed (blended/hybrid) treatment mode to online and in-person modes (Robinson et al., 2024).</p>
+<p>However, in the absence of &#x27;gold standard&#x27; randomised controlled trials (RCTs), the quasi-experimental (QE) studies included in this systematic review and meta-analysis provide the best evidence base available at this time.</p>
+<h3>Conclusions</h3>
+<p>Eating disorder (ED) telemedicine treatment programmes could reduce the financial burden to the healthcare system, patients, their families, and facilitate earlier intervention mitigating the disruption to social functioning, education and employment commitments/prospects of ED sufferers, improving their overall quality of life. Online and mixed (blended/hybrid) delivery modes of ED community care could increase access to evidence-based treatment and reduce health disparities associated with, for example, socio-economic status, race/ethnicity, gender and sexual minority groups, geographic location (rural, remote regions) and disability.</p>
+<p>This systematic review and meta-analysis provides preliminary support for the comparative effectiveness, safety and acceptability of ED community care provision in adult services via in-person, online or mixed delivery modes in western high-income countries. It is proposed that telemedicine, in particular mixed delivery mode, although not a replacement could complement existing in-person ED services. However, the evidence base is very small, particularly for the outpatient studies and mixed treatment delivery mode. Further research is necessary using rigorous high-quality adequately powered quasi-experimental (QE) and ideally randomised controlled trial (RCT) designs to elucidate the effectiveness and efficacy of treatment outside of the COVID-19 pandemic context. In a rapidly evolving field, for a</p>
+<h3>Ethical Considerations</h3>
+<p>This work was secondary research and did not involve the use of human subjects thus there were no ethical considerations and lived experience contributors were not involved.</p>
+<h3>Acknowledgements</h3>
+<p>This journal article is part of the thesis submission for the award of PhD in Medicine (University College London, UK) by Nilima Hamid.</p>
+<h3>Funding</h3>
+<p>No financial support was provided for this systematic review and meta-analysis.</p>
+<h3>Data Availability Statement</h3>
+<p>The data that support the findings of this study are available from the corresponding author upon reasonable request.</p>
+<h3>Conflict of Interest</h3>
+<p>Declarations of interest: none.</p>
+<p>inclusion and exclusion criteria were specified as: Population: Adults (18+ years) with any ED treated in adult ED services in any location globally. It is important to note when most participants were over 16 years of age, these studies were included in this systematic review as per the Cochrane guidance (Higgins &amp; Thomas, 2019, p. 36). Intervention: any mode of ED community care (in-person, online or mixed) except for intensive home treatment or primary care. Comparator: any mode of ED community care delivered differently (in-person, online or mixed) except for intensive home treatment or primary care. Outcome: Patient reported outcome measures (PROMs) -change in BMI, improvement in ED symptoms, comorbidities and psychological wellbeing. Study Design: Quasi-experimental studies (Q-E, naturalistic studies/natural experiments) of between group comparisons (interventions)</p>
+<h3>FIGURE 1.</h3>
+<p>FIGURE 1. PRISMA Flow Diagram (Page et al., 2021)</p>
+<p>Ortiz et al. (2023) had an ethnic mix in the online cohort compared to an all-White in-person cohort andRaykos et al. (2021) only reported ethnicity for the online cohort as predominantly Anglo European Australian (70%).</p>
+<p>Therapy (MBT); Cognitive Remediation Therapy (CRT); Acceptance and Commitment Therapy (ACT); Dialectical Behaviour Therapy (DBT); Cognitive Behaviour Therapy (CBT); Family-Based Therapy (FBT); Anorexia Nervosa -restrictive subtype (AN-R); Anorexia Nervosa -binge purge subtype (AN-BP); Bulimia Nervosa (BN); Binge Eating Disorder (BED); Avoidant Restrictive Food Intake Disorder (ARFID); Other Specified Feeding or Eating Disorders (OSFED); Unspecified Feeding or Eating Disorder (UFED); Substance Use Disorder (SUD); Borderline Personality Disorder (Borderline PD); Attention Deficit Hyperactivity Disorder (ADHD); Major Depressive Disorder (MDD); Generalised Anxiety Disorder (GAD); Bipolar Disorder type 1/type 2 (BPD I/II); Obsessive Compulsive Disorder (OCD); Post-Traumatic Stress Disorder (PTSD); Social Anxiety Disorder (SAD); Not Reported (NR)</p>
+<p>Ferrao Nunes-Zlotkowski et al. (2024) have confirmed in a systematic review and meta-analysis that mixed mode psychotherapy was feasible when in-person and online components were combined rather than sequential, and effectiveness was demonstrated for treating depression although findings for anxiety were non-significant. Cook-Cottone et al. (2024) and Novack and Chadi (2025) described mixed care as a promising mode of ED treatment delivery following the COVID-19 pandemic transition to online care, but the literature on this mode of treatment is still nascent. Going forward the appropriate treatment delivery mode ( in-person, online or mixed) may be best personalised to the individual, their family/carer and the clinician. Flexible change of mode may be indicated by treatment stage, treatment response/non-response, deterioration in mental/physical wellbeing, the need for in vivo (at home) support for new behaviours or when access is problematic.</p>
+<h3>P</h3>
+<p>a g e | 38 highly vulnerable population, it is imperative to exploit new technologies to optimise the delivery of ED treatment, with the goal of providing timely, flexible, personalised, costeffective, and evidence-based interventions.</p>
+<h3>References</h3>
+<p>Abbate-Daga, G., Amianto, F., Delsedime, N., De-Bacco, C., &amp; Fassino, S. (2013). Resistance to treatment in eating disorders: A critical challenge. BMC Psychiatry 13:294.</p>
+<p>Abbate-Daga, G., Marzola, E., De-Bacco, C., Buzzichelli, S., Brustolin, A., Campisi, S., Amianto, F., Migliaretti, G., &amp; Fassino, S. (2015). Day hospital treatment for Anorexia Nervosa: A 12-month follow-up study. Eur Eat Disord Rev, 23(5), 390-398. https://doi.org/10.1002/erv.2369</p>
+<p>Ali, K., Farrer, L., Fassnacht, D. B., Gulliver, A., Bauer, S., &amp; Griffiths, K. M. (2017). Perceived barriers and facilitators towards help-seeking for eating disorders: A systematic review. International Journal of Eating Disorders, 50(1), 9-21. https://doi.org/10.1002/eat.22598</p>
+<p>Barbosa, W., Zhou, K., Waddell, E., Myers, T., &amp; Dorsey, E. R. (2021). Improving Access to Care: Telemedicine Across Medical Domains. Annual Review of Public Health, 42, 463-481. https://doi.org/10.1146/annurev-publhealth-090519-093711</p>
+<p>Barker, T. H., Habibi, N., Aromataris, E., Stone, J. C., Leonardi-Bee, J., Sears, K., Hasanoff, S., Klugar, M., Tufanaru, C., Moola, S., &amp; Munn, Z. (2024). The revised JBI critical appraisal tool for the assessment of risk of bias for quasi-experimental studies. JBI Evidence Synthesis, 22(3), 378-388. https://doi.org/10.11124/JBIES-23-00268</p>
+<p>Barrett, E., &amp; Richardson, S. C. (2020). Eating disorders during the COVID-19 pandemic. Irish Medical Journal, 114(1).</p>
+<p>Baudinet, J., Konstantellou, A., Hambleton, A., Bialluch, K., Hurford, G., &amp; Stewart, C. S. (2023). Do people want the &#x27;new normal&#x27;? A mixed method investigation of young person, parent, and clinician experience and preferences for eating disorder treatment delivery in the post-COVID-19 world [Article].</p>
+<p>Nutrients, 15(17), Article 3732. https://doi.org/10.3390/nu15173732</p>
+<p>Beat. (2024). There&#x27;s no place like home: The case for intensive community and day treatments for eating disorders.</p>
+<p>Beck, A. T., Steer, R. A., &amp; Garbin, M. G. (1988). Psychometric properties of the Beck Depression Inventory: Twenty-five years of evaluation. Clinical Psychology Review, 8(1), 77-100.</p>
+<p>Blalock, D. V., Le Grange, D., Johnson, C., Duffy, A., Manwaring, J., Tallent, C. N., Schneller, K., Solomon, A. M., Mehler, P. S., McClanahan, S. F., &amp; Rienecke, R. D. (2020). Pilot assessment of a virtual intensive outpatient program for adults with eating disorders. European Eating Disorders Review, 28(6), 789- 795. https://doi.org/10.1002/erv.2785</p>
+<p>Blalock, D. V., Mehler, P. S., Michel, D. M., Duffy, A., Le Grange, D., O&#x27;Melia, A. M., &amp; Rienecke, R. D. (2025). Virtual versus in-person intensive outpatient treatment for eating disorders during the COVID- 19 pandemic in United States-based treatment facilities: Naturalistic study [Comparative Study]. Journal of Medical Internet Research, 27, e66465. https://doi.org/https://dx.doi.org/10.2196/66465</p>
+<p>Brothwood, P. L., Baudinet, J., Stewart, C. S., &amp; Simic, M. (2021). Moving online: young people and parents&#x27; experiences of adolescent eating disorder day programme treatment during the COVID-19 pandemic. Journal of Eating Disorders, 9(1), Article 62. https://doi.org/10.1186/s40337-021-00418-4</p>
+<p>Cachelin, F. M., Veisel, C., Barzegarnazari, E., &amp; Striegel-Moore, R. H. (2000). Disordered eating, acculturation, and treatment-seeking in a community sample of Hispanic, Asian, Black, and White Women. Psychology of Women Quarterly, 24, 244-253.</p>
+<p>Campbell, S., Maunder, K., Lehmann, O., McKeown, M., &amp; McNicholas, F. (2022). The long-term impact of COVID-19 on presentations to a specialist child and adolescent eating disorder program. Irish Medical Journal, 115(8).</p>
+<p>Carr, A., Toloza, C., Li, Z., Nazar, B. P., &amp; Himmerich, H. (2022). Therapy outcome of day treatment for people with anorexia nervosa before and during the COVID-19 pandemic. Brain and Behavior, 12(6), Article e2604. https://doi.org/10.1002/brb3.2604</p>
+<p>Catenacci, V., &amp; Couturier, J. (2023). Experiences of a virtual day program for adolescents with eating disorders: A qualitative analysis of benefits and barriers. Journal of Eating Disorders, 11(1), Article 133. https://doi.org/10.1186/s40337-023-00859-z</p>
+<p>Cohen, J. (1988). Statistical power analysis for the behavioral sciences (2nd ed.). Lawrence Erlbaum Associates.</p>
+<p>Cook-Cottone, C., Harriger, J. A., Tylka, T. L., &amp; Wood-Barcalow, N. L. (2024). Virtually possible: strategies for using telehealth in eating disorder treatment learned from the COVID-19 pandemic. Eating Disorders, 32(2), 99-119. https://doi.org/10.1080/10640266.2023.2261762</p>
+<p>Couturier, J., Pellegrini, D., Miller, C., Bhatnagar, N., Boachie, A., Bourret, K., Brouwers, M., Coelho, J. S., Dimitropoulos, G., Findlay, S., Ford, C., Geller, J., Grewal, S., Gusella, J., Isserlin, L., Jericho, M., Johnson, N., Katzman, D. K., Kimber, M.,…Webb, C. (2021). The COVID-19 pandemic and eating disorders in children, adolescents, and emerging adults: Virtual care recommendations from the Canadian consensus panel during COVID-19 and beyond. Journal of Eating Disorders, 9(1), Article 46. https://doi.org/10.1186/s40337-021-00394-9</p>
+<p>Devoe, D. J., Han, A., Anderson, A., Katzman, D. K., Patten, S. B., Soumbasis, A., Flanagan, J., Paslakis, G., Vyver, E., Marcoux, G., &amp; Dimitropoulos, G. (2023). The impact of the COVID-19 pandemic on eating disorders: A systematic review. International Journal of Eating Disorders, 56(1), 5-25. https://doi.org/10.1002/eat.23704</p>
+<p>Fairburn, C. G., &amp; Beglin, S. J. (1994). Assessment of eating disorders: Interview or self-report questionnaire? International Journal of Eating Disorders, 16(4), 363-370. https://doi.org/10.1002/1098-108x(199412)16:4&lt;363::Aid-eat2260160405&gt;3.0.Co;2-#</p>
+<p>Fairburn, C. G., &amp; Patel, V. (2014). The global dissemination of psychological treatments: A road map for research and practice. American Journal of Psychiatry, 171(5), 495-498.</p>
+<p>Feldhege, J., Moessner, M., Wolf, M., &amp; Bauer, S. (2021). Changes in language style and topics in an online eating disorder community at the beginning of the COVID-19 pandemic: Observational study. Journal of Medical Internet Research, 23(7), e28346. https://doi.org/10.2196/28346</p>
+<p>Fernandez-Aranda, F., Casas, M., Claes, L., Bryan, D. C., Favaro, A., Granero, R., Gudiol, C., Jimenez-Murcia, S., Karwautz, A., Le Grange, D., Menchon, J. M., Tchanturia, K., &amp; Treasure, J. (2020). COVID-19 and implications for eating disorders. European Eating Disorders Review, 28(3), 239-245. https://doi.org/10.1002/erv.2738</p>
+<p>Fernandez-Aranda, F., Munguia, L., Mestre-Bach, G., Steward, T., Etxandi, M., Baenas, I., Granero, R., Sanchez, I., Ortega, E., Andreu, A., Moize, V. L., Fernandez-Real, J. M., Tinahones, F. J., Dieguez, C., Fruhbeck, G., Le Grange, D., Tchanturia, K., Karwautz, A., Zeiler, M.,…Jimenez-Murcia, S. (2020). COVID Isolation Eating Scale (CIES): Analysis of the impact of confinement in eating disorders and obesity-A collaborative international study. European Eating Disorders Review, 28(6), 871-883. https://doi.org/10.1002/erv.2784</p>
+<p>Ferrao Nunes-Zlotkowski, K., Shepherd, H. L., Beatty, L., Butow, P., &amp; Shaw, J. M. (2024). Blended psychological therapy for the treatment of psychological disorders in adult patients: Systematic review and meta-analysis. Interactive Journal of Medical Research, 13, e49660. https://doi.org/10.2196/49660</p>
+<p>Friars, D., Walsh, O., &amp; McNicholas, F. (2023). Assessment and management of cardiovascular complications in eating disorders. Journal of Eating Disorders, 11(1), 13. https://doi.org/10.1186/s40337-022-00724-5</p>
+<p>Gorrell, S., Reilly, E. E., Brosof, L., &amp; Le Grange, D. (2022). Use of telehealth in the management of adolescent eating disorders: Patient perspectives and future directions suggested from the COVID-19 pandemic. Adolescent Health, Medicine and Therapeutics, 13, 45-53. https://doi.org/10.2147/AHMT.S334977</p>
+<p>Hamid, N. (2023). Internet-based cognitive behaviour therapy for the prevention, treatment and relapse prevention of eating disorders: A systematic review and meta-analysis. Psych Journal, 13(1), 5-18. https://doi.org/10.1002/pchj.715</p>
+<p>Higgins, J. P. T., &amp; Thomas, J. (2019). Cochrane handbook of systematic reviews of interventions (2nd ed.). John Wiley &amp; Sons.</p>
+<p>Irish, M., Dalton, B., Potts, L., McCombie, C., Shearer, J., Au, K., Kern, N., Clark-Stone, S., Connan, F., Johnston, A. L., Lazarova, S., Macdonald, S., Newell, C., Pathan, T., Wales, J., Cashmore, R., Marshall, S., Arcelus, J., Robinson, P.,…Schmidt, U. (2022). The clinical effectiveness and cost-effectiveness of a &#x27;stepping into day treatment&#x27; approach versus inpatient treatment as usual for anorexia nervosa in adult specialist eating disorder services (DAISIES trial): A study protocol of a randomised controlled multi-centre open-label parallel group non-inferiority trial. Trials [Electronic Resource], 23(1), 500. https://doi.org/10.1186/s13063-022-06386-7</p>
+<p>James, D. C., Harville, C., 2nd, Sears, C., Efunbumi, O., &amp; Bondoc, I. (2017). Participation of African Americans in e-health and m-health studies: A systematic review. Telemedicine Journal and e-Health, 23(5), 351-364. https://doi.org/10.1089/tmj.2016.0067</p>
+<p>Kroenke, K., Spitzer, R. L., &amp; Wiliams, J. B. (2001). The PHQ-9: Validity of a brief depression severity measure. Journal of General Internal Medicine, 16(9), 606-613.</p>
+<p>Levinson, C. A., Spoor, S. P., Keshishian, A. C., &amp; Pruitt, A. (2021). Pilot outcomes from a multidisciplinary telehealth versus in-person intensive outpatient program for eating disorders during versus before the Covid-19 pandemic [Empirical Study; Quantitative Study]. International Journal of Eating Disorders, 54(9), 1672-1679. https://doi.org/https://dx.doi.org/10.1002/eat.23579</p>
+<p>Matthews, K., Gordon, L., van Beusekom, J., Sheffield, J., &amp; Patterson, S. (2019). A day treatment program for adults with eating disorders: Staff and patient experiences in implementation. Journal of Eating Disorders, 7, Article 21. https://doi.org/10.1186/s40337-019-0252-4</p>
+<p>McFarlane, T., MacDonald, D. E., Trottier, K., &amp; Olmsted, M. P. (2015). The effectiveness of an individualized form of day hospital treatment. Eating Disorders, 23(3), 191-205. https://doi.org/10.1080/10640266.2014.981430</p>
+<p>Mishkind, M. C., Shore, J. H., Bishop, K., D&#x27;Amato, K., Brame, A., Thomas, M., &amp; Schneck, C. D. (2021). Rapid conversion to telemental health services in response to COVID-19: Experiences of two outpatient mental health clinics. Telemedicine Journal and e-Health, 27(7), 778-784. https://doi.org/10.1089/tmj.2020.0304</p>
+<p>Moher, D., Liberati, A., Tetzlaff, J., Altman, D. G., &amp; Group, P. (2009). Preferred reporting items for systematic reviews and meta-analyses: The PRISMA statement. PLoS Medicine, 6(7), e1000097. https://doi.org/10.1371/journal.pmed.1000097</p>
+<p>Nelson, H. D. (2025). Systematic reviews to answer health care questions (2nd ed.). Wolters Kluwer.</p>
+<p>Niemeyer, H., &amp; Knaevelsrud, C. (2023). Socioeconomic status and access to psychotherapy. Journal of Clinical Psychology, 79(4), 937-953. https://doi.org/10.1002/jclp.23449</p>
+<p>Norman, G. R., Sloan, J. A., &amp; Wyrwich, K. W. (2003). Interpretation of changes in health-related quality of life. The remarkable universality of half a standard deviation. Medical Care, 41(5), 582-592.</p>
+<p>Norman, S. B., Cissell, S. H., Means-Christensen, A. J., &amp; Stein, M. B. (2006). Development and validation of an Overall Anxiety Severity and Impairment Scale (OASIS). Depression and Anxiety, 23(4), 245-249.</p>
+<p>Novack, K., &amp; Chadi, N. (2025). The hybrid space in eating disorder treatment: Towards a personalized approach to integrating telehealth and in-person care. Journal of Eating Disorders, 13(1), 22. https://doi.org/10.1186/s40337-025-01211-3</p>
+<p>Obiekezie, A., Friel, C., &amp; Pathan, M. T. (2022). Safety of delivering eating disorders day treatment programme on the virtual platform in (COVID-19) pandemic [Conference Abstract]. BJPsych Open, 8(Supplement 1), S8. https://doi.org/https://dx.doi.org/10.1192/bjo.2022.91</p>
+<p>Orme, J. G., Reis, J., &amp; Herz, E. J. (1986). Factorial and discriminant validity of the Center for Epidemiological Studies Depression (CES-D)scale. Journal of Clinical Psychology, 42(1), 28-33.</p>
+<p>Ortiz, A. M. L., Cusack, C. E., Billman, M. G., &amp; Essayli, J. H. (2023). Baseline symptomatology and treatment outcomes of young adults in a virtual versus in-person partial hospitalization and intensive outpatient program for eating disorders [Empirical Study; Quantitative Study; Treatment Outcome]. International Journal of Eating Disorders, 56(8), 1644-1649. https://doi.org/https://dx.doi.org/10.1002/eat.23968</p>
+<p>Page, M. J., McKenzie, J. E., Bossuyt, P. M., Boutron, I., Hoffmann, T. C., Mulrow, C. D., Shamseer, L., Tetzlaff, J. M., Akl, E. A., Brennan, S. E., Chou, R., Glanville, J., Grimshaw, J. M., Hrobjartsson, A., Lalu, M. M., Li, T., Loder, E. W., Mayo-Wilson, E., McDonald, S.,…Moher, D. (2021). The PRISMA 2020 statement: An updated guideline for reporting systematic reviews. BMJ, 372, n71. https://doi.org/10.1136/bmj.n71</p>
+<p>Penwell, T. E., Smith, M., Ortiz, S. N., Brooks, G., &amp; Thompson-Brenner, H. (2023). Traditional versus virtual partial hospital programme for eating disorders: Feasibility and preliminary comparison of effects [Empirical Study; Quantitative Study]. European Eating Disorders Review, 32(2), 163-178. https://doi.org/https://dx.doi.org/10.1002/erv.3031</p>
+<p>Pilkonis, P. A., Choi, S. W., Reise, S. P., Stover, A. M., Riley, W. T., &amp; Cella, D. (2011). Item banks for measuring emotional distress from the Patient-Reported Outcomes Measurement Information System (PROMIS): Depression, anxiety, and anger. Assessment, 18(3), 263-283.</p>
+<p>Plumley, S., Kristensen, A., &amp; Jenkins, P. E. (2021). Continuation of an eating disorders day programme during the COVID-19 pandemic [Empirical Study; Quantitative Study]. Journal of Eating Disorders Vol 9 2021, ArtID 34, 9. https://doi.org/https://dx.doi.org/10.1186/s40337-021-00390-z</p>
+<p>Raykos, B. C., Erceg-Hurn, D. M., Hill, J., Campbell, B. N., &amp; McEvoy, P. M. (2021). Positive outcomes from integrating telehealth into routine clinical practice for eating disorders during COVID-19 [Empirical Study; Interview; Quantitative Study]. International Journal of Eating Disorders, 54(9), 1689-1695. https://doi.org/https://dx.doi.org/10.1002/eat.23574</p>
+<p>Rienecke, R. D., Blalock, D. V., Tallent, C. N., Duffy, A., &amp; Mehler, P. S. (2024). Eating disorder virtual intensive outpatient program: Patient satisfaction according to age group. Eating Disorders, 32(5), 493- 508. https://doi.org/10.1080/10640266.2024.2325296</p>
+<p>Rivera, V., Aldridge, M. D., Ornstein, K., Moody, K. A., &amp; Chun, A. (2021). Racial and socioeconomic disparities in access to telehealth. Journal of the American Geriatrics Society, 69(1), 44-45. https://doi.org/10.1111/jgs.16904</p>
+<p>Robinson, P., Cauvi, S., Morando, S., &amp; Beckford, L. (2024). In malnourished patients with anorexia nervosa online day care appears to be as effective as in person [Conference Abstract]. Clinical Nutrition ESPEN, Conference: 46th ESPEN Congress on Clinical Nutrition &amp; Metabolism. Milan Italy. 63, 1316. https://doi.org/https://dx.doi.org/10.1016/j.clnesp.2024.07.1035</p>
+<p>Schlissel, A. C., Richmond, T. K., Eliasziw, M., Leonberg, K., &amp; Skeer, M. R. (2023). Anorexia nervosa and the COVID-19 pandemic among young people: A scoping review. Journal of Eating Disorders, 11(1), Article 122. https://doi.org/10.1186/s40337-023-00843-7</p>
+<p>Serrano-Troncoso, E., Fàbrega-Ribera, M., Coll-Pla, N., Godrid-García, M., Carulla-Roig, M., Cecilia-Costa, R., Soto-Usera, P., Sánchez-Fernández, B., Matalí-Costa, J., &amp; Dolz-Abadia, M. (2020). Alternatives to inpatient treatment in adolescents with anorexia nervosa: Effectiveness and characteristics of a new intensive model of day patient treatment. Actas Espanolas de Psiquiatria, 48(1), 19-27.</p>
+<p>Shaw, H., Robertson, S., &amp; Ranceva, N. (2021). What was the impact of a global pandemic (COVID-19) lockdown period on experiences within an eating disorder service? A service evaluation of the views of patients, parents/carers and staff. Journal of Eating Disorders, 9(1), 14. https://doi.org/10.1186/s40337-021-00368-x</p>
+<p>Shekar, D. (2022). Barriers to eating disorder treatment: A review of socioeconomic obstacles and gaps in the healthcare system. Research Archive of Rising Scholars.</p>
+<p>Silen, Y., &amp; Keski-Rahkonen, A. (2022). Worldwide prevalence of DSM-5 eating disorders among young people. Current Opinion in Psychiatry, 35(6), 362-371. https://doi.org/10.1097/YCO.0000000000000818</p>
+<p>Spitzer, R. L., Kroenke, K., Williams, J. B. W., &amp; Lowe, B. (2006). A brief measure for assessing generalized anxiety disorder: The GAD-7. Archives of Internal Medicine, 166(10), 1092-1097.</p>
+<p>Steiger, H., Booij, L., Crescenzi, O., Oliverio, S., Singer, I., Thaler, L., St-Hilaire, A., &amp; Israel, M. (2021). In- person versus virtual therapy in outpatient eating-disorder treatment: A COVID-19 inspired study [Empirical Study; Quantitative Study]. International Journal of Eating Disorders, 55(1), 145-150. https://doi.org/https://dx.doi.org/10.1002/eat.23655</p>
+<p>Stewart, C., Konstantellou, A., Kassamali, F., McLaughlin, N., Cutinha, D., Bryant-Waugh, R., Simic, M., Eisler, I., &amp; Baudinet, J. (2021). Is this the &#x27;new normal&#x27;? A mixed method investigation of young person, parent and clinician experience of online eating disorder treatment during the COVID-19 pandemic. Journal of Eating Disorders, 9(1), 78. https://doi.org/10.1186/s40337-021-00429-1</p>
+<p>Thaler, L., Booij, L., St-Hilaire, A., Paquin-Hodge, C., Mesli, N., Burko, H., Lee, V., Oliverio, S., Israel, M., &amp; Steiger, H. (2024). Outcomes of a virtual day treatment program for adults with eating disorders- comparison with in-person day treatment [Empirical Study; Quantitative Study]. International Journal of Eating Disorders, No Pagination Specified. https://doi.org/https://dx.doi.org/10.1002/eat.24263</p>
+<p>Vuillier, L., May, L., Greville-Harris, M., Surman, R., &amp; Moseley, R. L. (2021). The impact of the COVID-19 pandemic on individuals with eating disorders: The role of emotion regulation and exploration of online treatment experiences. Journal of Eating Disorders, 9(1), 10. https://doi.org/10.1186/s40337-020-00362-9</p>
+<p>Webb, H., Dalton, B., Irish, M., Mercado, D., McCombie, C., Peachey, G., Arcelus, J., Au, K., Himmerich, H., Johnston, A. L., Lazarova, S., Pathan, T., Robinson, P., Treasure, J., Schmidt, U., &amp; Lawrence, V. (2022). Clinicians&#x27; perspectives on supporting individuals with severe anorexia nervosa in specialist eating disorder intensive treatment settings during the COVID-19 pandemic. Journal of Eating Disorders, 10(1), 30. https://doi.org/10.1186/s40337-022-00555-4</p>
+<p>Wood, S. M., White, K., Peebles, R., Pickel, J., Alausa, M., Mehringer, J., &amp; Dowshen, N. (2020). Outcomes of a rapid adolescent telehealth scale-up during the COVID-19 pandemic. Journal of Adolescent Health, 67(2), 172-178. https://doi.org/10.1016/j.jadohealth.2020.05.025</p>
+<p>Zimmerman, M., Terrill, D., D&#x27;Avanzato, C., &amp; Tirpak, J. W. (2021). Telehealth treatment of patients in an intensive acute care psychiatric setting during the COVID-19 pandemic: Comparative safety and effectiveness to in-person treatment [Article]. Journal of Clinical Psychiatry, 82(2), Article 20m13815. https://doi.org/10.4088/JCP.20M13815</p>
+<p>Zipfel, S., Reas, D. L., Thornton, C., Olmsted, M. P., Williamson, D. A., Gerlinghoff, M., Herzog, W., &amp; Beumont, P. J. (2002). Day hospitalization programs for eating disorders: A systematic review of the literature. International Journal of Eating Disorders, 31(2), 105-117. https://doi.org/10.1002/eat.10009</p>
 </div>
 </details>
 </div>
