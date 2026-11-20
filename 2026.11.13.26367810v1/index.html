@@ -197,7 +197,7 @@ Physical and psychosocial outcomes in children with limb loss 2-years
 after the 2023 Kahramanmaraş-Türkiye earthquakes
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.13.26367810
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.13.26367810
 </p>
 </header>
 <div class="mc-main">
@@ -384,8 +384,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -745,9 +746,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -769,7 +774,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -784,9 +790,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -799,13 +823,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -825,6 +852,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -832,12 +865,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -938,6 +977,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -957,6 +1016,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1212,19 +1306,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1334,6 +1510,114 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Introduction: The 2023 Kahramanmaraş-Türkiye earthquakes resulted in many paediatric amputations. While prosthetic provision following disasters has been described, little is known about longer-term physical and psychosocial outcomes in children with earthquakerelated limb loss.</p>
+<p>Aim: Evaluate health-related quality of life, prosthesis experience, pain, and function approximately two years post-amputation.</p>
+<p>Method: Retrospective analysis was conducted of children with earthquake-related limb loss who attend the XXX Center. Socio-demographic and amputation-related data, psychological status, outcome scores for pain, the Paediatric Quality of Life Inventory (PedsQL) and the Trinity Amputation and Prosthesis Experience Scales (TAPES) were included.</p>
+<p>Results: Fifty-six children (50% female; 13.7±5.0 years old) were included. Children had unilateral upper limb loss (n=15), unilateral lower limb loss (n=31), bilateral lower limb loss (n=7), or combined upper and lower limb loss (n=3). Data were obtained 2.3±0.4 years following amputation. Median child-reported PedsQL scores were 72.3/100.0, with high social functioning (85.0/100.0) but lower emotional functioning (60.0/100.0). No differences in PedsQL outcomes were found between limb loss groups. Children rated their physical and emotional quality of life higher than carers rated them. TAPES median scores were 50.0/75.0 for psychosocial adjustment, 16.0/36.0 for activity restriction, and 34.5/45.0 for prosthetic satisfaction. Children with unilateral lower limb loss demonstrated superior adjustment and prosthetic satisfaction than children with unilateral upper limb or bilateral lower limb loss (p&lt;0.05).</p>
+<p>Conclusions: Children demonstrated favourable physical, social, and school-related quality of life 2.3 years after the earthquakes. However, emotional wellbeing remained affected, highlighting the importance of long-term mental health support alongside prosthetic and rehabilitation services.</p>
+<h3>Introduction</h3>
+<p>Earthquakes often lead to complex, highly mechanical orthopaedic injuries to the lower limbs alongside complex soft tissue complications 1 . Limb amputation can be required where injuries are too complex for salvage, or where crush syndrome has caused life-threatening muscle necrosis 1 . In addition to immediate medical needs, earthquakes often bring widespread societal challenges across healthcare, education, jobs, and accommodation that further compound the effects and result in long-lasting repercussions 2 . Children are particularly susceptible to both primary injuries and societal challenges due to their reliance on adults for their care.</p>
+<p>Psychiatric outcomes of children following the 2023 Kahramanmaraş-Türkiye earthquakes has shown high rates of anxiety, depression, acute stress disorder, post-traumatic stress disorder and sleep problems [3] [4] [5] . These outcomes were more prevalent in children who experienced bereavement, damage to their home, witnessed other people trapped in buildings, and sustained a physical injury. In one study, increasing family support was associated with decreasing risk of post-traumatic stress disorder 3.</p>
+<p>Physical and psychosocial outcome data of children with limb loss following an earthquake are limited and there are few studies that examine longitudinal outcomes. In some cases, follow-up has taken place during early adulthood; however, results are rarely dichotomised to consider those who were children at the point of amputation 6, 7 . One study of 16 young adults 7-years post-unilateral transfemoral limb loss, who were children at the time of the 2008 Sichuan earthquake, found they had better psychosocial adjustment to their prosthesis and better overall physical health than those who were adults and sustained limb loss at the time of the earthquake 8 . Whilst an important observation, this study did not include children who were less than 10 years old at the time of the earthquake or children with bilateral, upper or combination limb loss, nor did it provide evidence of satisfaction and quality of life during childhood and adolescence.</p>
+<p>Health-related quality of life has been described in children with limb loss. A cohort of 15 children with predominantly unilateral, congenital lower limb loss in the UK had mean healthrelated quality of life scores of 67.6/100.0 9 , in comparison with 83.9/100.0 for children in the UK without chronic health conditions 10 , where higher scores were better. Scores were similar to the cohort of 16 Cambodian children in the same study with predominantly unilateral traumatic lower limb loss who scored 67.8/100 9 . A cohort of 42 Turkish children with upper and lower limb loss for congenital and traumatic reasons reported better healthrelated quality of life using the same questionnaire (mean: 75.5/100.0) 11 . Whilst these populations contain children with traumatic limb loss, these are more commonly due to road traffic accidents rather than natural disasters or earthquakes where injury epidemiology and environmental conditions are unique 1.</p>
+<p>Primary information on 102 children treated by the Child Wellness Practice and Research Centre (CWC) following the 2023 Kahramanmaraş-Türkiye earthquakes has been described 12 . Our objective was to report physical and psychosocial outcomes of the same cohort of children up to three years after the earthquakes.</p>
+<h3>Materials and methods</h3>
+<h3>Ethical approval</h3>
+<p>Ethical approval was granted by the Clinical Research Ethics Committee of Cukurova University Faculty of Medicine (date: 13 March 2026; approval number: 164-40). Informed consent was obtained from a parent/carer.</p>
+<h3>Study participants</h3>
+<p>Participants were all children who sustained limb loss in the 2023 Kahramanmaraş-Türkiye Earthquakes and attended CWC. A convenience sample of children who completed a set of three questionnaires at a minimum of one time point were included. For children with multiple responses, those collected at the longest time since the earthquake was included.</p>
+<h3>Patient-reported outcome measures</h3>
+<h3>PedsQL-Pain</h3>
+<p>The Paediatric Pain Questionnaire (PedsQL-Pain) is a reliable and valid assessment of pain in children 13 , which was translated into Turkish. Children and parent/carer proxies scored pain on the day and pain in the seven days prior along a visual analog scale labelled from &quot;it doesn&#x27;t hurt, no discomfort, no pain&quot; to &quot;very uncomfortable, severe pain&quot;.</p>
+<h3>PedsQL-QoL</h3>
+<p>The Paediatric Quality of Life Inventory TM (PedsQL-QoL) is a reliable and valid assessment of health-related quality of life in healthy children 14 . PedsQL consists of 23-items across four scales; physical, emotional, social, and school, scored on a five-point Likert scale, scored by both the child and parent/carer. Scores are computed as 0-100, where a higher score indicates a better outcome. PedsQL is valid and reliable when translated into Turkish [15] [16] [17].</p>
+<h3>TAPES</h3>
+<p>The Trinity Amputation and Prosthesis Experience Scales (TAPES) comprises three domains each with three subdomains; psychosocial adjustment (general, social, adjustment to limitation), activity restriction (functional, social, athletic), and prosthetic satisfaction (functional, aesthetic, weight) of lower limb amputees 18 . Scales are measured using threeand five-point scales. Psychological adjustment subdomains are scored 5-25 (total: 15-75), where a higher score indicates better adjustment. The activity restriction scale is scored 4-12 (total: 12-36), where a higher score indicates more activity restriction. The functional and aesthetic subdomains of prosthetic satisfaction are scored 4-20, and weight is scored 1-5 (total: 9-45), where a higher score indicates better adjustment. TAPES is reliable and valid in Turkish 19 . TAPES was used to assess all children, but those with upper limb (UL) loss only completed the psychosocial adjustment and satisfaction sections.</p>
+<h3>CAPP-FSI</h3>
+<p>The Child Amputee Prosthetics Project -Functional Status Inventory (CAPP-FSI) is a reliable and valid assessment designed to measure the functional ability of children with upper and lower limb difference 20 . Children with upper limb loss scored their frequency of conducting 34 activities both with and without their prosthesis on a five-point scale, scoring 0-144 where a higher score is better. Children with lower limb loss scored their frequency of conducting 6 activities both with and without their prosthesis on the same five-point scale scoring 0-24. The CAPP-FSI has been translated into Turkish 21.</p>
+<h3>Socioeconomic outcomes</h3>
+<p>Monthly family income was categorised in respect to the hunger line and the poverty line in the month the information was collected as published by the Confederation of Turkish Trade Unions, TÜRK-İŞ 22.</p>
+<h3>Statistical analysis</h3>
+<p>Clinical and outcome datapoints were matched to psychiatric data collected within three months of each other. For each child, the timepoint with the longest complete follow-up was kept. Normality was determined by visual inspection of histograms and Q-Q plots. Normally distributed data were reported as mean (standard deviation; SD) and non-normally distributed data reported as median (interquartile range; IQR). When continuous, nonparametric variables were compared between three amputation groups, a Kruskal-Wallis test was used. Where a difference was found, post-hoc comparison was calculated with Bonferroni correction. When continuous, non-parametric variables were compared between paired units (e.g., child and parent/carer) a Wilcoxon signed-rank test was used.</p>
+<h3>Results</h3>
+<h3>Study participants</h3>
+<p>Fifty-six children were included in the study. Children were 50% (n=28) female with a mean age of 11.6 years (SD: 4.8 years) at the earthquake, and 13.7 years (SD: 5.0 years) at follow-up. Children sustained unilateral upper limb loss (n=15), unilateral lower limb loss (n=31), bilateral lower limb loss (n=7), unilateral upper and unilateral lower limb loss (n=1), and unilateral upper and bilateral lower limb loss (n=2) (Table 1).</p>
+<p>Forty-two (75.0%) children lost a first-degree family member in the earthquake, and 16 (28.6%) children lost both parents. Twenty-seven (48.2%) children were diagnosed with trauma-related psychiatric condition due to the earthquake. Forty-one (73.2%) children lived below the poverty line. For comparison, though slightly methodologically different, UNICEF reported that 32.7% of children in Türkiye lived in poverty in 2022 23 . Additional detail can be found in Table 1.</p>
+<p>For children with upper limb loss; five used a cosmetic prosthesis and 10 used a myoelectric prosthesis. For children with lower limb loss; four used a SACH foot, 26 used a carbon foot and 15 used a dynamic foot. For children with lower limb loss using knee components; seven used a fixed/mechanical system and 15 used a hydraulic system. Further details on level of amputation and current prosthetic prescription are provided in Supplementary Table Forty-six (82.1%) children used a prosthetic, and 37 (66.1%) of those reported daily use for a median of 10 hours a day (IQR: 6-13). From 50 children, 16 (32.0%) children reported stump pain, and 10 (20.4%) children reported phantom limb pain. One (1.8%) child with bilateral lower limb loss reported constant phantom limb pain. Additional detail can be found in Table 2. 12 3 (25.0) 3 (2-4) 30.3 (0.5-60) 28 7 (25.0) 5.5 (3.5-7) 10 (5-10) 5 (71.4) 3.5 (2.5-5.5) 30 (30-60) 0 (0.0) --1 (50.0) 7 (-) 40 (-) Phantom sensation, n Yes, n (%) 49 17 (34.7) 12 3 (25.0) 27 11 (40.7) 3 (42.9) 0 (0.0) 1 (50.0) Phantom limb pain, n Yes; n (%) Frequency per week; n Pain duration; minutes Pain constant (yes); n (%) 49 10 (20.4) 4 (3-7) 5 (3-5) 1 12 1 (8.3) 7 (-) 5 (-) 0 (0.0) 27 8 (29.6) 3.5 (3-5.5) 5 (2.5-12.5) 0 (0.0) 1 (14.3) 7 (-) -1 (14.3) 0 (0.0) ---0 (0.0) ---</p>
+<h3>Patient-reported outcome measures</h3>
+<p>PedsQL-Pain PedsQL-Pain scores (Table 3) were available for 44 (78.6%) children and 37 (66.1%) carer proxies. Median pain score on the day was 0.3 (IQR: 0.0-2.7) for children and 0.8 (IQR: 0.0-3.4) scored by carer proxies. Median pain scores for the seven days prior were 2.4 (IQR: 0.0-5.9) for children and 2.5 (IQR: 0.0-4.0) scored by carer proxies.</p>
+<p>Pain scores for today were not different between amputation groups for children or carer proxies. Pain scores for the seven days prior were not different between amputation groups for children but were different for carer proxies (p=0.02). Post-hoc comparisons showed that the carer proxy score of pain for the seven days prior was higher in both unilateral LL and bilateral LL groups compared to the unilateral UL group (p=0.05 and p=0.01). There was no significant difference between child and carer proxy scores for pain today or in the last seven days for the 34 child-carer proxy pairs. PedsQL-QoL PedsQL-QoL scores were available for 51 (92.7%) children and 38 (67.9%) carer proxies. Median PedsQL-Total scores were 72.3 (IQR: 58.4-80.0) according to the children and 63.2 (IQR: 50.1-67.8) according to the carer proxies. Full results are available in Table 3.</p>
+<p>Neither PedsQL-Total, PedsQL-Physical, PedsQL-Emotional, PedsQL-Social nor PedsQL-School were different between unilateral UL, unilateral LL and bilateral LL groups for children (Figure 1) or carer proxy scores. For the 36 child-carer pairs with complete data, PedsQL-Total, PedsQL-Physical and PedsQL-Emotional scores were all higher for children than carer proxy scores (p=0.015, p&lt;0.001, p&lt;0.001). Paired PedsQL-Emotional and PedsQL-School scores were not different between children and carer proxies.</p>
+<p>Table 3: Paediatric Quality of Life Inventory (PedsQL) for pain on the day of the survey (today), pain over the seven days prior (7 days), PedsQL-Physical, PedsQL-Emotional, PedsQL-Social, PedsQL-School and PedsQL-Total scored by the children and carer proxies, and Trinity Amputation and Prosthesis Experience Scales (TAPES) scores for the full cohort and each sub-group. Data are presented as median (interquartile range). PedsQL CHILD Full cohort Unilateral UL Unilateral LL Bilateral LL Unilateral UL, Unilateral UL unilateral LL bilateral LL Pain (today) n=44 0.3 (0.0-2.7) 0.0 (0.0-2.4) 0.9 (0.0-2.4) 1.6 (0.0-3.1) 0.0 0.0 Pain (7 days) n=44 2.4 (0.0-5.9) 2.0 (0.0-3.8) 2.8 (0.0-7.1) 2.6 (0.0-6.0) 0.0 2.4 Physical n=51 68.8 (62.5-81.3) 75.0 (62.5-81.3) 68.8 (62.4-75.0) 68.8 (53.1-78.1) 81.25 39.1 (18.8-59.</p>
+<p>4) Emotional n=51 60 (45.0-70.0) 60.0 (50.0-70.0) 65.0 (55.0-72.5) 45.0 (40.0-55.0) 75.0 37.5 (30.0-45.0) Social n=51 85.0 (65.0-90.0) 90.0 (75.0-100.0) 82.5 (67.5-90.0) 75.0 (50.0-90.0) 85.0 25.0 (20.0-30.0) School n=51 70.0 (55.0-85.0) 70.0 (65.0-90.0) 72.5 (55.0-80.0) 55.0 (50.0-90.0) 90.0 37.5 (20.0-55.0) Total n=51 72.3 (58.4-80.0) 77.3 (63.8-83.1) 70.5 (58-78.3) 58.4 (49.5-78.3) 82.8 34.8 (22.2-47.3) PedsQL CARER PROXY Full cohort Unilateral UL Unilateral LL Bilateral LL Unilateral UL, unilateral LL Unilateral UL bilateral LL Pain (today) n=37 0.8 (0.0-3.4) 0.0 (0.0-0.7) 1.1 (0.0-4.2) 2.9 (0.6-5.9) 0.0 -Pain (7 days) n=37 2.5 (0.0-4.0) 0.0 (0.0-2.3) 2.6 (0.3-4.2) 6.3 (2.3-9.3) 0.0 -Physical n=38 59.4 (43.8-71.9) 56.3 (40.6-81.3) 62.5 (46.9-71.9) 53.1 (46.9-59.4) 84.4 3.1 Emotional n=38 60.0 (50.0-70.0) 70.0 (48.0-75.0) 55.0 (50.0-70.0) 57.5 (52.5-65) 70.0 55.0 Social n=38 65.0 (50.0-75.0) 55.0 (40.0-75.0) 65.0 (50.0-80.0) 55.0 (52.5-72.5) 75.0 45.0 School n=38 65.0 (50.0-80.0) 70.0 (50.0-75.0) 65.0 (50.0-80.0) 42.5 (30-77.5) 90.0 45.0</p>
+<p>Total n=38 63.2 (50.1-67.8) 60.8 (51.2-67.8) 64.1 (54.2-67.7) 51.6 (46.1-63.6) 79.8 37.0 TAPES Full cohort Unilateral UL Unilateral LL Bilateral LL Unilateral UL, unilateral LL Unilateral UL bilateral LL Psychosocial (/75) Physical (/25) Social (/25) Limitations (/25) 50 (45-55) 20 (18.5-23.5) 16 (14-19) 14 (10-16.5) 45.5 (44-52) 19 (15-21.5) 17.5 (16-19) 11.5 (10-14.5) 50.5 (46-58) 20 (19-24) 16 (14-20) 15 (11-17) 50 (43-52) 21 (16-25) 13 (11-16) 10 (10-19) 55 24 22 9 54.5 (51-58) 20 (20-20) 19 (18-20) 17.5 (15-20) Activity (/36) Functional (/12) Social (/12) Athletic (/12) 16 (14-21) 5 (4-7) 4 (4-5.5) 7 (5-9) 15 (12-20.5) 4 (4-5) 4 (4-5.5) 6.5 (4-8.5) 16 (14-20) 6 (4-7) 4 (4-5) 7 (5-8) 17 (12-27) 5 (4-9) 4 (4-6) 9 (4-11) 13 4 4 5 29 (24-34) 8.5 (7-10) 10.5 (9-12) 10 (8-12) Satisfaction (/45) Functional (/20) Aesthetic (/20) Weight (/5) 34.5 (30-36.5) 15 (13-16) 16 (14-16) 4 (3-4) 30 (23-31.5) 13.5 (8.5-15.5) 15 (10-16) 2.5 (1.5-4) 36 (33-40) 16 (15-18) 16 (15-17) 4 (4-4) 34 (25.5-35) 15 (10-17) 14 (13-17) 4 (2-4) 43 20 18 5 26.5 (22-31) 11.5 (9-14) 12.5 (11-14) 2 (2-2)</p>
+<p>TAPES TAPES scores were available for 52 (92.9%) participants (Table 3). Median psychosocial adjustment, activity restriction and prosthetic satisfaction scores were 50/75 (IQR:45-55), 16/36 (IQR: 14-21), and 34.5/75 (IQR: 30-36.5).</p>
+<p>TAPES scores for psychosocial adjustment and prosthetic satisfaction were different between amputation groups (p=0.041 and p=0.001). Post-hoc comparisons showed that the unilateral LL group had higher psychosocial adjustment and prosthetic satisfaction scores than the unilateral UL (p=0.01 and p&lt;0.001) and bilateral LL groups (p=0.05 and p=0.03).</p>
+<p>TAPES scores between Unilateral LL and Bilateral LL groups were not different for activity restriction.</p>
+<p>CAPP-FSI CAPP-FSI scores were available for 13 participants in the unilateral UL group. Median CAPP-FSI scores were 26 (IQR: 6-62) and 73 (IQR: 63-77) with and without their prosthetic. CAPP-FSI scores were available for 35 participants in the unilateral LL and bilateral LL groups. Median CAPP-FSI scores were 24 (IQR: 22-24) and 6 (IQR: 2-13) with and without their prosthetic.</p>
+<h3>Discussion</h3>
+<p>These results demonstrate similar health-related quality of life approximately two years postamputation of Turkish children who sustained unilateral UL, unilateral LL and bilateral LL loss following the 2023 Kahramanmaraş-Türkiye earthquakes. Though not compared statistically, there is evidence to suggest health-related quality of life is lower for children with triple amputation. Children received high-quality prosthetics and rehabilitation within a purposebuilt centre that also supported them socially. The lasting psychosocial effects of the earthquake trauma itself and earthquake-related disruption of their family unit, school and housing are important factors in outcomes for these children.</p>
+<p>PedsQL-Physical scores from children with unilateral upper limb loss were higher than, and scores from children with unilateral and bilateral lower limb loss were similar to those from a previously described cohort of Turkish children with non-earthquake-related limb loss 11 . Scores across all groups were not as high as previously described in a comparison cohort of typically developing Turkish children 24 . Similar physical health outcomes to other Turkish children with limb loss are an excellent result for children injured in the earthquakes because they were injured and provided with emergency treatment in a disaster zone, compared to other children who were treated within a functional healthcare system. However, the children in our cohort were treated within a dedicated rehabilitation centre, which may not be the case for all children with limb loss in Türkiye. Likely contributing to these good physical outcomes is the fact that children had generally low average pain scores, though a few children with unilateral and bilateral limb loss reported higher levels of pain in the seven days prior. The pain scores reported by our cohort of Turkish children are lower than those reported by children with limb loss from the UK and Cambodia 9.</p>
+<p>Children in our cohort received high-quality prosthetics. However, TAPES scores in our cohort were all worse than outcomes from both Turkish children with non-earthquake-related limb loss and adults who sustained unilateral transfemoral amputation as children in the 2008 Sichuan earthquake 8 . In Turkish children, this could represent the passage of time because the non-earthquake affected children were about 8-years post-amputation and half the cohort had congenital limb loss. In the Sichuan cohort, this could indicate some mismatch between expectation and reality, particularly as our cohort were still children themselves. In the UK, there was a distinct increase in visibility and public perception of people with limb loss following the 2012 London Paralympic Games 25 . A positive change in public perception of people with limb loss between earthquakes occurring in 2008 and 2023 might contribute to increased expectations.</p>
+<p>The CAPP-FSI demonstrated functional improvements in children with lower limb loss. However, in children with upper limb loss, scores were worse when using a prosthesis compared to without using a prosthesis. A similar pattern was seen in previous work in Turkish children with upper limb loss 21 . The authors hypothesised that children had developed effective compensatory strategies, had basic prosthetics with limited functionality, and that CAPP-FSI rewarded task completion over prosthetic use. Furthermore, in our cohort of children, the CAPP-FSI was completed by children, whereas the original validation 20 and elsewhere 21 , it is parent-reported or administered by an adult. PedsQL-Social scores across all amputation groups were similar or higher than a previously described cohort of Turkish children with non-earthquake-related limb loss 11 . In fact, scores were almost as high as previously described in a comparison cohort of typically developing Turkish children 24 . Children in our cohort attended CWC since approximately three weeks post-earthquake and many continue to do so for routine appointments and camps. A systematic review on peer support for children has detailed how camps can improve healthrelated quality of life and social abilities and provide a safe environment to discuss their experiences made them feel empowered 26 . Children in our cohort are known to be in continual contact with each other via social media, maintaining close friendships even if they live in different areas. We expect all this contributed to the excellent social scores for these children.</p>
+<p>PedsQL-Emotional scores of children in all amputation groups of our cohort were far lower than those reported by typically developing Turkish children 24 and Turkish children with nonearthquake related limb loss 11 . The cause of this is likely multifaceted but represents the biggest difference between this cohort and children with non-earthquake related limb loss. Emotional challenges could arise from the personal earthquake trauma of the child, such as loss, helplessness and fear 27 . Seventy-five percent of children lost a first-degree family member and 28.6% lost both their parents. Many children had earthquake-related psychiatric diagnoses. Phantom limb pain prevalence was low compared to adult literature 28 , but it has a known connection to detrimental emotional pathways 29 . One child with bilateral lower limb loss reported constant phantom limb pain, which could be related to the especially low emotional scores in that group. Whilst provision of high-quality prosthetics and rehabilitation from government and international donors is important, children who sustain limb loss in a natural disaster, clearly would benefit from early and widespread mental health support.</p>
+<p>Emotional challenges in children with limb loss following an earthquake may also result from the influence of their caregiver&#x27;s emotions and the turbulence of family units who may themselves be adjusting to loss, anger, helplessness, and hopelessness for themselves and their children 27 . Furthermore, caregivers will be affected by loss of family who have died or themselves sustained physical or mental trauma and be attempting to secure housing and work amid a disaster zone. Most children in our cohort were living below the local poverty line, with many below the hunger line, and many were still living in emergency shelter accommodation. As might be expected, a high caregiver burden was found in the same cohort of children and their families, and caregiver mental health was associated with depression and anxiety diagnoses in their children 30.</p>
+<h3>Limitations</h3>
+<p>Limitations of this study include the retrospective nature of the data, which resulted in small pieces of missing data. Data were collected from children when they attended the CWC for routine appointments. Children may no longer attend the CWC if it is far from their home or if they are now seen by adult services. Two groups were very small (unilateral UL and LL and unilateral UL with bilateral LL), so statistical comparisons were not performed for them. Whilst other groups were small in the broad context of research, they demonstrate a particularly large cohort of children where outcome data are sparse.</p>
+<h3>Conclusions</h3>
+<p>Children with limb loss sustained in the 2023 Kahramanmaraş-Türkiye Earthquakes have good physical, social and school health-related quality of life two years post-amputation. These outcomes are testament to their prosthetic provision, specialist rehabilitation, and treatment within a supportive, social community. Emotional quality of life was much lower in these children due to the personal trauma brought about by the earthquakes and the psychosocial effects of death, injury, and displacement experienced within their family units. Provision of early and widespread mental health support for children and their families after a natural disaster may improve outcomes for future children.</p>
+<p>At the time of writing, a devastating earthquake hit Venezuela. Our findings are timely and important and can provide recommendations for care. Understanding long-term outcomes of these children would help plan physical and psychosocial health responses in future natural disasters.</p>
+<h3>Supplementary Tables</h3>
+<p>Table A: Amputation level and prosthetic componentry for children in each amputation group. (SACH: solid ankle, cushion heel foot component) Group Amputation Prosthetic Level n Suspension Knee Terminal device n Unilateral upper limb Shoulder disarticulation 1 --6-channel 1 Transhumeral 10 --6-channel 1 --4-channel 7 --Cosmetic 2 Transradial 2 --2-channel 1 --Cosmetic 1 Partial hand/finger 2 --Cosmetic 1 --None 1 Unilateral lower Hip disarticulation 1 Belt system Fixed/mechanical SACH 1 limb Transfemoral 5 Modular Hydraulic Carbon 2 Pin lock Hydraulic Carbon 1 Pin lock Fixed/mechanical Dynamic 1 KISS Hydraulic Dynamic 1 Knee disarticulation 8 Classic Fixed/mechanical SACH 1 Modular Hydraulic Dynamic 1 Pin lock Hydraulic Dynamic 1 Pin lock Hydraulic Carbon 3 Passive vacuum Fixed/mechanical Dynamic 1 Passive vacuum Pneumatic Dynamic 1 Transtibial 13 Modular -Dynamic 3 Modular -Carbon 2 Modular -SACH 2 Pin lock -Carbon 2 Pin lock -Dynamic 1 Passive vacuum -Carbon 2 Syme 1 Modular -Carbon 1 Chopart 1 Modular -Carbon 1 Partial foot/toe 2 Classic -Cosmetic 1 None --1 Bilateral lower limb Hip disarticulation + transfemoral 1 Belt system + modular Fixed/mechanical + Fixed/mechanical Dynamic + dynamic 1 Transfemoral + transfemoral 2 Pin lock + pin lock Hydraulic + hydraulic Carbon + carbon 2 Knee disarticulation + transtibial 1 Passive vacuum + pin lock Pneumatic Carbon + carbon 1 Transtibial + transtibial 2 Modular + modular -Carbon + carbon 1 Classic + classic -Dynamic + dynamic 1 Transtibial + partial foot/toe 1 Passive vacuum + none -Carbon + none 1 Unilateral upper and unilateral lower limb Transfemoral + partial hand/finger 1 Pin lock Hydraulic Carbon + none 1 Unilateral upper and bilateral lower limb Shoulder disarticulation + transfemoral + partial foot 1 Modular Fixed/mechanical Dynamic + cosmetic 1 Transhumeral + transfemoral + transtibial 1 Pin lock + modular Hydraulic Carbon + carbon + 4channel 1</p>
+<p>A.</p>
+<p>o ther wise state d, da ta ar e pre sen ted as me an ( sta ndard deviation ). No n-par am etr ic data is pr esente d as med ian ( inter quartil e rang e; IQR) a nd c ount data is pr esented as c ount fol l owe d b y perc enta ge ( %). % Inf ormation r ed acte d to pr otect c hil d&#x27;s id entity due to n= 1 and n= 2 &amp; heig ht of chil dre n with bil ater al l imb l oss was mea sur ed acc or din g to ag e-and se x-specif ic Sitting Heig ht to Statur e R atio *hun ger l in e = m inim um m on thl y c ost of a he al thy and adeq uate fo od al one for a f am il y of four in Ankara; po ver ty l ine = m in im um m onthl y co st of a heal th y a nd ad equate f oo d and al l other essential l iving e xpen se s for a f am il y of four in Ankar a 2 2 # F or school age chil dren i n T ürk iye ( 6-18-year s ol d) ADH D, Attentio n def icit h yper a cti vity di sor der; PT SD, p ost-tr aumati c stre ss d isord er ; ODD , op positional defiant d isor d er; OCD , ob sessi ve-com pul sive disor der; SD, shoul der disar ticul atio n; T H, tr anshum er al ; T R, tr ansr adial ; HD, hip di sartic ul ati on; T F, tr ansf emoral ; KD, kne e disar tic ul atio n; T T, tra nsti bial</p>
+<h3>Figure 1 : 24.</h3>
+<p>Figure 1: Violin plot for (A) Physical, (B) Emotional, (C) Social and (D) School components of the Paediatric Quality of Life (PedsQL) questionnaire completed by the children. The dotted line is the mean score for healthy Turkish children without limb loss 24 . The dashed line is the mean score for Turkish children with non-earthquake related limb loss 11.</p>
+<h3>Table 1 :</h3>
+<p>Demographic information for the full cohort and unilateral upper limb (UL), unilateral lower limb (LL), bilateral LL, unilateral UL, unilateral LL, and unilateral UL, bilateral LL amputation groups.</p>
+<h3>Table 2 :</h3>
+<p>Demographic information for the full cohort and unilateral upper limb (UL), unilateral lower limb (LL), bilateral LL, unilateral UL, unilateral LL, and unilateral UL, bilateral LL amputation groups. Unless otherwise stated, data are presented as count (range).</p>
+<h3>References</h3>
+<p>Bartels SA, VanRooyen MJ. Medical complications associated with earthquakes. Lancet. Feb 25 2012;379(9817):748-57. doi:10.1016/S0140-6736(11)60887-8</p>
+<p>Düzova A, Akgül S, Eda Utine G, Yıldız Y. The Türkiye-Syria Earthquake: a response from the editors of the Turkish Journal of Pediatrics. The Turkish Journal of Pediatrics. 2023;65:1-2. doi:doi.org/10.24953/turkjped.2023.E001</p>
+<p>Yaksi N, Eroglu M. Determinants of Posttraumatic Stress Disorder (PTSD) among children and adolescents in the subacute stage of Kahramanmaras earthquake, Turkey. Arch Public Health. Nov 1 2024;82(1):199. doi:10.1186/s13690-024-01434-x</p>
+<p>Celik YS, Efe A, Aydos BS, et al. Psychiatric Manifestations Following the 2023</p>
+<p>Kahramanmaras Earthquakes: A Focus on Children and Adolescents. Psychiatry Clin Psychopharmacol. Dec 2 2024;34(4):302-310. doi:10.5152/pcp.2024.24915</p>
+<p>Ozdemir YE, Sirvanci U, Kusdogan E, Ozdag V, Kaya I. Exploring the prevalence and predictors of prolonged grief disorder among children and adolescents bereaved by the 2023 earthquake in Turkey. J Trauma Stress. Jun 2025;38(3):513-524. doi:10.1002/jts.23150</p>
+<p>Li WS, Chan SY, Chau WW, Law SW, Chan KM. Mobility, prosthesis use and health- related quality of life of bilateral lower limb amputees from the 2008 Sichuan earthquake. Prosthet Orthot Int. Feb 2019;43(1):104-111. doi:10.1177/0309364618792720</p>
+<p>Randolph MG, Elbaum L, Wen PS, et al. Functional and psychosocial status of Haitians who became users of lower extremity prostheses as a result of the 2010 earthquake. J Prosthet Orthot. Oct 1 2014;26(4):177-182. doi:10.1097/jpo.0000000000000039</p>
+<p>Chan S, Li W, Chau W, Law S, Chan K. Evaluation of Use of Prosthesis, Mobility, and Quality of Life in Young and Adult Persons with Unilateral Above-Knee Amputation 7 Years after the 2008 Sichuan Earthquake. Journal of Prosthetics and Orthotics. 2018;30(2):76-83. doi:10.1097/JPO.0000000000000173</p>
+<p>Ghidini C, Edgar CE, Ry C, et al. Pain and health-related quality of life for children with lower limb absence: An exploratory study. Clin Rehabil. Jul 14 2026:2692155261462423. doi:10.1177/02692155261462423</p>
+<p>Upton P, Eiser C, Cheung I, et al. Measurement properties of the UK-English version of the Pediatric Quality of Life Inventory 4.0 (PedsQL) generic core scales. Health Qual Life Outcomes. Apr 1 2005;3:22. doi:10.1186/1477-7525-3-22</p>
+<p>Demirdel S, Ulger O. Body image disturbance, psychosocial adjustment and quality of life in adolescents with amputation. Disabil Health J. Jul 2021;14(3):101068. doi:10.1016/j.dhjo.2021.101068</p>
+<p>Basaran S, Sariyildiz A, Olmez S, Kundakci B, Bicer OS. Prosthesis applications and challenges in children with earthquake-related amputations. Injury. Nov 2024;55(11):111920. doi:10.1016/j.injury.2024.111920</p>
+<p>Varni JW, Thompson KL, Hanson V. The Varni/Thompson Pediatric Pain Questionnaire. I. Chronic musculoskeletal pain in juvenile rheumatoid arthritis. Pain. Jan 1987;28(1):27-38. doi:10.1016/0304-3959(87)91056-6</p>
+<p>Varni JW, Burwinkle TM, Seid M. The PedsQL as a pediatric patient-reported outcome: reliability and validity of the PedsQL Measurement Model in 25,000 children. Expert Rev Pharmacoecon Outcomes Res. Dec 2005;5(6):705-19. doi:10.1586/14737167.5.6.705</p>
+<p>Cakin Memik N, Agaoglu B, Coskun A, Uneri OS, Karakaya I. [The validity and reliability of the Turkish Pediatric Quality of Life Inventory for children 13-18 years old].</p>
+<p>Turk Psikiyatri Derg. Winter 2007;18(4):353-63. Cocuklar Icin Yasam Kalitesi Olceginin 13-18 Yas Ergen Formunun Gecerlik ve Guvenilirligi.</p>
+<p>Uneri OS, Agaoglu B, Coskun A, Memik NC. Validity and reliability of Pediatric Quality of Life Inventory for 2-to 4-year-old and 5-to 7-year-old Turkish children. Qual Life Res. Mar 2008;17(2):307-15. doi:10.1007/s11136-007-9303-4</p>
+<p>Tanir MK, Kuguoglu S. Turkish validity and reliability of a pediatric quality of life cancer module for children aged 8-12 and parents. Asian Pac J Cancer Prev. 2011;12(1):125-30.</p>
+<p>Gallagher P, Maclachlan M. The Trinity Amputation and Prosthesis Experience Scales and quality of life in people with lower-limb amputation. Arch Phys Med Rehabil. May 2004;85(5):730-6. doi:10.1016/j.apmr.2003.07.009</p>
+<p>Topuz S, Ulger O, Yakut Y, Gul Sener F. Reliability and construct validity of the Turkish version of the Trinity Amputation and Prosthetic Experience Scales (TAPES) in lower limb amputees. Prosthet Orthot Int. Jun 2011;35(2):201-6. doi:10.1177/0309364611407678</p>
+<p>Pruitt SD, Varni JW, Setoguchi Y. Functional status in children with limb deficiency: development and initial validation of an outcome measure. Arch Phys Med Rehabil. Dec 1996;77(12):1233-8. doi:10.1016/s0003-9993(96)90185-9</p>
+<p>Korkmaz M, Erbahceci F, Ulger O, Topuz S. Evaluation of functionality in acquired and congenital upper extremity child amputees. Acta Orthop Traumatol Turc. 2012;46(4):262-8. doi:10.3944/aott.2012.2631</p>
+<p>TÜRK İŞ (Türkiye İşçi Sendikaları Konfederasyonu). Mart 2025 Açlık ve Yoksulluk Sınırı. Accessed 29/10/2026, https://www.turkis.org.tr/turk-is-mart-2025-aclik-ve-yoksulluk- siniri/</p>
+<p>UNICEF Türkiye. UNICEF Türkiye Annual Report 2023.2024. Accessed 29/10/2026. https://www.unicef.org/turkiye/en/reports/unicef-t%C3%BCrkiye-annual-report-2023</p>
+<p>Saglam Sahinoglu Y, Bakirhan H. Holistic approach to Turkish children with autism spectrum disorder: diet quality and diversity, gastrointestinal and nutritional problems and quality of life perspective. BMC Pediatr. Oct 21 2025;25(1):834. doi:10.1186/s12887-025-06207-1</p>
+<p>Pullen E, Jackson D, Silk M. Watching disability: UK audience perceptions of the Paralympics, equality and social change. European Journal of Communication. 2020;35(5):469-483. doi:10.1177/0267323120909290</p>
+<p>Ansar S, Coveliers A, De Bruyn S, et al. Peer support in paediatrics: A literature review. J Paediatr Child Health. Dec 2024;60(12):783-788. doi:10.1111/jpc.16703</p>
+<p>Suna Dag Y, Zengin M, Yayan EH, Suna E. Earthquake From the Perspectives of Amputee Children and Their Parents/Caregivers: A Phenomenological Study. J Am Psychiatr Nurses Assoc. Jul-Aug 2025;31(4):387-397. doi:10.1177/10783903241302094</p>
+<p>Limakatso K, Bedwell GJ, Madden VJ, Parker R. The prevalence and risk factors for phantom limb pain in people with amputations: A systematic review and meta-analysis. PLoS One. 2020;15(10):e0240431. doi:10.1371/journal.pone.0240431</p>
+<p>Fuchs X, Flor H, Bekrater-Bodmann R. Psychological Factors Associated with Phantom Limb Pain: A Review of Recent Findings. Pain Res Manag. 2018;2018:5080123. doi:10.1155/2018/5080123</p>
+<p>Sarıyıldız A, Coşkun Benlidayı İ, Ölmez S, Metin Ö, Başaran S. Evaluation of caregiver burden and related factors in children with earthquake-related amputation. Cukurova Medical Journal. 2025;50(2):400-409. doi:10.17826/cumj.1653277</p>
 </div>
 </details>
 </div>
