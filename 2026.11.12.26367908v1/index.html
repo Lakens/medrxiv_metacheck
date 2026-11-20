@@ -197,7 +197,7 @@ Monocyte-to-lymphocyte and Platelet-tolymphocyte ratios in Neuromyelitis
 Optica Spectrum Disorders: systematic review and metaanalysis
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.12.26367908
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.12.26367908
 </p>
 </header>
 <div class="mc-main">
@@ -321,8 +321,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -686,9 +687,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -710,7 +715,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -725,9 +731,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -740,13 +764,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -766,6 +793,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -773,12 +806,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -879,6 +918,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -898,6 +957,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1153,19 +1247,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1275,6 +1451,106 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Neuromyelitis Optica Spectrum Disorders (NMOSD) are a group of neuroinflammatory conditions that affect the nervous system. MLR and PLR are simple inflammatory biomarkers and are studied in many autoimmune and demyelinating diseases. In this study, we investigate the available evidence to determine whether MLR and PLR are higher in NMOSD patients than in healthy subjects.</p>
+<p>Methods: Systematic review and meta-analysis of studies measuring levels of PLR and/or MLR in both NMOSD patients and healthy controls were conducted. Mean difference (MD) and 95% confidence interval (CI) were used to measure the difference in levels of MLR and PLR between patients and healthy subjects.</p>
+<p>Results: For MLR, the main meta-analysis yielded a pooled MD of 0.125 [-0.114; 0.363]. I² was 83.8%. Subgroup meta-analysis of age-and sex-matched studies, demonstrated a pooled MD of 0.066 [0.012; 0.12]. For PLR, meta-analysis revealed a pooled MD of 23.99 [6.03; 41.96]. I² was 82.3%. Subgroup analysis for age-and sex-matched studies for PLR, showed a pooled MD of 14 [-19.68; 47.68].</p>
+<p>The main analysis suggests that MLR is not higher in NMOSD patients than in healthy controls. However, subgroup analysis of age-and sexmatched studies and leave-one-out analysis excluding the outlier study showed a statistically significant MLR increase in patients. PLR was found to exhibit a modest increase in NMOSD patients compared with healthy controls. Nonetheless, subgroup analysis of age-and sex-matched studies showed a statistically nonsignificant increase. Results should be interpreted cautiously. The available evidence is inconsistent and further research is needed.</p>
+<h3>1. Introduction:</h3>
+<p>&#x27;Neuromyelitis Optica Spectrum Disorders&#x27; (NMOSD) is an umbrella term that refers to a group of neuroinflammatory conditions that mainly affect the optic nerve, the spinal cord, and, less commonly, the brainstem 1 . Traditionally, Neuromyelitis Optica (NMO) referred to a neuroinflammatory condition where patients typically had optic neuritis and longitudinally extensive transverse myelitis (LETM) 2 . In 2005, an immunoglobulin G (IgG) antibody to the most abundant water channel in the brain (Aquaporin 4) was identified, changing our understanding of the disease and the way it is diagnosed. Aquaporin-4 immunoglobulin G (AQP4-IgG) is present in the majority of cases of NMOSD 1 . In 2015, the International Panel for NMO Diagnosis (IPND) decided to unify the traditional term NMO and the newer term NMOSD 2 . Furthermore, in the same year, the IPND released criteria for diagnosing NMOSD, paying regard to the clinical heterogeneity of the AQP4-IgG-negative cases and the uncertainty in diagnosis; these criteria addressed the two main categories of NMOSD: AQP4-IgG-positive and AQP4-IgG-negative, in addition to a third category where AQP4 status is unknown 2 . The core clinical characteristics of NMOSD according to the 2015 international consensus diagnostic criteria include: optic neuritis, myelitis, area postrema syndrome, narcolepsy or acute diencephalic syndrome with typical NMOSD MRI lesions, acute brainstem syndrome, and cerebral syndrome with NMOSD MRI lesions 2 . Indeed, the immune system is at the core of the pathogenesis of NMOSD, which is essentially considered an autoimmune astrocytopathy 3 . AQP4-IgG is produced by B cells that are strongly present in the peripheral blood but rare in the CSF, which means that AQP4-IgG antibodies are mainly produced in the peripheral blood and then traverse the damaged blood-brain barrier into the brain 4.</p>
+<p>In pursuit of helpful diagnostic and prognostic clues and definitive pathological profiles, many studies have investigated multiple potential biomarkers of NMOSD to help establish the diagnosis and differentiate it from closely related diseases such as myelin oligodendrocyte glycoprotein antibody-associated disease (MOGAD) and multiple sclerosis (MS) [5] [6] [7] . Among these biomarkers are simple indices e.g., platelet-to-lymphocyte ratio (PLR) and cerebrospinal fluid (CSF)/serum albumin quotient (Qalb), and more specific neurological biomarkers, e.g., glial fibrillary acidic protein (GFAP) and neurofilament light (NfL) 7, 8 . Simple hematological indices like platelet-to-lymphocyte ratio (PLR), neutrophil-to-lymphocyte ratio (NLR), monocyte-to-lymphocyte ratio (MLR), and systemic inflammatory ratio (SII) have been studied extensively in many autoimmune diseases 9, 10 . Many studies reported associations between high NLR, PLR, and MLR and demyelinating diseases, in addition to their association with relapses [11] [12] [13] . Their implication in neuroinflammatory diseases has drawn much attention, in pursuit of any association that could be studied later for clinical relevance.</p>
+<p>In this study, we aim to investigate whether the hematological indices, PLR and MLR, are higher in patients with NMOSD than in the healthy population, through a systematic review and meta-analysis of the available evidence. :  &gt;Methods &amp; Materials</p>
+<h3>2.1 Eligibility criteria</h3>
+<p>Studies should include human participants with an established diagnosis of NMOSD according to the international consensus on NMOSD 2015 criteria in addition to healthy participants. Studies should assess PLR and/or MLR in both the NMOSD group and the healthy group and provide quantitative data of MLR and/or PLR. Studies not providing quantitative data would be included in the narrative review only. Studies should be of case-control, retrospective, prospective, crosssectional, or cohort study design.</p>
+<p>Studies were excluded if they were in vitro studies, animal studies, conference abstracts, narrative reviews, editorials, letters without original data, or case reports. Studies were also excluded if they were not assessing MLR or PLR. Moreover, if there were duplicate reports of the same dataset, the most complete or most recent dataset was retained. If there were studies that had overlapping subjects/cohorts, all reports other than the most recent and inclusive study only were excluded.</p>
+<h3>2.2 Search strategy and study selection</h3>
+<p>Four databases were searched in this review: PubMed, Web of Science (WoS) Core Collection, Scopus and Cochrane CENTRAL. No language restrictions were applied. Keywords related to our study tests: &quot;PLR&quot;, &quot;platelet-to-lymphocyte ratio&quot; , &quot;MLR&quot; and &quot;monocyte-to-lymphocyte ratio&quot; and those of the emphasized condition: &quot;NMOSD&quot; and &quot;Neuromyelitis Optica&quot; were used in the search. The search started on 1 October and ended on 2 October 2026. All reports were pooled into Rayyan for screening. Search date was set from 1July 2015 to date, as accordance to IPND 2015 criteria was an inclusion criterion of our study. All duplicate studies were removed manually. Afterwards, the remaining studies were screened by 2 reviewers independently through title and abstract. When an abstract was missing, reviewers sought the abstract or full text of that report. Conflicts were resolved through discussions by the 2 reviewers.</p>
+<h3>2.3 Data extraction and Management</h3>
+<p>Data from each study were extracted by 2 reviewers independently. Data were extracted into preset Excel sheets. Conflicts were resolved by a third reviewer.</p>
+<p>The following data were gathered from the studies:</p>
+<p>Study information (e.g. Study name, design, year, country, Multi-or single center..).  Participant characteristics (age(mean, SD), sex, number of (total participants, patients, healthy), inclusion criteria, exclusion criteria,..)  Target condition: prevalence, severity, AQP4-IgG status, organs involved, MRI findings, active disease/remission, treatment.  Tested Biomarkers: MLR and PLR values (mean(SD) or median(q1-q3)), Technical aspects, observer, Timing in relation to disease diagnosis and treatment if any, etc.</p>
+<p>Studies were assessed for risk of bias using the Newcastle-Ottawa tool. Two reviewers assessed every study independently, and conflicts were resolved by a 3rd reviewer. Study authors were contacted by email if there were any gaps or missing data.</p>
+<h3>2.4 Data synthesis</h3>
+<p>Narrative synthesis emphasized study characteristics, disease pattern, AQP4-IgG, EDSS score and key findings. When needed, subgroups&#x27; mean (SD) were combined into mean (SD) of the main group by repeating Cochrane&#x27;s formula. A random-effects model was selected a priori to be used for all quantitative metaanalyses due to the expected heterogeneity in clinical aspects, especially in disease activity, phenotype, and treatment status. Mean difference (MD) and 95% confidence interval (CI) were used to investigate the difference in levels of MLR and PLR between NMOSD patients and healthy subjects. This simpler method was chosen as PLR and MLR are usually calculated on the same numerical scale. For studies reporting median (1 st quartile-3 rd quartile) instead of mean (standard deviation), Wan et al. (2014) 14 and Luo et al. (2018) 15 methods were selected a priori to estimate the mean (SD) from the median (Q1-Q3), however, significant skewness was detected in many studies&#x27; results. Then, we resorted to MLN method of Cai et al. (2021) 16 , yet its Box-Cox power parameter reached the upper boundary of the search interval (λ ≈ 10) in most estimates of MLR and yielded SDs smaller than the theoretical minimum (IQR/2√2). Finally, the mean and SD were estimated using the quantile estimation (QE) method of McGrath et al. (2020) 17 through the estmeansd package of R. Between-study variance (τ²) was measured using the restricted maximum-likelihood (REML) method. Between-study heterogeneity was demonstrated by Higgins and Thomson&#x27;s I 2 18 . Due to the small study number, the Hartung-Knapp 19 adjustment was applied. Sensitivity analyses were conducted to determine the effect of sequentially removing individual studies from the analysis. Statistical analysis and graph production were done through the meta package on R. Subgroup meta-analyses of studies that matched patients and controls for age and sex were conducted. For (Peternell et al. 2024), Q1 and Q3 were extracted from a box plot using WebPlotDigitizer.</p>
+<h3>2.5 Certainty of Evidence Assessment</h3>
+<p>The certainty of evidence for the two primary outcomes, differences in monocyteto-lymphocyte ratio (MLR) and platelet-to-lymphocyte ratio (PLR) between patients with NMOSD and healthy controls, was evaluated using the Grading of Recommendations Assessment, Development and Evaluation (GRADE) approach. Under the conventional GRADE framework, observational evidence was initially rated as low certainty. Five domains were considered for downgrading: risk of bias, inconsistency, indirectness, imprecision, and publication bias. Risk-of-bias assessments were informed by the Newcastle-Ottawa Scale; inconsistency was considered using study-specific effects, I², and prediction intervals; indirectness was assessed against the prespecified review question; and imprecision was examined using pooled 95% confidence intervals and the clinical relevance of differences. Publication bias was considered qualitatively, since fewer than ten studies were available per outcome. The resulting certainty judgments were summarized separately for MLR and PLR.</p>
+<h3>2.6 Protocol Registration</h3>
+<p>The protocol for this systematic review and meta-analysis was prospectively registered in the International Prospective Register of Systematic Reviews (PROSPERO; registration number: CRD420261527206).</p>
+<p>Deviations from registered protocol: 1) Using QE to estimate mean (SD) from Median (Q1-Q3), instead of Luo et al. 2018 and Wan et al. 2014.2) Applying the Hartung-Knapp adjustment. 3) Studies without extractable quantitative data were retained for narrative synthesis only. 4) Title change. 5) Conflicts between the findings of two reviewers were resolved by a third reviewer rather than by discussion by the two authors.</p>
+<h3>3. Results</h3>
+<p>Initial search gathered 146 total reports. PLR and MLR search results were inspected separately. All of these reports (titles and abstracts) were pooled into Rayyan. 70 duplicates were manually removed. Only 76 reports remained for title and abstract screening. After screening, only 11 reports were sought for full text retrieval and review. (Baradaran et al. 2025) 20 had an English abstract and a Persian-only full text. We included the study and translated the full text with Google Translate and multiple AI tools; we could not find a Persian-speaking collaborator, so we extracted basic data from the study and did not perform a risk of bias assessment for it. It was not included in the meta-analysis. The search and screening results flow is depicted in a PRISMA flow chart (Figure 1). MLR was addressed in 7 out of 11 included studies, while PLR was investigated in all of them.</p>
+<p>All studies were single-center, except for one (Peternell et al. 2024). Eight studies were undertaken in China, and one study was conducted in each of the following countries: Austria, Japan, and Iran. All included studies enrolled patients with NMOSD according to the international consensus criteria of 2015.</p>
+<p>Five studies included both AQP4-IgG seropositive and AQP4-IgG seronegative NMOSD patients; the other 5 studies included seropositive patients only, and one study (Baradaran et al. 2025) did not mention any data on this point. Only (Peternell et al. 2024) included pediatric patients exclusively; however, more than one study stated an inclusion criterion of 14 years of age or older. All studies included patients in the acute phase, yet they enrolled patients at different time points from the start of symptoms, except for (Zhan 2026 et al.), which included 42% of patients in remission, and (Baradaran etl al. 2025), which did not emphasize disease phase. Seven studies matched controls for age and sex, while the other four did not. Only (Wang et al. 2025) further classified NMOSD patients into disease-modifying treatment-receiving NMOSD patients (DMT-NMOSD) and (non-DMT-NMOSD).</p>
+<p>PLR in both groups, as well as in acute NMOSD, was found to be higher than in controls 21 . Interestingly, (Peternell et al. 2024) recorded PLR of patients at the acute phase, during acute treatment and at remission; the PLR value measured during the acute phase was used in the meta-analysis 22 . (Zhan et al 2026) included two distinct groups of patients: acute phase and remission groups 23 ; both were combined into one before meta-analysis. It found that PLR is higher during the acute phase than during remission, in contrast to (Peternell et al. 2024) that found a higher PLR in remission than in the acute phase, which is different from MS and MOGAD, in both of which PLR was higher during the acute phase than during remission 22, 23 . (Baradaran et al. 2025) found a higher PLR in NMOSD patients than in healthy controls 20 . Study characteristics are displayed in (Table 1).</p>
+<p>Out of 7 studies providing quantitative data of MLR in NMOSD patients and controls, (Fang et al. 2023) 12 was disqualified from the meta-analysis due to potential overlap with the newer study (Wang et al. 2024) 24 , which included a slightly larger number of NMOSD patients. The same (Fang et al. 2023) 12 was disqualified from the meta-analysis of PLR due to the same reason, in addition to (Wang et al. 2025) 21 , since it did not provide quantitative data, and (Baradaran et al. 2025), as it did provide median and IQR without 1 st and 3 rd quartiles. The screening concluded with the inclusion of only 8 studies out of 11 for PLR metaanalysis.</p>
+<p>For MLR, the total number of NMOSD patients included in studies eligible for meta-analysis was 538 patients in addition to 512 healthy controls. For PLR, studies that qualified for meta-analysis included 628 patients and 651 healthy controls.</p>
+<p>For MLR, random-effects meta-analysis yielded 0.125 mean difference (MD) with a 95% confidence interval (CI) of [-0.114; 0.363]. The prediction interval was [-0.3 72; 0.621]. Heterogeneity was high among studies investigating MLR, (I² = 83.8%, 95% CI: 66.2%-92.2%), and τ² was 0.0315 (Figure 2). Leave-one-out sensitivity a nalysis revealed no substantial change in MD or heterogeneity, except when (Zhen g et al. 2025) was omitted.</p>
+<p>Leaving Zheng et al. (2025) out resulted in a significant change in MD [95% CI] from 0.125 [-0.114; 0.363] to 0.06 [0.02 -0.10], and I² we nt down to 69.2%. (Figure 4) Subgroup meta-analysis of studies that carried out matching for age and sex (n=4) demonstrated a pooled MD of 0.066 with a 95% CI of [0.012; 0.12]. The predictio n interval was [-0.026; 0.158]. Regarding heterogeneity, I² was 61.9% [0.0%; 87.2 %]; while τ² equaled 0.0006. (Figure 3) For PLR, random-effects meta-analysis revealed a pooled mean difference (MD) of 23.99 with a 95% confidence interval of [6.03; 41.96]. Heterogeneity between studies was significantly high; I² was 82.3% [66.3%; 90.7%]; and the figure for τ² was 339.61. The 95% prediction interval was [-23.3; 71.29]. Leave-one-out sensitivity analysis revealed that the effect size and heterogeneity were generally stable, except for (Zheng et al 2025), which when excluded, the estimated pooled MD dropped to 17.85 [1.2 -34.49] and I² fell to 73.5%. In contrast, omitting (Li et al. 2024) lead to an increase in the pooled MD estimate to 28.97 [11.77; 46.18] while I² fell to 63.6%. (Figure 5, 7) Subgroup analysis for studies that complied with matching patients and controls for age and sex for PLR (n=4), showed a pooled MD [95% CI] of 14 [-19.68; 47.68]. The prediction interval was [-49.98; 77.98]. I² was 69.8%, and τ² was 293.69. (Figure 6) Risk of bias assessment of studies yielded a fair rating of 4-6 out of 9 for six studies, a poor rating of 0-3 out of 9 for two studies, and a good rating of 7 out of 9 for two studies. (Table 2)</p>
+<p>The certainty of evidence was rated very low for both outcomes (Table 3). For MLR, the pooled mean difference was 0.125 (95% CI -0.114 to 0.363; six studies; 1,050 participants), with substantial between-study heterogeneity (I² = 83.8%). For PLR, the pooled mean difference was 23.99 (95% CI 6.03 to 41.96; eight studies; 1,279 participants), also with substantial heterogeneity (I² = 82.3%). Both bodies of evidence were downgraded for methodological limitations and unexplained inconsistency. MLR was additionally affected by imprecision because its confidence interval spanned both lower and higher values in NMOSD. No downgrading for indirectness was considered necessary. Publication bias remained undetermined. Accordingly, confidence in the magnitude and reproducibility of the observed differences is limited.</p>
+<h3>4. Discussion</h3>
+<p>Our analysis of studies investigating MLR produced mixed results. Although the main analysis resulted in a mean difference of 0.125, the 95% confidence interval [-0.114; 0.363] crossed zero, meaning the pooled effect estimate is statistically non-significant. In addition, the I² is significantly high. Furthermore, (Zheng et al. 2025) reported a substantially larger effect (MD = 0.74) 25 . Leave-one-out sensitivity analysis omitting (Zheng et al. 2025) lead to a decrease in the pooled MD [95% CI] to 0.06 [0.02 -0.10]; in addition, I² decreased from 83.8% to 69.2%. This suggests that the results of the main analysis should be interpreted cautiously, as results are highly sensitive to one study (Zheng et al. 2025), which was not among studies that matched controls for age and sex. Furthermore, the subgroup analysis of studies that matched NMOSD patients and controls for age and sex, which did not include (Zheng et al. 2025), resulted in a pooled MD [95% CI] of 0.066 [0.012; 0.12], but with a zero-crossing 95% prediction interval of [-0.026; 0.158]. This means that the true effect in a future study could be zero or even slightly in the opposite direction despite the statistically significant pooled effect estimate. Despite evidence suggesting an association of higher MLR in NMOSD patients than in healthy subjects, the existence and magnitude of increase remain uncertain due to the limitedness and inconsistency of the available evidence. Further research would be needed to rule in or out a higher MLR association with NMOSD. Regarding PLR, the main meta-analysis revealed a relatively modest pooled mean difference (MD) of 23.99 with a 95% confidence interval of [6.03; 41.96]. The prediction interval was [-23.3; 71.29]; meaning the true effect size in a future study could be zero or negative. Subgroup meta-analysis of studies matching patients and controls for age and sex produced a smaller pooled MD [95% CI] of 14 [-19.68; 47.68], which is statistically non-significant as the 95% CI includes zero. Omitting (Zheng et al. 2025) from the analysis yielded a smaller pooled effect size (MD) of 17.85, which was closer to the result of the analysis of age-and sex-matched studies.</p>
+<p>(Zheng et al. 2025) displayed an outlier effect in MLR analysis and to a lesser extent, in PLR analysis. This, in addition to its high risk of bias, should be considered when interpreting the results of analyses.</p>
+<p>In terms of clinical applicability of such results, a PLR pooled MD of 23.99 is statistically significant; however, it does not mean that it can provide any practical advantage in everyday clinical practice, because PLR has its physiological variability, and its normal range is wide and highly affected by age and sex. A 2026 study estimated the normal range of PLR to be 70-231 in females and 61-183 in males 26 . An MD increase of 23.99 might be questionable in terms of clinical value due to this wide range. It is noteworthy that the patients&#x27; and controls&#x27; median (Q1-Q3) figures of PLR across most included studies were within the said normal ranges. (Moosmann et al. 2021) warned that ignoring reference intervals of biomarkers when comparing cases and controls makes it difficult to interpret their clinical significance 27.</p>
+<p>There are several limitations to our study. First, the studies measured PLR and MLR at different time points from the first/most recent clinical attack, and some included patients in remission. This may contribute to heterogeneity. Second, most included studies were conducted in China, which may limit the generalizability of findings. Third, many of the included studies are retrospective with a significant risk of bias. Fourth, most PLR mean (SD) values were estimated from median (Q1-Q3). Fifth, there was an included study (investigating PLR) in Persian. However, a trusted human translation was not at our disposal, and since lack of accurate translation might risk the accuracy of data extraction and quality assessment, we only did basic data extraction and no quality assessment was done for the study.</p>
+<p>The study did not mention mean (SD) and stated the median (IQR) only, without specifying Q1and Q3, which meant it was not qualified for meta-analysis. Sixth, many included studies lacked clear and definitive reporting of study design; many identified as &#x27;retrospective&#x27; with no well-corroborated methods section or no clearly stated design. Some studies, such as Akaishi et al. (2023), had properties of both cross-sectional and case-control studies, as they used a case-control sampling method and a snapshot-like measurement of indices. We reported the stated designs in their manuscripts. For the risk-of-bias assessment, we opted to consider those studies enrolling patients and controls for PLR or MLR assessment as case-control, as assessing control selection is crucial to our study. In addition, the &#x27;non-response rate&#x27; question of NOS is not applicable to retrospective studies; hence, retrospective studies were not given a star for this point. Although it didn&#x27;t affect the overall assessment results except for one study, this should be taken into consideration. The risk-of-bias assessment revealed concerns of bias in multiple studies; Most scores (6 out of 10) ranged from 4 to 6 out of 9, meaning a moderate risk of bias, and two studies had a high risk of bias. Only two out of ten studies achieved a good score, which means a low risk of bias. Finally, the GRADE assessment indicated very low certainty of evidence for both MLR and PLR comparisons, principally because of methodological limitations and substantial unexplained between-study heterogeneity. For MLR, the pooled estimate was additionally imprecise, with a confidence interval spanning both lower and higher biomarker values in NMOSD. Although the PLR meta-analysis yielded a statistically significant pooled difference, uncertainty regarding reproducibility and clinical significance persists. The PLR pooled estimate was also deemed imprecise as it encompassed a broad range of effect magnitudes. These findings should therefore be interpreted cautiously and should not be regarded as evidence of independent diagnostic utility.</p>
+<h3>5. Conclusion:</h3>
+<p>The main analysis suggests that MLR is not higher in NMOSD patients than in healthy controls. However, both the subgroup analysis of age-and sex-matched studies and the leave-one-out analysis excluding the outlier study showed a statistically significant MLR increase in patients. PLR was found to exhibit a modest increase in NMOSD patients compared with healthy controls. Nonetheless, the subgroup analysis of age-and sex-matched studies showed a statistically nonsignificant increase. The results for should be interpreted cautiously. The available evidence on both PLR and MLR is inconsistent, and further research is needed. Records identified: (n = 416 ) Records removed before screening: Duplicate records removed (n = 70) Records marked as ineligible by automation tools (n = 0 ) Records removed for other reasons (n = 0 ) Records screened (n = 76) Records excluded** (n = 65) Reports sought for retrieval (n =44 ) Reports not retrieved (n =0 ) Reports retrieved in non-English languages: (n =1) Reports assessed for eligibility (n =11 ) Reports excluded: Conference abstracts (n =0 ) New studies included in review (n = 11) Identification of new studies via databases and registers Identification Screening Included     Figure 7: PLR leave-one-out sensitivity analysis results.</p>
+<p>. Table 3. GRADE Summary of Findings a. Risk of bias: Downgraded because of methodological limitations identified through the Newcastle-Ottawa Scale, including concerns regarding participant selection, comparability between groups, and residual confounding. b. Inconsistency: Downgraded because of substantial unexplained between-study heterogeneity (MLR: I² = 83.8%; PLR: I² = 82.3%), with prediction intervals encompassing the null value. c. MLR imprecision: Downgraded because the pooled 95% confidence interval crossed the null value and included differences in both directions, limiting confidence in the direction and magnitude of the association. d. PLR imprecision: Downgraded because, although the pooled 95% confidence interval excluded the null value, it encompassed a broad range of effect magnitudes (MD 6.03-41.96). In the absence of an established clinically meaningful difference for PLR, uncertainty remains regarding the clinical importance of the observed association. e. Publication bias: Could not be reliably evaluated because fewer than ten studies were included in each meta-analysis. No additional downgrading was applied. Abbreviations: CI, confidence interval; GRADE, Grading of Recommendations Assessment, Development and Evaluation; MD, mean difference; MLR, monocyte-to-lymphocyte ratio; NMOSD, neuromyelitis optica spectrum disorder; PLR, plateletto-lymphocyte ratio.</p>
+<p>Table note: Certainty was evaluated using the conventional GRADE framework, with observational evidence initially rated as low. Final certainty was very low for both outcomes because of risk-of-bias concerns and substantial unexplained heterogeneity. Publication bias was not formally assessed.</p>
+<p>.</p>
+<h3>List of abbreviations</h3>
+<p>AQP4-IgG Aquaporin-4 immunoglobulin G CI Confidence interval CSF Cerebrospinal fluid EDSS Expanded Disability Status Scale GRADE Grading of Recommendations Assessment, Development and Evaluation IPND International Panel for NMO Diagnosis LETM Longitudinally extensive transverse myelitis MD Mean difference MLR Monocyte-to-lymphocyte ratio MOGAD Myelin oligodendrocyte glycoprotein antibodyassociated disease MS Multiple sclerosis NLR Neutrophil-to-lymphocyte ratio NMO Neuromyelitis optica NMOSD Neuromyelitis optica spectrum disorder NOS Newcastle-Ottawa Scale PLR Platelet-to-lymphocyte ratio PRISMA Preferred Reporting Items for Systematic Reviews and Meta-Analyses Q1 First quartile Q3 Third quartile REML Restricted maximum likelihood SD Standard deviation SII Systemic inflammatory index WoS Web of Science Declarations  Ethics approval and consent to participate: Not applicable  Consent for publication: Not applicable  Availability of data and materials: All study data are available upon request.  Competing interests: Authors declare no conflict of interest.  Funding: This study had no external funding  Authors&#x27; contributions: Conceptualization: Abdurrahman Elsayed Shouman Methodology: Abdurrahman Elsayed Shouman Literature search: Abdurrahman Elsayed Shouman Screening and study selection: Abdurrahman Elsayed Shouman, Mohammad Bdour Data extraction: Mahmoud Sherif, Hossam Rostom, Reem Saad, Mohammad Bdour, Asaad Ibrahim Risk of bias assessment: Mahmoud Sherif, Hossam Rostom, Reem Saad, Mohammad Bdour, Asaad Ibrahim, Abdurrahman Elsayed Shouman. Formal analysis / Meta-analysis: Abdurrahman Elsayed Shouman Software: Abdurrahman Elsayed Shouman Certainty of Evidence assessment (Methodology &amp; Writing): Reem Saad Writingoriginal draft: Abdurrahman Elsayed Shouman.</p>
+<h3>Figure 1 :Figure 2 :</h3>
+<p>Figure 1: PRISMA flow diagram of search results and included studies.</p>
+<h3>Figure 3 :</h3>
+<p>Figure 3: Results of MLR Subgroup analysis of age-and sex-matched studies.</p>
+<h3>Figure 4 :</h3>
+<p>Figure4: MLR leave-one-out sensitivity analysis results.</p>
+<h3>Figure 5 :</h3>
+<p>Figure 5: PLR main analysis results.</p>
+<h3>Figure 6 :</h3>
+<p>Figure 6: Results of PLR Subgroup analysis of age-and sex-matched studies.</p>
+<h3>Table 1 :</h3>
+<p>study characteristics. *Study design was depicted according to how studies identified themselves. Some studies reported unclear or inaccurate study design.</p>
+<h3>Table 2 : NOS quality assessment results.</h3>
+<p>*Peternell 2024 was assessed with the NOS cohort form; its items respectively correspond to the columns as follows: representativeness of the exposed cohort; selection of the non-exposed cohort; ascertainment of exposure; outcome not present at start of study; comparability for age &amp; sex; comparability for additional factors; assessment of outcome; follow-up long enough; adequacy of follow-up.</p>
+<h3>References</h3>
+<p>Jarius, S. et al. Update on the diagnosis and treatment of neuromyelits optica spectrum disorders (NMOSD) -revised recommendations of the Neuromyelitis Optica Study Group (NEMOS). Part I: Diagnosis and differential diagnosis. J Neurol 270, 3341-3368 (2023).</p>
+<p>Wingerchuk, D. M. et al. International consensus diagnostic criteria for neuromyelitis optica spectrum disorders. Neurology 85, 177-189 (2015).</p>
+<p>Siriratnam, P. et al. A comprehensive review of the advances in neuromyelitis optica spectrum disorder. Autoimmunity Reviews 22, 103465 (2023).</p>
+<p>Häusser-Kinzel, S. &amp; Weber, M. S. The Role of B Cells and Antibodies in Multiple Sclerosis, Neuromyelitis Optica, and Related Disorders. Front Immunol 10, 201 (2019).</p>
+<p>Klyscz, P. et al. Analysis of Soluble Interleukin-2 Receptor as a Prognostic Biomarker in NMOSD and MOGAD. Ann Clin Transl Neurol 12, 2460-2469 (2025).</p>
+<p>Wei, Q. et al. Blood-based inflammatory protein biomarker panel for the prediction of relapse and severity in patients with neuromyelitis optica spectrum disorder: A prospective cohort study. CNS Neurosci Ther 30, e14811 (2024).</p>
+<p>Yan, H. et al. Combined platelet-to-lymphocyte ratio and blood-brain barrier biomarkers as indicators of disability in acute neuromyelitis optica spectrum disorder. Neurol Sci 45, 709- 718 (2024).</p>
+<p>Chang, X. et al. Serum Neurofilament Light and GFAP Are Associated With Disease Severity in Inflammatory Disorders With Aquaporin-4 or Myelin Oligodendrocyte Glycoprotein Antibodies. Front. Immunol. 12, (2021).</p>
+<p>Ma, L., Zeng, A., Chen, B., Chen, Y. &amp; Zhou, R. Neutrophil to lymphocyte ratio and platelet to lymphocyte ratio in patients with systemic lupus erythematosus and their correlation with activity: A meta-analysis. International Immunopharmacology 76, 105949 (2019).</p>
+<p>Mihai, A. et al. The Predictive Role of Neutrophil-to-Lymphocyte Ratio (NLR), Platelet-to- Lymphocyte Ratio (PLR), Monocytes-to-Lymphocyte Ratio (MLR) and Gammaglobulins for the Development of Cutaneous Vasculitis Lesions in Primary Sjögren&#x27;s Syndrome. J Clin Med 11, 5525 (2022).</p>
+<p>Huang, W.-C. et al. Neutrophil-to-lymphocyte ratio and monocyte-to-lymphocyte ratio are associated with a 2-year relapse in patients with multiple sclerosis. Mult Scler Relat Disord 58, 103514 (2022).</p>
+<p>Fang, X., Sun, S., Yang, T. &amp; Liu, X. Predictive role of blood-based indicators in neuromyelitis optica spectrum disorders. Front. Neurosci. 17, 1097490 (2023).</p>
+<p>Akaishi, T. et al. White blood cell count profiles in anti-aquaporin-4 antibody seropositive neuromyelitis optica spectrum disorder and anti-myelin oligodendrocyte glycoprotein antibody-associated disease. Sci Rep 13, 6481 (2023).</p>
+<p>Wan, X., Wang, W., Liu, J. &amp; Tong, T. Estimating the sample mean and standard deviation from the sample size, median, range and/or interquartile range. BMC Med Res Methodol 14, 135 (2014).</p>
+<p>Luo, D., Wan, X., Liu, J. &amp; Tong, T. Optimally estimating the sample mean from the sample size, median, mid-range, and/or mid-quartile range. Stat Methods Med Res 27, 1785-1805 (2018).</p>
+<p>Cai, S., Zhou, J. &amp; Pan, J. Estimating the sample mean and standard deviation from order statistics and sample size in meta-analysis. Stat Methods Med Res 30, 2701-2719 (2021).</p>
+<p>McGrath, S., Sohn, H., Steele, R. &amp; Benedetti, A. Meta-analysis of the difference of medians. Biometrical Journal 62, 69-98 (2020).</p>
+<p>Higgins, J. P. T. &amp; Thompson, S. G. Quantifying heterogeneity in a meta-analysis. Statistics in Medicine 21, 1539-1558 (2002).</p>
+<p>Hartung, J. &amp; Knapp, G. On tests of the overall treatment effect in meta-analysis with normally distributed responses. Statistics in Medicine 20, 1771-1782 (2001).</p>
+<p>‫طیف‬ ‫اختالالت‬ ‫به‬ ‫مبتال‬ ‫بیماران‬ ‫در‬ ‫خونی‬ ‫پارامترهای‬ ‫ا.‬ ‫فارسانی,‬ ‫حیدری‬ &amp; ‫م.‬ ‫برقوقی,‬ ‫و.,‬ ‫پور,‬ ‫شایگان‬ ‫آ.,‬ ‫برادران,‬ ‫اپتیکا‬ ‫نورومیلیتیس‬ NMO). JIMS 43, (2025).</p>
+<p>Wang, X. et al. Alterations in peripheral blood immune cell profiles of neuromyelitis optica spectrum disorder across different phases and after B cell depletion therapy. Front. Immunol. 16, 1556259 (2025).</p>
+<p>Peternell, A. et al. Blood parameters in pediatric myelin oligodendrocyte glycoprotein antibody-associated disorders. European Journal of Paediatric Neurology 50, 86-95 (2024).</p>
+<p>Zhan, Y. et al. Predictors for the severity of acute aquaporin-4 immunoglobulin G- seropositive neuromyelitis optica spectrum disorders: a prospective cohort study. Front. Immunol. 17, 1714655 (2026).</p>
+<p>Wang, L., Xia, R., Li, X., Shan, J. &amp; Wang, S. Systemic inflammation response index is a useful indicator in distinguishing MOGAD from AQP4-IgG-positive NMOSD. Front. Immunol. 14, 1293100 (2024).</p>
+<p>Zheng, X. et al. Acute neuromyelitis optica spectrum disorder patients&#x27; clinical analysis of disability-related biomarkers. BMC Neurol 25, 119 (2025).</p>
+<p>Šašić-Ostojić, T. et al. Platelet to lymphocyte ratio in the healthy population of Vojvodina. J Med Biochem 44, 2080-2086 (2026).</p>
+<p>Moosmann, J. et al. Age-and sex-specific pediatric reference intervals for neutrophil-to- lymphocyte ratio, lymphocyte-to-monocyte ratio, and platelet-to-lymphocyte ratio. International Journal of Laboratory Hematology 44, 296-301 (2022).</p>
+<p>Li, X. et al. Inflammatory and Nutritional Markers as Indicators for Diagnosing and Assessing Disease Activity in MS and NMOSD. JIR Volume 17, 10065-10078 (2024).</p>
+<p>Sun, Q., Ma, X., Zhang, L. &amp; Tian, D. The neutrophil-to-lymphocyte ratio and platelet-to- lymphocyte ratio in patients with neuromyelitis optica spectrum disorders and multiple sclerosis. Front. Neurol. 16, 1598885 (2025).</p>
 </div>
 </details>
 </div>
