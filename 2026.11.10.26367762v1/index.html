@@ -198,7 +198,7 @@ System (Rehab CARES) for Gamified Motor and Cognitive Stroke
 Rehabilitation
 </p>
 <p class="meta">
-2026-11-12 · Metacheck 0.4.3.27 · DOI 10.1177/ToBeAssigned
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.1177/ToBeAssigned
 </p>
 </header>
 <div class="mc-main">
@@ -337,8 +337,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -804,9 +807,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -828,7 +835,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -843,9 +851,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -858,13 +884,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -884,6 +913,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -891,12 +926,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -997,6 +1038,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1016,6 +1077,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1271,19 +1367,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1393,6 +1571,206 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Purpose: Robot-assisted therapy predominantly targets motor impairment, although post-stroke motor and cognitive impairments co-occur. We report user experience in a longitudinal deployment of a Rehab Community-based Affordable Robot Exercise System (RehabCARES) for delivering personalized motor/cognitive training. Methods: Six adults with chronic stroke (FM-UE 20-61; MoCA 22-28) completed 12 therapy visits with THEAbot, a reconfigurable 1-DoF robot. Rehab CARES also included a haptic/biometric dynamic difficulty adjustment controller and eight games characterized by cognitive processes and motor/cognitive demand. We report gaming preference, usage, and user experience (pain, exertion, usability, affect, workload) across therapy. Results: User experience varied, but generally, self-reported pain was low, perceived exertion was light to moderate, enjoyment was strong and stable, and sense of control increased while excitement plateaued. Workload showed decreasing frustration and effort. Game selection during therapy was partially consistent with motor/cognitive clinical profiles; preferences and perceptual abilities may have influenced choices. Usability scores exceeded acceptability at all time points, peaking at the final visit (86 ± 4.5 out of 100).</p>
+<p>Conclusions: RehabCARES provided personalized motor/cognitive training to a heterogeneous cohort in a community-based setting, delivering a positive user experience. Hardware reconfigurability and motor/cognitive game variety likely enabled this success.</p>
+<h3>Introduction</h3>
+<p>At one year post-stroke, 40% of stroke survivors experience moderate to severe disability 1 . This disability can result from a combination of stroke-related motor and cognitive impairments. Specifically, the literature suggests that cognitive impairment occurs in about 60% of stroke patients, whereas motor impairment occurs in 61.7% of patients, with some reports indicating higher percentages of cognitive impairment (up to 80%) [2] [3] [4] . Despite these poor outcomes, only 12% of people with stroke receive occupational therapy between 6 and 12 months post-stroke in the US 5 . This need is even more pronounced in low and middle income countries (LMICs), which face access barriers including high costs, lack of trained clinicians, and difficulty accessing clinics 6, 7 . Community-based rehabilitation (CBR) can help to fill these gaps by bringing services to local communities and lowering the cost of care 8, 9 . Beyond increased accessibility, CBR has been shown to have benefits in physical and psychosocial domains 10, 11 . The sense of community instilled by CBR programs may also improve patient motivation, which correlates with improved rehabilitation outcomes 12, 13.</p>
+<p>Robot-assisted therapy presents an opportunity to improve post-stroke CBR and can provide comparable levels of poststroke motor recovery as standard of care 14 , while offering benefits such as increased therapeutic dose 15 , increased motivation and engagement through gamification 16, 17 and personalized rehabilitation 18 . Beyond motor training, robotassisted therapy may improve quality of life, cognition, and psychosocial function 19 . Robot-assisted therapy can even be designed to support simultaneous motor and cognitive training 20 . Despite the potential for rehabilitation robots to provide cognitive training, most robot-assisted therapy studies focus solely on motor training while cognitive training remains relatively underexplored.</p>
+<p>Many robot therapy devices use the &quot;assist-as-needed&quot; control paradigm to adjust for multiple different levels of motor impairment 21 , but this approach only accounts for motor impairment and may ignore adjustments for differences in cognitive function. Dynamic Difficulty Adjustment (DDA) addresses the need to adjust for cognitive levels by modulating each individual&#x27;s game parameters in real time, keeping each user near the &quot;challenge point&quot; that maximizes motor learning 22 . Most rehabilitation DDA systems rely solely on game performance metrics to drive adaptation 23 , but performance-only approaches can misattribute difficulty when sensory barriers, fatigue, or attentional lapses degrade scores without reflecting true motor capacity, a problem compounded when a therapist&#x27;s attention is distributed among multiple patients at once. Biocooperative control supplements performance with physiological signals such as heart rate and galvanic skin response 24 , though integrating these in stroke populations is complicated by medication-altered baselines and signal noise.</p>
+<p>The Rehab Community-based Affordable Robot Exercise System (Rehab CARES) is a robot gym concept that utilizes robotic stations focused on distinct motor and cognitive skills to enable a single therapist to oversee multiple patients in a collaborative therapy gym environment 25 . The newest version of the Rehab CARES gym consists of three reconfigurable 1-DoF end-effector robot called THEAbot (Figure 1) 26 (Recupero Robotics LLC, Philadelphia PA), integrated with a gaming suite and novel hierarchical haptic/biometric DDA controller (enAblegames™) 27 . We demonstrate the system&#x27;s potential for simultaneous motor and cognitive training by defining the cognitive process utilized in the games in our rehabilitation library and characterizing those games according to their motor and cognitive challenge. Together, these features are intended to support personalization to individual participant needs via reconfigurable hardware and a library of games with varying motor and cognitive demand. We present usability, acceptability, and utilization of a longitudinal, communitybased deployment of Rehab CARES. We evaluate the system with user-reported surveys and individual utilization, including robot position and game selection over 12 therapy sessions, from a small, heterogeneous cohort of people with stroke.</p>
+<h3>Related Work</h3>
+<p>Conventional robot-assisted therapy pairs a single user with a single device under direct therapist supervision, but this configuration scales poorly and can increase costs, which is especially challenging in low-resource settings 28 . When configured as a robot gym with multiple stations to accommodate group therapy for users with different therapeutic goals, rehabilitation robots can enable individualized practice while delivering CBR benefits such as reduced cost and sense of community 25, [28] [29] [30] . Several different robotic gyms for post-stroke arm rehabilitation have been presented in the past. Buschfort et al. showed that an &quot;arm studio&quot; consisting of six devices that trained different upper limb movements could increase intensity of inpatient subacute stroke rehabilitation 31 . Aprile et al. furthered these results with a randomized control trial of inpatient subacute stroke patients, demonstrating that a gym consisting of four devices led to similar motor improvements as conventional therapy and increased the number of patients that a therapist could oversee 29 . Bustamante-Valles et al. first demonstrated feasibility of robot gyms for chronic stroke rehabilitation in a low-resource setting 30 . The robot/computer-based gym was also the first robot gym to explicitly focus on cognitive impairment by incorporating a &quot;brain training&quot; game station and inspired the evolution of the Rehab CARES platform as a more affordable robot gym 25 . The current version of Rehab CARES builds on the robotic gym through three key features: reconfigurable hardware, gamified tasks, and adaptive difficulty adjustment. Together, these features help ensure that the system provides affordable, engaging, and personalized motor-cognitive training.</p>
+<h3>Reconfigurable Hardware -Affordability and Comprehensive Motor Training</h3>
+<p>A key limitation to clinical deployment of rehabilitation robots is the high start-up cost 18, 32 . Decreasing the degreesof-freedom (DoF) can dramatically reduce the cost of robot hardware 33 . Low-DoF systems also do not lead to lower performance. In fact, end-effector robots offer equivalent or superior clinical outcomes for upper limb training. Lee et al. conducted the first direct randomized controlled trial comparing end-effector and exoskeleton architectures in chronic stroke patients, finding end-effector robots significantly outperformed exoskeletons on activity and participation outcomes 34 . Likewise, meta-analysis of 31 RCTs similarly ranked end-effector robot-assisted therapy highest for improving upper limb motor function 35 . Low-DoF end-effector robots, however, can limit the types of motion patterns a user can practice.</p>
+<p>Reconfigurable robots may provide a solution, enabling multiple movement patterns while keeping hardware complexity and costs low. Examples of 1-DoF reconfigurable rehabilitation robots include the Bi-Manu-Track (bimanual forearm pronation/supination and wrist flexion/extension) 36 and the CR2-Haptic (four different grasps; forearm pronation/supination, wrist-flexion/extension, wrist ulna-radial deviation, and elbow and shoulder flexion/extension) 37 . These standalone devices demonstrate that reconfigurable hardware can enable a single device to train multiple movements. In our previous work, we validated that our 1-DoF, reconfigurable robot, THEAbot, can provide three different types of movement (elbow and shoulder flexion/extension, shoulder abduction/adduction, and forearm pronation/supination) 26 . These versatile robotic systems enable comprehensive arm exercise on a single platform.</p>
+<p>Prepared using sagej.cls Unlike previous robot gym iterations, Rehab CARES uses a single device, THEAbot, for all stations. Because the robot enables three different arm exercises, clinics do not need to purchase separate systems for each type of movement. This reconfigurable hardware reduces start-up costs by enabling clinics to slowly grow the number of gym stations without compromising on therapeutic versatility. Furthermore, a robot gym with a single robotic platform can alleviate the administrative burden of training clinicians on new equipment. Rather than learning to operate three different devices, clinicians can train on a single system. Finally, a reconfigurable system is more robust to changing therapy needs, allowing users to practice whichever movement best meets their goals, regardless of how the other gym stations are utilized.</p>
+<h3>Gamification -Engagement and Cognitive Training</h3>
+<p>Gamification can support engagement in rehabilitation by restructuring repetitive movement practice as goal-directed activity with explicit objectives and immediate feedback. In post-stroke robot-assisted therapy, a meta-analysis of 42 randomized controlled trials involving 1,760 participants found that serious-game interventions produced greater improvements than conventional therapy in upper-limb function, activity and participation, with the largest pooled effect observed for participation 38 . Pixa et al. identify an appropriate balance between challenge and skill, clear goals, and immediate feedback as design characteristics associated with engagement in post-stroke rehabilitation games 39.</p>
+<p>A separate body of work considers rehabilitation games not only as motivational structures for motor practice but also as vehicles for cognitive practice. This distinction is particularly relevant after stroke, where motor and cognitive impairments frequently cooccur and cognitive status can influence responsiveness to motor rehabilitation 40 . Gameplay that requires rapid color discrimination, maintenance of a target sequence in working memory, divided attention, or strategic evaluation of competing goals recruits cognitive processes in addition to those involved in producing the required movements. Consequently, serious games have been investigated as interventions for attention and related cognitive functions. Reviews report improvements in at least one outcome related to attention in a majority of the studies examined, while also identifying persistent methodological limitations, including small samples and heterogeneous outcome measures 41 . Two games that elicit similar joint movements may therefore differ substantially in their attentional, mnemonic, perceptual, or executive demands.</p>
+<p>Despite this interaction between motor and cognitive demands, rehabilitation games are commonly described primarily in terms of their physical requirements, such as the body segments involved, movement range, repetition, or resistance. When cognitive characteristics are reported, games are often categorized by genre or by the broad cognitive domain they are intended to address rather than by an explicit, graded characterization of the cognitive demands imposed during gameplay 41 . Similarly, difficulty is generally represented as progression within an individual game rather than as a common dimension that can be compared across games in a library. This creates an asymmetry in game selection. A clinician can often assess whether a game is compatible with a particular motor goal from the game&#x27;s physical requirements, whereas selecting a game for a particular cognitive profile Prepared using sagej.cls may depend more heavily on prior experience, informal judgment, or trial and error. This limitation is particularly relevant in rehabilitation settings in which individuals with heterogeneous motor and cognitive abilities train concurrently and therapist attention is distributed among multiple patients or stations 25, 29 . In such settings, a clinician may need to alter cognitive demand while preserving a desired movement pattern-for example, by selecting an activity that elicits a comparable physical action while placing lower demands on attention, working memory, or executive control. Descriptions centered primarily on physical requirements provide limited support for this form of selection.</p>
+<h3>Dynamic Difficulty Adjustment -Personalization and Progressive Challenge</h3>
+<p>Individualized difficulty in rehabilitation derives from two complementary frameworks: Csikszentmihalyi&#x27;s Flow Theory, which identifies challenge-skill balance as the determinant of optimal engagement 42 , and the Challenge Point Framework (CPF), which holds that the optimal challenge point must be continuously updated as skill develops 22 . Pixa et al. confirmed that challenge-skill balance, clear goals, and immediate feedback are the conditions most reliably associated with sustained engagement in stroke rehabilitation 39.</p>
+<p>Early DDA implementations relied on performance metrics alone; while these effectively capture aggregate task outcomes (such as trial success or completion time), they provide delayed feedback that only registers after a movement concludes, failing to capture the realtime divergence between apparent success and underlying physiological distress 43 . Novak et al. showed that fusing biometrics with performance increased the accuracy of the controller from approximately 60% to 82% 24 . Our Partially Ordered Set Master (POSM) algorithm operationalizes the CPF in real time, computing individual challenge points from physiological and kinematic streams at each station and continuously adjusting both virtual game parameters and physical robot resistance.</p>
+<p>Biocooperative control, in which the robot&#x27;s control loop is closed on the user&#x27;s physiological and psychological state (e.g., heart rate, galvanic skin response, affect) rather than purely on position or force, has emerged as a strategy for adapting rehabilitation intensity to their internal state in real time 44 . Rodriguez-Guerrero et al. presented the closest single-station precursor to our gym architecture, simultaneously adapting game difficulty and haptic resistance from HR and GSR signals within a Flowtheoretic framework 45 . Our architecture extends this to a multi-station gym by treating biometrics as a safety constraint, triggering protective difficulty reductions when physiological signals conflict with performance data, rather than as a continuous ground truth signal. Gandolla et al. validated a parallel approach at the hardware layer, demonstrating that closing the control loop based on active participation metrics significantly increases physical workload and affect 46.</p>
+<h3>Methods</h3>
+<h3>System Design</h3>
+<p>Robot THEAbot is a 1-DoF, reconfigurable robot designed for upper limb rehabilitation (Figure 1). The robot consists of a quasi-direct drive (QDD) actuator, which combines a high torque density motor, gearbox, encoder, and motor driver 47 , connected through the drive shaft to a mechanical torque limiter that limits torques to 30N m. An interchangeable hub attached to the drive shaft allows for easily interchangeable handles. The robot is mounted on a height-adjustable mobile frame that accommodates standard chairs and wheelchairs. The robot can be reconfigured into three distinct positions that elicit different movements and muscle activation patterns: Position 1 (shoulder and elbow flexion/extension), Position 2 (shoulder abduction/adduction), and Position 3 (forearm pronation/supination) 26.</p>
+<p>The system is operated by microcontroller, which controls the actuators and connects to the force sensing robot handles and the bluetooth enabled &quot;biopack,&quot; which is strapped to the user&#x27;s arm and monitors heart rate, galvanic skin response, and trunk movement via inertial measurement units. The controller resists the user&#x27;s movement by applying force opposite to the user&#x27;s velocity. The gains of the controller were selected to apply the appropriate range of forces based on the three positions of the robots at eight different difficulty levels.</p>
+<h3>Software Architecture</h3>
+<p>Unified Kinematic Input Games interface with THEAbot through SUKI+, a sensor-agnostic middleware framework that connects physical input devices (e.g., full-body tracking, camera pose-tracking, and serial robotic devices) to game applications without requiring game-code modifications 48 . SUKI+ abstracts motion data via a schema that maps physical movements to standard game primitives (signals, Booleans, scalars, and 2D/3D vectors) and an extents mechanism that normalizes each user&#x27;s usable range of motion to a [0, 1] interval. This allows THEAbot&#x27;s singledegree-of-freedom rotary position to drive diverse game controls, with its three physical configurations exposed as distinct tracking modes. Input extents can be personalized per session: initial values combine observed input with historical portal data weighted by a therapist-configured default percentage, and subsequently adapt in real time to the user&#x27;s active movement range.</p>
+<h3>Dynamic Difficulty Adjustment</h3>
+<p>Game difficulty is governed by the Haptic/Biometric-Based Dynamic Difficulty Adjustment (HBB-DDA) framework, which uses a modified Partially Ordered Set Master (POSM) algorithm to update a belief distribution over difficulty states based on performance evidence 27, 49 . Extending prior single-station validation 27 to a multi-station environment, HBB-DDA adapts at each step using game-specific performance signals alongside heart rate and galvanic skin response deviations from a sameday resting baseline. Each game defines distinct performance signals and discretized difficulty dimensions that adapt independently (Table 1), supplemented by THEAbot&#x27;s viscous resistance as a shared physical difficulty dimension. Prior to each session, therapists configured robot orientation, initial difficulty, default extent percentage, duration, and (for Sky-Burger) ingredient-fall speed. An available robotic assistive mode for four games was disabled throughout this study.</p>
+<h3>Therapy Games</h3>
+<p>Eight single-player enAblegames™ therapy games were deployed via SUKI+ and HBB-DDA, spanning varied motor and cognitive demands (Table 1).</p>
+<p>Cognitive Processes All games were retrospectively characterized as a repeating sequence of two (CoinRunner) to five (TheraStack) cognitive processes across seven categories (Figure 2): Spatial (locating objects relative to the player); Spatial-Motor, split into SM-1 (vertical/horizontal alignment) and SM-2 (precise angular alignment); Dexterity-Motor (discrete timed actuation during continuous movement); Strategic (1) (binary pursue/avoid decisions); Strategic (2) (rule-conditional decisions, e.g., recipe order); and Spatial-Strategic (multi-variable spatial analysis).</p>
+<p>Cognitive and Physical Difficulty Levels Games are rated on cognitive (Cog, 1-3) and physical (Phys, 1-3) difficulty levels, which serve as clinician selection filters in the game launcher. A game&#x27;s Cog rating reflects the highest process tier in its sequence rather than sequence length: Tier 1 (Spatial, SM-1), Tier 2 (Strategic (1), Spatial-Strategic, SM-2), or Tier 3 (Strategic (2), Dexterity-Motor). Phys ratings reflect required gross and fine motor demands. Across the 3 × 3 difficulty grid, the eight games occupy six cells (Figure 3). Because the axes operate nearly independently (e.g., TheraStack is Cog-3/Phys-1; CoinRunner is Cog-1/Phys-3), clinicians can vary cognitive and physical demands orthogonally, though the library currently lacks Cog-1/Phys-2 coverage.</p>
+<h3>User Study</h3>
+<p>Clinical Environment Data were acquired at two separate clinical sites. The first site was a community-based site called Mercy LIFE (Living Independently for Elders) West Philadelphia, which is a Program of All-Inclusive Care for the Elderly (PACE) that offers comprehensive medical and social services to nursing home-eligible older adults living in the community. PACE participants are generally dually eligible for Medicare and Medicaid. The second site was at the Rehabilitation Robotics Lab (RRL) of University of Pennsylvania. All therapy visits were overseen by an occupational therapist (OT), and all therapeutic decisions were made by an OT. Vitals such as heart rate, blood pressure, and oxygen levels were collected at the beginning and end of the visit.</p>
+<p>Participants All participants were at least 55 years old with a documented diagnosis of stroke that occurred at least 3 months prior to study enrollment. Hemiplegia was confirmed using the Fugl-Meyer Upper Extremity Assessment (FM-UE), with scores &lt;62 indicating motor impairment. Participants with mild to moderate levels of cognitive impairment were included. Participants were required to have completed either a CT or MRI scan after stroke onset. Written informed consent was obtained from all participants prior to study participation.</p>
+<p>Clinical Assessment After being recruited, participants were consented and assessed using standard clinical and robot-based assessments. Participants completed several motor and cognitive assessments, including the Fugl-Meyer Assessment (FM-UE) upper extremity 50 and the Montreal Cognitive Assessment (MoCA) 51 . Participants also completed three robot-based assessment games to evaluate their motor and cognitive abilities. More information on the complete clinical battery is reported in the clinical trial listing for the Rehab CARES study (phase II) 52.</p>
+<p>Pre-Therapy Game Evaluation The first robotic therapy game visit was led by an OT so they could understand the participant&#x27;s functional abilities and limitations, and ensure that they were safe to use the robot with minimal supervision for future robotic sessions. To best gauge functional range per game, participants played each game in robot Position 2 for three minutes. Within this time, the OT observed how the participant performed and interacted with both the robot and the game. At the end of each game, participants were asked about their enjoyment (&quot;Did you like playing this game?&quot;) and interest (&quot;Are you interested in playing this game again?&quot;). At the end of the first visit, participants were also asked to rank the games according to preference, selecting the games using four superlatives (&quot;First Favorite&quot;, &quot;Second Favorite&quot;, &quot;Third Favorite&quot;, &quot;Least Favorite&quot;).</p>
+<p>Therapy Visits Prior to beginning any visit, the participant&#x27;s blood pressure, pulse oxygen level, and heart rate were measured. If the participant&#x27;s vitals were within normal limits (as defined by their on-site nurse), the participant continued to the therapy visit. Each participant was equipped with the biopack and seated at the robot. Individual game sessions lasted 15-30 min, with two to five sessions completed during a 60-min therapy visit. After each session, participants were asked to rate their pain on a 10-point visual analog scale (VAS) and their exertion on a 10-point Borg scale. The OT selected the starting game and position using a client-centered approach combining the participant&#x27;s preference with their own recommendation informed by observed physical and cognitive abilities, therapeutic goals, and day-to-day factors such as fatigue and pain 1.</p>
+<p>Usability Surveys The OT conducted three surveys to assess the user&#x27;s experience with the device at the first, sixth, and twelfth visits (beginning, half-way, and at the end of the therapy visits). The NASA-Task Load Index (NASA-TLX) assesses the user&#x27;s workload in seven domains: mental demand, physical demand, temporal demand, performance, effort, and frustration 53 . A lower score indicates a lesser workload/frustration or better performance. Lower scores on performance and frustration domains are desirable, while moderate effort and workload would indicate sufficient challenge in the therapy tasks. The second survey conducted was the System Usability Scale (SUS), which is a 10-item questionnaire focused on measuring perceived usability of the robotic system. SUS is scored out of 100 points with a score of 68 or higher indicating acceptable usability 54 . Lastly, the Self-Assessment Manikin (SAM) is a non-verbal questionnaire that asks the user&#x27;s emotional response to the system on a 9-point scale, specifically in engagement, excitement, and confidence domains 55.</p>
+<h3>Data Analysis</h3>
+<p>Given the small sample size and focus on usability and user experience, we focus on descriptive statistical analysis. Specifically, we report total responses to the pre-therapy game evaluation. Likewise, as game and robot position exposure was neither randomized nor balanced, differences in game use may reflect participant characteristics, therapist judgment, participant preference, scheduling, or other unmeasured factors. We therefore make no inferential comparisons between games and instead report descriptive statistics across participants per game and position. For DDA analysis, we describe sampled sessions from a single participant; the full body of therapy logs remains unprocessed, so these trajectories illustrate the controller&#x27;s per-game behavior rather than characterizing it across the cohort. Finally, we report descriptive statistics for each usability survey across the three survey time points. These survey results are interpreted according to established scoring definitions and relative changes across sessions.</p>
+<h3>Results</h3>
+<p>A total of 6 participants (Age: 69.3 ± 7.4 years; 50% female, 50% male; 100% Black) completed the game therapy using the THEAbot. Table 2 summarizes the demographics and clinical characteristics of the participants. One participant (024) had mild motor impairment (FM-UE &gt; 50) and no cognitive impairment (MoCA ≥ 26). Four participants (006, 018, 022, and 028) had mild motor impairment and mild cognitive impairment (18 ≤ MoCA &lt; 26). One participant</p>
+<h3>Pre-Therapy Game Evaluation</h3>
+<p>Overall, participants responded positively to most games. For Citadel, Color Shot, Gravity Balls, and Space Shooter, all participants responded &quot;yes&quot; to liking the game and yes to interest in playing the game again. All participants selected &quot;yes&quot; to liking Coinrunner, but one participant indicated that they were not interested in playing it again. One participant responded &quot;no&quot; to both questions for SkyBurger and Color Switch with all other participants selecting &quot;yes.&quot; Finally, two participants responded &quot;no&quot; when asked if they liked playing TheraStack, and three participants indicated that they would not want to play it again.</p>
+<p>Figure 4 shows each participant&#x27;s first, second, third, and least favorite games. Game preferences varied, but notable trend include the overall positive response to Space Shooter, Color Switch, and Citadel and the mostly negative response to TheraStack. Gravity Balls, Color Shot, and CoinRunner received more mixed responses. Interestingly, Sky Burger was not selected for any of the superlatives.</p>
+<p>Prepared using sagej.cls  User Experience Across Therapy Visits</p>
+<h3>Therapeutic Personalization of the Robotic Gym</h3>
+<p>This study&#x27;s participants represent a diverse range of clinical motor and cognitive profiles (Table 2). Similar to traditional therapy, we note that OT decisions in robot-assisted therapy was dynamic: adjusting to the participant&#x27;s overall goals, functional limits, preferences, and current status, e.g. fatigue and pain levels. For example, participant 029 had severe impairments in their upper extremity, specifically in their wrist and fingers. With the support of a glove, this user&#x27;s therapy focused on movements that involved more the wrist, e.g., Positions 2 and 3 (Figure 5B). For participants with mild to moderate motor impairments, however, the OT selected Position 3 less because it localizes more on wrist movements (Figure 5B). The OT also prioritized safety. Notably, participant 028 played mostly in Positions 2 and 3 not due to functional limitations in movement, but rather, their strength in Position 1 could shift the robot base during fast movements, presenting a potential safety issue. To Prepared using sagej.cls  minimize risk to both the participant and the device, the OT selected Positions 2 and 3 more frequently (Figure 5B).</p>
+<p>Pain Self-reported pain was low with a mean VAS score of 0.30 ± 0.92. Of the 256 sessions in which pain was reported, there were 24 instances of mild pain (0 &lt; VAS &lt; 4), 4 instances of moderate pain (VAS = 4), and 2 instances of greater than moderate pain (VAS &gt; 4).</p>
+<p>Exertion Mean Borg perceived exertion across all sessions was 2.61 ± 1.60. Per-game mean exertion was similarly light-to-moderate for Citadel (2.33 ± 1.54), Gravity Balls (2.34 ± 1.44), Color Shot (2.35 ± 1.69), CoinRunner (2.50 ± 1.29), Space Shooter (2.54 ± 1.37), and Color Switch (2.77 ± 1.54). Two games, Sky Burger (3.30 ± 2.10) and TheraStack (4.14 ± 2.32), produced moderate exertion.</p>
+<p>Games Played Figure 5A shows the number of times each game was played. Of the more widely used games (mean number of times played ≥ 5), Citadel (T otal = 65, mean = 10.8 ± 2.93) was the most popular game, followed by Space Shooter (T otal = 59, mean = 9.83 ± 2.64). Of the less widely used games (mean number of times played &lt; 5), TheraStack (T otal = 16, mean = 2.67 ± 1.03) was the least popular game.</p>
+<h3>Robot Positions</h3>
+<p>Figure 5B shows the number of times the robot was used in each position. Position 2 was the most common (T otal = 143, mean = 23.8 ± 4.26), followed by Position 1 (T otal = 98, mean = 16.3 ± 10.7) and Position 3 (T otal = 50, mean = 12.5 ± 4.65).</p>
+<p>Prepared using sagej.cls</p>
+<h3>DDA Adaptation</h3>
+<p>The DDA adapted independently across games for the same participant. In participant 006, Space Shooter level progressed from 10 → 14 → 18 across three sampled sessions, while Citadel held steady at level 8, confirming that POSM operated on per-game performance signals rather than applying a global difficulty offset. Between-visit haptic resistance trajectories showed the same game-specific behavior: in Citadel, resistance ramped rapidly to near-ceiling levels within 100-150 seconds and was sustained, with ramp time decreasing across days 2, 7, and 11; in Space Shooter, resistance started at moderate levels and declined progressively within each visit. All of these are achieved while the scores remain stable, demonstrating that the DDA provides sufficient challenge. The two games produced qualitatively opposite resistance trajectories for the same participant on the same day. These two games produced opposite resistance trajectories for the same participant on the same day, which is the behavior the per-game difficulty configuration in Table 1 is designed to produce.</p>
+<h3>Overall Usability Evaluation</h3>
+<p>System Usability Scale Mean SUS scores were above the minimum acceptable score (68 out of 100) at both the first (77.5 ± 16.7) and second (70 ± 18.0) survey points. THEAbot SUS scores were highest at the third and final survey point (86 ± 4.54).</p>
+<p>Task Load Figure 6 shows NASA-TLX results for six domains of task load. Mean frustration was low to moderate at the first and second (24.2 ± 27.6, 36.7 ± 43.4) survey time points and dropped to very low at the third survey time point (10 ± 14.6). Mean perceived effort was moderate at first (44.2 ± 27.5), with a slight decrease over time at the second and third survey time points (30.0 ± 25.3, 27 ± 24.1). Mean perceived performance, where a lower score indicates better performance, was low to moderate at all three survey time points (20.8 ± 16.6, 30.0 ± 20.5, 19.0 ± 16.4).</p>
+<p>Mean temporal task load was similarly perceived as low to moderate at all three survey time points (22.5 ± 24.2, 16.7 ± 22.1), 34.0 ± 21.9). Mean physical task load was perceived as moderate at first (25.8 ± 23.1), with a slight increase at the second and third survey time points (31.7 ± 20.2, 34.0 ± 20.4). Finally, mean mental task load was perceived as moderate at all three survey time points (35.8 ± 18.8, 35.8 ± 25.2, 42.5 ± 29.0).</p>
+<h3>Self-Assessment Manikin</h3>
+<p>Figure 7 shows SAM results for three emotional domains. Mean valence was generally positive or &quot;happy&quot; at all three time points (2.67 ± 1.51, 3.0 ± 1.79, 2.6 ± 2.19). Mean arousal indicated that participants were initially &quot;excited&quot; by the system at the first survey time point (2.67 ± 1.51), but their arousal shifted to moderately simulated for the later surveys (5.0 ± 3.35, 5.0 ± 3.16). The participants&#x27; sense of control was generally high and increased with increased exposure (6.33 ± 1.63, 7.33 ± 2.66, 8.0 ± 1.73).</p>
+<h3>Discussion</h3>
+<p>User experiences varied throughout the course of therapy, but in general self-reported pain was low with light to moderate exertion during game play with the robots. Game selection during therapy was partially consistent with clinically appropriate motor and cognitive demand.</p>
+<p>The system was overall acceptable with mean SUS scores above the acceptable cut-off score (68 out of 100). We observed increasing acceptance with increasing exposure to the therapy system. Engagement was consistently positive. Interestingly, we observed a potential novelty effect with SAM-arousal shifting from &quot;excited&quot; to moderately stimulated by the end of the therapy experience. Despite decreasing excitement as novelty wears off, the user experience appears to improve with time, as evidenced by increased usability, increased feelings of control, decreased Prepared using sagej.cls  perceived effort, and decreased frustration. Together, these results indicate that while initial novelty may wear off, the robotic gaming system is capable of sustaining usability and engagement over time.</p>
+<h3>Selection of Games and Robot Configuration</h3>
+<p>The motor and cognitive abilities of the patients informed the selection of the game challenge, and selection frequency was broadly consistent with the cognitive characterization of each game. The four Cog-2 games (Gravity Balls, Citadel, Prepared using sagej.cls</p>
+<p>Color Switch, Space Shooter) were selected more often on average than the three Cog-3 games (ThereStack, Color Shot, SkyBurger) (Figure 5A), while the single Cog-1 game (CoinRunner) was selected less frequently (Figure 5A). The fact that intermediate-demand games were selected the most often is consistent with the idea that mild cognitively impaired users desired games that challenged them at an intermediate level.</p>
+<p>The characterization of games by their cognitive processes did not fully explain why and how often they were selected. For example, Citadel and Color Switch share the same cognitive sequence (Figure 2) and Cog-2/Phys-2 ratings, yet Citadel was selected much more frequently (Figure 5A) suggesting that participants&#x27; preferences also plays a role (Figure 4). In other words, games may engage the same cognitive process and still not be played equally; the game design matters, depending on the participant&#x27;s personal preference. Therapist notes corroborated these findings with Citadel and Space Shooter noted as the most enjoyable and also the most frequently selected, while TheraStack was noted as the least enjoyable and was also selected the least. Perceptual accessibility may have also contributed; the therapist notes indicate that participants had difficulty discriminating task-relevant colors in CoinRunner, TheraStack, and Color Switch, and all three were less frequently selected.</p>
+<p>Pre-therapy game preferences did not clearly associate with selection frequency and did not always remain static. For example, every participant reported enjoying Color Shot and wanting to play it again, yet, it was one of the least selected games (Figure 5A). Conversely, games that were the most highly rated during the pre-therapy evaluation, namely Citadel, Gravity Balls, and Space Shooter, were the most frequently played games in the library. In another example, participant 028 initially ranked TheraStack as her least favorite game (Figure 4). The therapist later observed that she came to enjoy it after additional play time and cueing, and she ended up playing TheraStack more often than the other participants (Figure 5A), indicating that preference changed with exposure.</p>
+<p>Games with dual task demands were played infrequently. Color Shot and TheraStack are the only games whose cognitive sequence includes the dexterity-motor process, requiring timed actuation coordinated with movement of the same limb, and they were the two least frequently selected. Within the three Cog-3 games, the two games that required bilateral hand engagement with discrete push-button input from a participant&#x27;s less impaired limb were selected less often than the one that did not.</p>
+<p>When selecting robot positions and games for a session, the OT balanced their clinical judgment of therapeutic appropriateness with the participant&#x27;s preferences and current fatigue level, as deemed by the clinician on site. Several design implications follow from the observed selection patterns. First, rehabilitation robot systems should employ a perceptual-accessibility screen administered at intake and physical-demand characterization should also record the type of control a game requires, not only the magnitude or precision of the required movements. TheraStack, for example, is rated at the lowest physicaldemand level in our library but requires two distinct, timed button presses coordinated with continuous movement of the same limb. A game can therefore impose low movement demands while still requiring substantial coordination, timing, or control complexity. Representing these interaction requirements separately would distinguish how much movement a game demands from how that movement must be organized to control it.</p>
+<p>Second, because games with the same characterized cognitive or physical demand were not selected interchangeably, demand characterization appears more useful for narrowing a library to a clinically appropriate set than for prescribing a single activity. Game libraries should therefore include multiple games within each demand combination so that participant preference can operate within a set of games already judged appropriate by the clinician. A demand combination represented by only one game is fragile. In our library, the only game at the lowest cognitive level also encoded item value by color, so a participant unable to distinguish those colors would have had no low-cognitive-demand alternative.</p>
+<p>Third, initial preference should be treated as provisional rather than as a basis for permanent exclusion. Additional exposure to the game may change a participants&#x27; enjoyment of it. So, re-offering a rejected activity with supported practice may therefore be more appropriate than removing it immediately from the participant&#x27;s rotation.</p>
+<p>Fourth, selection of the robot training position should represent constraints that arise from the interaction between the participant and the device, not only from impairmentrelated demands. One participant was directed away from a robot configuration because their strength in that position could displace the robot base, a safety constraint that the cognitive and physical demand levels do not capture.</p>
+<p>Finally, the rationale for each selection should be recorded at the time it is made. A brief structured annotation, such as therapeutic goal, participant preference, fatigue, variety, or safety, would turn the therapist&#x27;s judgment from a retrospective explanation into data that could be used to prospectively evaluate demand characterization.</p>
+<h3>Dynamic Difficulty Adjustment (DDA) Across the Robotic Gym</h3>
+<p>A central design requirement of the rehabilitation gym is that people of heterogeneous severity train simultaneously at adjacent stations without a uniform difficulty setting underor over-challenging any single individual. The clinical data provide converging evidence that the DDA achieved this balance across a wide range of clinical profiles (Table 2).</p>
+<p>Mean perceived exertion was light-to-moderate across sessions. Per-game exertion clustered within a narrow range for six of eight games, while Sky Burger and Therastack elicited higher effort consistent with their greater cognitive demand. No game produced exertion near the ceiling, confirming that the DDA maintained a productive effort range across various motor and cognitive demands. NASA-TLX frustration declined to near-floor by the third timepoint, and perceived effort trended downward, consistent with the DDA calibrating to motor improvements over time.</p>
+<p>Game-level progression and force-feedback trajectories further illustrate individualized, game-specific adaptation. As reported above, the controller advanced Space Shooter Prepared using sagej.cls through several difficulty levels for participant 006 while holding Citadel constant, indicating that difficulty was estimated separately for each game rather than from a single participant profile applied across the library. Within the same day, the two games also showed opposite force-feedback trajectories. Citadel&#x27;s resistance increased rapidly to near its ceiling and remained there, consistent with mastery of a continuous steering task, whereas Space Shooter&#x27;s resistance declined across the session, consistent with accumulating fatigue during a rapid targeting task. Because these opposing trajectories occurred for the same participant on the same day, they suggest that the DDA responded to the interaction between participant&#x27;s state and game demand rather than to participant&#x27;s state alone.</p>
+<p>These findings address the concern raised by Darzi et al. 23 that biometric DDA complexity may not yield meaningful benefits over performance-only approaches; the low-frustration profile and progressive level advancement are consistent with the DDA actively moderating challenge in a way a static setting could not replicate across people of differing abilities sharing the same gym floor.</p>
+<h3>Social Game Play for Motivation</h3>
+<p>Although the games are challenging and engaging on their own, prolonged game play could lead to decreased excitement and motivation, such as the novelty effect that we observed. To increase motivation, the therapists encouraged the participants to beat their own high score or another user&#x27;s high score. Specifically, participant 028 stayed late for one session to beat the score of participant 029. Similarly, a few users requested that future iterations of the games include a leader board so that they can see their own progress over time and challenge themselves to do better. These requests suggest interest in longitudinal and social forms of feedback beyond the immediate feedback provided during the game. Furthermore, therapists used competition to encourage participants to play more cognitively demanding games (such as SkyBurger). For example, participant 029 had a severe motor deficit, but mild cognitive deficit, and could handle more cognitively loaded games. Although initially reluctant to play the more cognitively demanding game, the therapists encouraged 029 by commenting that many other study participants were typically unable to complete those games. This form of artificial competition appeared to be highly motivating, as they ended up playing that game more than any other game (Figure 5A). These anecdotes support that competition, both with oneself and with others, can serve as motivation to improve game play.</p>
+<h3>Clinical Implications</h3>
+<p>In this study, we demonstrated feasible deployment of a three robot system in a community-based site. Participants are routinely transported to and from the facility, where their day is planned around activities, food, and medical care. Most participants in the center are beyond the acute phase of recovery and do not have assigned therapy. The robotic gym was easily implemented as it became like another &quot;activity&quot; that they could choose to participate in. While this study is limited to deployment in a single community-based site, we note that many community-base sites operate in a similar way. Future versions of the Rehab CARES system could be deployed in other PACE facilities, nursing homes, or senior centers.</p>
+<p>As mentioned in the related work, CBR systems have shown success with multiple robotic stations, specifically by allowing treating therapists to see more patients 20 . Enabling therapists to oversee multiple patients at once is one of the primary benefits of robot-assisted therapy noted in the literature 28, 30 . During this clinical deployment, one OT oversaw one to two participants on the robotic systems and one participant in a separate traditional OT setting. Each participant received 60 minutes of overlapping care, with the traditional OT participant requiring the most one-on-one care. Once participants were set up on the robotic systems, they completed their therapy with minimal supervision. The deployment of an independent, affordable roboticassisted therapeutic intervention may potentially alleviate some burden in the clinic.</p>
+<p>Robot gyms have also been deployed in LMICs 30 . The Rehab CARES system is unique in that it offers the capacity of a robotic-gym with one device, THEAbot. This affordable, accessible, reconfigurable, 1 DoF system has the capacity to offer a range of upper extremity exercises. By using the same hardware, it reduces the burden on the clinicians to train on multiple systems, while preserving the ability to exercise different muscles within the shoulder, arm, and wrist. Lastly, the gaming platform offers a variety of games with differing motor and cognitive demands. Thus, the CARES system allows the OT to offer motor and cognitive therapy, with minimal supervision 56.</p>
+<h3>Limitations and Future Directions</h3>
+<p>Our findings should be interpreted conservatively given the sample size. Despite this, we were able to test cases representative of stroke survivors with varying levels of motor and cognitive impairments. Several limitations constrain the game-level findings. Game selection was uncontrolled and exposure was unequal across games, so these values cannot be compared inferentially. The user experience was rigorously described from the participant&#x27;s perspective, while the therapist&#x27;s experience of the system was represented by a narrative record compiled during clinical use. Because the gym model depends on one clinician operating several stations concurrently, a therapistfacing user experience and workload would be additionally informative. Perceptual accessibility was not assessed at intake, despite emerging as a recurring barrier and a plausible confounder for performance-driven difficulty adjustment. For example, a participant who cannot distinguish a gold coin from a silver one scores poorly, which may be read as poor motor or cognitive performance rather than perceptual difficulty. In the future, these issues can be mitigated by including adjustable settings for visual components, e.g. color contrast and item size, and redundant options for feedback, e.g. auditory, visual, and cues.</p>
+<h3>Conclusion</h3>
+<p>An affordable, adaptive robotic system for stroke rehabilitation was clinically deployed in a community-based setting. The system was designed to be personalized and to adapt to Prepared using sagej.cls individual user&#x27;s needs across 4 to 6 weeks of therapy. Personalization was achieved through reconfigurable hardware, enabling 3 different movement patterns, and a library of 8 games with distinct motor and cognitive profiles, allowing participants with different motor and cognitive impairments to access therapy. The system was also adapted to support users over time through a DDA system that tailored the challenge of the game and the physical resistance to contemporaneous performance. Across a small, heterogeneous cohort of post-stroke participants, we observed highly individualized utilization patterns with factors such as cognitive and motor demand, personal preferences, therapy goals, and perceptual ability influencing game and position selection. Together, these results suggest successful personalization of robotassisted therapy using a low-cost, system of 1-DOF robots. We also demonstrated increased usability, decreased frustration, and increased perceived control over time, suggesting that participants grew more comfortable with the system with sustained use. Findings support the clinical viability of an affordable system of robots for personalized, robotassisted motor/cognitive therapy in real-world communitybased settings.</p>
+<h3>Acknowledgements</h3>
+<p>We want to thank Natasha Dastur, OTR/L and Kelly Conway, RN, OTR/L for their clinical expertise in administering robotic rehabilitation and Joana Opong-Duah, Carol Wamsley, DPT and Greg Holt, OTR for conducting patient assessments. We also thank Samuel Gaardsmoe and Saibaba Nargund at Recupero Robotics, LLC for designing and supporting the robot systems and enAblegames™ for designing the therapy games and software architecture. Finally, we thank Mercy LIFE West Philadelphia for providing clinical space and assistance with recruitment and the participants for their enthusiasm.</p>
+<p>ClinicalTrials.gov, https://clinicaltrials.gov/study/NCT05542121, NCT05542121.</p>
+<h3>Data Availability</h3>
+<p>Data is available upon request. Please contact the corresponding author, razar@engineering.upenn.edu.</p>
+<h3>Declaration of Conflicting Interest</h3>
+<p>Michelle Johnson, Rochelle Mendonca, and Alwyn Johnson are co-founders of Recupero Robotics LLC, which may have a financial interest in the results of this study.</p>
+<h3>Author contributions</h3>
+<p>RMA coordinated study logistics, collected data, and cowrote the paper. YS developed the DDA system and games, analyzed DDA data, created figures, and co-wrote the paper. ELW developed the robotic controller, analyzed user experience data, created figures, and co-wrote the paper. RJM characterized the cognitive-motor load of the games and provided clinical oversight. AJ designed and directed robot development and provided funding. PD led DDA system and game development. PZC led recruitment, consented participants, and provided clinical and research oversight. MJJ originated project direction and provided funding and resources. All authors reviewed the manuscript.</p>
+<h3>Ethical Considerations</h3>
+<p>This protocol was approved by the Institutional Review Board of the University of Pennsylvania (UPenn) (Protocol no. 853607) and Trinity Health IRB relied on the IRB at UPenn.</p>
+<h3>Consent to Participate</h3>
+<p>All participants gave written informed consent prior to participation in this study (Institutional Review Board number: 853607).</p>
+<h3>Consent for Publication</h3>
+<p>All participants gave written informed consent to publish their results.</p>
+<h3>Funding Statement</h3>
+<p>Research reported in this publication was supported by the Eunice Kennedy Shriver National Institute Of Child Health &amp; Human Development of the National Institutes of Health under Award Numbers F31HD116597, R42HD104325, and R42HD104325-03S1. This work is also made possible by the NIH-funded T32 grant (Training in Musculoskeletal Research) under the award number T32AR007132-48 and the Penn Fontaine Society. The content is solely the responsibility of the authors and does not necessarily represent the official views of the National Institutes of Health.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. THEAbot is a 1-DoF reconfigurable robot with an interchangeable mounting hub at the drive shaft, which enables three configurations.</p>
+<h3>( 029 )</h3>
+<p>had severe motor impairment (FM-UE ≤ 22) and mild cognitive impairment. At Mercy LIFE, four participants (006, 018, 022, and 024) averaged 2 therapy visit per week for 6 weeks while at Penn Medicine Rittenhouse, the two participants (028 and 029) averaged 3 therapy visits per week for 4 weeks. Participant 029 only completed 11 visits due to his physical limitations from stroke (FM-UE ≤ 22).</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Therapy games broken down into cognitive sequences, ranging from simple chains like CoinRunner (Spatial → SM-1) to five-stage sequences in TheraStack.</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Coverage of the therapy game library across cognitive and physical difficulty levels (occupying six of nine cells).</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Game preference selections for first, second, third, and least favorite game. Note that colors correspond to impairment groups: green for mild motor impairment with no cognitive impairment, blue for mild motor and cognitive impairment, and orange for severe motor impairment with mild cognitive impairment.</p>
+<h3>Figure 5.</h3>
+<p>Figure 5. Therapy activity selections for game and robot position. Note that colors correspond to impairment groups: green for mild motor impairment with no cognitive impairment, blue for mild motor and cognitive impairment, and orange for severe motor impairment with mild cognitive impairment. A: Number of times each game was played across therapy. B: Number of times each position of the robot was experienced across therapy.</p>
+<h3>Figure 6.</h3>
+<p>Figure6. NASA Task Load Index in six domains at three survey points. Note that colors correspond to impairment groups: green for mild motor impairment with no cognitive impairment, blue for mild motor and cognitive impairment, and orange for severe motor impairment with mild cognitive impairment.</p>
+<h3>Figure 7.</h3>
+<p>Figure7. Self-Assessment Manikin in three domains at three survey points. Note that colors correspond to impairment groups: green for mild motor impairment with no cognitive impairment, blue for mild motor and cognitive impairment, and orange for severe motor impairment with mild cognitive impairment.</p>
+<h3>Table 1.</h3>
+<p>Therapy games, difficulty levels, and dynamic difficulty adjustment configuration.All games additionally expose robot viscous resistance as a shared difficulty dimension. Cog and Phys are the platform&#x27;s cognitive and physical difficulty levels. Valid ranges are given where the platform configuration records them. † Not itemized in the platform configuration; reported in27 , where Color Shot appears under its earlier name, SpaceBall.</p>
+<h3>Table 2.</h3>
+<p>Participant Demographics and Clinical Characteristics</p>
+<p>Prepared using sagej.cls</p>
+<h3>References</h3>
+<p>Du J, Zhai Y, Dong W et al. One-year disability trajectories and long-term cardiovascular events, recurrent stroke, and mortality after ischemic stroke. Journal of the American Heart Association 2024; 13(3): e030702.</p>
+<p>Sun JH, Tan L and Yu JT. Post-stroke cognitive impairment: epidemiology, mechanisms and management. Annals of translational medicine 2014; 2(8): 80.</p>
+<p>El Husseini N, Katzan IL, Rost NS et al. Cognitive impairment after ischemic and hemorrhagic stroke: a scientific statement from the american heart association/american stroke association. Stroke 2023; 54(6): e272-e291.</p>
+<p>Clery A, Bhalla A, Rudd AG et al. Trends in prevalence of acute stroke impairments: A population-based cohort study using the south london stroke register. PLoS Medicine 2020; 17(10): e1003366.</p>
+<p>Young BM, Holman EA and Cramer SC. Rehabilitation therapy doses are low after stroke and predicted by clinical factors. Stroke 2023; 54(3): 831-839.</p>
+<p>Johnson MJ and Mendonca RJ. Rehabilitation Robots for Neurorehabilitation in High, Low, and Middle Income Countries: Current Practice, Barriers, and Future Directions. Phildelphia: Elsevier, 2023.</p>
+<p>Kamenov K, Mills JA, Chatterji S et al. Needs and unmet needs for rehabilitation services: a scoping review. Disability and Rehabilitation 2019; 41(10): 1227-1237. DOI:10.1080/09638288.2017.1422036. URL https:</p>
+<p>//doi.org/10.1080/09638288.2017.1422036. PMID: 29303004, https://doi.org/10.1080/09638288.2017.1422036.</p>
+<p>Bernhardt J, Urimubenshi G, Gandhi DBC et al. Stroke rehabilitation in low-income and middle-income countries: a call to action. The Lancet 2020; 396(10260): 1452- 1462. DOI:https://doi.org/10.1016/S0140-6736(20)31313-1. URL https://www.sciencedirect.com/science/ article/pii/S0140673620313131.</p>
+<p>Ekechukwu END, Olowoyo P, Nwankwo KO et al. Pragmatic solutions for stroke recovery and improved quality of life in low-and middle-income countries-a systematic review. Front Neurol 2020; 11: 337. DOI:10.3389/fneur.2020.</p>
+<p>URL https://www.ncbi.nlm.nih.gov/ pubmed/32695058.</p>
+<p>Zeng X, Balikuddembe JK and Liang P. Impact of community-based rehabilitation on the physical functioning and activity of daily living of stroke patients: a systematic review and meta-analysis. Disability and Rehabilitation 2023; 45(3): 403-414. DOI:10.1080/09638288.2022.2037755. URL https://doi.org/10.1080/09638288.2022.2037755. PMID: 35200068.</p>
+<p>Singh H, Nguyen T, Hahn-Goldberg S et al. A qualitative study exploring the experiences of individuals living with stroke and their caregivers with community-based poststroke services: A critical need for action. PLOS ONE 2022; 17(10): 1-16. DOI: 10.1371/journal.pone.0275673. URL https://doi.org/10.1371/journal.pone.0275673.</p>
+<p>Bird ML, Mortenson W, Chu F et al. Building a bridge to the community: An integrated knowledge translation approach to improving participation in community-based exercise for people after stroke. Physical therapy 2019; 99: 286-296. DOI: 10.1093/ptj/pzy146.</p>
+<p>Rapoliene J, Endzelyte E, Jaseviciene I et al. Stroke patients motivation influence on the effectiveness of occupational therapy. Rehabil Res Pract 2018; 2018: 9367942. DOI: 10.1155/2018/9367942. URL https://www.ncbi.nlm. nih.gov/pubmed/30155309.</p>
+<p>Lo AC, Guarino PD, Richards LG et al. Robot-assisted therapy for long-term upper-limb impairment after stroke. New England Journal of Medicine 2010; 362(19): 1772-1783.</p>
+<p>Gassert R and Dietz V. Rehabilitation robots for the treatment of sensorimotor deficits: a neurophysiological perspective. JNER 2018; 15(1): 46.</p>
+<p>Feingold-Polak R, Barzel O and Levy-Tzedek S. A robot goes to rehab: a novel gamified system for long-term stroke rehabilitation using a socially assistive robot-methodology and usability testing. Journal of neuroengineering and rehabilitation 2021; 18(1): 122.</p>
+<p>Gandhi DB, Pandian JD, Szturm T et al. A computer-game- based rehabilitation platform for individuals with fine and gross motor upper extremity deficits post-stroke (care for u)-protocol for a randomized controlled trial. European Stroke Journal 2021; 6(3): 291-301.</p>
+<p>Aprile IG, Germanotta M, Mauro MC et al. Bridging the gap: Overcoming the barriers to using robotics in rehabilitation. In Enabling and Safeguarding Personalized Medicine. Springer Nature Switzerland Cham, 2025. pp. 265-276.</p>
+<p>Zanatta F, Gorini A, Fiorentino L et al. Robot-assisted therapy following stroke: what effects on quality of life, cognitive and psychosocial outcomes? a systematic review. Journal of Rehabilitation Medicine 2026; 58: 44943.</p>
+<p>Aprile I, Guardati G, Cipollini V et al. Robotic rehabilitation: an opportunity to improve cognitive functions in subjects with stroke. an explorative study. front neurol. 2020; 11: 588285. J Neuroeng Rehabil 2020; 17(1): 78.</p>
+<p>Marchal-Crespo L and Reinkensmeyer DJ. Review of control strategies for robotic movement training after neurologic injury. Journal of Neuroengineering and Rehabilitation 2009;</p>
+<p>DOI:Artn2010.1186/1743-0003-6-20. URL &lt;GotoISI&gt;: //WOS:000268573400001.</p>
+<p>Guadagnoli MA and Lee TD. Challenge point: A framework for conceptualizing the effects of various practice conditions in motor learning. Journal of Motor Behavior 2004; 36(2): 212- 224. DOI:10.3200/JMBR.36.2.212-224.</p>
+<p>Darzi A, McCrea SM and Novak D. User experience with dynamic difficulty adjustment methods for an affective exergame: Comparative laboratory-based study. JMIR Serious Games 2021; 9(2): e25771. DOI:10.2196/25771.</p>
+<p>Novak D, Mihelj M, Ziherl J et al. Psychophysiological measurements in a biocooperative feedback loop for upper extremity rehabilitation. IEEE TNSRE 2011; 19(4): 400-410. DOI:10.1109/TNSRE.2011.2160357.</p>
+<p>Johnson MJ, Rai R, Barathi S et al. Affordable stroke therapy in high-, low-and middle-income countries: From theradrive to rehab cares, a compact robot gym. Journal of Rehabilitation and Assistive Technologies Engineering 2017;</p>
+<p>DOI:10.1177/2055668317708732.</p>
+<p>Meng NY, Waters EL, Lin G et al. Analysis of induced muscle activations by an affordable, reconfigurable robot for comprehensive post-stroke rehabilitation. In 2025 International Conference On Rehabilitation Robotics (ICORR). pp. 1361-1367. DOI:10.1109/ICORR66766.2025.11063060.</p>
+<p>Shang Y, Bahrami S, Gaardsmoe S et al. General purpose haptic/biometric-based dynamic difficulty adjustment for post- stroke upper-limb rehabilitation games. In International Conference On Rehabilitation Robotics. pp. 248-253. DOI: 10.1109/ICORR66766.2025.11062998.</p>
+<p>Gower V, Hamilton T, Spinelli F et al. Breaking down costs: rehabilitation robotics vs. usual care therapy in diverse healthcare models. Scientific Reports 2025; 15(1): 40720.</p>
+<p>Aprile I, Germanotta M, Cruciani A et al. Upper limb robotic rehabilitation after stroke: a multicenter, randomized clinical trial. Journal of Neurologic Physical Therapy 2020; 44(1): 3- 14.</p>
+<p>Bustamante Valles K, Montes S, de Jesus Madrigal M et al. Technology-assisted stroke rehabilitation in mexico: a pilot randomized trial comparing traditional therapy to circuit training in a robot/technology-assisted therapy gym. JNER 2016;.</p>
+<p>Buschfort R, Brocke J, Hess A et al. Arm studio to intensify the upper limb rehabilitation after stroke: concept, acceptance, utilization and preliminary clinical results. Journal of rehabilitation medicine 2010; 42(4): 310-314.</p>
+<p>Shirota C, Balasubramanian S and Melendez-Calderon A. Technology-aided assessments of sensorimotor function: current use, barriers and future directions in the view of different stakeholders. JNER 2019; 16(1): 53.</p>
+<p>Demofonti A, Carpino G, Zollo L et al. Affordable robotics for upper limb stroke rehabilitation in developing countries: a systematic review. IEEE Transactions on Medical Robotics Prepared using sagej.cls and Bionics 2021; 3(1): 11-20.</p>
+<p>Lee SH, Park G, Cho DY et al. Comparisons between end-effector and exoskeleton rehabilitation robots regarding upper extremity function among chronic stroke patients with moderate-to-severe upper limb impairment. Scientific Reports 2020; 10(1): 1806.</p>
+<p>Fang Y et al. Efficacy of robot-assisted training on upper limb motor function after stroke: A systematic review and network meta-analysis. Journal of Stroke and Cerebrovascular Diseases 2024; 33. DOI:10.1016/j.jstrokecerebrovasdis.2024.107900.</p>
+<p>Hesse S, Schulte-Tigges G, Konrad M et al. Robot-assisted arm trainer for the passive and active practice of bilateral forearm and wrist movements in hemiparetic subjects. Archives of Physical Medicine and Rehabilitation 2003; 84(6): 915-920.</p>
+<p>Khor KX, Chin PJH, Yeong CF et al. Portable and reconfigurable wrist robot improves hand function for post- stroke subjects. IEEE Trans Neural Syst Rehabilitation Eng 2017; 25(10): 1864-1873. DOI:10.1109/TNSRE.2017.2692520.</p>
+<p>Doumas I, Everard G, Dehem S et al. Serious games for upper limb rehabilitation after stroke: a meta-analysis. Journal of NeuroEngineering and Rehabilitation 2021; 18: 100. DOI: 10.1186/s12984-021-00889-1.</p>
+<p>Pixa NH, Steinberg F and Doppelmayr M. Getting into a &quot;flow&quot; state: A systematic review of flow experience in neurological diseases. JNER 2021; 18: 65. DOI:10.1186/s12984-021-00864-w.</p>
+<p>Bressi F, Cricenti L, Campagnola B et al. Effects of robotic upper limb treatment after stroke on cognitive patterns: A systematic review. NeuroRehabilitation 2022; 51(4): 541-558. DOI:10.3233/NRE-220149.</p>
+<p>Shahmoradi L, Mohammadian F and Rahmani Katigari M. A systematic review on serious games in attention rehabilitation and their effects. Behavioural Neurology 2022; 2022: 2017975. DOI:10.1155/2022/2017975.</p>
+<p>Csikszentmihalyi M. Flow: The Psychology of Optimal Experience. Harper &amp; Row, 1990.</p>
+<p>Pezzera M and Borghese NA. A review of dynamic difficulty adjustment methods for serious games. In Optimization, Learning Algorithms and Applications. Springer, 2023. DOI: 10.1007/978-3-031-23236-7\11.</p>
+<p>Scotto di Luzio F, Siber F, Trioschi D et al. Bio-cooperative approach for the human-in-the-loop control of an end-effector rehabilitation robot. Frontiers in Neurorobotics 2018; 12: 67. DOI:10.3389/fnbot.2018.00067.</p>
+<p>Rodriguez-Guerrero C, Knaepen K, Riener R et al. Improving challenge/skill ratio in a multimodal interface by simultane- ously adapting game difficulty and haptic assistance. Frontiers in Neuroscience 2017; 11: 242. DOI:10.3389/fnins.2017.00242.</p>
+<p>Gandolla M et al. Promoting active participation in robot-aided rehabilitation via machine learning and impedance control. Frontiers in Digital Health 2025; 7. DOI:10.3389/fdgth.2025.1234567.</p>
+<p>Yu S, Huang TH, Yang X et al. Quasi-direct drive actuation for a lightweight hip exoskeleton with high backdrivability and high bandwidth. IEEE/ASME Transactions on Mechatronics 2020; 25(4): 1794-1802. DOI:10.1109/TMECH.2020.2995134.</p>
+<p>Shang Y, Bahrami S and Diefenbach P. Suki+: System for unified kinematic input, general purpose kinematic input convertor. In Companion Proceedings of the ACM SIGGRAPH Symposium on Interactive 3D Graphics and Games. I3D Companion &#x27;25, New York, NY, USA: Association for Computing Machinery. ISBN 9798400718335. DOI:10.1145/3722564.3728388. URL https://doi.org/10.1145/3722564.3728388.</p>
+<p>Missura O and Gärtner T. Predicting dynamic difficulty. In Advances in Neural Information Processing Systems 24 (NIPS). NIPS&#x27;11, Red Hook, NY, USA: Curran Associates Inc. ISBN 9781618395993, p. 2007-2015.</p>
+<p>Hernandez ED, Forero SM, Galeano CP et al. Intra-and inter- rater reliability of fugl-meyer assessment of lower extremity early after stroke. Brazilian journal of physical therapy 2021; 25(6): 709-718.</p>
+<p>Nasreddine ZS, Phillips NA, Bédirian V et al. The montreal cognitive assessment, moca: a brief screening tool for mild cognitive impairment. Journal of the American geriatrics society 2005; 53(4): 695-699.</p>
+<p>of Medicine UNL. Rehab CARES in USA: Clinical trial (nct05542121), 2026. URL https://clinicaltrials.gov/study/NCT05542121? locStr=Philadelphia,%20PA&amp;country= United%20States&amp;state=Pennsylvania&amp;city= Philadelphia&amp;cond=Stroke&amp;term=robot&amp;rank=</p>
+<p>Hart SG. Nasa-task load index (nasa-tlx); 20 years later. Proceedings of the Human Factors and Ergonomics Society Annual Meeting 2006; 50(9): 904-908. DOI:10.1177/154193120605000909. URL https://doi.org/10.1177/154193120605000909. https://doi.org/10.1177/154193120605000909.</p>
+<p>Brooke J. Sus: A quick and dirty usability scale. Usability Eval Ind 1995; 189.</p>
+<p>Bradley MM and Lang PJ. Measuring emotion: The self- assessment manikin and the semantic differential. Journal of Behavior Therapy and Experimental Psychiatry 1994; 25(1): 49-59. DOI:https://doi.org/10.1016/0005-7916(94)90063-9. URL https://www.sciencedirect.com/science/ article/pii/0005791694900639.</p>
+<p>Cha S, Lee J, Jeon H et al. Robot-assisted integrated cognitive-motor rehabilitation in patients with chronic stroke: a randomized controlled trial. Frontiers in Neurology 2026; 17: 1866135.</p>
 </div>
 </details>
 </div>
