@@ -197,7 +197,7 @@ Network scaling in swarm learning across real hospitals of different
 sizes: a KPI-driven analysis on the eICU Collaborative Research Database
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.11.26367729
 </p>
 </header>
 <div class="mc-main">
@@ -319,8 +319,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -671,9 +674,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -695,7 +702,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -710,9 +718,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -725,13 +751,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -751,6 +780,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -758,12 +793,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -864,6 +905,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -883,6 +944,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1138,19 +1234,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1260,6 +1438,183 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background. Distributed learning lets hospitals train prediction models jointly without exchanging patient records, but how the benefits of a swarm network change as it grows, and which hospitals gain most, have so far been studied with artificial partitions of single-center databases. We examined network scaling on real hospitals that differ in size, volume and sepsis prevalence. Methods. We applied the seven-KPI swarm-learning evaluation framework (Swarm Gain, Local Gain, Relative Local Gain, Model Stability Index, Jain&#x27;s index, Data Utility Index and label entropy) to progressive network scaling on the eICU Collaborative Research Database. From 25 hospitals (71,887 ICU stays; sepsis prevalence 16.6%), six hospitals stratified by bed size (two small, two medium, two large; 14,776 stays) formed networks of two, four and six hospitals in all six category-joining orders; four further hospitals served as substitutes in robustness checks. Swarm learning was simulated with the client-controlled workflow of NVIDIA FLARE (federated averaging, 30 rounds, five random seeds). The task was whole-stay sepsis classification from discretized vital-sign, laboratory and medication features with a 1,313-parameter feedforward network, with AUROC as the metric.</p>
+<p>Results. Network AUROC increased with every addition in every ordering, from 0.734 (small-first), 0.755 (medium-first) and 0.781 (large-first) at two hospitals to 0.804 (SD 0.002) at six. Swarm Gain exceeded 1 at all nine unique transitions (mean 1.042 for 2→4 and 1.020 for 4→6 hospitals). Every hospital had Local Gain below 1; relative improvement over local training ranged from 4.1% for the strongest hospital (local AUROC 0.773) to 29.5% for the weakest (0.621), averaging 25.5% for small and 5.9% for large hospitals. Adding large hospitals gave existing members the largest gain (mean Relative Local Gain +6.2%); adding small hospitals never reduced it. Seed-to-seed variability fell from a coefficient of variation of 2.2% at two hospitals to 0.2% at six. Feature distributions were near-identical across hospitals (Data Utility Index 0.005-0.013), whereas the change in label entropy tracked Swarm Gain (r = 0.74). Substituting alternative medium or large hospitals left network AUROC between 0.790 and 0.805. Conclusions. On real multi-hospital data, swarm participation improved every hospital&#x27;s model, most for hospitals with the weakest local models, with no transition in which an addition harmed the network. Because all orderings end in the same six-hospital network, joining order affected only intermediate performance. The results characterize the KPI framework under real inter-hospital variation in volume and label prevalence and support inclusive recruitment anchored by large hospitals. Per-hospital evaluation and warm-started sequential joining are needed to quantify member-level effects.</p>
+<h3>1 Introduction</h3>
+<p>Prediction models trained at a single hospital often lose accuracy when deployed elsewhere: across four intensive care unit (ICU) databases, deep learning models lost up to 0.20 AUROC on hospitals absent from their training data [1]. Sepsis, which affects an estimated 49 million people a year and contributes to roughly one death in five worldwide [2], illustrates the problem. Models developed at individual centers, and at smaller ones in particular, train on few positive cases and generalize poorly to other populations [1, 3]. Pooling data across institutions would help [4], but privacy law, governance and the cost of harmonizing records from different systems make direct sharing the exception rather than the rule [5].</p>
+<p>Distributed learning addresses this trade-off. In federated learning (FL), hospitals train locally and exchange only model parameters with a coordinating server, which aggregates them, typically by federated averaging [6, 7]. Swarm learning (SL) removes the permanent server: aggregation rotates among the participating nodes, which share parameters peer to peer [8]. Both have matched centralized training in several clinical studies [6, 8], yet most of the literature concentrates on accuracy, aggregation algorithms and privacy, and few studies address the questions a consortium actually faces when it grows: how much does the network gain from one more hospital, what does the newcomer gain, are existing members ever harmed, and does the order in which hospitals join matter [9, 10, 11]?</p>
+<p>Mantovani et al. proposed a set of Key Performance Indicators (KPIs) for exactly these questions, first as a single indicator [12] and then as a seven-indicator framework covering network performance, the newcomer&#x27;s benefit, the effect on existing members, stability, fairness, and the novelty and  label diversity of the added data [13]. Their evaluation was deliberately a controlled baseline: a single new node joining a network of two to four nodes, built from stratified, homogeneous partitions of the MIMIC-III and MIMIC-IV databases, within the five-node limit of the HPE Swarm Learning Community Edition [13]. A subsequent scalability study by the same group examined saturation and node granularity on MIMIC and eICU with three new indicators, equalizing the number of patients per node so that only the node count varied [14]. Neither study asks how the KPIs behave when a network grows out of real hospitals of unequal size and prevalence, nor whether the composition and joining order of such a network affect the outcome. This paper addresses that gap. We use the eICU Collaborative Research Database [15], in which each hospital is a real institution with its own volume, sepsis prevalence and documentation practice, and we grow swarm networks from two to six hospitals stratified by the database&#x27;s own bed-size categories, in all six orders in which the three categories can be added. Hospitals keep their natural data volumes. We compute the seven KPIs of [13] at every transition and repeat the experiment with substitute hospitals to check that the conclusions do not depend on the particular institutions chosen. Because the HPE tool caps networks at five nodes, we simulate the swarm protocol with the client-controlled, blockchain-free workflow of NVIDIA FLARE [17], an approach also adopted in [14].</p>
+<p>The study answers six research questions, each mapped to a KPI (Table 1): RQ1, how network performance changes as hospitals are added (Swarm Gain); RQ2, whether each hospital gains over its local model (Local Gain); RQ3, how existing members are affected by newcomers (Relative Local Gain); RQ4, whether scaling changes run-to-run stability (Model Stability Index); RQ5, how evenly performance is distributed (Jain&#x27;s index); and RQ6, whether added hospitals bring new feature or label information (Data Utility Index and entropy).</p>
+<p>Contributions. (i) The first application of the seven-KPI framework to progressive network scaling on real, heterogeneous hospitals rather than artificial partitions. (ii) A joiningorder permutation design that separates the effect of composition from the effect of sequence. (iii) A size-stratified analysis of how collaboration benefit is distributed, extending the observation that smaller institutions gain more from federation [16] with per-hospital KPI values. (iv) Substitutionbased robustness checks across alternative medium and large hospitals.</p>
+<h3>2 Related work</h3>
+<p>Swarm learning in healthcare. Warnat-Herresthal et al. introduced SL and trained classifiers for leukemia, tuberculosis and COVID-19 from more than 16,000 blood transcriptomes and 95,000 chest radiographs, showing that swarm models almost always outperformed local ones [8]. Saldanha et al. applied SL to gigapixel histopathology from over 5,000 colorectal cancer patients across three countries [18] and to four gastric cancer cohorts [19], comparing swarm with centralized training on fixed, small topologies. These studies establish that SL works; they do not examine how a network&#x27;s value changes as it grows.</p>
+<p>KPI-based evaluation of swarm networks. Mantovani et al. first proposed a custom indicator for the performance of a swarm network under different data distributions [12], then formalized seven KPIs and evaluated the effect of a single new node contributing between 2.5% and 90% of the training data to networks of two to four existing nodes, on homogeneous partitions of MIMIC-III and MIMIC-IV [13, 20]. They found that joining was most beneficial to the newcomer when it held up to about 30% of the data, and most beneficial to the network when the newcomer held more than about 50%; fairness and stability indicators barely moved, as expected under IID partitions, and the authors describe the study as a controlled baseline for later heterogeneous evaluations [13]. The same group then studied scalability and saturation with three further indicators (Incremental Node Gain, Incremental Gain per 1,000 patients and Node Efficiency Ratio), growing networks to as many as 80 nodes on MIMIC and up to 25 hospitals on eICU with the same number of patients in every node [14]. They report early saturation, a penalty for fragmenting a fixed volume of data into many small nodes, and unstable incremental gains under the non-IID eICU partitions [14].</p>
+<p>Federated learning on multi-hospital ICU records. Several studies have used eICU or MIMIC for FL: patient clustering to improve federated mortality and length-of-stay prediction [22], a general FL framework for electronic health records [23], case studies of acute kidney injury and sepsis prediction that quantify how inter-hospital heterogeneity degrades federated models [21], and re-weighting schemes for covariate shift across hospitals [24]. These works fix the number of sites and report standard utility metrics; none quantifies the marginal value of a hospital to the consortium or to itself.</p>
+<p>Position of this work. Table 2 places this study against the two most closely related ones. The novelty lies in the combination: real hospitals with their natural, unequal volumes and prevalences; growth by bed-size category in all six orders; the original seven KPIs, so that the results are directly comparable with the homogeneous baseline of [13]; and substitution robustness checks. 3 Materials and methods</p>
+<h3>3.1 Data source</h3>
+<p>The eICU Collaborative Research Database (eICU-CRD v2.0) holds de-identified records of more than 200,000 ICU admissions from 208 United States hospitals collected in 2014-2015 through the Philips eICU telehealth system [15].</p>
+<p>All data are hosted on PhysioNet [25] and were accessed through Google BigQuery after completion of CITI training and the PhysioNet data use agreement. Because every hospital documents through the same system, the feature set is identical across institutions; what differs is volume, case mix, sepsis prevalence, bed size, teaching status and region. The database records bed capacity in four categories (&lt;100, 100-249, 250-499, ≥500 beds), which we use for stratification; the cohort hospitals fall in the upper three.</p>
+<h3>3.2 Cohort</h3>
+<p>Following the cohort logic of [13], we started from the 30 hospitals with the most ICU admissions and kept stays with at least three medication records and at least one documented diagnosis, leaving 29 hospitals. Four were excluded for data quality: hospital 413 (sepsis prevalence 0.8%), hospital 157 (40.8%), and hospitals 188 and 208 (130 and 46 stays). The study cohort comprised 25 hospitals, 71,887 ICU stays and 11,943 sepsis cases (16.6%). Among them, 16 hospitals had ≥500 beds, four 250-499, two 100-249, and three had no bed size recorded; sepsis prevalence ranged from 8.2% to 27.3%, stays from 1,675 to 4,842 per hospital. Hospitallevel characteristics are given in Supplementary Table S1, exclusions in Table S3.</p>
+<h3>3.3 Sepsis label</h3>
+<p>A stay was labeled septic if either source identified sepsis: ICD-9 codes 038.9, 995.90-995.94 or 785.52 in the diagnosis table, or an admission diagnosis string containing &quot;sepsis&quot; or &quot;septic&quot; (excluding &quot;septic arthritis&quot; and &quot;septic thrombophlebitis&quot;). Of the 11,943 cases, 6,622 appeared in both sources, 3,593 only in coded diagnoses and 1,728 only in admission strings (Supplementary Table S4). The label is retrospective and the features span the whole stay, so the task is sepsis classification, used here as a testbed for collaboration dynamics, not early prediction (Section 6).</p>
+<h3>3.4 Features</h3>
+<p>Forty-six features were derived per stay, following the feature design of [13]: ten vital-sign variables (heart rate, respiratory rate, temperature, SpO 2 and invasive and non-invasive bloodpressure components) summarized as the minimum, mean and maximum over the stay (30 features); white blood cell count summarized the same way (3); and binary indicators for the 13 sepsis-related medications of [13] (vasopressors, broad-spectrum antibiotics and other drugs used in sepsis management [26]), each recording whether the drug was administered at any point during the stay. Vital signs were pooled from the vitalPeriodic, vitalAperiodic, nurseCharting and physicalExam tables after plausibility filtering (for example heart rate 10-300 bpm, temperature 15-50 • C); readings from different sources at the same offset were averaged.</p>
+<p>Pooling matters in eICU: temperature is present in vitalPeriodic for 8.0% of stays but in nurseCharting for 99.5% (Supplementary Table S5). Medications were extracted by case-insensitive name matching across the medication, infusionDrug and intakeOutput tables; 52.6% of stays had at least one of the 13 drugs (Table S7). Continuous summaries were ordinally encoded as low (-1), normal (0) or high (+1) using the clinical thresholds in Supplementary Table S6 (SpO 2 : low or normal only), as in [13]. Missing values were replaced with the feature mean before training.</p>
+<h3>3.5 Hospital selection and stratification</h3>
+<p>Of the 22 hospitals with a recorded bed size, ten were selected to balance category representation (Table 3): both hospitals in the small category, four medium and four large. Six form the base network used in the permutation study: 110 and 171 (small), 417 and 148 (medium), 252 and 420 (large). The remaining two medium (283, 281) and two large (167, 73) hospitals are substitutes for the robustness checks.</p>
+<h3>3.6 Data splits</h3>
+<p>Each hospital&#x27;s stays were split 70/30 at the stay level into training and test partitions, giving 18,803 training and 8,059 test stays (sepsis prevalence 21.6% in both). Within each hospital&#x27;s training partition, a further 90/10 split provided a validation set for model selection. The test partitions of all 3 W I T H D R A W N s e e m a n u s c r i p t D O I f o r d e t a i l s</p>
+<h3>3.7 Model</h3>
+<p>All experiments use the fully connected network of [13]: 46 inputs, three hidden layers of 16 ReLU units and a sigmoid output (1,313 parameters), implemented in Ten-sorFlow/Keras [27] with Glorot-uniform initialization [28], Adam (learning rate 0.001) [29], binary cross-entropy, batch size 32, two local epochs per communication round and 30 rounds. The optimizer is reset at each round. The model with the highest validation AUROC across rounds is retained. These settings were chosen by a grid over learning rate, local epochs, batch size, rounds and architecture (Supplementary Table S8); the compact architecture limits communication cost, over-fitting on the smallest hospitals and client drift within two local epochs.</p>
+<h3>3.8 Swarm learning in NVIDIA FLARE</h3>
+<p>The HPE Swarm Learning Community Edition limits a network to five nodes, which precludes scaling studies. We therefore simulated the swarm protocol with the clientcontrolled workflow of NVIDIA FLARE 2.4 [17] in simulation mode on one Linux server. The server manages only job lifecycle and client health and never sees model weights; clients take turns aggregating by data-proportional federated averaging [7] and exchanging parameters peer to peer. The permissioned blockchain of the original SL implementation [8] is replaced by server-mediated synchronization. Because the KPIs depend on the aggregation outcome, not on the coordination mechanism, this difference does not affect them; the same approach was taken in [14].</p>
+<h3>3.9 Experimental design</h3>
+<p>Permutation study. Networks were grown in two steps, from two to four to six hospitals, by adding one bed-size category (two hospitals) at a time. All six orders of the three categories were run (Table 4). At each size the network was trained as an independent configuration with the settings of Section 3.7, so the six-hospital endpoint is the same configuration in every ordering.</p>
+<h3>Robustness checks.</h3>
+<p>With the small hospitals fixed, the medium pair was replaced by each of three alternative pairs, and separately the large pair by each of three alternatives, all in the small→medium→large order (Table 4).</p>
+<p>Repeats. Every configuration was run with five seeds (42-46); values are means over seeds unless stated. The complete permutation study and robustness checks took about 7.5 hours of computation.</p>
+<h3>3.10 Key performance indicators</h3>
+<p>The seven KPIs are those of [13]; full derivations are given there. With N the network before a transition, N ′ after it, sp N the swarm model&#x27;s AUROC, and p i hospital i&#x27;s local AUROC: (1) S g &gt; 1 means the network improved; L g &lt; 1 means hospital i does better in the swarm than alone, and we report its relative improvement over local training, (sp N ′p i )/p i ; RL g &gt; 0 means the existing members improved.</p>
+<p>The Model Stability Index is the change in relative dispersion of swarm performance:</p>
+<p>In [13] σ is taken across nodes; because the pooled test set yields one swarm AUROC per run, we take σ across the five seeds, so MSI here measures run-to-run stability. Jain&#x27;s in- [30] is computed over the member hospitals&#x27; local AUROCs and therefore summarizes the dispersion of baseline capability within the network. The Data Utility Index is the mean Jensen-Shannon divergence [31] between the added hospitals&#x27; and the existing members&#x27; distributions over all 46 discretized features; the entropy indicator is the change in normalized Shannon entropy [32] of the label distribution, ∆H, when hospitals are added.</p>
+<h3>3.11 Evaluation protocol and statistics</h3>
+<p>AUROC on the pooled test set is the primary metric. A local baseline was obtained for each of the ten hospitals by training the same model on that hospital&#x27;s training partition alone; the baseline values reported here are those on each hospital&#x27;s own held-out validation split. Uncertainty is reported as the standard deviation over the five seeds of each swarm configuration. Because the six permutations share hospitals and all terminate in the same six-hospital network, they are not independent replicates; we therefore describe permutationlevel results and do not test them inferentially. Correlations between transition-level KPIs are computed over the nine unique transitions.</p>
+<h3>4 Results</h3>
+<h3>4.1 Local baselines</h3>
+<p>Local AUROC varied widely across the ten hospitals, from 0.621 (hospital 417) to 0.773 (hospital 420), and tracked volume and prevalence more than bed-size category (Table 5). Across the ten hospitals, large hospitals averaged 0.736 (SD 0.031), medium 0.669 (0.061) and small 0.641  Network AUROC rose with every addition in every ordering (Figure 1A; Table 6). Two-hospital networks started at 0.734 (small), 0.755 (medium) and 0.781 (large); the four-hospital networks reached 0.770 (small + medium), 0.795 (medium + large) and 0.799 (small + large); the six-hospital network reached 0.804. Because the six-hospital network is the same configuration in every ordering, the six permutations converge on that value by construction (range 0.8041-0.8045 across the six permutations); the ordering determines only the intermediate values, and a large-first network is ahead at every intermediate stage. Across the seven distinct networks, AUROC increased with the pooled volume of the member hospitals with diminishing returns (Figure 1B): the three networks whose members contribute more than 11,000 stays lie within 0.01 AUROC of each other. Swarm Gain exceeded 1 at all nine unique transitions (Table 7; Figure 2). Gains were larger in the first step (mean S g 1.042 for 2→4 hospitals) than in the second (1.020 for 4→6), and largest when large hospitals were added (mean 1.062, versus 1.025 for medium and 1.017 for small). The single largest transition was large hospitals joining the smallonly network (S g 1.090). Cumulatively, small-first networks gained most from growth (S g 1.096 from two to six hospitals), medium-first 1.064 and large-first 1.030, reflecting their different starting points rather than different endpoints.</p>
+<h3>4.3 Benefit to individual hospitals (RQ2)</h3>
+<p>Every base hospital had Local Gain below 1 in the sixhospital network (Table 8; Figure 3A). Relative improvement over local training ranged from 4.1% for hospital 420, which had the strongest local model, to 29.5% for hospital 417, which had the weakest. By category, small hospitals improved by 25.5% on average, medium by 17.9% and large by 5.9%. The ordering of benefit follows local AUROC more closely than bed size: hospital 148 (medium, local 0.756) gained 6.3%, less than hospital 252 (large, 0.746), which gained 7.8%. The substitute hospitals, evaluated in their own configurations, follow the same relation (Figure 3B): 283 (local 0.635) gained 26.5% and 26.8% in its two configurations, 281 (0.665) 20.4%, 167 (0.700) 14.6% and 73 (0.726) 10.7%.</p>
+<p>Because every hospital&#x27;s swarm AUROC is the same pooled value in this evaluation, the improvement is, by construction, a decreasing function of local AUROC (the curve in Figure 3B). The ordering and the magnitudes therefore describe the gap between each hospital&#x27;s local model and the shared swarm model; whether the swarm model is better on each hospital&#x27;s own patients requires per-hospital test sets (Section 6).</p>
+<h3>4.4 Effect on existing members (RQ3)</h3>
+<p>Relative Local Gain was positive at every transition (Table 7): existing members never lost performance when hospitals of any category joined. Adding large hospitals produced the largest gains for existing members (mean +6.2%; up to +9.0% when they joined the small-only network), adding medium hospitals +2.5%, and adding small hospitals +1.8%. Under the pooled evaluation set the existing members&#x27; swarm performance is the network AUROC itself, so RL g coincides with S g -1 and Figure 2 describes both; [13] derives the same identity for the converged homogeneous case. The two indicators separate only under per-hospital evaluation.</p>
+<h3>4.5 Stability (RQ4)</h3>
+<p>Run-to-run variability fell as networks grew (Table 6; Figure 4). The coefficient of variation of network AUROC across seeds averaged 2.20% at two hospitals, 0.75% at four and 0.20% at six, an eleven-fold reduction; all MSI values were negative (small-first -0.034, medium-first -0.014, large-first -0.013). Small-only networks were the least sta-  ble at the start (CV 3.57%) and therefore stabilized most.</p>
+<h3>4.6 Fairness (RQ5)</h3>
+<p>Jain&#x27;s index over the member hospitals&#x27; local AUROCs was above 0.99 for every network and 0.9919 for the six-hospital network (Table 6), despite local AUROCs ranging from 0.621 to 0.773. In this evaluation the index characterizes how dispersed the members&#x27; baseline capabilities are; the fairness of the swarm model itself, in the sense of [13], requires per-hospital swarm AUROCs.</p>
+<h3>4.7 Novelty and diversity of added data (RQ6)</h3>
+<p>Feature distributions were almost identical across hospitals: the Data Utility Index lay between 0.005 and 0.013 at every transition (Table 7; Figure 5A), with no systematic difference by category added (small 0.0095, medium 0.0060, s e e m a n u s c r i p t D O I f o r d e t a i l s 1.00 1.02 1.04 1.06 1.08 1.10 Swarm Gain, S g (AUROC after ÷ AUROC before) S+L + medium M+L + small M + small L + medium L + small S+M + large S + medium M + large S + large 1.006 1.010 1.019 1.019 1.023 1.044 1.051 1.052 1.090</p>
+<h3>Gain at each of the nine network transitions</h3>
+<p>Category added Small Medium Large  large 0.0096). Added hospitals therefore contributed volume rather than novel feature information, consistent with the single documentation system behind eICU. Label diversity did differ by category. Adding large hospitals raised normalized label entropy (mean ∆H +0.047), because the large pair has the highest combined prevalence of the three pairs (25.2%, against 21.5% for the small and 20.7% for the medium pair) and moves the pooled prevalence toward balance, whereas adding medium (-0.015) or small (-0.007) hospitals lowered it (Figure 5B). Across the nine unique transitions, ∆H correlated with Swarm Gain (Pearson r = 0.74; Figure 5C). Large additions also contribute the most stays and positive cases, so this association does not separate label balance from volume (Section 5).</p>
+<h3>4.8 Robustness to hospital substitution</h3>
+<p>Replacing the medium pair changed the six-hospital network AUROC by at most 0.003 (Table 9; Figure 6). Replacing the large pair changed it by at most 0.003 in two of three substitutions; the configuration without hospital 252 reached 0.790, 0.014 below the base, suggesting that this hospital, which combines high volume with high prevalence, contributes disproportionately. In every configuration the swarm AUROC exceeded every member&#x27;s local AUROC, and the substitute hospitals gained between 10.7% and 26.8% over their local models, in the same inverse relation to baseline seen in Table 8 (Supplementary Table S9).</p>
+<h3>5 Discussion</h3>
+<p>Growth helped the network at every step, and the first step helped most. Swarm Gain never fell below 1, and the mean gain from two to four hospitals (1.042) was twice that from four to six (1.020). The second step adds proportionally less data (50% more hospitals versus 100%), so this pattern is what diminishing returns on volume would predict; our design cannot tell whether a plateau lies beyond six hospitals. The scalability study of [14], which grew equal-sized nodes to 25 hospitals on the same database, found that incremental gains approached zero early and became unstable under heterogeneity. Read together, the two studies suggest that consortia should expect most of the benefit from the first few members and should weigh the quality and prevalence profile of later recruits rather than their number.</p>
+<p>Benefit was universal and inversely related to the strength of the local model. All hospitals improved on their local baseline, from 4.1% for the strongest to 29.5% for the weakest. The three hospitals with local AUROC below 0.66 gained more than 23%; the three above 0.74 gained less than 8%. Bed size predicted benefit only through its correlation with volume and prevalence: hospital 417, nominally medium, had the fewest sepsis cases and gained most, while hospital 148, also medium, had the second-strongest local model and gained least among non-large hospitals. This asymmetry agrees with reports that smaller institutions gain more from federation [16] and with the newcomer-side finding of [13] that joining helps most when the newcomer holds a small share of the data. Two cautions apply. First, in our evaluation every hospital&#x27;s swarm performance is the same pooled AUROC, so the inverse relation is partly built in; perhospital evaluation would show whether the swarm model also beats each local model on that hospital&#x27;s own patients. Second, these are relative improvements on a classification task with modest absolute AUROC (0.80), not estimates of clinical value.</p>
+<p>Existing members were never harmed. Relative Local Gain was positive for all nine transitions, including every case in which small hospitals joined networks anchored by large ones (+1.0% to +2.3%). Large newcomers helped existing members most (+6.2%). The practical reading is that recruitment can be inclusive: a small hospital adds less, but it does not subtract. The limit of this reading is the same as above: under the pooled evaluation RL g collapses onto S g -1, as [13] shows analytically for the converged case, so member-level effects, including possible negative transfer for a particular hospital, are not yet resolved.</p>
+<p>Joining order shaped the path, not the destination, by design. Every ordering ends in the same six-hospital network trained from the same initialization, so convergence to AUROC 0.804 is a property of the experiment rather than   2 4 6 Hospitals in the network 0.0 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0 CV of network AUROC across seeds (%) 2.20% 0.75% 0.20%</p>
+<h3>Run-to-run variability shrinks as networks grow</h3>
+<p>Small-first Medium-first Large-first first-listed order second order mean of six orders evidence that order is irrelevant. What the permutations do show is that intermediate performance differs substantially: a large-first network stood at 0.781 with two hospitals, 0.047 above a small-first network, and remained ahead at four. For a consortium that may stay small for some time, recruiting a high-volume anchor first maximizes performance during growth. Whether order matters when a network is actually grown incrementally, with new members joining a model already in training, is an open question that neither this study nor [13, 14] answers.</p>
+<p>Scaling stabilized the swarm model. Seed-to-seed variation fell eleven-fold, to a coefficient of variation of 0.2% at six hospitals. Small-only networks were the most variable and benefited most. Reproducible behavior across training runs is a prerequisite for any model that would be re-trained as members join, so this is a useful property; it is also, under five seeds and a fixed architecture, a narrow one.</p>
+<p>Volume and label balance, not feature novelty, drove the gains. The Data Utility Index was near zero at every transition, as in the homogeneous baseline of [13], which reflects the single documentation system behind eICU rather than genuine similarity of the hospitals&#x27; populations. The entropy indicator, by contrast, did move: large additions raised label entropy and produced the largest gains, and ∆H correlated with Swarm Gain (r = 0.74).</p>
+<p>Because the 8 W I T H D R A W N s e e m a n u s c r i p t D O I f o r d e t a i l s 0.000 0.005 0.010 0.015 Data Utility Index (mean JS divergence) M+L + small M + small L + small S+L + medium L + medium S + medium S+M + large M + large S + large A Feature novelty -0.02 0.00 0.02 0.04 0.06 Change in normalized label entropy, ΔH B Label diversity 0.00 0.05 ΔH 1.00 1.02 1.04 1.06 1.08 1.10 Swarm Gain, S g Pearson r = 0.74 (9 transitions) C Entropy change vs. gain Category added Small Medium Large Figure 5. Novelty and diversity of the data added at each transition, grouped by the category added. (A) Data Utility Index. (B) Change in normalized label entropy. (C) Entropy change against Swarm Gain. 0.785 0.790 0.795 0.800 0.805 Six-hospital network AUROC (mean ± SD; dots = seeds) 417, 148 (base) 417, 283 417, 281 148, 283 252, 420 (base) 252, 167 252, 73 420, 167 0.8042 0.8027 0.8013 0.8048 0.8042 0.8016 0.8036 0.7900 Medium pair varied (small and large fixed) Large pair varied (small and medium fixed) Substituting the medium or the large pair large pair also contributes the most stays (7,754) and the most positive cases (1,954, against 758 for the medium pair), label balance and volume are confounded in this design. Separating them would require adding hospitals matched on volume but differing in prevalence, which the eICU strata do not allow at the six-hospital scale.</p>
+<p>Relation to the KPI framework&#x27;s baseline. On homogeneous MIMIC partitions, [13] found S g above 1, L g below 1 for the newcomer, positive RL g , J near 1 and MSI near zero. We observe the same signs on real hospitals with up to 2.7-fold differences in volume, 4.6-fold differences in sepsis cases and prevalence from 16% to 27%, and we add that the magnitudes order by the newcomer&#x27;s volume and prevalence. The indicators that were expected to be uninformative in the IID baseline, DUI and entropy, remain uninformative for features here but become informative for labels. The framework therefore transfers to real multi-hospital data, with the qualification that several of its indicators only separate under per-hospital evaluation.</p>
+<h3>6 Limitations and future work</h3>
+<p>Evaluation design. The single pooled test set gives every hospital the same swarm AUROC. This makes Local Gain a function of local AUROC, makes Relative Local Gain coincide with Swarm Gain -1, and turns Jain&#x27;s index into a description of baseline dispersion. Local baselines were in addition scored on each hospital&#x27;s validation split rather than on the pooled test set. Per-hospital test partitions, on which both the local and the swarm model are scored, are the first extension and will determine whether any member experiences negative transfer. The study also lacks a centralized baseline trained on the pooled data of each network, which would bound the gap the swarm leaves on the table; [13, 14] report that swarm models approach but do not reach it.</p>
+<p>Retraining at each size. Each network size was trained as an independent configuration, so the shared endpoint of all orderings is a design property. A warm-started protocol, in which newcomers join a model already in training, is needed to test whether order matters in practice.</p>
+<h3>Scale and selection.</h3>
+<p>Six hospitals in the main design, ten in all, is small, and only two hospitals in the cohort fall in the 100-249-bed category, so the small stratum could not be substituted. The bed-size categories are eICU&#x27;s own, not a validated taxonomy, and category correlated imperfectly with volume and prevalence. Extending the permutation design to the 22 classified hospitals is feasible in NVIDIA FLARE and is the natural next step.</p>
+<h3>W I T H D R A W N</h3>
+<p>s e e m a n u s c r i p t D O I f o r d e t a i l s</p>
+<p>Task. Features summarize the whole stay, including vasopressor and antibiotic administration, and the label is retrospective, so the model classifies stays that were treated for sepsis rather than predicting onset; absolute AUROC should be read in that light and the results should not be taken as evidence of clinical readiness. The task is adopted from [13] so that the KPI values are comparable; mortality or lengthof-stay prediction with time-anchored features would test whether the scaling behavior generalizes.</p>
+<h3>Heterogeneity.</h3>
+<p>All eICU hospitals share one documentation system, which is why the Data Utility Index was near zero. Real consortia with different EHR systems will exhibit feature-level heterogeneity that this study cannot speak to. Prevalence and volume heterogeneity, which the study does capture, were confounded in the label-entropy analysis.</p>
+<p>Implementation. Swarm learning was simulated in NVIDIA FLARE on a single machine with data-proportional federated averaging; the blockchain coordination of the original protocol was not reproduced, and aggregation rules designed for heterogeneous clients, such as FedProx [33] or SCAFFOLD [34], were not compared.</p>
+<p>Communication cost and wall-clock time were not studied. Results are means over five seeds; the permutations share hospitals and were not tested inferentially. Data. eICU-CRD covers United States hospitals in 2014-2015, which limits generalization to other health systems and to current practice.</p>
+<h3>7 Conclusions</h3>
+<p>Applying the seven-KPI swarm-learning framework to networks grown from real hospitals of different sizes, we found that every addition improved the network, every hospital improved on its local model, and existing members were never harmed, with gains concentrated in the first growth step, in hospitals with the weakest local models, and in transitions that added high-volume, high-prevalence hospitals. Joining order changed intermediate but not final performance under retraining, and run-to-run stability improved eleven-fold from two to six hospitals. The framework&#x27;s signs replicate those reported on homogeneous partitions, and its magnitudes order by the newcomer&#x27;s volume and label balance rather than by feature novelty. For consortia, the results support inclusive recruitment anchored by a large hospital. Per-hospital evaluation, a centralized baseline and warmstarted joining are the next steps toward a sizing method for clinical swarm networks.</p>
+<p>No funding was received for this work.</p>
+<p>Data availability. The eICU Collaborative Research Database v2.0 is available to credentialed researchers through PhysioNet (https://physionet.org/content/eicu-crd/2.0/) under its data use agreement. The SQL queries that generate the study cohort and features, the hospital identifiers and the random seeds will be provided with the code so that the datasets can be regenerated exactly.</p>
+<p>Code availability. NVIDIA FLARE job configurations, training and KPI scripts will be deposited in a public repository with a persistent identifier on acceptance.</p>
+<p>Ethics. The study uses de-identified data released under the PhysioNet credentialing process; no additional ethical approval was required.</p>
+<p>Funding.</p>
+<h3>Competing interests.</h3>
+<p>The authors declare no competing interests.</p>
+<h3>Author contributions.</h3>
+<p>iments, performed the data extraction and KPI analyses and wrote the first draft. M.M. and C.C. conceived the study, proposed the KPI framework, supervised the work and revised the manuscript. All authors approved the final version.</p>
+<h3>Supplementary material</h3>
+<p>Supplementary Tables S1-S9 accompany the manuscript: S1, characteristics of all 25 cohort hospitals; S2, network composition at each stage of the six permutations; S3, excluded hospitals and rationale; S4, sepsis phenotyping criteria and source distribution of cases; S5, vital-sign data sources and coverage by table; S6, ordinal encoding thresholds; S7, medication coverage by source; S8, hyperparameter tuning results; S9, per-hospital results for every robustness configuration, including per-seed network AUROC.</p>
+<h3>1 Dawit</h3>
+<p>Gebremariam 1,* , Matteo Mantovani 1 , and Carlo Combi 1 W I T H D R A W N s e e m a n u s c r i p t D O I f o r d e t a i l s Network scaling in swarm learning across real hospitals</p>
+<h3>2 W</h3>
+<p>I T H D R A W Ns e e m a n u s c r i p t D O I f o r d e t a i l s</p>
+<h3>4 W</h3>
+<p>I T H D R A W Ns e e m a n u s c r i p t D O I f o r d e t a i l s</p>
+<h3>5 WFigure 1.</h3>
+<p>Figure 1. Network AUROC as hospitals are added. (A) The six joining orders, colored by the starting category; solid and dashed lines distinguish the two orders that share a start. Values at two hospitals are the starting points; all orders end at the same six-hospital network. (B) The seven distinct networks against the total stays of their member hospitals (mean ± SD over five seeds).</p>
+<h3>Figure 2.</h3>
+<p>Figure2. Swarm Gain at each of the nine unique transitions, sorted by magnitude and colored by the category of the hospitals added. Under the pooled evaluation set, Relative Local Gain is S g -1 at every transition (Section 4.4).</p>
+<h3>7 W</h3>
+<p>I T H D R A W N s e e m a n u s c r i p t D O I f o r d e t a i l s model (marker) → six-hospital swarm model (bar, 0.804)</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Benefit to individual hospitals. (A) Local AUROC (marker) and six-hospital swarm AUROC (bar) for each base hospital, with the relative improvement. (B) Relative improvement against local AUROC for the six base hospitals and the four substitutes in their own configurations; the grey curve is the relation implied by a shared swarm AUROC of 0.804.</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Coefficient of variation of network AUROC across the five seeds at each network size, for the six joining orders and their mean.</p>
+<h3>Figure 6.</h3>
+<p>Figure 6. Six-hospital network AUROC under substitution of the medium pair (top) and the large pair (bottom). Markers show the mean ± SD over five seeds; small dots show individual seeds where logged; the dotted line marks the base configuration.</p>
+<h3>D</h3>
+<p>. G. designed and ran the exper-W I T H D R A W N s e e m a n u s c r i p t D O I f o r d e t a i l s W I T H D R A W N s e e m a n u s c r i p t D O I f o r d e t a i l s</p>
+<h3>Table 1.</h3>
+<p>Research questions and the KPI that answers each.</p>
+<h3>Table 2.</h3>
+<p>Positioning against the two closest studies.</p>
+<h3>Table 3.</h3>
+<p>The ten hospitals used in the experiments (26,862 stays; 5,788 sepsis cases; 21.6%). Substitute ten hospitals were pooled into one evaluation set used for every configuration, so each swarm model receives a single AUROC; the consequences of this choice for the memberlevel indicators are discussed in Sections 4.3-4.6 and 6.</p>
+<h3>Table 4.</h3>
+<p>Network configurations. Stays per stage: 3,355 (S), 3,667 (M), 7,754 (L); 7,022 (S+M), 11,109 (S+L), 11,421 (M+L); 14,776 (all six).</p>
+<h3>Table 5.</h3>
+<p>Local baseline performance of each of the ten hospitals trained alone.</p>
+<h3>Table 6.</h3>
+<p>Swarm</p>
+<h3>Table 7.</h3>
+<p>Transition-level KPIs for the nine unique network transitions. Transitions 7-9 each occur in two permutations; their values are averaged. S g values are the logged ratios, so ratios of the rounded AUROCs shown can differ from them in the third decimal. Under the pooled evaluation set, RL g equals S g -1 (Section 4.4).</p>
+<h3>Table 8.</h3>
+<p>Local Gain and relative improvement, (swarmlocal)/local, for each base hospital in the six-hospital network, sorted by local AUROC; category means are over the six base hospitals.</p>
+<h3>Table 9.</h3>
+<p>Six-hospital network AUROC when the medium or the large pair is replaced (small hospitals fixed; order small → medium → large; five seeds).</p>
+<h3>References</h3>
+<p>Rockenschaub P, Hilbert A, Kossen T, Elbers P, von Dinck- lage F, Madai VI, Frey D. The impact of multi-institution datasets on the generalizability of machine learning predic- tion models in the ICU. Crit Care Med. 2024;52(11):1710- 1721.</p>
+<p>Rudd KE, Johnson SC, Agesa KM, et al. Global, regional, and national sepsis incidence and mortality, 1990-2017: analysis for the Global Burden of Disease Study. Lancet. 2020;395(10219):200-211.</p>
+<p>Moor M, Bennett N, Plečko D, et al. Predicting sepsis us- ing deep learning across international sites: a retrospec- tive development and validation study. eClinicalMedicine. 2023;62:102124.</p>
+<p>Kelly CJ, Karthikesalingam A, Suleyman M, Corrado G, King D. Key challenges for delivering clinical impact with artificial intelligence. BMC Med. 2019;17:195.</p>
+<p>Rieke N, Hancox J, Li W, et al. The future of digital health with federated learning. npj Digit Med. 2020;3:119.</p>
+<p>Dayan I, Roth HR, Zhong A, et al. Federated learning for predicting clinical outcomes in patients with COVID-19. Nat Med. 2021;27(10):1735-1743.</p>
+<p>McMahan B, Moore E, Ramage D, Hampson S, Agüera y Arcas B. Communication-efficient learning of deep networks from decentralized data. In: Proc. 20th Int. Conf. on Artificial Intelligence and Statistics (AISTATS); 2017. p. 1273-1282.</p>
+<p>Warnat-Herresthal S, Schultze H, Shastry KL, et al. Swarm learning for decentralized and confidential clinical machine learning. Nature. 2021;594(7862):265-270.</p>
+<p>Xu J, Glicksberg BS, Su C, Walker P, Bian J, Wang F. Fed- erated learning for healthcare informatics. J Healthc Inform Res. 2021;5(1):1-19.</p>
+<p>Antunes RS, da Costa CA, Küderle A, Yildiz IA, Eskofier BM. From challenges and pitfalls to recommendations and opportunities: implementing federated learning in healthcare. Med Image Anal. 2025;101:103497.</p>
+<p>Kairouz P, McMahan HB, Avent B, et al. Advances and open problems in federated learning. Found Trends Mach Learn. 2021;14(1-2):1-210.</p>
+<p>Mantovani M, Scheda R, Combi C, Diciotti S. A key per- formance indicator to analyze swarm learning performances with EHR. In: 2024 IEEE 12th Int. Conf. on Healthcare Informatics (ICHI); 2024. p. 620-625.</p>
+<p>Mantovani M, Scaglia S, Scheda R, Combi C, Diciotti S. Swarm learning and clinical data: evaluating the benefit of a new node for the whole network. J Healthc Inform Res. 2026. doi:10.1007/s41666-026-00255-7.</p>
+<p>Mantovani M, Scaglia S, Combi C. Scalability and saturation in swarm learning: a KPI-driven analysis on real-world clin- ical data. In: Proc. 17th ACM Int. Conf. on Bioinformatics, Computational Biology and Health Informatics (BCB &#x27;26); 2026. doi:10.1145/3807503.3817123.</p>
+<p>Pollard TJ, Johnson AEW, Raffa JD, Celi LA, Mark RG, Badawi O. The eICU Collaborative Research Database, a freely available multi-center database for critical care re- search. Sci Data. 2018;5:180178.</p>
+<p>Silva TO, de Souza GB, Gomes BB, et al. Federated learning for COVID-19 mortality prediction in a multicentric sample of 21 hospitals. PLoS ONE. 2025;20(6):e0325407.</p>
+<p>Roth HR, Cheng Y, Wen Y, et al. NVIDIA FLARE: federated learning from simulation to real-world. arXiv:2210.13291; 2022.</p>
+<p>Saldanha OL, Quirke P, West NP, et al. Swarm learning for decentralized artificial intelligence in cancer histopathology. Nat Med. 2022;28(6):1232-1239.</p>
+<p>Saldanha OL, Muti HS, Grabsch HI, et al. Direct prediction of genetic aberrations from pathology images in gastric cancer with swarm learning. Gastric Cancer. 2023;26(2):264-274.</p>
+<p>Johnson AEW, Pollard TJ, Shen L, et al. MIMIC-III, a freely accessible critical care database. Sci Data. 2016;3:160035.</p>
+<p>Rajendran S, Xu Z, Pan W, Ghosh A, Wang F. Data heterogeneity in federated learning with electronic health records: case studies of risk prediction for acute kidney in- jury and sepsis diseases in critical care. PLOS Digit Health. 2023;2(3):e0000117.</p>
+<p>Huang L, Shea AL, Qian H, Masurkar A, Deng H, Liu D. Patient clustering improves efficiency of federated ma- chine learning to predict mortality and hospital stay time using distributed electronic medical records. J Biomed In- form. 2019;99:103291.</p>
+<p>Dang TK, Lan X, Weng J, Feng M. Federated learning for electronic health records. ACM Trans Intell Syst Technol. 2022;13(5):1-17.</p>
+<p>Zhu H, Bai J, Li N, et al. FedWeight: mitigating covariate shift of federated learning on electronic health records data through patients re-weighting. npj Digit Med. 2025;8:286.</p>
+<p>Goldberger AL, Amaral LAN, Glass L, et al. PhysioBank, PhysioToolkit, and PhysioNet: components of a new re- search resource for complex physiologic signals. Circulation. 2000;101(23):e215-e220.</p>
+<p>Evans L, Rhodes A, Alhazzani W, et al. Surviving Sepsis Campaign: international guidelines for management of sepsis and septic shock 2021. Crit Care Med. 2021;49(11):e1063- e1143.</p>
+<p>Abadi M, Agarwal A, Barham P, et al. TensorFlow: large- scale machine learning on heterogeneous systems. 2015. https://www.tensorflow.org.</p>
+<p>Glorot X, Bengio Y. Understanding the difficulty of train- ing deep feedforward neural networks. In: Proc. 13th Int. Conf. on Artificial Intelligence and Statistics (AISTATS); 2010. p. 249-256.</p>
+<p>Kingma DP, Ba J. Adam: a method for stochastic optimiza- tion. In: 3rd Int. Conf. on Learning Representations (ICLR); 2015.</p>
+<p>Jain R, Chiu DM, Hawe WR. A quantitative measure of fairness and discrimination for resource allocation in shared computer systems. DEC Research Report TR-301; 1984.</p>
+<p>Menéndez ML, Pardo JA, Pardo L, Pardo MC. The Jensen- Shannon divergence. J Franklin Inst. 1997;334(2):307-318.</p>
+<p>Shannon CE. A mathematical theory of communication. Bell Syst Tech J. 1948;27(3):379-423.</p>
+<p>Li T, Sahu AK, Zaheer M, Sanjabi M, Talwalkar A, Smith V. Federated optimization in heterogeneous networks. In: Proc. Machine Learning and Systems (MLSys); 2020. vol. 2, p. 429-450.</p>
+<p>Karimireddy SP, Kale S, Mohri M, Reddi SJ, Stich SU, Suresh AT. SCAFFOLD: stochastic controlled averaging for federated learning. In: Proc. 37th Int. Conf. on Machine Learning (ICML); 2020. PMLR 119:5132-5143.</p>
 </div>
 </details>
 </div>
