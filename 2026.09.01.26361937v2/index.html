@@ -198,7 +198,7 @@ infectious mortality, 1990-2023: a systematic analysis of the Global
 Burden of Disease Study 2023
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.4.1 · DOI 10.64898/2026.09.01.26361937
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.09.01.26361937
 </p>
 </header>
 <div class="mc-main">
@@ -425,8 +425,8 @@ Your Statistical Inferences</a>.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 13 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 13 detected.</p>
 </div>
 </div>
 </div>
@@ -523,8 +523,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -896,9 +897,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -920,7 +925,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -935,9 +941,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -950,13 +974,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -976,6 +1003,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -983,12 +1016,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1089,6 +1128,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1108,6 +1167,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1363,19 +1457,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1485,6 +1661,166 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background Childhood respiratory infectious deaths are partitioned across four Global Burden of Disease cause modules-26 etiological attributions within lower respiratory infections, tuberculosis, COVID-19, and whooping cough-never jointly reported. Whether the structure of this combined mortality spectrum has changed over time, and with what implications for intervention design, has not been quantified. We assembled and analyzed the integrated spectrum for children and adolescents aged 0-19 years, 1990-2023.</p>
+<p>We integrated Global Burden of Disease Study 2023 (release v8352) estimates into a 29-node spectrum-26 lower respiratory infection etiologies plus tuberculosis, COVID-19, and pertussisglobally and across seven super-regions, with uncertainty propagated by summing bounds. We computed Shannon diversity, Herfindahl concentration, and effective cause counts; phenotyped pandemic-window collapse and rebound per cause; linked pathogen shares to WHO/UNICEF vaccine coverage; and mapped geographic concentration in sub-Saharan Africa and South Asia. Segmented (joinpoint) log-linear models with breakpoints selected by the Bayesian information criterion were fitted to annual totals, Shannon diversity and leading pathogen shares.</p>
+<p>In 2023 the 29 causes jointly accounted for 965,330 deaths (95% uncertainty interval [UI] 680,096-1,342,437). Shannon diversity rose from 2.336 to 2.711 (+16.1%) between 1990 and 2023; the effective number of causes nearly doubled (5.57 to 9.94), inversely coupled to total deaths (Spearman ρ = -0.997). Whooping cough ranked second (112,954 deaths; 95% UI 64,576-185,708; 11.7%) and showed the spectrum&#x27;s only rebound above 100% (-57.4% collapse, +111.0% rebound). Tuberculosis ranked third (87,764; 57,779-124,912; 9.1%) with the highest concentration in sub-Saharan Africa and South Asia (87.1%). COVID-19 entered at rank five (52,899; 47,275-59,183; 5.5%). Nineteen of 29 causes . NOTE: This preprint reports new research that has not been certified by peer review and should not be used to guide clinical practice.</p>
+<p>exceeded the poverty-lock threshold (&gt;80.59% of deaths in sub-Saharan Africa plus South Asia).</p>
+<p>Joinpoint analysis placed breakpoints in total deaths at 2011, 2018 and 2021-the decline slowed from -3.4% to -2.3% per year after 2011, steepened to -7.1% per year in 2018-2021 and rebounded +4.5% per year in 2021-2023-while diversification accelerated to +1.18% per year in 2013-2020; all six leading pathogen shares carried a pandemic-window breakpoint at 2019 and 2021 (S. pneumoniae at 2018 and 2021).</p>
+<p>Conclusions Childhood respiratory infectious mortality has become more diverse and more concentrated in poverty as it has declined. Single-pathogen interventions now address a shrinking share; the spectrum&#x27;s structure argues for platform interventions-oxygen, antimicrobial access, referral-tailored jointly by age and geography, implying that pathogen-specific strategies alone cannot finish the remaining mortality agenda.</p>
+<h3>[div-01]</h3>
+<p>Yet within the Global Burden of Disease (GBD) framework these deaths are partitioned across four cause modules that are never jointly reported: 26 etiological attributions within lower respiratory infections (LRIs), derived through a counterfactual population-attributable-fraction model; tuberculosis; COVID-19; and whooping cough, each estimated as an independent, mutually exclusive cause of death 1 2 . Successive GBD cycles have refined LRI etiological attribution 3 4 , most recently reporting non-COVID-19 LRI mortality for 1990-2021 in 18 etiological categories-including aggregate and residual groupings-with strata for children under 5 years and aged 5-14 years 2 . Two integration precedents exist: the global antimicrobial resistance study spanned infectious syndromes across GBD hierarchical levels 5 , and the GBD 2019 collaboration synthesized the communicable-disease burden of children and adolescents 6.</p>
+<p>Neither, however, assembled a single childhood respiratory mortality spectrum at single-pathogen resolution, and neither captured the pandemic window or the post-2021 rebound now observable through 2023.</p>
+<h3>1.2 Three knowledge gaps</h3>
+<p>First, no study has tracked the diversity of a population-level respiratory pathogen mortality spectrum over time. Ecological diversity metrics have been applied to respiratory pathogens only at other scales-within-species serotype diversity in pneumococcal carriage after conjugate vaccination 7 and within-host lung-microbiome diversity in critically ill patients with pneumonia 8 -leaving the evenness of the childhood mortality spectrum unquantified. Therefore, we computed Shannon diversity, Herfindahl concentration, and the effective number of pathogens for the full spectrum annually from 1990 to 2023.</p>
+<p>Second, the COVID-19 pandemic perturbed all respiratory pathogens simultaneously, yet collapse-andresurgence comparisons have been confined to incidence-based surveillance of viruses 9 10 . Therefore, we used the pandemic window as a natural experiment to phenotype the collapse depth and rebound speed of bacterial, viral, fungal, and pandemic-driven causes jointly on a mortality spectrum. Third, although GBD 2021 incorporated vaccine coverage as an attribution covariate 2 , no explicit pediatric cross-pathogen dose-response geometry linking third-dose pneumococcal and Haemophilus influenzae type b coverage 11 to spectrum composition has been reported, and the geographic concentration of the residual spectrum has not been formalized as a structural property. Therefore, we mapped each cause&#x27;s coverage-mortality gradient and its concentration in sub-Saharan Africa and South Asia.</p>
+<h3>1.3 Contribution statement</h3>
+<p>Novelty. Using GBD 2023, we construct the first integrated 29-node pediatric (0-19 years) respiratory infectious mortality spectrum-26 LRI pathogens plus tuberculosis, COVID-19, and pertussis-for 1990-2023, comprising 965,330 deaths (95% uncertainty interval 680,096-1,342,437) in 2023, and quantify its diversity succession (+16.1% in Shannon H; effective pathogen count 5.57 to 9.94) 12.</p>
+<h3>Differentiation.</h3>
+<p>Relative to GBD 2021&#x27;s 18 etiological categories with under-5 and 5-14 year strata 2 , we resolve single pathogens for a dedicated 0-19 population extended through the post-2021 rebound; relative to viral resurgence surveillance 9 10 , our perturbation analysis spans bacteria and viruses on a death spectrum; and relative to prior cross-module integrations 5 6 , we add pathogen-level resolution and the pandemic window. Implications. With diversity rising, the vaccine-preventable share shrinking, and 19 of 29 causes concentrated above the poverty-lock threshold, the marginal leverage of single-pathogen interventions declines relative to platform interventions-oxygen therapy, antimicrobial access, and hospital infection control-delivered with age-and geography-specific tailoring.</p>
+<h3>2. Methods</h3>
+<p> &gt;Methods</p>
+<h3>2.1 Data source and integration of four cause modules through three estimation interfaces</h3>
+<p>We conducted a secondary analysis of the Global Burden of Disease Study 2023 (GBD 2023; release v8352), which estimates cause-specific mortality for 204 countries and territories, 1990-2023, using standardized Bayesian hierarchical models 1 13 . Childhood respiratory infectious mortality is partitioned across four GBD cause modules-26 LRI etiology attributions, tuberculosis, COVID-19 and whooping cough-which are consolidated through three estimation interfaces into a single 29-node spectrum. First, etiologically attributed lower respiratory infection (LRI) deaths were extracted at the risk-effect (rei) level for the 26 single-pathogen causes of GBD 2023 1 . Attribution here follows a counterfactual population-attributable fraction (PAF) model 2 3 ; the rei-level interface returns deaths only, so all analyses are mortality-based (metric: Deaths, Number). Second, tuberculosis (cause 297) and whooping cough (cause 339) were extracted from the cause interface, where they are modelled directly (CODEm and specialized ensemble approaches) rather than through PAF attribution 1 14 . Third, COVID-19 (cause 1048) was extracted for 2020-2023, with zeros for 1990-2019. Because GBD causes of death are mutually exclusive and collectively exhaustive, concatenating the modules introduces no double counting; the two frameworks generate uncertainty differently (PAF-based versus cause-model draws), and module-specific uncertainty intervals (UIs) are treated as structurally heterogeneous.</p>
+<h3>2.2 Definitions, age aggregation, and regional mapping</h3>
+<p>The primary pediatric total, ages 0-19 years, was defined as the sum of the &lt;5, 5-9, 10-14, and 15-19 year groups; the 20-24 year group was retained solely as a young-adult comparator and never folded into the 0-19 total. UIs were propagated conservatively by summing GBD-reported lower and upper bounds across strata (wider than posterior-draw aggregation), with point estimates summed analogously, keeping totals and shares internally consistent. The extraction grid comprised Global plus the seven GBD superregions, five age groups, both sexes, and 34 years, with no missing strata. Inputs available only at the 21region level (the three independently modelled causes) were mapped to super-regions using the standard GBD location hierarchy.</p>
+<h3>2.3 Spectrum-structure metrics</h3>
+<p>For each location-year we computed, over the 29-node death-share distribution pᵢ, the Shannon diversity index H = -Σ pᵢ ln pᵢ 12 , the Herfindahl-Hirschman index HHI = Σ pᵢ², and the effective number of causes effN = 1/HHI. The global time series is reported as effN = 1/HHI and super-region cross-sections as the Shannon number equivalent exp(H) (Hill number, q = 1); every figure and table legend states which metric is used. Decoupling between diversity and burden magnitude was tested by Spearman correlation between annual H and annual total 0-19 deaths (n = 34 years). Because both series trend, we added a first-difference test-Pearson and Spearman correlations between year-to-year changes in diversity (ΔH, and ΔeffN as a concentration-based counterpart) and year-to-year changes in total deaths (n = 33 differences)-to determine whether the level association survives detrending (Table S10). Sensitivity series excluded COVID-19 or tuberculosis (28-node spectra) to check robustness to module composition. Segmented trend (joinpoint) analysis. To localise changes in the pace of mortality decline, diversification and compositional succession, we fitted segmented log-linear (joinpoint) regression models 28 to the annual global series of total 29-cause deaths, Shannon H, and the death shares of the four leading nonpandemic causes (S. pneumoniae, whooping cough, tuberculosis and K. pneumoniae) and the two established respiratory viruses (influenza and RSV), 1990-2023. For each series, models with 0-3 joinpoints were fitted by exhaustive grid search over admissible joinpoint years-requiring at least three annual observations per segment, including a minimum two-year spacing between adjacent joinpointswith the number and location of joinpoints selected by the Bayesian information criterion (BIC), the penalty term counting each joinpoint location as an additional estimated parameter (2k + 2 parameters for a model with k joinpoints). We report segment-specific annual percent changes (APC) and the spanweighted average annual percent change (AAPC) for 1990-2023, with 95% confidence intervals from the t distribution with n -(2k + 2) residual degrees of freedom. Models were fitted to central estimates. The complete segment table and reproducible code are provided in Additional file 3.</p>
+<h3>2.4 Pandemic-window perturbation-recovery phenotypes</h3>
+<p>We treated the COVID-19 period as a natural perturbation experiment on the spectrum, complementing incidence-based observations of asynchronous viral disruption and resurgence 9 10 . For each node, collapse was the percentage change in global 0-19 deaths from 2019 to 2021 and rebound the change from 2021 to 2023. Nodes were classified a priori into five groups: viruses, bacteria, fungi, other, and pandemic-driven; COVID-19 was assigned singly to the last group, because its zero 2019 baseline renders collapse undefined, and is described by its 2021 peak and subsequent fade. Collapse depth was compared between viruses and bacteria with a two-sided Mann-Whitney U test, and collapse-rebound coupling by Spearman correlation across the 28 nodes with a defined 2019 baseline. All analyses with n &lt; 20 are reported as hypothesis-generating only, in observational wording (&quot;we observed&quot;).</p>
+<h3>2.5 Vaccine dose-response analysis</h3>
+<p>We linked super-regional change in pathogen share to coverage from WHO/UNICEF Estimates of National Immunization Coverage (WUENIC, 2026 revision), using third-dose pneumococcal conjugate vaccine (PCV3) and third-dose Haemophilus influenzae type b vaccine (Hib3) 11 . The vaccine-preventable group was redefined as Streptococcus pneumoniae, H. influenzae (type b vaccine targeted), influenza, and pertussis; from 2021, COVID-19 was additionally counted under a second caliber, and both calibers are reported. Because GBD already incorporates coverage as an attribution covariate 2 , this analysis interrogates the resulting estimates rather than providing independent causal evidence. Coverage responds to introduction with a lag-India introduced PCV nationally only in 2017-and WUENIC zeros denote non-introduction rather than true zero protection; coverage was computed over all countries and over introducing countries only, with population weighting as sensitivity. Super-region medians of 2015 coverage were correlated with the 2010 to 2023 change in the corresponding pathogen&#x27;s share (Spearman); with n = 7 super-regions these analyses are descriptive only and subject to ecological fallacy.</p>
+<h3>2.6 Poverty-lock geometry</h3>
+<p>For each node we computed the share of its 2023 global 0-19 deaths occurring in Sub-Saharan Africa plus South Asia. A node was classified as poverty-locked when this share exceeded 80.59%, the two regions&#x27; combined share of all-29-node 0-19 deaths in 2023; the reference line is recomputed on the 29node denominator. Sensitivity to dichotomization was examined by also reporting shares continuously. Independence between poverty-lock status and age-tropism quadrant (infant-tropic versus older-childtropic, by the share-based susceptibility-age index) was tested with a Fisher exact test (n = 14 nodes with computable tropism indices). We state a priori that power at n = 14 is very low; a null result is not interpretable as evidence of independence.</p>
+<h3>2.7 Predefined pathogen groupings</h3>
+<p>The opportunistic/hospital-associated group comprised Pseudomonas aeruginosa, Staphylococcus aureus, nontuberculous mycobacteria, Acinetobacter baumannii, and Klebsiella pneumoniae-pathogens whose pediatric mortality is plausibly linked to health-care exposure and comorbidity. The vaccine-preventable group was as defined in §2.5. All remaining nodes were analyzed individually. Group shares use the yearly 29-node total as denominator, so changes reflect both numerator dynamics and denominator composition.</p>
+<h3>2.8 Reporting standards, ethics, and software</h3>
+<p>. The analysis uses publicly available, de-identified, aggregate modelled estimates and was exempt from institutional ethics review. Analyses were performed in Python (pandas, NumPy, SciPy) with two-sided α = 0.05.</p>
+<h3>3. Results</h3>
+<p> &gt;Results</p>
+<h3>3.1 The 29-node spectrum in 2023</h3>
+<p>In 2023 the 29 mutually exclusive causes jointly accounted for 965,330 (95% uncertainty interval [UI] 680,096-1,342,437) deaths at ages 0-19 years globally, down from 2,573,489 in 1990 (-62.5%). The total combines 711,713 deaths across the 26 lower respiratory infection (LRI) etiologies with three causes modelled elsewhere in the GBD hierarchy: whooping cough (112,954; 95% UI 64,576-185,708), tuberculosis (87,764; 57,779-124,912) and COVID-19 (52,899; 47,275-59,183). Streptococcus pneumoniae remained the leading single cause (227,976 deaths; 95% UI 164,927-306,384; 23.6% of the total), but whooping cough ranked second (11.7%) and tuberculosis third (9.1%), ahead of Klebsiella pneumoniae (8.8%); COVID-19, a cause that did not exist before 2020, entered at rank 5 (5.5%); influenza and respiratory syncytial virus (RSV), both top-seven causes in 1990, ranked tenth and eleventh. The country-level distribution of the 26 LRI aetiologies in 2023 is provided in Additional file 1 (summarized in Tables S7-S8).</p>
+<p>Table 1 ranks all 29 nodes with 2023 deaths, 95% UIs and shares, alongside 1990 shares and rank changes. The spectrum remains overwhelmingly bacterial (23 of 29 nodes), and concentration at the top coexists with a long tail: ranks 16-29 each contribute under 1.7% yet together account for nearly one death in ten. Rank changes over 34 years were modest-the four largest causes in 1990 retained the top four ranks-except for the viral fallers (influenza and RSV, -4 each), Acinetobacter baumannii (-4), Staphylococcus aureus (+3) and COVID-19 (29 to 5). Relative UI widths are widest for small-count causes such as Legionella spp, cautioning against over-reading rank order below approximately rank 15.</p>
+<p>Table 1. Global deaths from respiratory infectious causes, 29-node spectrum, ages 0-19 years, 2023, with 1990 shares and rank changes Shares below 0.05% are shown as 0.0. Rank 2023 Cause Type Deaths 2023 (95% UI) Share 2023, % Share 1990, % Rank change 1990→2023 1 Streptococcus pneumoniae Bacterium 227,976 (164,927-306,384) 23.6 37.9 0 2 Whooping cough Bacterium 112,954 (64,576-185,708) 11.7 10.8 0 3 Tuberculosis Bacterium 87,764 (57,779-124,912) 9.1 10.1 0 4 Klebsiella pneumoniae Bacterium 85,107 (61,665-115,061) 8.8 7.9 0 5 COVID-19 Virus 52,899 (47,275-59,183) 5.5 0.0 +24 6 Pseudomonas aeruginosa Bacterium 52,329 (38,054-71,182) 5.4 4.0 -1 7 Staphylococcus aureus Bacterium 38,016 (28,306-50,092) 3.9 2.2 +3 8 Escherichia coli Bacterium 37,286 (27,198-49,596) 3.9 2.6 0 9 Other Mycobacteriu m species (non-TB, nonleprosy; nontuberculous Bacterium 35,259 (23,236-52,283) 3.7 2.4 0 1 1 2 3 4 5 6 7 8 9 10 11 12 13 14 2 Rank 2023 Cause Type Deaths 2023 (95% UI) Share 2023, % Share 1990, % Rank change 1990→2023 mycobacteria, NTM) 10 Influenza Virus 29,806 (20,398-43,781) 3.1 3.6 -4 11 Respiratory syncytial virus Virus 28,052 (19,384-40,670) 2.9 3.6 -4 12 Mycoplasma Bacterium 26,382 (18,984-36,012) 2.7 2.1 -1 13 Group A Streptococcus Bacterium 19,333 (14,206-25,828) 2.0 1.7 -1 14 Other gramnegative bacteria Bacterium 19,079 (13,870-25,918) 2.0 1.5 +1 15 Haemophilus influenzae Bacterium 17,775 (12,876-23,974) 1.8 1.7 -2 16 Other bacterial and viral pathogens Mixed 16,173 (11,417-22,355) 1.7 1.3 +1 17 Chlamydia spp Bacterium 14,663 (10,406-20,192) 1.5 1.4 -1 18 Acinetobacter baumannii Bacterium 12,098 (8,530-16,501) 1.3 1.6 -4 19 Aspergillus spp Fungus 11,781 (8,341-16,181) 1.2 0.9 -1 20 Group B streptococcus Bacterium 11,110 (7,867-15,674) 1.2 0.8 -1 21 Other fungi Fungus 7,496 (5,133-10,584) 0.8 0.6 -1 22 Other Klebsiella species Bacterium 5,690 (4,134-7,571) 0.6 0.3 0 23 Enterobacter spp Bacterium 4,870 (3,554-6,594) 0.5 0.3 -2 24 Other Acinetobacter species Bacterium 4,143 (2,882-5,847) 0.4 0.3 -1 25 Serratia spp Bacterium 2,782 (2,028-3,793) 0.3 0.2 -1 26 Citrobacter spp Bacterium 1,666 (1,115-2,416) 0.2 0.1 -1 27 Proteus spp Bacterium 1,304 (943-1,813) 0.1 0.1 0 28 Morganella spp Bacterium 942 (605-1,487) 0.1 0.1 -2 29 Legionella spp Bacterium 594 (407-846) 0.1 0.0 -1 UI, uncertainty interval. Shares are proportions of the 29-node total; a positive rank change denotes a climb. UIs are propagated by summing cause-level bounds; for tuberculosis the summed-age UI is wider Percentage-point changes reported in the text are computed from unrounded values.</p>
+<h3>3.2 Diversity rose while deaths fell</h3>
+<p>Herfindahl-Hirschman index (HHI) fell from 0.179 to 0.101 with HHI confirming that de-concentration is not index-specific (panel c). Dashed traces show the two 28-node sensitivity series, which bracket the main series without altering its slope or pandemic-window behavior. The shaded pandemic years do depart briefly from the monotonic decline: after the 2021 trough (893,387 deaths), total deaths and diversity rose together for two consecutive years (928,035 in 2022; 965,330 in 2023), yet the 34-year inverse correlation is essentially unaffected (ρ = -0.997). The superregion panel adds a gradient consistent with an epidemiological transition: where mortality has fallen furthest the spectrum is most even. Rising diversity alongside falling deaths is therefore structural over the full series, not an artefact of the added causes or the pandemic window.</p>
+<p>Joinpoint analysis resolved these aggregate movements into phases (Additional file 3). Total 29-cause deaths declined by -3.4% per year (95% CI -3.5 to -3.3) in 1990-2011, with the pace of decline slowing to -2.3% per year (-2.6 to -1.9) in 2011-2018, steepening to -7.1% per year (-8.2 to -6.0) across the pandemic onset in 2018-2021, and rebounding +4.5% per year (2.3 to 6.8) in 2021-2023 (AAPC 1990-2023 -3.0% per year, -3.1 to -2.9). Shannon diversity rose by +0.09% per year (0.07-0.12) in 1990-2008, accelerating to +0.65% (0.55-0.74) in 2008-2013 and +1.18% (1.09-1.26) in 2013-2020, before decelerating to +0.61% (0.37-0.85) in 2020-2023 (AAPC +0.45% per year, 0.43-0.47). Diversification thus accelerated through the vaccine scale-up era and into the pandemic window while mortality decline first slowed and then steepened, reinforcing at annual resolution that the two movements are structurally decoupled.</p>
+<h3>3.3 Diversification is near-universal at the national level</h3>
+<p>To test whether diversification is an aggregation artefact driven by a few large countries, we computed national Shannon diversity over the 26 LRI aetiologies for each of the 204 countries and territories at the five time points of Additional file 1 (1990, 2010, 2019, 2021 and 2023; Table S9; 2023 values are mapped in Figure 4c). National H rose between 1990 and 2023 in 203 of 204 countries (99.5%); the sole exception was Somalia (ΔH = -0.006). The cross-country median H rose from 2.11 in 1990 to 2.62 in 2023 (2.30 in 2010; 2.59 in 2019; 2.57 in 2021). Diversification was faster where baseline diversity was lowest (Spearman correlation between 1990 H and ΔH, ρ = -0.19, p = 0.007), yet cross-country dispersion widened (interquartile range of H, 0.132 in 1990 versus 0.259 in 2023)-convergence in slope, divergence in level. The pandemic window showed a scale contrast: national H dipped between 2019 and 2021 in 70.6% of countries and recovered by 2023 in 86.3%, even though global H did not dip ( §3.2).</p>
+<p>Finally, the cross-country correlation between ΔH and the 1990 to 2023 change in log deaths was weak and non-significant (ρ = -0.12, p = 0.077): how much a country&#x27;s mortality fell explains almost none of how much its spectrum diversified.</p>
+<h3>3.4 Compositional succession: prevention versus opportunity</h3>
+<p>The vaccine-preventable group (S. pneumoniae, H. influenzae, influenza and whooping cough) fell from 54.0% of all deaths in 1990 to 40.2% in 2023 (-13.8 percentage points [pp]); under the alternative definition including COVID-19 from 2021 onwards, the 2023 share was 45.7% (Figure 2). The opportunistic and hospital-associated group (P. aeruginosa, S. aureus, nontuberculous mycobacteria, A.</p>
+<p>baumannii, K. pneumoniae) rose from 18.1% to 23.1% (+5.0 pp). S. pneumoniae declined from 37.9% to 23.6% (-14.3 pp) yet retained rank 1; tuberculosis (10.1% to 9.1%) and whooping cough (10.8% to 11.7%) held ranks 3 and 2 with near-stable shares. Because shares are relative, rightward movement denotes redistribution within a shrinking total, not resurgence. Segmented trends add temporal resolution to this succession (Additional file 3). The S. pneumoniae share declined -0.3% per year (95% CI -0.4 to -0.3) in 1990-2011, then -3.7% per year (-3.8 to -3.5) in 2011-2018 and -7.0% per year (-7.5 to -6.4) in 2018-2021, before rebounding +3.6% per year (2.5 to 4.8) in 2021-2023: the erosion of the dominant pathogen was concentrated in 2011-2021, followed by partial share recovery. The whooping cough share drifted upward +0.5% per year (0.2-0.8) through 1990-2019, collapsed -25.8% per year (-30.6 to -20.6) in 2019-2021 and rebounded +44.4% per year (31.0-59.1) in 2021-2023, the steepest V-shape on the spectrum. The tuberculosis share rose +1.2% per year (1.0-1.4) in 1990-1999, drifted downward -0.7% per year (-0.8 to -0.7) in 1999-2019, jumped +5.5% per year (4.3-6.8) in 2019-2021 and fell back -8.5% per year (-10.0 to -6.9) in 2021-2023 (AAPC -0.3% per year, -0.4 to -0.3); the K. pneumoniae share edged down -0.2% per year (-0.2 to pneumoniae at 2018 and 2021), marking the pandemic window as the dominant structural break in the spectrum&#x27;s composition.</p>
+<h3>3.5 Perturbation-recovery phenotypes during the COVID-19 window</h3>
+<p>Median 2019 to 2021 collapse was -63.9% for the two established viruses (influenza, RSV) versus -17.1% for the 23 bacteria (Mann-Whitney U p = 0.0067, hypothesis-generating: with two viruses against 23 bacteria, the two-sided p value is bounded below at 0.007; Figure 3, Table 2). Across the 28 nodes with a defined 2019 baseline, we observed that deeper collapse coincided with faster relative rebound (Spearman ρ = -0.574, p = 0.0014), yet both viruses remained well below baseline in 2023 (net -46.1% influenza, -48.5% RSV), consistent with the multi-virus collapse and asynchronous, sometimes off-season, viral resurgence documented in post-pandemic incidence surveillance 9 10 15 16 . Tuberculosis was the most inertial cause: it collapsed least (-4.4%) and did not rebound at all, declining a further 7.9% from 2021 to 2023 (net -12.0%; rebound rank 28 of 28). Whooping cough showed the deepest bacterial V-shape, collapsing 57.4% to a 2021 trough of 53,538 deaths and rebounding 111.0% to 112,954 by 2023 (net -10.1%)-the only node whose rebound exceeded 100%, ranking first on both relative and absolute rebound. This mortality rebound parallels incidence surveillance: US pertussis cases in 2024 were five-to six-fold those of 2023 17 , the EU/EEA notification rate reached 54.9 per 100,000 in 2024, roughly eight times the 2023 rate 18 , and a marked resurgence was documented in France 19 . Mycoplasma pneumoniae (GBD etiology label &quot;Mycoplasma&quot;) occupied coordinates (-17.1%, +16.1%), almost exactly the median bacterial phenotype.</p>
+<p>COVID-19 is reported separately because its 2019 baseline is zero and collapse is undefined: deaths rose from 99,113 in 2020 to a peak of 147,942 in 2021 (16.6% of the 29-node total that year), then receded to 52,899 by 2023 (-64.2% from peak), a trajectory consistent with transition towards endemicity 20 . Figure 3 plots collapse against rebound for all 29 nodes, with points sized by 2019 deaths and colored by cause group; COVID-19 appears on a separate peak-versus-fade axis. The negative diagonal cloud visualises the collapse-rebound coupling, with whooping cough isolated in the deep-collapse/fast-rebound quadrant and tuberculosis alone in the no-recovery corner; point size separates speed from magnitude-M.</p>
+<p>pneumoniae&#x27;s modest percentage rebound (+3,657 deaths) ranked tenth in absolute terms.</p>
+<p>Table 2. Pandemic-window perturbation-recovery phenotypes, representative causes, global, ages 0-19 years Cause Type Collapse 2019→2021, % Rebound 2021→2023, % Net 2019→2023, % Rebound rank (of 28) Respiratory syncytial virus Virus -65.2 +48.0 -48.5 2 Influenza Virus -62.6 +44.4 -46.1 3 Whooping cough Bacterium -57.4 +111.0 -10.1 1 Streptococcus pneumoniae Bacterium -27.1 +16.7 -14.9 20 Acinetobacter baumannii Bacterium -23.8 +17.5 -10.4 15 Haemophilus influenzae Bacterium -19.9 +18.3 -5.2 12 Klebsiella pneumoniae Bacterium -19.8 +18.4 -5.0 10 Chlamydia spp Bacterium -19.1 +18.4 -4.2 11 Pseudomonas aeruginosa Bacterium -17.5 +17.9 -2.7 13 Mycoplasma Bacterium -17.1 +16.1 -3.7 23 Aspergillus spp Fungus -16.5 +15.6 -3.4 25 Staphylococcus aureus Bacterium -14.6 +17.1 +0.1 18 Legionella spp Bacterium -7.7 +14.4 +5.6 27 Tuberculosis Bacterium -4.4 -7.9 -12.0 28 COVID-19 Pandemic-driven Not applicable Not applicable Not applicable -Causes are ordered by collapse depth; COVID-19 is listed separately because its 2019 baseline is zero (2021 peak 147,942 deaths; -64.2% from peak to 2023). Rebound rank is by relative (percentage) rebound among the 28 nodes with defined baselines; absolute-increment ranks differ for high-burden causes. Percentage changes are computed from unrounded values.</p>
+<p>Table 2 quantifies phenotypes for 14 representative causes plus COVID-19, adding net 2019 to 2023 change to distinguish recovery speed from completeness. Fast viral rebounds still left deaths nearly half below baseline, whereas several bacteria (S. aureus, Legionella spp) ended at or above 2019 levels.</p>
+<p>Relative and absolute rebound ranks diverge for high-burden causes-Mycoplasma ranks 23rd relatively but tenth absolutely-so both metrics are reported. The complete 29-node matrix appears in Supplementary Table S2.</p>
+<p>These perturbations far exceeded natural year-to-year fluctuation. Benchmarked against 2017-2019 natural-variability bands, the pandemic-window deviations of all 26 LRI aetiologies fell outside their bands in both 2020 and 2021, and 23 of 26 remained outside in 2023 (Additional file 2, Supplementary Tables S11-S13 and Supplementary Figures S1-S2). M. pneumoniae was a mid-depth case: on the Vshape ranking that combines trough depth with the rebound to 2023 it placed 19th of 26 aetiologies, and 1 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 2 its 2021 deviation from the 2017-2019 mean (-18.9%) was far shallower than respiratory syncytial virus (-65.2%) or influenza (-62.1%).</p>
+<h3>3.6 Vaccine coverage and the pneumococcal share: a null dose-response</h3>
+<p>The pneumococcal share of the 29-node total fell between 2010 and 2023 (35.3% to 23.6%), alongside contraction of the broader vaccine-preventable group ( §3.4), as global third-dose pneumococcal conjugate vaccine (PCV3) coverage rose 11 . The super-region dose-response was nonetheless null: we observed no rank correlation between 2015 median PCV3 coverage and the 2010 to 2023 change in pneumococcal share (Spearman ρ = +0.108, p = 0.818, n = 7, 29-node denominator; hypothesis-generating). We report this negative finding without qualification. With seven observational units, heterogeneous introduction dates and no within-region variation, the analysis is descriptive and cannot separate vaccine effects from secular decline; it is subject to ecological fallacy, and a WUENIC value of 0 denotes non-introduction rather than true zero coverage 11.</p>
+<h3>3.7 Poverty lock-in of the residual spectrum</h3>
+<p>Sub-Saharan Africa and South Asia jointly accounted for 80.59% of all 29-node deaths in 2023; causes above this reference share were classified as poverty-locked (Figure 4).</p>
+<p>Nineteen of 29 nodes exceeded the line, most extremely tuberculosis (87.1%), Chlamydia spp (86.0%) and A. baumannii (84.3%); whooping cough (82.7%) and S. pneumoniae (81.7%) were also locked. COVID-19 (54.0%) lay well below the reference and was not locked, and Legionella spp (29.8%) was the only cause concentrated outside the two regions. Because the reference share fell from 81.44% (26-pathogen denominator) to 80.59% (29-node denominator), the five causes whose shares lie between the two lines-influenza (81.1%), Escherichia coli (80.9%), Enterobacter spp (80.9%), Serratia spp (80.7%) and H. influenzae (80.6%)-newly cross it, whereas S. pneumoniae (81.7%) already exceeded the former 81.44% line; the classification is denominator-relative. indices, we observed no detectable association between poverty lock-in and age tropism (Fisher exact p = 0.176; hypothesis-generating, as power at n = 14 is minimal; §2.6, §4.2).</p>
+<h3>4. Discussion</h3>
+<p> &gt;Discussion</p>
+<h3>4.1 Principal findings</h3>
+<p>By consolidating four GBD 2023 cause modules through three estimation interfaces into a single 29-node spectrum, this analysis shows that childhood respiratory infectious mortality has diversified as it has declined. Four findings stand out. First, the 2023 spectrum comprises 965,330 deaths (95% UI 680,096-1,342,437) at ages 0-19 years, with whooping cough (11.7%) and tuberculosis (9.1%) ranking second and third-burdens invisible to analyses confined to LRI etiologies-and COVID-19 entering at rank 5 (5.5%). Second, diversity rose while deaths fell: Shannon H increased 16.1% (2.336 to 2.711), the effective number of causes nearly doubled (5.57 to 9.94), and diversity and total burden were nearperfectly inversely coupled (ρ = -0.997). Third, the pandemic window separated causes into distinct perturbation-recovery phenotypes: whooping cough showed the deepest bacterial V-shape (-57.4% collapse; +111.0% rebound, the only rebound above 100%), while tuberculosis was wholly inertial (-4.4%; -7.9%). Fourth, the residual spectrum is poverty-locked: 19 of 29 causes derived more than 80.59% of deaths from sub-Saharan Africa and South Asia, most extremely tuberculosis (87.1%), whereas COVID-19 (54.0%) was not locked.</p>
+<p>The national panel adds a fifth, qualifying finding. Diversification is not an aggregation artefact of a few large countries: national Shannon diversity rose in 203 of 204 countries between 1990 and 2023, across all baseline diversity levels, burdens and regions ( §3.3). The same panel disciplines the headline decoupling statistic: the near-perfect inverse correlation between annual diversity and annual deaths (ρ = -0.997) is a correlation between two trending time series and is therefore vulnerable to spurious-trend criticism, and the appropriate cross-sectional check does not reproduce it-across countries, the 1990 to 2023 change in log deaths explained almost none of the variation in diversification (ρ = -0.12, p = 0.077).</p>
+<p>A first-difference check on the global series points the same way: the near-perfect inverse level correlation does not survive detrending-across the 33 year-to-year differences it collapses and flips sign (ΔH versus Δdeaths: Pearson r = +0.22, p = 0.216; Spearman ρ = +0.49, p = 0.004), and the 26-node and effective-number counterparts behave the same (Table S10)-confirming that the level statistic is carried by the shared secular trend rather than by any year-to-year inverse coupling. We therefore interpret diversification not as a mechanical consequence of each country&#x27;s own pace of mortality decline but as a near-universal accompaniment of the childhood epidemiological transition. This qualification strengthens rather than weakens the policy reading: because diversification is ubiquitous rather than confined to fast-declining settings, the structural case for platform interventions ( §4.2) applies to virtually every national context, while the rate at which a country&#x27;s spectrum diversifies must be understood as driven by factors other than its aggregate mortality trend.</p>
+<h3>4.2 Policy implications of diversity succession</h3>
+<p>The near-doubling of the effective number of causes has direct resource implications. When deaths concentrate on a few dominant pathogens, single-pathogen vaccines address a large fraction of mortality; as the spectrum evened out, the marginal share addressable by any one such intervention shrank.</p>
+<p>The contraction of the vaccine-preventable group (54.0% to 40.2%; 45.7% including COVID-19) is therefore a structural transition rather than vaccine failure-the compositional signature of prevention successand it shifts the marginal cost-effectiveness balance towards platform interventions.</p>
+<p>In sub-Saharan Africa and South Asia, where four-fifths of deaths now occur, oxygen systems with pulse oximetry triage, antimicrobial access, and referral of severe cases act on the shared final pathway of many causes simultaneously, plausibly at lower cost per death averted than introducing a further pathogen-specific vaccine against a cause contributing a single-digit share. We observed no detectable association between poverty lock-in and age tropism (Fisher exact p = 0.176), although with 14 evaluable causes this test had minimal power and the null should not be read as evidence of independence. Which children die where and at what age are therefore treated as two separate axes: interventions should be specified on a twodimensional matrix of age tropism by geographic concentration rather than deployed uniformly. The rising opportunistic share (18.1% to 23.1%) is likewise denominator restructuring within a shrinking total, not an emerging epidemic of hospital pathogens; Legionella spp was the sole pre-existing cause (other than COVID-19, which did not exist before 2020) with more deaths in 2023 than in 1990, rising from 0.01% to 0.1% of the spectrum (594 deaths, 95% UI 407-846).</p>
+<p>This is a small-base increase compatible with improved diagnosis and environmental or water-system exposure rather than a true surge.</p>
+<h3>4.3 Mechanisms underlying perturbation phenotypes</h3>
+<p>Within the bacterial group, collapse depth stratified plausibly by transmission biology. M. pneumoniae collapsed 17.1%-exactly the bacterial median-consistent with prolonged carriage buffering it against interrupted transmission, in line with its delayed global re-emergence in surveys 21 22 . S. pneumoniae collapsed more deeply (-27.1%), where reduced carriage likely compounded the ongoing PCV-driven decline. Tuberculosis was the most inertial cause (-4.4% collapse; no rebound), as expected for a chronic infection whose annual deaths reflect accumulated incidence over years rather than contemporaneous transmission. Benchmarked against 2017-2019 natural-variability bands (Additional file 2, Supplementary Table S11), every LRI aetiology breached its band in 2020-2021, yet breach depth tracked the same transmission gradient-from -65.2% (respiratory syncytial virus) and -62.1% (influenza) through -33.6% (S. pneumoniae) and -18.9% (M. pneumoniae) to -4.4% for tuberculosisconsistent with suppressed contemporaneous transmission rather than estimation artefact. Whooping cough combined the deepest bacterial V-shape (-57.4% to +111.0%) with a well-documented real-world counterpart: disrupted diphtheria-tetanus-pertussis vaccination and reduced circulation during the pandemic were followed by the multi-country resurgence in incidence shown in Section 3.5 19 17 18.</p>
+<p>COVID-19, by contrast, peaked at 147,942 deaths in 2021 and receded to 52,899 by 2023, a trajectory consistent with transition towards endemicity 20 . Its modest standing within the pediatric spectrum accords with population-based evidence that confirmed SARS-CoV-2 deaths in children are rare-25 among 12,023,568 under-18s in England during the first pandemic year 23.</p>
+<h3>4.4 Vaccine-era geometry and the null dose-response</h3>
+<p>The null super-region dose-response (29-node denominator: PCV3 ρ = +0.108, p = 0.818; Hib3 ρ = -0.036, p = 0.939; n = 7) should be read positively. The pneumococcal share fell in all seven superregions while global PCV3 coverage rose 11 , and conjugate-vaccine eras are known to restructure pneumococcal populations through serotype replacement alongside herd immunity 24 25 , a within-species precedent for the spectrum-level transition we observe. Seven observational units with heterogeneous introduction dates cannot support rank correlation, and coverage already enters the GBD attribution model as a covariate 2 . National-level interrupted time series around documented introduction cohortsfor example India&#x27;s 2017 PCV rollout-offer a more powered design to test the share-level response, and such analyses are a priority for future work.</p>
+<h3>4.5 Methodological placement of tuberculosis and pertussis</h3>
+<p>Including tuberculosis and pertussis in a respiratory mortality spectrum is justified structurally and clinically. Tuberculosis and LRI sit at the same level of the GBD cause hierarchy under a common communicable-disease parent 1 ; pertussis, although classified under other infectious diseases, is clinically a respiratory, vaccine-preventable disease. Cross-module integration follows precedents that assembled infection syndromes across GBD levels 5 6 . Unlike the 26 LRI etiologies, tuberculosis is modelled directly rather than through PAF attribution, a framework difference we declare rather than reconcile.</p>
+<p>Comparisons with external estimates must respect caliber: WHO&#x27;s Global Tuberculosis Report 2024 estimates 191,000 deaths among under-15s (166,000 HIV-negative; 25,000 HIV-positive) 26 , against our 87,764 at ages 0-19-differences reflecting estimation framework and HIV stratification more than age bands. Similarly, Yeung and colleagues estimated 160,700 pertussis deaths among under-5s in 2014 27 ; our 2023 estimate of 112,954 at ages 0-19 spans a wider age band a decade later and is consistent with continued decline. Finally, 2023 pertussis estimates likely precede the 2024 resurgence 19 17 18 and may be revised upward..</p>
+<p>In addition, the segmented (joinpoint) trends introduced in this revision were fitted to central estimates, so their confidence intervals capture regression uncertainty around the fitted segments only, not GBD estimation uncertainty.</p>
+<h3>5. Conclusions</h3>
+<p>Integrating four GBD 2023 cause modules through three estimation interfaces into a single 29-node spectrum 1 2 yields four conclusions. First, childhood respiratory infectious mortality totalled 965,330 deaths (95% uncertainty interval 680,096-1,342,437) at ages 0-19 years in 2023, with whooping cough (11.7%) and tuberculosis (9.1%) ranking second and third and COVID-19 fifth (5.5%). Second, the spectrum diversified as it shrank: Shannon H rose 16.1% and the effective number of causes nearly doubled (5.57 to 9.94). Third, pandemic perturbation separated causes into distinct phenotypeswhooping cough alone rebounded above 100% (+111.0%) while tuberculosis was wholly inertial. Fourth,  coloured by group (vaccine-preventable, opportunistic or hospital-associated, other, and new nodes); (b) rank trajectories of the ten highest-burden causes at 1990, 2010, 2019 and 2023; (c) annual composition by channel (vaccine-preventable; opportunistic or hospital-associated; COVID-19; other), stacked percentage shares, 1990-2023.  (a) Sub-Saharan Africa plus South Asia share of each cause&#x27;s deaths among children aged 0-19 years, 2023, ranked, against the 80.59% reference line (dashed); causes above the line are classified as povertylocked; the three added nodes (tuberculosis, pertussis, and COVID-19) are highlighted; (b) crosstabulation of poverty lock-in by age tropism for the 14 causes with computable School-Age Index (SAI) values (infant-tropic, SAI &lt; 1; older-tropic, SAI ≥ 1); cell values are counts of causes (Fisher exact p = 0.176); (c) national Shannon diversity of the 26 LRI aetiologies among children aged 0-19 years, 2023; grey indicates no estimate.</p>
+<p>The authors declare no conflicts of interest. AI tools were used for language editing and for assistance with code generation and modification; the authors take full responsibility for the content.</p>
+<h3>Acknowledgements</h3>
+<p>The authors thank the Institute for Health Metrics and Evaluation and the Global Burden of Disease collaborator network for making the underlying estimates publicly available.</p>
+<h3>Funding</h3>
+<p>This work was supported by the Beijing Science and Technology Nova Program Interdisciplinary Project (20230484439) and the Beijing High-Level Public Health Technical Talents Project (2023-02-33). The funder had no role in study design, data collection, data analysis, data interpretation, or writing of the report.</p>
+<h3>Presentation</h3>
+<p>This work has not been presented at any scientific meeting.</p>
+<h3>Availability of data and materials</h3>
+<p>The datasets analyzed are publicly available from the Global Burden of Disease Results Tool (GBD 2023, release v8352; Institute for Health Metrics and Evaluation), the WHO/UNICEF Estimates of National Immunization Coverage (WUENIC), and the WHO Global Tuberculosis Report 2024. The analysis tables and scripts generated during this study are available from the corresponding author on reasonable request.</p>
+<p>The country-level dataset of pathogen-attributable deaths (204 countries, the full 29-cause spectrum (26 LRI aetiologies plus tuberculosis, pertussis, and COVID-19), five time points 1990-2023) is provided as Additional file 1 (03_Dataset.xlsx).</p>
+<h3>Authors&#x27; contributions</h3>
+<p>SC conceived and designed the study; SC, HC and DL curated and analyzed the data; SC drafted the manuscript; HC, DL, YM, YZ and CS interpreted the results and critically revised the manuscript. All authors read and approved the final manuscript.</p>
+<h3>Ethics approval and consent to participate</h3>
+<p>Not applicable. This study uses publicly available, de-identified, aggregate modelled estimates and was exempt from institutional ethics review.</p>
+<h3>Additional files</h3>
+<p>Additional file 1: Country-level dataset (03_Dataset.xlsx). Pathogen-attributable lower respiratory infection deaths at ages 0-19 years for 204 countries and 26 aetiologies at five time points (1990, 2010,   2019, 2021, 2023), with 95% uncertainty intervals, GLOBOCAN 2022 population denominators and crude death rates per 100,000 (26,520 country × aetiology × year rows, plus top-country rankings, largest 1990-2023 trend countries and pandemic-window country changes), extended to the full 29-cause spectrum by an age-band long-format sheet covering tuberculosis (5 time points), pertussis (5 time points) and COVID-19 (2021 and 2023 only; earlier time points not applicable), 9,792 country × cause × age × year rows. S1-S6, S7-S10 and S11-S13, and Supplementary Figures S1-S2 (Supplementary_Materials.docx). Five-anchor-year deaths for all 29 causes (S1); full perturbation-recovery phenotype matrix (S2); diversity time series with exclusion sensitivities (S3); composition at anchor years (S4); poverty-lock shares (S5); WUENIC dose-response tables (S6); country-level distribution of the 26 LRI aetiologies in 2023 (S7); country-level trends across five time points (S8); national-level Shannon diversity summary for 204 countries at five time points, globally and by super-region (S9); level versus first-difference correlations between diversity and total deaths (S10).</p>
+<h3>Additional file 2: Supplementary Tables</h3>
+<p>Pandemic-window analyses against 2017-2019 natural-variability bands: depth gradient (S11), V-shape ranking of the 26 LRI aetiologies (S12), COVID-19 synchronicity (S13) and Figures S1-S2.</p>
+<p>Additional file 3: Joinpoint segmented-trend results. Supplementary_Joinpoint_Spectrum29.csvsegment-specific annual percent changes with 95% confidence intervals, joinpoint locations and average annual percent changes for total 29-cause deaths, Shannon diversity and the six leading pathogen shares,</p>
+<h3>1</h3>
+<p>Childhood respiratory infectious deaths are dispersed across four GBD modulesRespiratory infections remain among the leading infectious killers of children and adolescents worldwide.</p>
+<h3>1 1 2 2</h3>
+<p>than the draws-based UI reported elsewhere because of differing uncertainty structures ( §2.2).</p>
+<h3>Figure 1</h3>
+<p>Figure 1 displays the decoupling: total deaths trend downward (panel a) while Shannon H rises (panel b),</p>
+<h3>Figure 2</h3>
+<p>Figure2plots each cause&#x27;s 1990 and 2023 shares as dumbbells for the 14 highest-burden nodes. The dominant feature is the long leftward arc of S. pneumoniae, driving most of the vaccine-preventable contraction, above consistently rightward opportunistic arcs; the gap between the two group totals narrowed from 35.9 pp to 17.2 pp. The three added causes occupy distinct positions: whooping cough and tuberculosis sit in the upper, slowly contracting band, whereas COVID-19 appears as a de novo 2023only point. The two-calibre vaccine-group total quantifies how much residual vaccine-preventable burden in 2023 reflects the newly endemic coronavirus rather than the four classic targets.</p>
+<h3>Figure 4</h3>
+<p>Figure 4 ranks all 29 causes by their sub-Saharan Africa plus South Asia share against the 80.59% reference line, with locked causes highlighted. The gradient is continuous rather than bimodal, and the locked set is taxonomically heterogeneous-spanning neonatal bacteria, hospital-associated Gramnegatives, the classic vaccine targets and the added endemic causes-suggesting that geographic concentration reflects health-system context rather than pathogen biology. Tuberculosis, the most inertial cause in the perturbation analysis ( §3.5), is also the most strongly locked: the cause least disturbed by the pandemic is the one most confined to the highest-poverty regions, whereas COVID-19 shows the diffuse footprint expected of a recently pandemic virus. Across the 14 causes with computable age-tropism</p>
+<h3>4.6</h3>
+<p>LimitationsSeveral limitations qualify these findings. First, the rei-level interface provides deaths only; incidence and lethality effects cannot be separated. Second, etiology-level estimates are publicly released nationally only for the most recent year; this paper accompanies a 204-country dataset at five time points(1990,   2010, 2019, 2021, 2023; Additional file 1), but the full annual 1990-2023 series remains available only at the super-region level (n = 7), limiting longitudinal and dose-response power below the super-region.Third, LRI pathogen shares derive from a modelled counterfactual PAF framework 2 , whose mutualexclusivity assumption abstracts from clinical co-infection: real pneumonias are frequently polymicrobial8 , so the spectrum partitions deaths that clinically co-occur and its structure would differ under a multicause attribution. Fourth, uncertainty intervals are structurally heterogeneous across modules (PAF-based versus cause-model draws) and were propagated by summing bounds, overstating true uncertainty of totals. Fifth, correlations at n = 7 super-regions and n = 14 tropism-indexed causes are hypothesisgenerating only. Sixth, WUENIC zeros denote non-introduction, not zero coverage11 . Seventh, aggregate correlations cannot establish individual-level causation. Eighth, cross-round comparisons are complicated by differing granularity between GBD 2021 (18 categories) 2 and GBD 2023. Ninth, COVID-19 contributes only four observation years, so its phenotype and endemic trajectory remain provisional.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Diversity-mortality decoupling among children aged 0-19 years, 1990-2023. (a) Total deaths summed over the 29 causes; (b) Shannon diversity H of the 29-cause death-share distribution; dashed traces are the 28-cause sensitivity series excluding COVID-19 or tuberculosis, and the vertical line marks 2020; (c) effective number of causes (1/HHI), with the Herfindahl-Hirschman index (HHI) on the secondary axis; (d) Shannon H by GBD super-region, 1990-2023.</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Compositional succession of the 29-cause spectrum. (a) Share of all 29-cause deaths in 1990 versus 2023 for the 14 highest-burden causes (dumbbells),</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Pandemic-window perturbation and recovery across the 29 causes. (a) Percentage change in deaths among children aged 0-19 years from 2019 to 2021 (x-axis) against the change from 2021 to 2023 (y-axis); points are coloured by cause group and sized by 2019 deaths; the dashed diagonal marks full recovery (y = -x); COVID-19 is plotted separately on a peak-versus-fade basis because its 2019 baseline is zero; (b) deaths indexed to 2019 (= 100), 2019-2023, faceted by cause group, with the group median overlaid; (c) super-regional decomposition of the 2019 to 2021 collapse, the 2021 to 2023 rebound, and the net 2019 to 2023 change in all-29-cause deaths.</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Poverty lock-in and its correlates.</p>
+<h3>References</h3>
+<p>GBD 2023 Causes of Death Collaborators. Global burden of 292 causes of death in 204 countries and territories and 660 subnational locations, 1990-2023: a systematic analysis for the Global Burden of Disease Study 2023. Lancet. 2025;406(10513):1811-1872. doi:10.1016/S0140-6736(25)01917-8.</p>
+<p>GBD 2021 Lower Respiratory Infections and Antimicrobial Resistance Collaborators. Global, regional, and national incidence and mortality burden of non-COVID-19 lower respiratory infections and aetiologies, 1990-2021. Lancet Infect Dis. 2024;24(9):974-1002. doi:10.1016/S1473-3099(24)00176-2.</p>
+<p>GBD 2019 LRI Collaborators. Age-sex differences in the global burden of lower respiratory infections and risk factors, 1990-2019. Lancet Infect Dis. 2022;22(11):1626-1647. doi:10.1016/S1473-3099(22)00510-2.</p>
+<p>GBD 2016 Lower Respiratory Infections Collaborators. Estimates of the global, regional, and national morbidity, mortality, and aetiologies of lower respiratory infections in 195 countries, 1990-2016. Lancet Infect Dis. 2018;18(11):1191-1210. doi:10.1016/S1473-3099(18)30310-4.</p>
+<p>Antimicrobial Resistance Collaborators. Global burden of bacterial antimicrobial resistance in 2019: a systematic analysis. Lancet. 2022;399(10325):629-655. doi:10.1016/S0140-6736(21)02724-0.</p>
+<p>GBD 2019 Child and Adolescent Communicable Disease Collaborators. The unfinished agenda of communicable diseases among children and adolescents before the COVID-19 pandemic, 1990-2019. Lancet. 2023;402(10398):313-335. doi:10.1016/S0140-6736(23)00860-7.</p>
+<p>Cleary DW, Jones J, Gladstone RA, et al. Changes in carriage and serotype diversity of Streptococcus pneumoniae and other respiratory pathobionts in the UK between pre-PCV13, early-PCV13 and late-PCV13 periods. Infect Dis Ther. 2025. doi:10.1186/s41479-025-00174-y.</p>
+<p>Viladomiu M, et al. Lung microbiome on admission in critically ill patients with acute bacterial and viral pneumonia. Sci Rep. 2023;13:17483. doi:10.1038/s41598-023-45007-4.</p>
+<p>Zhao C, Zhang T, Guo L, et al.; Respiratory Virus Global Epidemiology Network. Characterising the asynchronous resurgence of common respiratory viruses following the COVID-19 pandemic. Nat Commun. 2025;16(1):1610. doi:10.1038/s41467-025-56776-z.</p>
+<p>Chow EJ, Uyeki TM, Chu HY. The effects of the COVID-19 pandemic on community respiratory virus activity. Nat Rev Microbiol. 2023;21(3):195-210. doi:10.1038/s41579-022-00807-9.</p>
+<p>World Health Organization and UNICEF. WHO/UNICEF Estimates of National Immunization Coverage (WUENIC), 2026 revision. Geneva: WHO; 2026. Available at: https://data.who.int (immunization coverage indicators, PCV3 and Hib3).</p>
+<p>Shannon CE. A mathematical theory of communication. Bell Syst Tech J. 1948;27(3):379-423. doi:10.1002/j.1538-7305.1948.tb01338.x.</p>
+<p>GBD 2023 Demographics Collaborators. Global age-sex-specific all-cause mortality and life expectancy estimates for 204 countries and territories and 660 subnational locations, 1950-2023. Lancet. 2025;406(10513):1731-1810. doi:10.1016/S0140-6736(25)01330-3.</p>
+<p>GBD 2023 Disease and Injury and Risk Factor Collaborators. Burden of 375 diseases and injuries, risk-attributable burden of 88 risk factors, and healthy life expectancy in 204 countries and territories, 1990-2023. Lancet. 2025;406(10513):1873-1922. doi:10.1016/S0140-6736(25)01637-X.</p>
+<p>Olsen SJ, Winn AK, Budd AP, et al. Changes in influenza and other respiratory virus activity during the COVID-19 pandemic -United States, 2020-2021. MMWR Morb Mortal Wkly Rep. 2021;70(29):1013-1019. doi:10.15585/mmwr.mm7029a1.</p>
+<p>Foley DA, Phuong LK, Peplinski J, et al. Off-season RSV epidemics in Australia after easing of COVID-19 restrictions. Nat Commun. 2022;13:3023. doi:10.1038/s41467-022-30485-3.</p>
+<p>Tanne JH. Whooping cough: fivefold rise in US cases spells return to pre-pandemic levels. BMJ. 2024;386:q2114. doi:10.1136/bmj.q2114.</p>
+<p>European Centre for Disease Prevention and Control. Pertussis -Annual Epidemiological Report for 2024. Stockholm: ECDC; 2026. https://www.ecdc.europa.eu/en/publications-data/pertussis- annual-epidemiological-report-2024</p>
+<p>Rodrigues C, Bouchez V, Soares A, et al. Resurgence of Bordetella pertussis, including one macrolide-resistant isolate, France, 2024. Euro Surveill. 2024;29(31):2400459. doi:10.2807/1560-7917.ES.2024.29.31.2400459.</p>
+<p>Jongen VW, Schim van der Loeff MF, Bakker M, et al. Time to endemicity of SARS-CoV-2 in a sentinel cohort in the Netherlands: a prospective observational study. Lancet Microbe. 2026;7(5):101314. doi:10.1016/j.lanmic.2025.101314.</p>
+<p>Meyer Sauteur PM, Zhang X-S, Emborg H-D, et al.; ESGMAC MAPS study group. Global spatiotemporal dynamics of Mycoplasma pneumoniae re-emergence after COVID-19 pandemic restrictions: an epidemiological and transmission modelling study. Lancet Microbe. 2025;6:101019. doi:10.1016/j.lanmic.2024.101019.</p>
+<p>Meyer Sauteur PM, Beeton ML, Uldum SA, et al.; ESGMAC-MyCOVID Study Team. Mycoplasma pneumoniae detections before and during the COVID-19 pandemic: results of a global survey, 2017 to 2021. Euro Surveill. 2022;27(19):2100746. doi:10.2807/1560-7917.ES.2022.27.19.2100746.</p>
+<p>Smith C, Odd D, Harwood R, et al. Deaths in children and young people in England after SARS- CoV-2 infection during the first pandemic year. Nat Med. 2022;28(1):185-192. doi:10.1038/s41591-021-01578-1.</p>
+<p>Ladhani SN, Collins S, Djennad A, et al. Rapid increase in non-vaccine serotypes causing invasive pneumococcal disease in England and Wales, 2000-17: a prospective national observational cohort study. Lancet Infect Dis. 2018;18(4):441-451. doi:10.1016/S1473-3099(18)30052-5.</p>
+<p>Miller E, Andrews NJ, Waight PA, Slack MPE, George RC. Herd immunity and serotype replacement 4 years after seven-valent pneumococcal conjugate vaccination in England and Wales: an observational cohort study. Lancet Infect Dis. 2011;11(10):760-768. doi:10.1016/S1473-3099(11)70090-1.</p>
+<p>World Health Organization. Global tuberculosis report 2024. Geneva: WHO; 2024. ISBN 978- 92-4-010153-1.</p>
+<p>Yeung KHT, Duclos P, Nelson EAS, Hutubessy RCW. An update of the global burden of pertussis in children younger than 5 years: a modelling study. Lancet Infect Dis. 2017;17(9):974- 980. doi:10.1016/S1473-3099(17)30390-0.</p>
+<p>Kim HJ, Fay MP, Feuer EJ, Midthune DN. Permutation tests for joinpoint regression with applications to cancer rates. Stat Med. 2000;19(3):335-351. doi:10.1002/(SICI)1097-0258(20000215)19:3&lt;335::AID-SIM336&gt;3.0.CO;2-Z.</p>
 </div>
 </details>
 </div>
