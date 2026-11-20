@@ -197,7 +197,7 @@ Automated Patient Identity Verification Framework for Multimodal Medical
 Imaging Using Deep Metric Learning and Domain Adaptation Author names
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.4.1 · DOI 10.64898/2026.08.11.26360177
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.08.11.26360177
 </p>
 </header>
 <div class="mc-main">
@@ -484,8 +484,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -858,9 +859,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -882,7 +887,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -897,9 +903,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -912,13 +936,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -938,6 +965,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -945,12 +978,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1051,6 +1090,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1070,6 +1129,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1325,19 +1419,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1447,6 +1623,188 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Patient identity management is fundamental in healthcare information systems, as identification inconsistencies can compromise patient safety, data integrity, and clinical workflow efficiency. Reliable linkage of medical images acquired across different imaging modalities remains challenging because of variations in image appearance, acquisition geometry, and imaging characteristics. In this study, we developed an automated patient identity verification framework for multimodal medical imaging using deep metric learning and data-augmented domain adaptation (DADA).</p>
+<p>The proposed framework learned modality-invariant patient representations from labeled source-domain data while leveraging unlabeled target-domain data to mitigate crossmodality distribution shifts. Although patient identity annotations were available within the research dataset for evaluation purposes, target-domain labels were intentionally excluded from the DADA optimization process. Chest radiographs and computed tomography (CT) scout images obtained under routine clinical conditions were retrospectively collected and used for evaluation.</p>
+<p>Verification performance was assessed using receiver operating characteristic (ROC) analysis, with the area under the ROC curve (AUC) used as the primary performance metric.</p>
+<p>Results: The proposed framework achieved consistently high verification performance across all evaluation conditions, with AUC values ranging from 0.9989 to 0.9999. Similarity-score distributions demonstrated distinct separation between same-patient and different-patient image pairs despite substantial differences between imaging modalities.</p>
+<p>These findings indicate that patient-specific anatomical representations can be preserved across heterogeneous imaging domains through metric learning and domain adaptation. The proposed framework may serve as a practical infrastructure component for patient identity management, multimodal data integration, quality assurance, and patient safety applications within healthcare information systems.</p>
+<h3>1 Introduction</h3>
+<p>Accurate patient identification is fundamental in modern healthcare information systems (HISs). Contemporary HIS infrastructures, including electronic health records (EHRs), picture archiving and communication systems (PACSs), vendor-neutral archives, and regional information-sharing networks, depend on reliable patient identity management to ensure data integrity, continuity of care, and safe clinical practice [1] [2] [3]. However, the increasing digitization of healthcare has expanded the volume, complexity, and diversity of patient information, making accurate linkage of healthcare data an essential requirement for both clinical care and secondary use of medical data [1] [2].</p>
+<p>Inaccurate patient matching or information linkage can compromise patient safety, reduce clinical workflow efficiency, and adversely affect healthcare quality [4, 5]. Health information exchange initiatives and interoperable healthcare architectures have enabled the integration of healthcare information across institutions and information systems [6] [7] [8]. The growing scale of healthcare data repositories has further increased the need of reliable data quality management and patient-level data integration [9, 10]. Consequently, robust approaches for validating patient identity across heterogeneous healthcare data sources have become increasingly important.</p>
+<p>Medical imaging represents one of the largest and most information-rich components of modern healthcare information systems. Large numbers of radiographic, computed tomography (CT), magnetic resonance imaging (MRI), and other diagnostic images are continuously accumulated within institutional archives and exchanged across healthcare networks. Because medical images inherently contain patient-specific anatomical characteristics, image-based patient verification has attracted attention as a complementary approach for patient identity management and quality assurance [11] [12] [13].</p>
+<p>The use of anatomical information as a biological fingerprint for patient identification has been investigated for several decades. Early studies demonstrated that skeletal structures visible on radiographic examinations could support human identification and patient recognition [14] [15] [16].</p>
+<p>Subsequent investigations showed the feasibility of preventing filing errors and detecting patient mismatches through automated comparison of chest radiographs stored in PACS environments [17] [18] [19] [20]. Similar approaches have also been applied to CT images and other imaging modalities, further supporting the concept that routine medical images contain persistent patient-specific anatomical information suitable for identity verification [21] [22] [23] [24] [25].</p>
+<p>Recent advances in artificial intelligence (AI) and deep learning have transformed biomedical image analysis, achieving state-of-the-art performance across a wide range of tasks including disease detection, prognostic prediction, image segmentation, and patient representation learning [26, 27]. Deep metric learning (DML) approaches have been successfully applied to chest radiographs, CT images, and other medical imaging modalities, enabling the extraction of discriminative patient representations from routine clinical images [28] [29] [30] [31] [32] [33] [34] [35]. These studies suggest that patient-specific anatomical characteristics can be effectively learned by neural networks and used for automated verification.</p>
+<p>Despite these advances, most previous studies have focused on patient verification or reidentification within a single imaging modality. In routine clinical practice, however, patients frequently undergo examinations with different imaging modalities. Linking heterogeneous images acquired across different modalities could support patient identity management, multimodal data integration, quality assurance, and patient safety applications within healthcare information systems. Nevertheless, reliable cross-modality patient verification remains challenging because differences in image appearance, acquisition geometry, patient positioning, image contrast, and imaging characteristics introduce significant distribution shifts across imaging modalities. Domain adaptation (DA) techniques have emerged as an effective strategy for addressing distribution shifts between heterogeneous medical imaging domains [36] [37] [38]. By reducing discrepancies between source and target domains, DA enhances representation stability and consistency across disparate domains when labeled target-domain data are limited or unavailable [37, 38]. Recently, data-augmented domain adaptation (DADA) has been proposed as an approach for imparting robustness to proxy-based DML through latent-space augmentation and cross-domain distribution alignment [39]. Because DADA leverages labeled source-domain data together with unlabeled target-domain data, it is particularly attractive for real-world healthcare information systems in which comprehensive patient identity annotations are often unavailable across all imaging modalities. Furthermore, recent advances in optimization algorithms and neural network architectures have enhanced cross-modality representation learning and improved model generalizability [40, 41]. In particular, DML provides the primary foundation for discriminative identity verification by establishing tight patient-specific clusters in the embedding space [28] [29] [30] [31] [32] [33] [34] [35]. Meanwhile, incorporating domain alignment mechanisms-such as maximum mean discrepancy (MMD) employed within DADA [42]-acts as a structural regularizer that mitigates feature distortion caused by domain discrepancies. Furthermore, explainability approaches such as Grad-CAM facilitate interpretation of the anatomical regions used by deep-learning models for verification decisions [43].</p>
+<p>Although patient verification has been investigated in chest radiography, CT, MRI, and other imaging modalities [15, 16, [21] [22] [23] [24] [25] [28] [29] [30] [31] [32] [33] [34] [35], automated patient identity verification between chest radiographs and CT scout images remains largely unexplored. Therefore, this study developed an automated patient identity verification framework for multimodal medical imaging using DML and DADA. The proposed framework combines AdaCos-based metric learning for discriminative anatomical representation with DADA for domain-invariant regularization, aiming to safeguard verification stability against severe distribution shifts between chest radiographs and CT scout images. We hypothesized that while DML primarily drives high identification capability, the complementary integration of DA would impart essential robustness to cross-modality domain gaps without requiring patient identity annotations in the target modality, thereby supporting scalable deployment in healthcare information systems.</p>
+<h3>2 Methods</h3>
+<h3>2.1 Overview</h3>
+<p>An automated patient identity verification framework was developed for cross-modality verification between chest radiographs and CT scout images. The framework integrated DML and DADA to learn patient-specific image representations that are inherently robust to severe modality-related distribution shifts. The overall framework consisted of four components: image acquisition, image preprocessing, representation learning, and patient identity verification.</p>
+<p>During model development, both the chest radiographs and CT scout images were used with identity annotations. However, consistent with the DADA framework, patient identity annotations from the target modality were not used during DA. The target-domain images were incorporated solely as unlabeled samples for feature-distribution alignment. The trained model generates modality-invariant patient embeddings that can be compared using similarity analysis for automated patient verification. The overall framework is illustrated in Fig. 1 for model development and in Fig. 2 for the verification workflow.</p>
+<h3>2.2 Dataset</h3>
+<p>A retrospective multimodal imaging dataset was used for framework development and evaluation. The dataset comprised chest radiographs and CT scout images acquired from patients who underwent routine chest radiography and trunk CT examinations at Yamaguchi University Hospital, Japan between March 2015 and March 2017 (inclusive).</p>
+<p>For each patient, the dataset included chest radiographs acquired under routine clinical follow-up conditions. The dataset also included trunk CT scout images acquired using three clinical CT scanners from two vendors.</p>
+<p>This study used de-identified images retrospectively retrieved from the PACS of Yamaguchi University Hospital. All research activities, including study design, algorithm development, and data analysis, were conducted at the University of Osaka. This study was approved by the Institutional Review Board of the University of Osaka Hospital (Approval No. 21064-6). The requirement for informed consent was waived owing to the retrospective nature of the study.</p>
+<p>To ensure complete independence between the training/validation and final testing processes, the dataset was split at the patient level. Patients with one or two examinations were assigned exclusively to the independent holdout test set (11,589 patients; 14,469 images), while patients with three or more examinations (3,203 patients; 19,885 images) were allocated to the development cohorts for five-fold cross-validation. In each fold, the development cohort was partitioned into training and validation subsets at an 80:20 patient ratio in a completely patientdisjoint manner (2,563 patients in training and 640 patients in validation per fold; Table 1).</p>
+<p>Consequently, there is zero patient overlap not only between the development and test sets but also between the training and validation subsets within each fold.  1 and 2.</p>
+<h3>2.3 Deep Metric Learning Framework</h3>
+<p>The patient identity verification task was formulated as a DML problem. The objective of the framework was to learn an embedding space in which images belonging to the same patient are positioned close to one another, whereas images from different patients are separated. To enhance cross-modality representation robustness and prevent feature distortion caused by domain discrepancy, DADA was incorporated as a domain alignment regularizer during model training. DADA aligns feature distributions across source, target, and augmented domains, thereby reducing the domain discrepancy between chest radiographs and CT scout images. To isolate and evaluate the regularizing contribution and domain-invariant robustness imparted by DADA, baseline metric learning without DA (AdaCos alone) and standard maximum mean discrepancy (MMD) alignment were also investigated as ablation models. Detailed mathematical descriptions of feature embedding, DA, MMD, and optimization objectives are provided in Online Resource 1 (Supplementary Methods S1).</p>
+<h3>2.4 Network Implementation Details</h3>
+<h3>2.4.1 Feature Extractor</h3>
+<p>EfficientNetV2-S was adopted as the backbone feature extractor because of its favorable balance between representational capacity and computational efficiency [41]. The network was trained from scratch without external pretraining. Feature maps from the final convolutional block were transformed into embedding vectors and subsequently used for metric-learning optimization and similarity analysis.</p>
+<h3>2.4.2 Data Augmentation</h3>
+<p>Data augmentation techniques-including random rotation, transversal scaling of CT scout images, and perspective distortion of chest radiographs-were applied during training to improve the generalization performance and reduce overfitting. Detailed augmentation procedures are provided in Online Resource 1 (Supplementary Methods S2).</p>
+<h3>2.4.3 Domain Adaptation Strategy</h3>
+<p>Consistent with the original DADA framework [39], feature distributions from source, target, and augmented domains were aligned through MMD-based optimization. This strategy penalizes distribution discrepancies in the latent space, functioning as a structural constraint that stabilizes cross-modality patient embeddings against appearance variations and scanner-specific differences.</p>
+<h3>2.4.4 Training Configuration</h3>
+<p>The model was trained using Adaptive Sharpness-Aware Minimization (ASAM) [40] for up to 500 epochs without any early stopping. Training was conducted with a mini-batch size of 16 (effective batch size of 64 via gradient accumulation) and an initial learning rate of 0.01, which decayed to 0.0001 following a cosine schedule. For the primary evaluation of the proposed framework, training was conducted independently across all five folds. In each fold, open-set patient reidentification performance was evaluated on the patient-disjoint validation cohort at every epoch, and the checkpoint achieving the highest validation top-1 accuracy (ACC@1) was retained for final evaluation on the independent holdout test set. Performance metrics across the five folds are reported as the mean and standard deviation. For the ablation experiments, all comparative model variants were trained on a fixed representative benchmark partition (Fold 1) and evaluated on the identical independent holdout test set to ensure a strictly controlled, paired comparison devoid of data-partitioning variability while maintaining computational feasibility. Additional training hyperparameters are provided in Online Resource 1 (Supplementary Methods S3).</p>
+<h3>2.5 Evaluation Metrics</h3>
+<p>The performance of the proposed DML framework was evaluated under two operational scenarios: 1:1 matching for patient verification and 1:N matching for open-set patient reidentification. In both scenarios, pairwise similarity between two patient embeddings was computed using cosine similarity: where 𝑧𝑧 𝑖𝑖 and 𝑧𝑧 𝑗𝑗 denote L2-normalized patient embeddings.</p>
+<h3>2.5.1 Patient Verification (1:1 Matching)</h3>
+<p>Patient verification was evaluated across all possible image pairs in the independent test cohort as the primary 1:1 matching endpoint. For each evaluation condition, positive image pairs (𝑁𝑁 𝑠𝑠 = 2,880) consisted of images from the same patient, whereas negative image pairs (𝑁𝑁 𝑖𝑖 = 33,373,440) consisted of images from different patients. To ensure an unbiased and comprehensive assessment without statistical artifacts from down-sampling, exhaustive evaluation across all 33,373,440 negative pairs was conducted. Verification performance was evaluated using receiver operating characteristic (ROC) analysis and the corresponding area under the curve (AUC). In accordance with international biometric performance reporting standards (ISO/IEC 19795-1), we also computed the Equal Error Rate (EER), where the False Non-Match Rate (FNMR) equals the False Match Rate (FMR), and verification sensitivities (True Match Rates: 1 -FNMR) at operationally stringent decision thresholds corresponding to FMRs of 1.0% (@FMR100) and 0.1% (@FMR1000).</p>
+<h3>2.5.2 Patient Re-Identification (1:N Matching)</h3>
+<p>To assess practical utility in clinical image retrieval and misfiling detection, open-set 1:N patient re-identification was evaluated. In this setting, each follow-up image was matched against a reference database consisting of one baseline examination per patient. A follow-up image was deemed correctly re-identified if the true corresponding patient yielded the highest cosine similarity among all candidate patients (Top-1 accuracy (ACC@1) on the cumulative match characteristic curve).</p>
+<h3>2.5.3 Anatomical Masking Analysis</h3>
+<p>To confirm that the proposed framework relied on genuine thoracic anatomical biometrics rather than non-anatomical shortcut learning (such as peripheral collimator borders, scannerspecific edge characteristics, lead orientation markers, or burned-in DICOM text annotations), an anatomical masking experiment was conducted on the independent test cohort. The squared lung-field bounding box was automatically delineated using a pre-trained PSPNet segmentation model from TorchXRayVision [44]. Models trained with the default top-centered full field of view (Full FoV) were compared against those trained and evaluated strictly on the cropped lung-field region of interest (Lung-field ROI), wherein all outer peripheral margins and device artifacts outside the thoracic cage were excluded.</p>
+<h3>2.6 Statistical Analysis</h3>
+<p>For the primary evaluation using five-fold cross-validation, performance metrics are reported as the mean ± standard deviation across the five trained models. For the ablation study,</p>
+<h3>3 Results</h3>
+<p>The performance of the proposed framework was evaluated on the independent test cohort (11,589 patients; 14,469 images) using five-fold cross-validation models. For each fold, the model checkpoint achieving the highest validation ACC@1 was selected. Primary performance metrics across the five folds and ablation comparisons are summarized in Tables 3 and 4, respectively.</p>
+<h3>3.1 Patient Verification and Re-Identification Performance</h3>
+<p>Patient verification and re-identification performance on the test cohort are summarized in Table 3. Across the five folds, the overall verification performance yielded an AUC of 0.9998 ± 0.0000 and an ACC@1 of 98.3 ± 0.131%. The EER was 0.359 ± 0.042%, with sensitivities of 99.8 ± 0.067% at FMR100 and 99.2 ± 0.093% at FMR1000. Under cross-modality evaluation, the AUC was 0.9999 ± 0.0000 and the ACC@1 was 93.6 ± 0.781%. Under same-modality evaluation, the corresponding values were 0.9998 ± 0.0001 and 98.9 ± 0.133%, respectively. In chest radiography subgroups comparisons, evaluations acquired with the same view position yielded an ACC@1 of 99.8 ± 0.086% and an AUC of 0.9999 ± 0.0001, whereas those involving different view positions (PA vs. AP) yielded an ACC@1 of 81.5 ± 2.24% and an AUC of 0.9998 ± 0.0001.</p>
+<p>In CT scout images, same-vendor comparisons achieved an ACC@1 of 98.7 ± 0.296% and an AUC of 0.9999 ± 0.0000, whereas cross-vendor comparisons achieved an ACC@1 of 96.9 ± 0.615% and an AUC of 0.9989 ± 0.0004.</p>
+<h3>3.2 Ablation Study of Domain Adaptation Framework</h3>
+<p>Ablation analysis comparing AdaCos alone (None), AdaCos with MMD, and DADA trained on the representative benchmark partition (Fold-1) is summarized in Table 4. Overall ACC@1 was 98.3% for AdaCos alone, 98.2% for MMD, and 98.3% for DADA; the difference between DADA and AdaCos alone did not reach statistical significance (McNemar&#x27;s test, p &gt; 0.05). Crossmodality ACC@1 was 93.7% for AdaCos alone, 92.5% for MMD, and 94.6% for DADA.</p>
+<h3>3.3 Grad-CAM Visualization and Anatomical Masking Analysis</h3>
+<p>Grad-CAM activations were localized to internal thoracic anatomical structures across both chest radiographs and CT scout images (Online Resource 1, Figure S1). In the anatomical masking experiment, all peripheral margins outside the segmented lung bounding box were excluded. As presented in Table 4, overall ACC@1 was 98.3% with the full FoV and 98.2% with the lung-field ROI. Same-modality ACC@1 was 98.7% with the full FoV and 98.8% with the lungfield ROI. Cross-modality ACC@1 was 94.6% with the full FoV and 93.1% with the lung-field ROI.</p>
+<h3>4 Discussion</h3>
+<h3>4.1 Principal Findings</h3>
+<p>This study demonstrated that patient-discriminative anatomical representations can be learned and transferred across heterogeneous imaging modalities for automated identity verification, even when patient identity annotations are unavailable in the target domain through domain adaptation [36] [37] [38] [39]. While prior studies have established the feasibility of image-based patient verification within single modalities [15, 16, [21] [22] [23] [24] [25] [28] [29] [30] [31] [32] [33] [34] [35], our findings extend this capability across disparate modalities. Notably, the ablation analysis revealed that identification accuracy was largely driven by AdaCos-based metric learning, which pushed overall ACC@1 to near-ceiling levels (&gt;98%). Consequently, the performance difference between DADA and AdaCos alone in cross-modality ACC@1 (94.6% vs. 93.7%) did not reach statistical significance (p &gt; 0.05). Furthermore, standard MMD-based alignment without latent data augmentation yielded a slightly lower cross-modality ACC@1 (92.5%), highlighting that naive distribution alignment without class-aware regularization risks negative transfer by inadvertently compressing inter-patient discrimination margins. In contrast, by synthesizing a manifold bridge between samples and corresponding class proxies via latent mixup, DADA preserves semantic class boundaries during domain adaptation [39, 42], thereby preventing feature degradation and achieving the highest cross-modality generalization (94.6%). Rather than serving as an accuracy booster, the primary role of DADA is imparting structural robustness against severe crossmodality distribution shifts [36] [37] [38] [39]. While AdaCos maps identity traits into a compact metric space, DADA functions as a latent-space regularizer that aligns cross-modality distributions while preserving class-separability via proxy mix-up, preventing feature distortion arising from differences in acquisition geometry, spatial resolution, and scanner hardware. DADA thus decouples patient biometric signatures from modality-specific artifacts, ensuring representational stability across disparate clinical domains.</p>
+<h3>4.2 Cross-Modality Patient Identity Representation</h3>
+<p>Cross-modality verification between chest radiographs and CT scout images is inherently challenged by major discrepancies in projection physics, contrast characteristics, and patient positioning [24, 25 ,36-38]. By aligning feature distributions across source, target, and augmented domains via data-augmented three-way MMD optimization [39], DADA provided stable representation learning across different scanner vendors and radiographic view orientations. This divergence highlights the fundamentally distinct operational demands of the two tasks: verification evaluates a pairwise 1:1 match against an established threshold, whereas re-identification requires ranking the correct patient first among an entire 11,589-candidate gallery. The open-set 1:N scenario is therefore substantially more sensitive to minor similarity perturbations across the vast search space.</p>
+<h3>4.3 Implications for Healthcare Information Systems</h3>
+<p>In modern healthcare information infrastructures (PACS, EHR, and vendor-neutral archives), patient linkage errors across departments and imaging suites present persistent safety and data-integrity risks [1] [2] [3] [4] [5] [6] [7] [8] [9] [10]. Because the proposed framework leverages routinely acquired diagnostic images, it requires no dedicated biometric hardware and involves no extra patient burden. The system can function as an automated, background safety gate within PACS workflows to intercept potential misfiling incidents before clinical interpretation, complementing administrative verification procedures [4, 5, [11] [12] [13] 17]. Furthermore, reliable cross-modality linkage supports the automated curation of large-scale, multimodal research imaging repositories by verifying identity consistency across longitudinal records [6] [7] [8] [9] [10].</p>
+<h3>4.4 Anatomical Interpretability and Shortcut Mitigation</h3>
+<p>Grad-CAM visualizations confirmed that model attention was predominantly focused on stable upper thoracic skeletal anatomy, particularly the lung apices and clavicular regions, aligning with forensic anthropological literature on radiographic biometrics [14] [15] [16] [17] [19] [20] [21] [22] [23].</p>
+<p>Crucially, the anatomical masking experiment (Table 4) demonstrated that confining the field of view strictly to the lung-field ROI yielded virtually identical performance to the full FoV. This outcome confirms that the model relies on persistent internal anatomical morphology rather than exploiting non-anatomical shortcuts, such as collimator borders, scanner-specific edge markers, or burned-in annotations.</p>
+<h3>4.5 Limitations</h3>
+<p>This study has several limitations. First, the dataset was derived from a single academic medical center. Although multiple scanner vendors and imaging protocols were evaluated, external validation across multi-institutional cohorts is necessary to confirm generalizability [21] [22] [23] [24] [25] [28] [29] [30] [31] [32] [33] [34] [35]. Second, the framework operated on two-dimensional projection images; extending domain-invariant metric learning to full 3D volumetric CT and MRI remains an important research objective. Third, the dataset partitioning strategy may have introduced systematic differences between the development and test cohorts, and alternative partitioning strategies should be investigated in future studies. Fourth, while the primary framework was rigorously evaluated via five-fold cross-validation, ablation comparisons were conducted on a single representative benchmark partition (Fold 1) due to computational constraints. Nevertheless, the paired evaluation on identical test queries provided sufficient statistical validity to assess inter-model differences. Finally, prospective clinical deployment studies are warranted to evaluate the realtime latency of the system and its practical efficacy in intercepting wrong-patient events in active hospital workflows [4, 5, [11] [12] [13].</p>
+<h3>5 Conclusions</h3>
+<p>This study developed and evaluated an automated patient identity verification framework for cross-modality verification between chest radiographs and CT scout images. While high identification capability was primarily driven by AdaCos-based metric learning, the integration of DADA provided essential structural robustness against severe cross-modality distribution shifts, maintaining high verification and re-identification performance across disparate acquisition  Fig 1 Overview of the proposed framework with DML and DADA for cross-modality patient identity verification, illustrating the image acquisition, preprocessing, representation learning, domain adaptation, and verification processes. Chest radiographs are first processed using a feature extractor to generate the latent feature representations. These features are subsequently used for classification and further optimized via DML and DADA learning. The learned embedding space groups images from the same class closer together, while increasing the separation between the different classes, resulting in more discriminative feature representations.</p>
+<h3>637 638</h3>
+<p>To isolate and validate the individual contribution of the DADA framework (Table 4), two comparative domain alignment variants were evaluated under identical training configurations:</p>
+<h3>AdaCos without DADA (None):</h3>
+<p>The model trained exclusively with the metric learning loss by setting, serving as the baseline to evaluate the intrinsic representation capability of AdaCos without any explicit cross-modality alignment.</p>
+<h3>MMD-Based Alignment</h3>
+<h3>S1.4 Overall Objective Function of the Proposed Framework</h3>
+<p>For the complete proposed framework, the total optimization objective was: where 𝐿𝐿 𝑚𝑚 denotes the AdaCos metric-learning loss and 𝐿𝐿 𝑑𝑑𝑎𝑎 denotes the domain-adaptation loss</p>
+<p>The weighting coefficient 𝜆𝜆 𝑑𝑑𝑎𝑎 was fixed at 0.05 according to the original DADA implementation and was not further tuned.</p>
+<h3>Acknowledgements</h3>
+<p>The authors thank Masatoshi Yamane and Takuya Uehara of Yamaguchi University Hospital, Yamaguchi, Japan and Yuki Fujimoto of Saiseikai Shiga Hospital, Shiga, Japan for their</p>
+<h3>Data Availability</h3>
+<p>The clinical imaging data used in this study are not publicly available because they contain protected health information and are subject to institutional and ethical restrictions. The data are owned by Yamaguchi University Hospital, Yamaguchi, Japan and cannot be shared publicly.</p>
+<h3>Competing Interests</h3>
+<p>The authors declare that they have no competing interests.</p>
+<h3>Declaration of Generative AI and AI-Assisted Technologies in the Writing Process</h3>
+<p>During the preparation of this manuscript, the authors used Microsoft 365 Copilot (Microsoft Corporation) to assist with language refinement, editing, and manuscript preparation. AI-assisted coding tools were also used during software development associated with this research. All generated outputs were carefully reviewed, validated, and revised by the authors. The authors take full responsibility for the accuracy, integrity, and content of this publication.</p>
+<h3>Writing -review &amp; editing: Yasuyuki Ueda</h3>
+<p>Supervision: Takayuki Ishida All authors read and approved the final manuscript.</p>
+<h3>Ethics Approval</h3>
+<p>This study was conducted in accordance with the ethical standards of the institutional research committee and with the 1964 Declaration of Helsinki and its later amendments or comparable ethical standards. All de-identified imaging data previously accumulated for routine clinical care were provided by Yamaguchi University Hospital for this research. Ethics approval for the study protocol of the anonymized dataset was granted by the Institutional Review Board of the University of Osaka Hospital (Approval No. 21064-6).</p>
+<h3>Informed Consent</h3>
+<p>The requirement for informed consent was waived by the Institutional Review Board because of the retrospective nature of the study.</p>
+<h3>644</h3>
+<p>• Figure S1: Representative Grad-CAM visualizations demonstrating anatomical regions 645 contributing to patient identity verification.</p>
+<h3>646</h3>
+<p>• Table S1: Representative examples of verification errors and their underlying causes.</p>
+<h3>S1. Deep Metric Learning and Domain Adaptation Framework</h3>
+<p>The patient identity verification task was formulated as a deep metric learning problem. Given an input image 𝑥𝑥, the feature extractor 𝑓𝑓(⋅) produces a normalized embedding vector: where 𝑧𝑧 represents the patient-specific image embedding vector and 𝑓𝑓(𝑥𝑥) denotes the feature representation extracted from input image 𝑥𝑥.</p>
+<h3>S1.1 AdaCos Loss</h3>
+<p>Let 𝑧𝑧 𝑖𝑖 be a normalized image embedding and 𝑤𝑤 𝑗𝑗 be a normalized proxy vector. The cosine similarity is defined as</p>
+<p>The AdaCos objective function is where 𝑠𝑠 is the adaptive scale parameter, 𝑦𝑦 𝑖𝑖 is the ground-truth identity, and 𝐶𝐶 is the number of identity classes.</p>
+<h3>S1.2 Data-Augmented Domain Adaptation</h3>
+<p>Domain adaptation was performed using data-augmented domain adaptation (DADA) [36]. To reduce the distribution shift between chest radiographs and CT scout images, three domains were aligned during training: • Source domain (𝐷𝐷 𝑠𝑠 ) • Target domain (𝐷𝐷 𝑡𝑡 ) • Augmented domain (𝐷𝐷 𝑎𝑎 )</p>
+<p>The augmented domain was generated through latent-space interpolation between image embeddings and proxy representations.</p>
+<h3>S1.3 Domain Alignment Ablation Models (None and MMD-Based Alignment)</h3>
+<p>.</p>
+<h3>S2. Data Augmentation</h3>
+<p>The training-time data augmentation included random rotation (±5°), random transversal scaling for CT scout images, random perspective distortion for chest radiographs, and top-centered cropand-pad preprocessing. Before network training, images were resampled to 1.0 × 1.0 mm² and cropped to 448 × 448 pixels.</p>
+<h3>S3. Training Configuration</h3>
+<p>The model was trained for a maximum of 500 epochs, without early stopping, using adaptive sharpness-aware minimization (ASAM) with a stochastic gradient descent (SGD) base optimizer.</p>
+<p>Gradient accumulation (4 steps) was applied to achieve an effective batch size of 64 from a minibatch size of 16. A cosine annealing schedule was used to decrease the learning rate from 0.01 to 0.0001. Model selection was based on the minimum validation loss.</p>
+<h3>Summary of Hyperparameters:</h3>
+<p>• Base Optimizer: SGD (Momentum = 0.8, Weight Decay = 0.0005) • Optimizer Wrapper: ASAM (Neighborhood size rho = 2.0) • Mini-batch Size / Effective Batch Size: 16 / 64 (Gradient accumulation steps = 4) • Learning Rate Schedule: Cosine annealing (Initial LR = 0.01, Minimum LR = 0.0001) • Maximum Epochs: 500 ..</p>
+<p>Model training was conducted on individual images using a proxy-based metric learning framework (AdaCos) without any explicit pair generation. For each patient in the test set, the earliest available examination was designated as the baseline image, with subsequent examinations treated as follow-up images. For model evaluation, positive pairs comprised images from the same patient, while negative pairs comprised images from different patients, yielding 2,880 same-patient pairs and 33,373,440 theoretically possible different-patient pairs in the test set. Patient demographics and imaging conditions are summarized in Tables differences in ACC@1 on paired test queries were evaluated using McNemar&#x27;s test (two-sided, with statistical significance set at p &lt; 0.05).</p>
+<p>All statistical analyses and metric computations were conducted using Python (version 3.12.11) with scikit-learn (version 1.4.0) and SciPy (version 1.12.0).</p>
+<h3>407</h3>
+<p>geometries and scanner vendors without requiring target-domain identity annotations. The 408 proposed framework operates entirely on routinely acquired diagnostic images without requiring 409 dedicated biometric hardware or extra patient burden. It offers a practical, automated safeguard 410 within PACS and hospital information infrastructures to mitigate patient identification errors, 411 support multimodal data integrity, and enhance clinical safety. Future studies should investigate 412 prospective deployment in real-world healthcare information environments to evaluate its 413 operational efficacy in active hospital workflows.</p>
+<h3>Figure Captions Fig 1 Fig 2</h3>
+<p>Figure Captions</p>
+<h3>:</h3>
+<p>A conventional domain adaptation baseline without data-augmented latent interpolation. Unlike DADA, which aligns source, target, and interpolated augmented domains, this model directly minimizes the discrepancy between the source (CXR) and target (CT scout) proxy-aligned representations using the standard maximum mean discrepancy (MMD):𝑀𝑀𝑀𝑀𝐷𝐷 2 (𝑃𝑃, 𝑄𝑄)and 𝜙𝜙(⋅) denotes the feature mapping into the reproducing kernel Hilbert space. The MMD loss weight was set to 𝜆𝜆 𝑑𝑑𝑎𝑎 = 0.05 to match the regularization strength of the proposed DADA framework.</p>
+<h3>Table 1.</h3>
+<p>Patient demographics of datasets used for training, validation, and testing</p>
+<h3>Table 2.</h3>
+<p>Imaging parameters and acquisition conditions for chest radiography and CT scout</p>
+<h3>Table 3.</h3>
+<p>Patient identity verification and re-identification performance of the proposed framework 619 evaluated across imaging modalities and intrinsic domain conditions on the independent test</p>
+<h3>Table 4.</h3>
+<p>Performance comparison of ablation models assessing the impact of Data-Augmented 628 Domain Adaptation and lung-field cropping on patient re-identification using the independent test Full FoV denotes the default top-centered 448 × 448 mm² field of view covering the upper-632 to-mid thoracic region without anatomical cropping. Lung-field ROI denotes images cropped 633 specifically around the segmented lung bounding box to exclude peripheral thoracic borders and embeddings using a trained feature extractor.</p>
+<h3>•</h3>
+<p>The similarity score between the two feature 601 embeddings is subsequently computed and compared with a predefined threshold. If the similarity 602 score is equal to or greater than the threshold, the image pair is classified as originating from the 603 same patient; otherwise, it is classified as originating from different patients Supplementary Methods, Figures, and Tables 640 This supplementary material contains the following supporting information for the article: 641 Supplementary Methods S1-S3: Detailed mathematical formulation of the deep metric 642 learning and data-augmented domain adaptation (DADA) framework, data augmentation 643 procedures, and training hyperparameters.</p>
+<h3>Figure S1.</h3>
+<p>Representative Grad-CAM visualizations of the proposed framework. Grad-CAM heatmaps are superimposed on chest radiographs and CT scout images from three representative patients (a-c). For each patient, images are shown in chronological order. The first and second images were obtained from the training dataset, whereas the third image was obtained from the validation dataset. The model frequently focused on anatomical structures in the upper thorax, particularly the lung apices and clavicular regions, across imaging modalities. CXR: chest radiograph; SV: scout view; SMS: Siemens Medical Solutions; GEMS: GE Medical Systems; PA: posteroanterior; AP: anteroposterior.</p>
+<h3>References</h3>
+<p>Haux, R.: Health information systems -past, present, future. Int. J. Med. Inform. 75, 268-281 (2006). https://doi.org/10.1016/j.ijmedinf.2005.08.002</p>
+<p>Haux, R.: Health information systems: past, present, future -revisited. Stud. Health Technol. Inform. 300, 108-134 (2022). https://doi.org/10.3233/SHTI220945</p>
+<p>Epizitone, A., Moyane, S.P., Agbehadji, I.E.: A systematic literature review of health information systems for healthcare. Healthcare (Basel) 11, 959 (2023). https://doi.org/10.3390/healthcare11070959</p>
+<p>Bates, D.W., Gawande, A.A.: Improving safety with information technology. N. Engl. J. Med. 348, 2526-2534 (2003). https://doi.org/10.1056/NEJMsa020847</p>
+<p>Weatherford, E., Grauer, A., Sirochinsky, C., Lehman, I.-F., Thummula, N., Callahan, M., Sittig, D.F., Singh, H., Salmasian, H., Jurgens, M., Adelman, J.S.: Developing updated and new guidance to promote reliable patient identification. JAMIA Open 9, ooaf160 (2026). https://doi.org/10.1093/jamiaopen/ooaf160</p>
+<p>Adler-Milstein, J., Garg, A., Zhao, W., Patel, V.: A survey of health information exchange organizations in advance of a nationwide connectivity framework. Health Aff. (Millwood) 40, 736-744 (2021). https://doi.org/10.1377/hlthaff.2020.01497</p>
+<p>Adler-Milstein, J., DesRoches, C.M., Jha, A.K.: Health information exchange among US hospitals. Am. J. Manag. Care 17, 761-768 (2011)</p>
+<p>Mandel, J.C., Kreda, D.A., Mandl, K.D., Kohane, I.S., Ramoni, R.B.: SMART on FHIR: a standards-based, interoperable apps platform for electronic health records. J. Am. Med. Inform. Assoc. 23, 899-908 (2016). https://doi.org/10.1093/jamia/ocv189</p>
+<p>Kahn, M.G., Raebel, M.A., Glanz, J.M., Riedlinger, K., Steiner, J.F.: A pragmatic framework for single-site and multisite data quality assessment in electronic health record-based clinical research. Med. Care 50(Suppl), S21-S29 (2012). https://doi.org/10.1097/MLR.0b013e318257dd67</p>
+<p>Hripcsak, G., Duke, J.D., Shah, N.H., Reich C.G., Huser V., Schuemie M.J., Suchard M.A., Park R.W., Wong I.C.K., Rijnbeek P.R., van der Lei J., Pratt N., Norén G.N., Li Y.-C., Stang P.E., Madigan D., Ryan P.B. : Observational Health Data Sciences and Informatics (OHDSI): opportunities for observational researchers. Stud. Health Technol. Inform. 216, 574-578 (2015). https://doi.org/10.3233/978-1-61499-564-7-574</p>
+<p>Grannis, S.J., Williams, J.L., Kasthuri, S., Murray, M., Xu, H.: Evaluation of real-world referential and probabilistic patient matching to advance patient identification strategy. J. Am. Med. Inform. Assoc. 29, 1409-1415 (2022). https://doi.org/10.1093/jamia/ocac068</p>
+<p>Rubio, E.I., Hogan, L.: Time-out: it&#x27;s radiology&#x27;s turn -incidence of wrong-patient or wrong- study errors. AJR Am. J. Roentgenol. 205, 941-946 (2015). https://doi.org/10.2214/AJR.15.14720</p>
+<p>Sadigh, G., Loehfelm, T., Applegate, K.E., Tridandapani, S.: JOURNAL CLUB: Evaluation of near-miss wrong-patient events in radiology reports. AJR Am. J. Roentgenol. 205, 337-343 (2015). https://doi.org/10.2214/AJR.14.13339</p>
+<p>Martel, W., Wicks, J.D., Hendrix, R.C.: The accuracy of radiologic identification of humans using skeletal landmarks: a contribution of forensic pathology. Radiology 124, 681-684 (1977). https://doi.org/10.1148/124.3.681</p>
+<p>Morishita, J., Katsuragawa, S., Kondo, K., Doi, K.: An automated patient recognition method based on an image-matching technique using previous chest radiographs in the picture archiving and communication system environment. Med. Phys. 28, 1093-1097 (2001). https://doi.org/10.1118/1.1373403</p>
+<p>Morishita, J., Katsuragawa, S., Sasaki, Y., Doi, K.: Potential usefulness of biological fingerprints in chest radiographs for automated patient recognition and identification. Acad. Radiol. 11, 309-315 (2004). https://doi.org/10.1016/S1076-6332(03)00655-X</p>
+<p>Morishita, J., Watanabe, H., Katsuragawa, S., Oda, N., Sukenobu, Y., Okazaki, H., Nakata, H., Doi, K.: Investigation of misfiled cases in the PACS environment and a solution to prevent filing errors for chest radiographs. Acad. Radiol. 12, 97-103 (2005). https://doi.org/10.1016/j.acra.2004.11.008</p>
+<p>Toge, R., Morishita, J., Sasaki, Y., Doi, K.: Computerized image-searching method for finding correct patients for misfiled chest radiographs in a PACS server by use of biological fingerprints. Radiol. Phys. Technol. 6, 437-443 (2013). https://doi.org/10.1007/s12194-013-0221-6</p>
+<p>Shimizu, Y., Matsunobu, Y., Morishita, J.: Evaluation of the usefulness of modified biological fingerprints in chest radiographs for patient recognition and identification. Radiol. Phys. Technol. 9, 240-244 (2016). https://doi.org/10.1007/s12194-016-0355-4</p>
+<p>Sakai, Y., Takahashi, K., Iwase, K., Shimizu, Y., Hattori, A., Kato, T.: Usefulness of biological fingerprints and template matching techniques in bedside chest radiography for patient identification and preventing filing mistakes. Nihon Hoshasen Gijutsu Gakkai Zasshi 74, 1154-1162 (2018). https://doi.org/10.6009/jjrt.2018_JSRT_74.10.1154</p>
+<p>Matsunobu, Y., Morishita, J., Usumoto, Y., Okumura, M., Ikeda, N.: Bone comparison identification method based on chest computed tomography imaging. Leg. Med. (Tokyo) 29, 1-5 (2017). https://doi.org/10.1016/j.legalmed.2017.08.002</p>
+<p>Ueda, Y., Morishita, J., Kudomi, S., Ueda, K.: Usefulness of biological fingerprint in magnetic resonance imaging for patient verification. Med. Biol. Eng. Comput. 54, 1341-1351 (2016). https://doi.org/10.1007/s11517-015-1380-X</p>
+<p>Morishita, J., Ueda, Y.: New solutions for automated image recognition and identification: challenges to radiologic technology and forensic pathology. Radiol. Phys. Technol. 14, 123- 133 (2021). https://doi.org/10.1007/s12194-021-00611-9</p>
+<p>Ueda, Y., Morishita, J., Hongyo, T.: Biological fingerprint using scout computed tomographic images for positive patient identification. Med. Phys. 46, 4600-4609 (2019). https://doi.org/10.1002/mp.13779</p>
+<p>Ueda, Y., Morishita, J., Kudomi, S.: Biological fingerprint for patient verification using trunk scout views at various scan ranges in computed tomography. Radiol. Phys. Technol. 15, 398- 408 (2022). https://doi.org/10.1007/s12194-022-00682-2</p>
+<p>Aggarwal, R., Sounderajah, V., Martin, G., Ting, D.S.W., Karthikesalingam, A., King, D., Ashrafian, H., Darzi, A.: Diagnostic accuracy of deep learning in medical imaging: a systematic review and meta-analysis. Digit. Med. 4, 65 (2021). https://doi.org/10.1038/s41746-021-00438-z</p>
+<p>Cai, L., Gao, J., Zhao, D.: A review of the application of deep learning in medical image classification and segmentation. Ann. Transl. Med. 8, 713 (2020). https://doi.org/10.21037/atm.2020.02.44</p>
+<p>Ueda, Y., Morishita, J.: Patient identification based on deep metric learning for preventing human errors in follow-up X-ray examinations. J. Digit. Imaging 36, 1941-1953 (2023). https://doi.org/10.1007/s10278-023-00850-9</p>
+<p>Ueda, Y., Ogawa, D., Ishida, T.: Patient re-identification based on deep metric learning in trunk computed tomography images acquired from devices from different vendors. J. Imaging Inform. Med. 37, 1124-1136 (2024). https://doi.org/10.1007/s10278-024-01017-w</p>
+<p>Packhäuser, K., Gündel, S., Münster, N., Syben, C., Christlein, V., Maier, A.: Deep learning- based patient re-identification is able to exploit the biometric nature of medical chest X-ray data. Sci. Rep. 12, 14851 (2022). https://doi.org/10.1038/s41598-022-19045-3</p>
+<p>Nguyen, K., Nguyen, H.H., Tiulpin, A.: AdaTriplet: adaptive gradient triplet loss with automatic margin learning for forensic medical image matching. In: Wang, L., Dou, Q., Fletcher, P.T., Speidel, S., Li, S. (eds.): Medical Image Computing and Computer Assisted Intervention - MICCAI 2022: 25th International Conference, Singapore, September 18-22, 2022, Proceedings, Part VIII, pp. 725-735. Springer, Cham (2022). https://doi.org/10.1007/978-3-031-16452-1_69</p>
+<p>Macpherson, M.S., Hutchinson, C.E., Horst, C., Goh, V., Montana, G.: Patient reidentification from chest radiographs: an interpretable deep metric learning approach and its applications. Radiol. Artif. Intell. 5, e230019 (2023). https://doi.org/10.1148/ryai.230019</p>
+<p>Farah, H., Bennour, A., Kurdi, N.A., Hammami, S., Al-Sarem, M.: Channel and spatial attention in chest X-ray radiographs: advancing person identification and verification with self- residual attention network. Diagnostics (Basel) 14, 2655 (2024). https://doi.org/10.3390/diagnostics14232655</p>
+<p>Manesco, J.R.R., Jodas, D., Zanella, M.J.G., Santos, M.K., Papa, J.P.: Graph feature embeddings for patient re-identification from chest X-ray images. In: 2024 37th SIBGRAPI Conference on Graphics, Patterns and Images (SIBGRAPI) 2024, pp. 1-6. Institute of Electrical and Electronics Engineers, New York (2024). https://doi.org/10.1109/SIBGRAPI62404.2024.10716264.</p>
+<p>Nebbia, G., Kumar, S., McNamara, S.M., Bridge, C., Campbell, J.P., Chiang, M.F., Mandava, N., Singh, P., Kalpathy-Cramer, J.: Re-identification of patients from imaging features extracted by foundation models. Digit. Med. 8, 469 (2025). https://doi.org/10.1038/s41746-025-01801-0</p>
+<p>Dorent, R., Kujawa, A., Shapey, J., Joutard, S., Cardoso, J., Modat, M., Rieke, N., Glocker, B., Bakas, S., Vercauteren, T.: Cross-modality domain adaptation for medical image segmentation. Zenodo. https://zenodo.org/records/6361886 (2021). Accessed 1 July 2026</p>
+<p>Guan, H., Liu, M.: Domain adaptation for medical image analysis: a survey. IEEE Trans. Biomed. Eng. 69, 1173-1185 (2022). https://doi.org/10.1109/TBME.2021.3117407</p>
+<p>Pei, C., Wu, F., Yang, M., Pan, L., Ding, W., Dong, J., Huang, L., Zhuang, X.: Multi-source domain adaptation for medical image segmentation. IEEE Trans. Med. Imaging 43, 1640- 1651 (2024). https://doi.org/10.1109/TMI.2023.3346285</p>
+<p>Ren, L., Chen, C., Wang, L., Hua, K.: Towards improved proxy-based deep metric learning via data-augmented domain adaptation. Proc. AAAI Conf. Artif. Intell. 38, 14811-14819 (2024). https://doi.org/10.1609/AAAI.v38i13.29400</p>
+<p>Kwon, J.M., Kim, J., Park, H., Choi, I.K.: ASAM: adaptive sharpness-aware minimization for scale-invariant learning of deep neural networks. arXiv (2021). https://doi.org/10.48550/arXiv.2102.11600</p>
+<p>Tan, M., Le, Q.: EfficientNetV2: smaller models and faster training. arXiv (2021). https://doi.org/10.48550/arXiv.2104.00298</p>
+<p>Gretton, A., Borgwardt, K.M., Rasch, M.J., Schölkopf, B., Smola, A.J.: A kernel two-sample test. J. Mach. Learn. Res. 13, 723-773 (2012).</p>
 </div>
 </details>
 </div>
