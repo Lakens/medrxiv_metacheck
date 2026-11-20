@@ -196,7 +196,7 @@ DxToniaNet: A Neural Network for Estimating the Severity of Leg Dystonia
 in Children with Cerebral Palsy
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.11.26367859
+2026-11-20 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.11.26367859
 </p>
 </header>
 <div class="mc-main">
@@ -227,8 +227,8 @@ ethics approval statement.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 1 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 1 detected.</p>
 </div>
 </div>
 </div>
@@ -324,8 +324,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -686,9 +687,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -710,7 +715,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -725,9 +731,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -740,13 +764,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -766,6 +793,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -773,12 +806,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -879,6 +918,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -898,6 +957,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1153,19 +1247,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1275,6 +1451,89 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Question: Can a deep learning model use clinically-acquired videos to accurately estimate experts&#x27; leg dystonia severity assessments in children with cerebral palsy?</p>
+<p>Findings: An automated deep learning model (DxToniaNet) trained and tested on clinically-acquired smartphone videos of 298 children with cerebral palsy estimates leg dystonia severity with 90-94% accuracy compared to experts&#x27; assessments.</p>
+<p>Meaning: DxToniaNet is an objective and free tool to estimate leg dystonia severity and may thus help facilitate standardized tracking of longitudinal treatment responses and clinical trial outcomes.</p>
+<h3>[div-01]</h3>
+<p>(significantly less than the GDRS MCID of 4), and 90-94% accuracy in differentiating between videos with greater than a 4-point difference in the GDRS.</p>
+<h3>Conclusions and Relevance:</h3>
+<p>We have demonstrated that DxToniaNet can accurately estimate leg dystonia severity compared to experts&#x27; assessments with a small (clinically insignificant) error margin. Our methodology supports generalizability since DxToniaNet was developed and tested using independent videos datasets from different centers, recorded under different conditions. In the future, DxToniaNet may help facilitate standardized leg dystonia severity estimation in clinical care and clinical trials.</p>
+<h3>Introduction</h3>
+<p>Dystonia is a debilitating movement disorder that most commonly presents in childhood in association with cerebral palsy (CP). [1] [2] [3] [4] Dystonia is difficult to diagnose, particularly in CP where it often co-exists with spasticity and other motor impairments. 5 Even after diagnosis, dystonia severity assessment can be difficult. All current assessment tools are qualitative, subjective, and time consuming, limiting their utility during routine clinical care even by expert physicians. 6, 7 Yet, dystonia severity assessment is critical for determining response to treatments. Since between 50-80% of people with CP have some degree of leg dystonia, establishing whether an assessment tool can reliably detect clinically meaningful severity differences is essential for tracking treatment responses. This is particularly valuable for multi-site clinical trials where use of subjective and time-consuming severity scales requires significant investments in training raters and establishing rating consensus across sites. We thus propose establishing a standardized objective leg dystonia severity assessment in people with CP.</p>
+<p>We have shown that expert-cited features of leg dystonia during a seated alternating hand open-close task can be quantified in clinically-acquired 2D videos and correlate well with experts&#x27; consensus-based qualitative assessments of leg dystonia severity. 8 We recently leveraged these findings to develop DxTonia: open-source software that uses a machine learning (ML) model trained on these expert-cited features to detect leg dystonia with 82% accuracy compared to experts&#x27; consensus-based assessment. 9 We now propose expanding DxTonia to assess leg dystonia severity. We hypothesize that expert-cited leg dystonia features can be used to train deep learning models to estimate leg dystonia severity scores and accurately discriminate between subjects with clinically meaningful differences in leg dystonia severity.</p>
+<h3>Methods</h3>
+<h3>Research protocol approvals and study registrations</h3>
+<p>The research protocol for this study was reviewed and approved by the Washington University in St. Louis Institutional Review Board on 06/05/2023 (Approval Number: 202102101).</p>
+<h3>Participants, movement task, and video acquisition</h3>
+<p>Video recordings of children with CP performing a seated alternating hand open-close task were collected during routine clinical visits at two centers: Center 1 -Gillette Children&#x27;s Hospital (St. Paul, MN, USA), and Center 2 -St. Louis Children&#x27;s Hospital (St. Louis, MO, USA). Center 1 recordings were made with a Panasonic AG-AC160AP camera (1920x1080, 30fps) between 01/01/2020 and 12/30/2021. Center 2 recordings were made with a Google Pixel 5 smartphone (3840x2160, 60fps) between 4/20/2023 and 12/14/2023. Inclusion criteria were subjects with clinically-confirmed CP diagnoses who were at least 3 years old to allow for the cognition and attention to attempt the task. Exclusion criteria were subjects unable to attempt the task or not having videos capturing their full body. When two or more videos were available for the same child, only the most recent video was included, so each included video was of a unique subject.</p>
+<p>During the alternating hand open-close task, participants sit facing forward with their non-dominant hand resting on their thigh, raise their dominant hand to the level of their face, and then rapidly alternate opening and closing their dominant hand for approximately five seconds. This is then repeated with the other hand. This voluntary upper limb movement can trigger dystonia in the legs, also called leg overflow dystonia as per the 2025 consensus definition. 1 We have previously shown that the seated alternating hand open-close task is effective for identifying leg dystonia 8, 9 and can, in isolation, be used to estimate leg dystonia severity accurately when compared to severity assessments using a prolonged exam protocol (including lying down, seated upper extremity, seated lower extremity, and gait tasks). 10 To protect participant privacy, faces in all video recordings were blurred using ShotCut and custom-written open source software (SecurePose). 11 Only face-blurred videos were used for consensus-based expert video assessment, leg coordinate extraction, and ML model training.</p>
+<p>Consensus-based expert video assessment and its qualitative analysis Experts (J.B., R.G.M., M.K., D.M., J.O.M., L.T., J.W., S.W.) were pediatric movement disorders physicians with dystonia expertise from a different US centers with none from Centers 1 or 2. Experts used the Global Dystonia Severity Rating Scale (GDRS) 12 which we have shown yields high interrater reliability for leg dystonia severity assessment in children and young people with CP 8, 13 and has a minimum clinically important difference (MCID) of 4 points. 14 The GDRS ranges from 0 (no dystonia) to 10 (severe dystonia) for each body region, with a maximum score of 40 for the legs (upper and lower left and right leg).</p>
+<p>Of the 298 videos collected from Centers 1 and 2, 24 from Center 1 and 30 from Center 2 were initially discussed by the expert reviewers across six one-hour Zoom meetings (Zoom Video Communications, Inc.) to ensure rating consensus. This video susbet varied by subjects&#x27; gross motor function impairments and preliminary estimates of leg dystonia severity as determined by a different pediatric movement disorders physician (B.R.A) whose ratings were never revealed to the other reviewers or used for further analysis. Once the experts had determined leg dystonia severity in the initial set of 54 videos together, they independently reviewed the remaining 244 videos for leg dystonia severity. Median leg dystonia severity ratings across all experts were used for further analysis. Since this study is focused on leg dystonia severity and not leg dystonia identification, only videos with leg dystonia (median expert GRDS ≥1) were used for training, validation, and testing of the ML models.</p>
+<h3>Leg coordinates extraction and feature selection</h3>
+<p>We used custom-written software (SecurePose) 11 incorporating OpenPose 15 to label and extract the 2D X and Y coordinates for 3 points on each leg in each video frame: midpoint of the patella, midpoint between the medial and lateral malleoli, and the tip of the first toe. This yielded 12 coordinates per frame. Labeling accuracy was verified manually in a subset of the frames (at least 50%). Coordinates were normalized to account for patient height and distance from the camera (using maximum knee-to-ankle distance as a reference) and adjusted to account for camera positioning (i.e. the median pelvis X and Y coordinates for each frame were set to zero).</p>
+<p>Leg kinematic features were calculated using these 12 coordinates as per established quantifiable movements used by experts to assess leg dystonia severity: 9,13 hip flexion/extension, hip adduction/abduction, hip internal/external rotation, knee flexion/extension, ankle dorsiflexion/plantarflexion, and foot inversion/eversion. 9, 13 Because we previously found that the variability and amplitude of leg adduction correlate with expert-assessed leg dystonia severity 8, 13 and can be used to accurately identify the presence or absence of leg dystonia, 9 we used the variance, minimum, and maximum of all leg kinematic measures (a total of 69 features, Supplementary Table 1) as inputs for training ML models to assess leg dystonia severity.</p>
+<h3>Finding the best performing ML model (DxToniaNet)</h3>
+<p>We have used conventional ML methods to identifying leg dystonia in people with CP, 9 but dystonia severity is a more complex and continuous outcome than is simple binary dystonia identification and thus requires modeling complex non-linear relationships. We employed six ML regression algorithms: linear regression, decision tree, SVM, ensemble trees, gaussian process regression, and neural networks. For the neural network algorithm, we evaluated four architectures: (1) dense layers only (DNN), (2) convolutional layers followed by dense layers (CNNDNN), (3) long shortterm memory layers followed by dense layers (LSTMDNN), and (4) a hybrid CNN-LSTM-DNN model. Model architecture and key hyperparameters (e.g. batch normalization, learning rate, and activation functions) can significantly influence training dynamics and affect model performance. We systematically varied each of these parameters and compared the mean absolute error (MAE) between the model&#x27;s estimation and experts&#x27; consensus severity ratings across multiple design alternatives on the validation data (i.e. a grid search). 16, 17 After identification of key hyperparameter values, additional parameters (e.g. number of layers, filter sizes, layerspecific options, stride lengths, and pooling window dimensions) were comparably iteratively refined. The best performing regression algorithm, architecture, and hyperparameters were thus identified as the ones that minimized the MAE.</p>
+<p>To minimize bias and ensure robust model evaluation, we employed five-fold crossvalidation using the scikit-learn 18 library. Videos from Center 1 were divided into training (2/3), validation (1/6), and testing (1/6) sets, maintaining comparable GDRS score distributions across each set. To account for potential variations due to arbitrary division of the data set, we repeated this process five times, creating five different training, validation, and testing sets. The best performing model across these five different sets was identified as outlined above.</p>
+<p>The resultant model (DxToniaNet) was then trained on all Center 1 videos (100 epochs, batch size of 32 samples) using 69 variance and amplitude features and GDRS values standardized with zero mean and one standard deviation. A model checkpoint of early stopping with 20 sample points on validation loss was used to avoid overfitting.</p>
+<h3>DxToniaNet generalizability testing</h3>
+<p>After completing all training, validation, and initial testing exclusively with videos from Center 1, we tested DxToniaNet on an independent external dataset from Center 2. Noting that the GDRS has an MCID of 4 points, we evaluated the model&#x27;s accuracy in assessing leg dystonia severity in two ways: 1.</p>
+<p>Estimating experts&#x27; median GDRS scores: We determined whether the MAE and root mean squared error (RMSE) were significantly less than 4.2. Comparing DxToniaNet&#x27;s estimated GDRS scores in video pairs with clinically meaningful leg dystonia severity differences: In video pairs where experts&#x27; GDRS scores differed by ≥4 points, we determined whether the model correctly assigned the higher GDRS score to the video that experts also rated higher.</p>
+<p>Translation to cloud infrastructure and web application architecture (DxToniaWeb)</p>
+<p>To translate the standalone Windows-based DxTonia software and the newly developed DxToniaNet severity estimation model into a clinically accessible tool, we developed DxToniaWeb, a multi-user Flask web application. Unlike the desktop version which requires download and installation on a Windows-based Graphical Processing Unit, the web application allows universal access to a single-click dystonia assessment workflow directly within a web browser interface.</p>
+<p>The web application&#x27;s processing pipeline incorporates: 1) Video normalization and metadata correction: Uploaded videos undergo automated rotation correction and metadata normalization using FFmpeg and ExifTool, standardizing video orientation across different recording devices.</p>
+<p>2) Kinematic feature extraction: Real-time keypoint extraction is executed via a server-side OpenPose queue, yielding leg coordinates (knee, ankle, first toe). 3) Spatiotemporal association and tracking: A motion-based frame-association algorithm tracks the patient across video frames to resolve multi-person clutter. 4) Ensemble classification and inference: Cleaned kinematics are standardized and mapped to the 69 variance and amplitude features, which are then passed to both the original dystonia identification model (DxTonia) and the newly optimized dystonia severity assessment model (DxToniaNet).</p>
+<p>To handle these computationally and temporally intensive analysis stages without HTTP timeouts, we implemented a background job queuing architecture orchestrated by Redis and Redis Queue. A dedicated administrator dashboard provides comprehensive operational monitoring, system logging, workflow recovery controls (e.g., job cancellation, re-queuing, and stale state purging), and secure CSV exports of final movement kinematics and dystonia assessments. The RAID 5 encrypted storage, zerotrust security infrastructure, and planned Zitadel integration to ensure robust data protection are detailed in Supplementary eMethods 1 and eMethods 2.</p>
+<h3>Results</h3>
+<h3>Participants and demographics</h3>
+<p>A total of 193 videos from Center 1 and 105 videos from Center 2 met inclusion and exclusion criteria. After experts analyzed these videos for leg dystonia, 107 videos from Center 1 (55.4%, age 7.1 ± 3.7 years, GDRS range 1.0-21.0) and 58 videos from Center 2 (55.2%, age 10.4 ± 3.8 years, GDRS range 1-14) had leg dystonia and were used for model development (Supplementary Table 2).</p>
+<h3>ML algorithm performance comparison for leg dystonia severity estimation</h3>
+<p>A grid search was performed for each ML algorithm using testing datasets from Center 1 with five-fold cross validation (Supplementary Table 3). The best performing ML algorithm, CNN-DNN, performed best with a learning rate of 0.001, activation function of LeakyReLU, and without batch normalization layers (Table 1). Based on this, the Adam optimizer 19 with a learning rate of 0.001, epsilon = 10 -7 , and first-and second-moment estimation decay rates of 0.9 and 0.999, respectively, were selected to update the weights of the network during the training.</p>
+<p>Averaged across all five folds, the final CNN-DNN model (DxToniaNet) obtained a mean MAE of 1.54±1.63 and RMSE of 2.16±0.33 for the Center 1 validation datasets and a mean MAE of 1.62±1.47 and RMSE of 2.17±0.24 for the Center 1 testing datasets (Table 2). DxToniaNet was then re-trained on the full Center 1 dataset (n=107). Finally, when tested on the independent Center 2 dataset (n=58), DxToniaNet had a mean MAE of 1.71±1.68 and RMSE of 2.21±0.34 (Table 2), both significantly less than the GDRS MCID of 4 (one-sided one-sample t-tests, p&lt; 0.001).</p>
+<p>Comparing DxToniaNet&#x27;s estimated GDRS scores in video pairs with clinically meaningful differences in leg dystonia severity We evaluated how accurately DxToniaNet identifies which of two videos displays more severe leg dystonia when experts&#x27; scores differ by at least the GDRS MCID of 4 points between videos. This evaluation was conducted across three datasets: the Center 1 validation dataset (which generated 1347 unique video pairs that differed by a GDRS≥4), the Center 1 testing dataset (1467 pairs), and the Center 2 testing dataset (596 pairs). DxToniaNet correctly identified the subject with greater dystonia severity in 1240/1347 pairs (92.1%) from the Center 1 validation dataset, 1315/1467 pairs (89.6%) from the Center 1 testing dataset, and 558/596 pairs (93.6%) from the Center 2 testing dataset. Translation Feasibility and System Validation To validate DxToniaWeb as a robust alternative to local desktop execution (DxToniaNet), we evaluated DxToniaWeb across four domains using both Center 1 and Center 2 datasets: 1. Analytical equivalence: We ran videos from both centers through DxToniaNet and DxToniaWeb with identical results. 2. System performance and computational latency: We measured the execution latency of the Redis and Redis Queue orchestrated pipeline on videos from both centers. We found that the execution latency was 1.2x the video duration for videos recorded at 720p (HD resolution, 30 Hz frame rate), 6.45x the duration for videos recorded at 1080p (full HD resolution, 30 Hz frame rate), and 9.13x the duration for videos recorded at 3840p (4K resolution, 60 Hz frame rate) (Supplementary Table 4). 3. Effect of down-sampling on performance: Running DxToniaWeb on down-sampled videos from Center 2 (720p and 30Hz frame rate) yielded the same MAEs as when using the native videos (3840p and 60Hz frame rate) confirming that down-sampling can reduce execution times without compromising accuracy ) (Supplementary Table 5). 4. Desktop browser compatibility: DxToniaWeb was tested across Google Chrome (version 148), Mozilla Firefox (version 151), Apple Safari (version 18), and Microsoft Edge (version 148) and successfully processed uploaded videos, managed job queuing, and exported dystonia assessments as PDF and CSV files across all platforms.</p>
+<h3>Discussion</h3>
+<p>We present DxToniaNet, a novel CNN-DNN neural network architecture capable of accurately estimating experts&#x27; leg dystonia severity assessments (GDRS scores) with errors significantly less than the threshold for clinically meaningful differences in leg dystonia severity. Videos used for developing the model were completely distinct from videos used for final testing, which were collected at a different medical center under different recording environments and parameters, supporting generalizability. We additionally demonstrate that DxToniaNet can differentiate between videos with clinically meaningful differences in leg dystonia severity with 90-94% accuracy compared to experts&#x27; assessments. Finally, we present DxToniaWeb, a web application that executes the functionalities of DxToniaNet without requiring local installation. Both DxToniaNet and DxToniaWeb were developed and tested using only face-blurred videos, supporting patient privacy if eventually used in clinical settings.</p>
+<p>DxToniaNet relies on the integration of experts&#x27; clinical assessments with advanced deep learning. By leveraging expert-cited features (including variance and amplitude of leg adduction as validated in prior work), 8,9,13 we moved beyond binary dystonia detection to continuous severity estimation. The CNN-DNN architecture (Table 3) effectively captures spatial hierarchies in movement features, outperforming conventional ML methods (Supplementary Table 3). The grid search optimization (Table 1) confirmed that LeakyReLU activation and Adam optimization with a learning rate of 0.001 were critical for minimizing error, while batch normalization provided only marginal benefit.</p>
+<p>The development of DxToniaWeb facilitates the potential translation of deep learning models into clinical practice. While the original desktop version of DxTonia provided an open-source solution for automated dystonia identification, it was constrained by platform dependencies (Windows-only execution) and localized computational requirements (requiring dedicated GPU hardware), which limit its use in typical clinical environments. By integrating both the DxTonia leg dystonia identification model and the new DxToniaNet leg dystonia severity assessment model into a secure, browseraccessible Flask pipeline, DxToniaWeb democratizes access to quantitative movement analysis. The architecture&#x27;s RAID 5 encrypted storage, zero-trust infrastructure, TSL for data transfer, and planned Zitadel integration ensure robust data protection.</p>
+<h3>Limitations and future directions</h3>
+<p>DxToniaNet relies on videos of the seated hand open-close task to isolate overflow leg dystonia, which may not capture all dystonia presentations and excludes children unable to perform the task. Performance variability across Centers 1 and 2 (with differing video resolutions, durations, and demographics) underscores the model&#x27;s sensitivity to data characteristics, though robust cross-center validation mitigates this concern. Future work must increase generalizability by expanding validation to other clinically relevant tasks (e.g., gait) and other populations with greater gross motor impairments or with dystonia due to other etiologies. Future validation should also include longitudinal evaluation of the same subject across videos (e.g. pre-and posttreatment to assess responsiveness). This validation could support use of DxToniaNet to facilitate standardized, automated, and accurate leg dystonia assessment in multi-site clinical trials.</p>
+<h3>Conclusions</h3>
+<p>DxToniaNet is a new CNN-DNN model that estimates leg dystonia severity scores using only face-blurred videos with an error less than the clinically meaningful threshold. It was trained and tested on distinct video data sets from two different medical centers, supporting generalizability, and it can distinguish clinically meaningful leg dystonia severity differences with 90-94% accuracy. DxToniaWeb is a secure web-based implementation of DxToniaNet which does not require local download or specialized hardware, thus facilitating broad use. Future studies will focus on expanding DxToniaNet and DxToniaWeb to assess other tasks and assess responsiveness to dystonia treatments.</p>
+<p>Table 1. The performance (mean absolute error) of CNN-DNN during a grid search. Without Batch Normalization With Batch Normalization Learning 0.01 0.001 0.0001 0.01 0.00 1 0.0001 Mean MAE (Activation Rate Activation Function function) ELU 20 1.99± 1.88 1.64± 1.78 1.61±1.27 1.99 ±1.3 6 1.63 ±1.9 1 1.67±1.9 8 1.76±1.70 ReLu 21 2.01± 1.05 1.74± 1.95 1.63±1.25 2±1.44 1.78 ±1.3 6 1.79±1.8 7 1.83±1.49 Sigmoid 22 2.11± 1.74 2.09± 1.58 2.16±1.66 2.14 ±2.1 7 2.07 ±1.4 5 2.17±1.2 5 2.12±1.64 LeakyReLU 23 1.84± 1.65 1.54± 1.63 1.55±1.66 1.88 ±0.5 4 1.56 ±1.5 4 1.6±1.39 1.66±1.55 Mean MAE (Learning Rate) 1.99± 1.58 1.75± 1.74 1.74±1.46 2.00 ±1.6 1 1.76 ±1.5 7 1.81±1.6 2 Mean MAE (Batch Normalization) 1.83±1.59 1.86±1.60 Table 2. The performance of machine learning models for estimating GDRS during validation and testing using five different data groupings from Center 1, as well as the performance of the final model (fine-tuned NN on all videos from Center 1) on data from Center 2. Validation performance of ML model from each dataset grouping from Center 1 Dataset Groupings Validation RMSE Validation MAE Fold 1 3.25 1.98 Fold 2 1.83 1.57 Fold 3 1.74 1.06 Fold 4 1.91 1.60 Fold 5 2.09 1.48 Mean 2.16±0.62 1.54±0.33 Testing performance of ML model from each dataset grouping from Center 1 Dataset Groupings Test RMSE Test MAE Fold 1 1.99 1.46 Fold 2 2.00 1.43 Fold 3 1.80 1.51 Fold 4 2.44 1.95 Fold 5 2.61 1.74 Mean 2.17±0.34 1.62±0.22 Testing performance of the final fine-tuned model on Center 2 Final model Test RMSE Test MAE All 58 videos 2.21±0.34 1.71±1.68 Table 3. Architecture of the final ML model S.No. Layer Type Activation function Filter size Layer parameter Stride Output size Parameters 1 Convolution 1 LeakyReLU 9X1 32 filters 1 61X32 320 2 Convolution 2 LeakyReLU 7X1 128 filters 1 55X128 28800 3 Convolution 3 LeakyReLU 5X1 64 filters 1 51X64 41024 4 Convolution 4 LeakyReLU 3X1 64 filters 1 49X64 12352 5 Flatten 3136 6 Dense 1 LeakyReLU 16 neurons 16 50192 7 Dense 2 LeakyReLU 32 neurons 32 544 8 Dense 3 LeakyReLU 128 neurons 128 4224 9 Dense 4 Linear 128 neurons 128 129</p>
+<h3>Acknowledgment</h3>
+<p>This project is supported by Pediatric Epilepsy Research Foundation Registry Infrastructure Grant and the National Institute of Neurological Disorders and Stroke (NINDS 1K08NS117850-01A1 and NINDS 5R01NS140701).</p>
+<h3>References</h3>
+<p>Albanese, A. et al. Definition and Classification of Dystonia. Mov. Disord. 40, 1248-1259 (2025).</p>
+<p>McIntyre, S. et al. Global prevalence of cerebral palsy: A systematic analysis. Dev. Med. Child Neurol. 64, 1494-1506 (2022).</p>
+<p>Rice, J., Skuza, P., Baker, F., … R. R.-… M. &amp; C. &amp; 2017, undefined. Identification and measurement of dystonia in cerebral palsy. Wiley Online Libr. Rice, P Skuza, F Bak. R Russo, D FehlingsDevelopmental Med. Child Neurol. 2017•Wiley Online Libr. 59, 1249-1255 (2017).</p>
+<p>Steeves, T. D., Day, L., Dykeman, J., Jette, N. &amp; Pringsheim, T. The prevalence of primary dystonia: A systematic review and meta-analysis. Mov. Disord. 27, 1789-1796 (2012).</p>
+<p>Aravamuthan, B., Landsness, E. C. &amp; Silbermann, E. ANA Webinars: implementation of a conference-based virtual networking event. Ann. Clin. Transl. Neurol. 8, 525-528 (2021).</p>
+<p>Aravamuthan, B., Pearson, T. S., Chintalapati, K. &amp; Ueda, K. Under-recognition of leg dystonia in people with cerebral palsy. Ann. Child Neurol. Soc. 1, 162-167 (2023).</p>
+<p>Aravamuthan, B. R. et al. Multicenter Improvement in Screening for Dystonia in Young People With Cerebral Palsy. Neurol. Clin. Pract. 15, e200469 (2025).</p>
+<p>Gemperli, K. et al. Chronic Striatal Cholinergic Interneuron Excitation Causes Cerebral Palsy-Related Dystonic Behavior in Mice. Ann. Neurol. (2025) doi:10.1002/ANA.27299.</p>
+<p>Bajpai, R. et al. Using Expert-Cited Features to Detect Leg Dystonia in Cerebral Palsy. Ann. Neurol. (2026) doi:10.1002/ana.78130.</p>
+<p>Lott, E. et al. Tasks for assessing dystonia in young people with cerebral palsy. Ped Neurol 2025.09.07.25334597 at https://doi.org/10.1101/2025.09.07.25334597 (2025).</p>
+<p>Bajpai, R. &amp; Aravamuthan, B. SecurePose: Automated Face Blurring and Human Movement Kinematics Extraction from Videos Recorded in Clinical Settings. arXiv (2025) doi:https://doi.org/10.48550/arXiv.2402.14143.</p>
+<p>Comella, C. L., Leurgans, S., Wuu, J., Glenn, S. T. &amp; Chmura, T. Rating scales for dystonia: a multicenter assessment. Mov. Disord. 18, 303-312 (2003).</p>
+<p>Aravamuthan, B. R. et al. Determinants of gait dystonia severity in cerebral palsy. Dev. Med. Child Neurol. 65, 1-10 (2023).</p>
+<p>Lott, E. et al. The Relationship Between Limb Dystonia Severity and Functional Impact in Children With Cerebral Palsy. J. Child Neurol. (2026) doi:10.1177/08830738261477966;WGROUP:STRING:PUBLICATION.</p>
+<p>Cao, Z., Hidalgo, G., Simon, T., Wei, S. E. &amp; Sheikh, Y. OpenPose: Realtime Multi-Person 2D Pose Estimation using Part Affinity Fields. IEEE Trans. Pattern Anal. Mach. Intell. 43, 172-186 (2018).</p>
+<p>Bajpai, R. &amp; Joshi, D. Foot2hip: A Deep Neural Network Model for Predicting Lower Limb Kinematics From Foot Measurements. IEEE/ASME Trans. Mechatronics 28, 2248-2258 (2023).</p>
+<p>Bajpai, R., Khare, S. &amp; Joshi, D. A Multimodal Model-Fusion Approach for Improved Prediction of Freezing of Gait in Parkinson&#x27;s Disease. IEEE Sens. J. 23, 16168-16175 (2023).</p>
+<p>Pedregosa, F. et al. Scikit-learn: Machine Learning in Python. J. Mach. Learn. Res. 12, 2825-2830 (2012).</p>
+<p>Kingma, D. P. &amp; Ba, J. L. Adam: A Method for Stochastic Optimization. 3rd Int. Conf. Learn. Represent. ICLR 2015 -Conf. Track Proc. (2014).</p>
+<p>Clevert, D. A., Unterthiner, T. &amp; Hochreiter, S. Fast and Accurate Deep Network Learning by Exponential Linear Units (ELUs). 4th Int. Conf. Learn. Represent. ICLR 2016 -Conf. Track Proc. (2015).</p>
+<p>Nair, V. &amp; Hinton, G. E. Rectified linear units improve Restricted Boltzmann machines. in ICML 2010 -Proceedings, 27th International Conference on Machine Learning (2010).</p>
+<p>Narayan, S. The generalized sigmoid activation function: Competitive supervised learning. Inf. Sci. (Ny). 99, 69-82 (1997).</p>
+<p>Maas, A. L., Hannun, A. Y. &amp; Ng, A. Y. Rectifier Nonlinearities Improve Neural Network Acoustic Models. (2013).</p>
 </div>
 </details>
 </div>
