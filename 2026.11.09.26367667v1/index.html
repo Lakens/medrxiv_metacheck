@@ -197,7 +197,7 @@ Dengue among febrile patients in Ghana: prevalence and facility-level
 variation in a multisite surveillance study
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.09.26367667
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367667
 </p>
 </header>
 <div class="mc-main">
@@ -322,8 +322,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -689,9 +692,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -713,7 +720,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -728,9 +736,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -743,13 +769,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -769,6 +798,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -776,12 +811,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -882,6 +923,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -901,6 +962,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1156,19 +1252,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1278,6 +1456,126 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Introduction: Dengue is under-recognized in Ghana, where laboratory testing is limited. We estimated dengue NS1 and/or IgM positivity among febrile patients and described geographical, temporal, and demographic variation.</p>
+<p>We conducted cross-sectional surveillance among consenting febrile patients aged ≥1 year at six public facilities in Greater Accra, Bono East, and Upper West between August 2023 and July 2025. We randomly selected one region within each of three ecological strata and selected facilities with high febrile-case volumes. We approached and recruited consecutive eligible patients. We tested serum for dengue NS1 antigen and IgM antibody by ELISA; positive NS1 samples underwent RT-PCR and serotyping. We estimated proportions with 95% confidence intervals (CI) and used logistic regression to examine adjusted associations.</p>
+<p>Results: Among 2,936 participants, 204 were NS1-and/or IgM-positive (6.95%; 95% CI, 6.05-7.93%): 31 were NS1-only, 161 IgM-only, and 12 dual-positive. Prevalence ranged from 3.88% (95% CI, 2.19-6.31%) at Kintampo to 12.32% (9.56-15.55%) at Atebubu, both in Bono East. Adjusted odds increased with age (aOR per five years, 1.09; 95% CI, 1.05-1.14). Eight of 43 NS1-positive samples contained dengue RNA: five DENV-1 from Bono East and three DENV-3 from Upper West. There was no clear rainy-dry season difference.</p>
+<p>Conclusions: Dengue NS1 and/or IgM were detected among febrile patients at all six facilities, and RT-PCR confirmed circulation of DENV-1 and DENV-3. These findings support including dengue in febrile illness evaluation and strengthening laboratory-supported surveillance in Ghana.</p>
+<h3>Author summary</h3>
+<p>Dengue is probably overlooked in Ghana because its symptoms resemble malaria and other common causes of fever, while laboratory testing is not routinely available. We studied 2,936 febrile patients who attended six public health facilities across three regions of Ghana. Blood samples were tested for a dengue protein found early in infection and for antibodies that usually appear later. Overall, 204 participants (6.95%; 95% confidence interval, 6.05-7.93%) had evidence of acute or recent dengue infection. Dengue was detected at every participating facility, but proportions varied considerably, even among facilities in the same region. Genetic testing detected dengue virus in eight samples and identified virus types 1 and 3. The chance of a positive result increased with age, although this difference was mainly related to antibody detection rather than the early-infection protein. We did not find a simple difference between rainy and dry seasons. Because the facilities were selected for their high numbers of patients with fever, the findings do not estimate dengue prevalence in the general population or across entire regions. They show that dengue contributes to febrile illness in Ghana and support continued surveillance that reports findings separately for individual facilities and diagnostic markers.</p>
+<p>.</p>
+<h3>Introduction</h3>
+<p>Dengue is a mosquito-borne viral infection caused by four dengue virus serotypes (DENV-1-4), transmitted primarily by Aedes aegypti [1, 2]. Infection may be asymptomatic or present as an acute febrile illness, while fewer patients develop severe disease characterized by plasma leakage, bleeding, or organ impairment [1, 2]. In sub-Saharan Africa, dengue remains under-recognized because laboratory testing and surveillance are limited, and its clinical presentation overlaps with malaria and other common causes of fever [3, 4, 5]. Studies of patients with suspected malaria or undifferentiated fever have identified dengue virus or dengue-reactive test results, supporting the use of laboratory testing to investigate its contribution to febrile illness [6, 7].</p>
+<p>Previous reports from Ghana indicated both the presence of competent vectors and dengue virus circulation. Entomological investigations documented Aedes aegypti across different ecological settings, with variation in mosquito abundance and breeding habitats [8]. Laboratory experiments demonstrated that some Ghanaian Aedes aegypti colonies can transmit DENV-1 [9]. Earlier serological studies detected dengue-reactive antibodies among malaria-positive children [10], while molecular investigation identified dengue virus among children initially assessed for malaria in Accra [6].</p>
+<p>Subsequently, analysis of archived samples from febrile patients collected during 2016-2018 demonstrated dengue seroreactivity [11], while surveillance during 2022-2023 detected DENV-1, DENV-2, and DENV-3 [12]. Ghana subsequently reported a dengue outbreak beginning in the Eastern Region in July 2024 [13]. Therefore, Ghana needs to systematically assess dengue prevalence among patients with febrile illness to guide future surveillance and preparedness.</p>
+<p>Comparable evidence from multiple health facilities is needed to describe how frequently dengue is detected among febrile patients and how detection varies across locations, age groups, and time.</p>
+<p>Regional estimates may conceal differences between facilities serving distinct populations, while temporal comparisons require consistent testing and clearly defined denominators. Diagnostic interpretation also matters: NS1 antigen provides evidence of acute infection, whereas IgM may remain detectable after the acute episode. Combining these tests can identify infection across different presentation times [14, 15]. Applying a common surveillance protocol across facilities can provide useful evidence for planning laboratory testing and monitoring local patterns of dengue detection.</p>
+<p>We conducted facility-based cross-sectional surveillance among febrile patients attending public health facilities in Ghana. We estimated dengue NS1 and/or IgM positivity by ELISA, described geographical and temporal variation, and examined demographic and household factors associated with a positive result. RT-PCR testing and serotyping of NS1-positive samples provided additional evidence of dengue virus circulation.</p>
+<h3>Methods</h3>
+<h3>Study design and setting</h3>
+<p>Ghana has 16 administrative regions; all were eligible for selection and were grouped into three broad ecological-zone strata to capture geographical and ecological diversity. We randomly selected one region by ballot from each stratum, selecting the Greater Accra Region (GAR), Bono East Region (BER), and Upper West Region (UWR). Within each region, we purposively selected two public facilities. At study initiation, no officially recognized dengue outbreak was available to guide site selection. We therefore reviewed the regional health directorates&#x27; 2022 facility reports and selected facilities reporting comparatively high total numbers of febrile cases within their regions because they could support sentinel surveillance. The underlying facility-level totals were used operationally for site selection and were not analyzed as study data. Recruitment extended from August 2023 to July 2025, with staggered site periods: LEKMA and Maamobi General hospitals in GAR (July 2024-July 2025), Atebubu and Kintampo Municipal hospitals in BER (September 2023-September 2024), Wa Municipal and Wa West District hospitals in UWR (August 2023-August 2024) (Fig 1).</p>
+<p>The GAR facilities are located in the Coastal Savannah ecological zone, the BER facilities in the Forest-Savannah Transition zone, and the UWR facilities in the Guinea Savannah zone [16]. For the seasonal analysis, we grouped enrolment months using study-defined regional calendars: rainy months were April-July and September-November in GAR, May-July and September-October in BER, and May-October in UWR; the remaining months were classified as dry. Ecological zone was used to contextualize the facilities and their seasonal patterns, not as an independent analytical exposure.</p>
+<p>Because each ecological-zone stratum was represented by only one selected region, ecological zone and region were therefore perfectly aligned, and their effects could not be separated.</p>
+<h3>Participants and eligibility</h3>
+<p>Patients aged 1 year old and above were eligible if they had an axillary temperature ≥37.5°C at presentation or reported fever at any time during the preceding seven days, together with at least two compatible symptoms such as chills, headache, retro-orbital pain, myalgia, arthralgia, nausea or vomiting, rash, weakness, malaise, anorexia, lymphadenopathy or bleeding; the seven-day criterion referred to the recency of reported fever, not a maximum total illness duration. Eligible patients were approached in order of presentation from Monday to Friday between 8:00 a.m. and 5:00 p.m. during each site&#x27;s active recruitment period. We did not conduct night-time, weekend, or holiday recruitment because attendance during those periods was generally low. The number of eligible patients who declined participation before consent was not recorded.</p>
+<h3>Sample size</h3>
+<p>We calculated the base sample size using a single-population proportion formula with an anticipated prevalence of 5%, 95% confidence interval (CI), and an absolute precision of 1 percentage point. We applied a design effect of 1.5 to account for within-facility clustering and between-facility heterogeneity, yielding a sample size of 2,738 participants. An allowance of approximately 10% for incomplete questionnaires, unusable specimens, or other non-evaluable observations increased the operational recruitment target to 3,042.</p>
+<h3>Data and laboratory procedures</h3>
+<p>Trained clinical staff administered a structured questionnaire covering age, sex, residential setting, water sources and storage, household containers, vector-control practices, reported yellow-fever vaccination, and fever duration. Axillary temperature was measured digitally. We classified reported yellow-fever vaccination as no, yes, or not sure. Fever duration was classified as &lt;3, 3-7, or &gt;7 days. We collected approximately 5 mL of venous blood; we separated serum, stored it temporarily at -20°C, and transported it under temperature-controlled conditions.</p>
+<h3>Dengue NS1 and IgM ELISA testing</h3>
+<p>We analyzed serum samples for the presence of dengue NS1 antigen and anti-dengue IgM using commercial Standard Dengue NS1 Ag ELISA and Standard Dengue IgM ELISA kits (SD Biosensor, Inc., South Korea), respectively, according to the manufacturer&#x27;s instructions. Optical densities were measured at 450 nm using a microplate reader, and cut-off values were calculated to determine sample positivity as specified in the kit protocol.</p>
+<p>Cut-off optical density = mean calibrator optical density × lot-specific calibration factor. Sample index = sample optical density/cut-off optical density.</p>
+<p>We classified index values below 0.9 as negative, 0.9-1.1 as equivocal, and above 1.1 as positive. These correspond to &lt;9, 9-11, and &gt;11 SD Biosensor units, respectively (SD Biosensor units = index × 10).</p>
+<p>Equivocal results were classified as negative in the primary analysis. The primary outcome was a positive result for NS1 antigen, IgM, or both.  [17]. Serotypes were identified using the serotype-specific TaqMan real-time RT-PCR assay described by Johnson et al. [18]. Positive and negative controls were included in each run. The molecular results were recorded in a separate laboratory database and were linked to participants using unique study identifiers. Molecular testing was performed at the Noguchi Memorial Institute for Medical Research.</p>
+<h3>RNA extraction and RT-PCR</h3>
+<h3>Ethics approval and consent</h3>
+<p>The Ghana Health Service Ethics Review Committee approved the study (GHS-ERC 007/12/22).</p>
+<p>Written informed consent was obtained from adult participants and from parents or guardians of minors; assent was obtained from children where applicable.</p>
+<h3>Statistical analysis</h3>
+<p>We analyzed data using R version 4.5.0. Characteristics were summarized using counts and percentages or medians and interquartile ranges. Dengue NS1 and/or IgM positivity was estimated overall and by region, facility, month, and season, with exact binomial 95% confidence intervals. Monthly comparisons were descriptive because recruitment periods differed and some denominators were small. The primary logistic regression included age as a continuous variable scaled per five years, sex, facility, residential setting, tap-water use, and empty containers. The primary and all supporting models included 2,936 participants, with no missing observations for the variables included in these models; therefore, no exclusions for missing data or imputation were required. We report adjusted odds ratios (aORs) with Wald 95% confidence intervals. Conventional model-based standard errors were used. Regression estimates were considered exploratory because residual within-facility correlation may affect precision. Supporting analyses examined age groups, a natural cubic spline for age, region in place of facility, season, fever duration, and NS1 and IgM separately. Methods and results are provided in the supplementary material.</p>
+<h3>Results</h3>
+<h3>Participants and dengue test results</h3>
+<p>Of 3,341 eligible patients who provided study consent, 405 declined venipuncture; 2,936 provided specimens which were analyzed. Median age was 17 years (IQR, 5-33), and 1,664 (56.7%) were female (Table 1). Overall, 204 participants were NS1-and/or IgM-positive (6.95%; 95% CI, 6.05-7.93%), comprising 31 NS1-positive only, 161 IgM-positive only, and 12 NS1-IgM-positive.</p>
+<p>RT-PCR detected dengue RNA in eight of the 43 NS1-positive samples tested (18.60%; 95% CI, 8.39-33.40%): five DENV-1 infections in Bono East and three DENV-3 infections in Upper West. None of the five NS1-positive samples from Greater Accra were RT-PCR-positive (Supplementary Table S1). Table 2. Composite dengue ELISA prevalence overall, by region and by participating facility. 185 Location Positive/total Prevalence, % (95% CI) Overall: all facilities 204/2,936 6.95 (6.05-7.93) Greater Accra 62/1,108 5.60 (4.32-7.12) LEKMA Hospital 37/702 5.27 (3.74-7.19) Maamobi General Hospital 25/406 6.16 (4.02-8.96) Bono East 76/882 8.62 (6.85-10.67) Atebubu Municipal Hospital 61/495 12.32 (9.56-15.55) Kintampo Municipal Hospital 15/387 3.88 (2.19-6.31) Upper West 66/946 6.98 (5.44-8.79) Wa Municipal Hospital 22/351 6.27 (3.97-9.34) Wa West District Hospital 44/595 7.39 (5.42-9.80) 186 Factors associated with dengue positivity 187 The adjusted odds of a positive NS1 and/or IgM result increased with age (aOR per five years, 1.09; 188 95% CI, 1.05-1.14). Compared with Atebubu, adjusted odds were lower at Kintampo, LEKMA, 189 Maamobi, and Wa West; the comparison with Wa Municipal was inconclusive (aOR, 0.56; 95% CI, 190 0.29-1.10). There was no clear evidence of an association with sex, residential setting, tap-water use, 191 or empty containers (Table 3). 192 193 Table 3. Multivariable logistic regression for dengue NS1 and/or IgM positivity with age per five years. 194 Variable aOR 95% CI p-value Age per five years 1.09 1.05-1.14 &lt;0.001 Male versus female 1.06 0.78-1.42 0.719 Kintampo versus Atebubu 0.33 0.18-0.60 &lt;0.001 LEKMA versus Atebubu 0.34 0.17-0.70 0.003 Maamobi versus Atebubu 0.38 0.17-0.85 0.018 Wa Municipal versus Atebubu 0.56 0.29-1.10 0.091 Wa West versus Atebubu 0.30 0.18-0.50 &lt;0.001 Peri-urban versus urban 0.59 0.22-1.63 0.311 Rural versus urban 0.97 0.54-1.77 0.929 Tap-water use yes versus no 0.78 0.55-1.11 0.172 Empty containers present versus absent 1.38 0.98-1.94 0.068 All listed variables were included in the model. Reference categories: female sex, Atebubu Municipal Hospital, 195 urban residence, no tap-water use, and absence of empty containers. Confidence intervals and p-values use 196 Wald methods. aOR, adjusted odds ratio.</p>
+<h3>197 198</h3>
+<p>Temporal variation 199 Monthly prevalence of dengue test positivity varied within regions (Figure 2; Supplementary Table S5). 200 Recruitment periods differed, and some months included fewer participants, limiting comparisons 201 across regions and time. 202</p>
+<p>In the age-adjusted model, there was no significant association between rainy versus dry season and 203 dengue positivity (aOR, 0.89; 95% CI, 0.65-1.21). Region-specific seasonal estimates are provided in 204 Supplementary Table S3. 205 Points show monthly proportions and bars show exact 95% confidence intervals; point size reflects the number tested.</p>
+<h3>208</h3>
+<p>Months with fewer than 20 participants are omitted from the figure and retained in Supplementary Table S5.</p>
+<h3>209</h3>
+<p>Recruitment periods differed by region, so comparisons are descriptive.</p>
+<h3>210 211</h3>
+<h3>Discussion</h3>
+<p>This study adds evidence that dengue warrants consideration in the evaluation of febrile illness in Ghana. Detecting NS1 antigen and/or IgM at every participating facility, along with molecular confirmation of DENV-1 and DENV-3, supports strengthening laboratory-supported surveillance beyond individual investigations. The observed differences in prevalence between facilities also show the value of reporting findings at the facility level. These observations provide a basis for improving dengue recognition.</p>
+<p>Our findings complement earlier evidence of dengue exposure and viral circulation in Ghana. Stoler et al. detected dengue-reactive antibodies among malaria-positive children, while Amoako et al.</p>
+<p>subsequently confirmed dengue virus in children initially assessed for malaria [6, 10]. Later serological and molecular studies extended the geographical and temporal evidence [11, 12]. The July 2024 outbreak reported in Ghana further demonstrates the practical relevance of diagnostic preparedness [13].</p>
+<p>These observations support maintaining dengue within the differential diagnosis of febrile illness.</p>
+<p>Comparisons with other African surveillance studies show why recruitment and diagnostic definitions matter. Lim et al. identified dengue during both outbreak and non-outbreak periods among non-malarial febrile patients in Ouagadougou, using paired serology and selected molecular testing [19]. By contrast, Boyce et al. found few dengue-reactive rapid tests and no PCR-confirmed infections among children with non-malarial fever in western Uganda [7]. A molecular study in Kenya documented substantial dengue detection among febrile children [20]. Although eligibility, age, specimen type, testing strategy, and outbreak context differed, the repeated identification of dengue across African studies supports comparable protocols and clearly defined denominators [21].</p>
+<p>The predominance of IgM is central to interpreting our outcome. NS1 and IgM identify overlapping infection windows, and IgM may outlast the presenting episode [14, 15]. Chien et al. detected IgM at prolonged follow-up, with persistence differing between commercial assays [22]. Our combined outcome is therefore an operational measure of NS1 and/or IgM positivity, rather than a precise measure of infections acquired during the reported fever. Because molecular testing was restricted to NS1positive samples, the molecular findings cannot establish the proportion of all ELISA-positive participants with detectable viral RNA.</p>
+<p>Yellow fever exposure and vaccination warrant consideration when interpreting dengue serology, but it should be noted that cross-reactivity may be assay-dependent: Houghton-Triviño et al. observed increased dengue IgM reactivity after yellow fever vaccination, whereas Vázquez et al. found vaccinated participants tested negative with a different dengue-antigen MAC-ELISA [23, 24]. Thus, without confirmatory testing of IgM-only-positive specimens, the contribution of cross-reactivity to dengue NS1 and/or IgM positivity estimates remains uncertain.</p>
+<p>The contrast between the two facilities within Bono East illustrates the value of reporting facilityspecific findings alongside regional averages. These estimates describe tested patients and cannot directly measure transmission in surrounding communities. Atebubu and Kintampo shared the stated recruitment period, whereas recruitment periods differed across regions, limiting comparisons between regions. Differences in patient populations and attendance may also influence facility estimates.</p>
+<p>Ghanaian entomological studies document geographical variation in Aedes populations [8, 25], but we did not measure vectors at the participating facilities and cannot attribute the observed differences to mosquito abundance. Facility-specific reporting can identify patterns that require further investigation.</p>
+<p>The association of increasing prevalence with age mainly involved IgM positivity; the NS1 analysis was less precise. Nevertheless, the clear presence of dengue-reactive antibodies in Ghanaian children and molecularly confirmed infections among Kenyan children show that clinically relevant detection is not restricted to adults [10, 20]. Our findings support clinical awareness across all age groups, without establishing an age threshold for testing.</p>
+<p>The absence of a clear rainy-dry season association does not establish an absence of seasonal transmission. Broad seasonal categories may obscure shorter changes in detection, particularly when monthly denominators are small. Surveillance in Burkina Faso identified differences between outbreak and non-outbreak periods [19], supporting interpretation of temporal findings in their epidemiological context. Our staggered recruitment and relatively short observation periods limit inference about recurring seasonal patterns. Repeated surveillance over several years, linked to local rainfall and temperature measurements, would allow a more informative assessment of seasonality.</p>
+<p>Several limitations affect the scope of inference. We selected facilities with comparatively high febrilecase volumes, and recruitment was restricted to weekday daytime attendance. The findings therefore cannot be generalized to all health facilities or residents of the participating regions. Consecutive sampling reduced discretionary selection among eligible patients presenting during recruitment hours, but it could not address these broader selection constraints. Pre-consent refusals were not recorded, preventing calculation of an overall participation rate or assessment of the extent of non-participation bias. Single-sample testing limited the ability to distinguish current from recent infection, and selfreported household exposures were subject to misclassification. Adjusted associations remain exploratory because conventional standard errors may not fully account for residual correlation within the six facilities.</p>
+<p>Despite these limitations, the harmonized recruitment and testing protocol provides useful guidance for developing dengue surveillance in Ghana. Laboratory-supported sentinel surveillance could improve recognition of dengue among patients with otherwise undifferentiated fever and identify local patterns and risks that require investigation. Reporting antigen, antibody, and molecular findings separately would preserve their distinct interpretations. The findings support expanding access to dengue testing, while further work should assess how to integrate testing into routine febrile-illness care and whether it improves clinical decisions and patient outcomes.</p>
+<h3>Conclusion</h3>
+<p>Dengue NS1 and/or IgM were detected at all six participating facilities, and RT-PCR confirmed DENV-1 and DENV-3 circulation. Consider dengue when evaluating febrile illness in Ghana, with laboratorysupported surveillance to monitor its local distribution.</p>
+<h3>Acknowledgements</h3>
+<p>We thank all participants, staff of the six participating hospitals, the Ghana Health Service, Noguchi Memorial Institute for Medical Research, and contributing laboratory staff.</p>
+<h3>Funding</h3>
+<p>This research was funded by the Johnson &amp; Johnson Scotland Foundation. The first author received a Global Health Scholarship from University Medical Center Utrecht and Utrecht University for PhD training; it did not directly fund the study. Funders had no role in design, conduct, analysis, interpretation, writing, or the decision to submit.</p>
+<h3>Data availability</h3>
+<p>The de-identified participant-level dataset underlying the findings reported in this manuscript is provided as Supporting Information.</p>
+<h3>Competing interests</h3>
+<p>The authors declare no competing interests.</p>
+<h3>Author contributions</h3>
+<p>Conceptualization: FZ, AAN, EAT, FA, DTP, KB, KWCS.</p>
+<p>Methodology: FZ, AAN, IATG, FA, DTP, JAO-C. Funding acquisition: FZ, DEG, MABvdS. Project administration: FZ, FA, DTP, JAO-C, EK. Resources: KB, FA, DTP, JAO-C, KWCS, YAA, EK. Investigation: FZ, EAT, IATG, KB, JAO-C, MABvdS. Data curation: FZ, IATG, RSA. Formal analysis: FZ, RSA. Validation: FZ, EAT, MABvdS. Visualization: FZ, RSA. Writing-original draft: FZ, AAN.</p>
+<p>Writing-review and editing: all authors. All authors approved the final manuscript.</p>
+<h3>Ethics approval and consent</h3>
+<p>The Ghana Health Service Ethics Review Committee approved the study (GHS-ERC 007/12/22).</p>
+<p>Written informed consent and, where applicable, parental consent and child assent were obtained.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Participating facilities in the ecological context of Ghana (Map drawn by Yaw Afrane)</p>
+<p>All NS1-positive serum samples underwent reverse-transcription polymerase chain reaction (RT-PCR) testing for dengue virus RNA. Viral RNA was extracted from 140 μL of serum using the QIAamp Viral RNA Mini Kit (Qiagen, Hilden, Germany) and eluted in 60 μL of elution buffer. Dengue virus RNA was detected using the CDC Trioplex real-time RT-PCR assay with AgPath-ID One-Step RT-PCR reagents</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Monthly composite dengue ELISA prevalence by region. 207 , both in Bono East.</p>
+<h3>Table 1 . Selected participant characteristics by composite dengue ELISA status.</h3>
+<p>Estimates for all six facilities are shown in Table2.183</p>
+<h3>References</h3>
+<p>Wilder-Smith A, Ooi EE, Horstick O, Wills B. Dengue. Lancet. 2019;393(10169):350-363. doi:10.1016/S0140-6736(18)32560-1</p>
+<p>Eltom K, Enan K, El Hussein ARM, Elkhidir IM. Dengue Virus Infection in Sub-Saharan Africa Between 2010 and 2020: A Systematic Review and Meta-Analysis. Front Cell Infect Microbiol. 2021;11:678945. doi:10.3389/fcimb.2021.678945</p>
+<p>Gainor EM, Harris E, LaBeaud AD. Uncovering the Burden of Dengue in Africa: Considerations on Magnitude, Misdiagnosis, and Ancestry. Viruses. 2022;14(2):233. doi:10.3390/v14020233</p>
+<p>Stoler J, al Dashti R, Anto F, Fobil JN, Awandare GA. Deconstructing &quot;malaria&quot;: West Africa as the next front for dengue fever surveillance and control. Acta Trop. 2014;134:58-65. doi:10.1016/j.actatropica.2014.02.017</p>
+<p>Amoako N, Duodu S, Dennis FE, Bonney JHK, Asante KP, Ameh J, et al. Detection of Dengue Virus among Children with Suspected Malaria, Accra, Ghana. Emerg Infect Dis. 2018;24(8):1544-1547. doi:10.3201/eid2408.180341</p>
+<p>Boyce RM, Collins M, Muhindo R, Nakakande R, Ciccone EJ, Grounds S, et al. Dengue in Western Uganda: a prospective cohort of children presenting with undifferentiated febrile illness. BMC Infect Dis. 2020;20(1):835. doi:10.1186/s12879-020-05568-5</p>
+<p>Owusu-Asenso CM, Mingle JAA, Weetman D, Afrane YA. Spatiotemporal distribution and insecticide resistance status of Aedes aegypti in Ghana. Parasit Vectors. 2022;15(1):61. doi:10.1186/s13071-022-05179-w</p>
+<p>Amoa-Bosompem M, Kobayashi D, Itokawa K, Murota K, Faizah AN, Azerigyik FA, et al. Determining vector competence of Aedes aegypti from Ghana in transmitting dengue virus serotypes 1 and 2. Parasit Vectors. 2021;14(1):228. doi:10.1186/s13071-021-04728-z</p>
+<p>Stoler J, Delimini RK, Bonney JHK, Oduro AR, Owusu-Agyei S, Fobil JN, et al. Evidence of Recent Dengue Exposure Among Malaria Parasite-Positive Children in Three Urban Centers in Ghana. Am J Trop Med Hyg. 2015;92(3):497-500. doi:10.4269/ajtmh.14-0678</p>
+<p>Pratt D, Takaya H, Abankwa AA, Awuku-Larbi Y, Nyarko S, Agbosu EE, et al. Serologic evidence of dengue and chikungunya among patients with acute febrile illness in Ghana, 2016-2018. J Clin Virol Plus. 2024;4(4):100193. doi:10.1016/j.jcvp.2024.100193</p>
+<p>Bonney JHK, Pratt D, Ofori M, Hayashi T, Abankwa A, Awuku-Larbi Y, et al. Molecular detection of dengue virus from febrile patients in Ghana. BMC Infect Dis. 2024;24(1):1382. doi:10.1186/s12879-024-10289-0</p>
+<p>World Health Organization, Ghana Country Office. 2024 annual report: WHO Ghana, https://www.afro.who.int/sites/default/files/2025- 06/WHO%20Ghana%202024%20Annual%20Report.pdf</p>
+<p>Centers for Disease Control and Prevention. Clinical testing guidance for dengue, https://www.cdc.gov/dengue/hcp/diagnosis-testing/</p>
+<p>Hunsperger EA, Muñoz-Jordán J, Beltran M, Colón C, Carrión J, Vazquez J, et al. Performance of Dengue Diagnostic Tests in a Single-Specimen Diagnostic Algorithm. J Infect Dis. 2016;214(6):836- 844. doi:10.1093/infdis/jiw103</p>
+<p>Yamba EI, Aryee JNA, Quansah E, Davies P, Wemegah CS, Osei MA, et al. Revisiting the agro- climatic zones of Ghana: A re-classification in conformity with climate change and variability. PLOS Clim. 2023;2(1):e0000023. doi:10.1371/journal.pclm.0000023</p>
+<p>Santiago GA, Vázquez J, Courtney S, Matías KY, Andersen LE, Colón C, et al. Performance of the Trioplex real-time RT-PCR assay for detection of Zika, dengue, and chikungunya viruses. Nat Commun. 2018;9(1):1391. doi:10.1038/s41467-018-03772-1</p>
+<p>Johnson BW, Russell BJ, Lanciotti RS. Serotype-Specific Detection of Dengue Viruses in a Fourplex Real-Time Reverse Transcriptase PCR Assay. J Clin Microbiol. 2005;43(10):4977-4983. doi:10.1128/JCM.43.10.4977-4983.2005.</p>
+<p>Lim JK, Seydou Y, Carabali M, Barro A, Dahourou DL, Lee KS, et al. Clinical and epidemiologic characteristics associated with dengue during and outside the 2016 outbreak identified in health facility- based surveillance in Ouagadougou, Burkina Faso. PLoS Negl Trop Dis. 2019;13(12):e0007882. doi:10.1371/journal.pntd.0007882</p>
+<p>Shah MM, Ndenga BA, Mutuku FM, Vu DM, Grossi-Soyster EN, Okuta V, et al. High dengue burden and circulation of 4 virus serotypes among children with undifferentiated fever, Kenya, 2014-2017.</p>
+<p>Emerg Infect Dis. 2020;26(11):2638-2650. doi:10.3201/eid2611.200960</p>
+<p>Mwanyika GO, Mboera LEG, Rugarabamu S, Ngingo B, Sindato C, Lutwama JJ, et al. Dengue Virus Infection and Associated Risk Factors in Africa: A Systematic Review and Meta-Analysis. Viruses. 2021;13(4):536. doi:10.3390/v13040536</p>
+<p>Chien YW, Liu ZH, Tseng FC, Ho TC, Guo HR, Ko NY, et al. Prolonged persistence of IgM against dengue virus detected by commonly used commercial assays. BMC Infect Dis. 2018;18(1):156. doi:10.1186/s12879-018-3058-0</p>
+<p>Houghton-Triviño N, Montaña D, Castellanos J. Dengue-yellow fever sera cross-reactivity; challenges for diagnosis. Rev Salud Publica (Bogota). 2008;10(2):299-307. doi:10.1590/s0124-00642008000200010</p>
+<p>Vázquez S, Valdés O, Pupo M, Delgado I, Álvarez M, Pelegrino JL, et al. MAC-ELISA and ELISA inhibition methods for detection of antibodies after yellow fever vaccination. J Virol Methods. 2003;110(2):179-184. doi:10.1016/s0166-0934(03)00128-9</p>
+<p>Akyea-Bobi NE, Akorli J, Opoku M, Akporh SS, Amlalo GK, Osei JHN, et al. Entomological risk assessment for transmission of arboviral diseases by Aedes mosquitoes in a domestic and forest site in Accra, Ghana. PLoS One. 2023;18(12):e0295390. doi:10.1371/journal.pone.0295390</p>
 </div>
 </details>
 </div>
