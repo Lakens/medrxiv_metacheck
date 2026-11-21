@@ -198,7 +198,7 @@ consumption, health outcomes, health sector costs and health equity in
 Aotearoa New Zealand
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.03.26367203
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.03.26367203
 </p>
 </header>
 <div class="mc-main">
@@ -336,8 +336,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -709,9 +710,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -733,7 +738,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -748,9 +754,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -763,13 +787,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -789,6 +816,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -796,12 +829,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -902,6 +941,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -921,6 +980,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1176,19 +1270,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1298,6 +1474,128 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Cardiovascular disease (CVD) is the leading cause of death in Aotearoa New Zealand (NZ), including for Māori, the Indigenous population. Sodium intake is a modifiable CVD risk factor. In 2021, the World Health Organization (WHO) released sodium reduction benchmarks for 58 packaged food categories. We aimed to estimate the health, health-sector cost, and equity impacts of mandating these benchmarks in NZ. Methods Nationally representative data on household food purchases, packaged food sodium content, and dietary intake were used to estimate baseline sodium consumption (2011) and changes following implementation of the WHO benchmarks. A dietary multi-state life-table model estimated impacts on health-adjusted life years (HALYs) and health system costs (2011 NZ$, 3% discount rate) over the remaining lifetime of the 2011 NZ population (n = 4.4 million). Analyses examined impacts by sex and for Māori.</p>
+<p>Mandatory reformulation was estimated to reduce sodium intake by 470 mg/day per person (1.18 g salt), a 22% reduction from baseline. Across population groups, age-standardised reductions ranged from 380 to 660 mg/day (22-23%), generating an estimated 55,600 HALYs (95% uncertainty interval 19,100-90,000) and NZ$535.2 million in health-system cost savings (95% UI: 183.0-914.6 million) over the population lifetime. Māori gained 11,600 HALYs (95% UI: 4,900-17,700), equivalent to 17.2 HALYs per 1,000 population, compared with 11.8 per 1,000 among non-Māori. Conclusion Mandating WHO sodium benchmarks in NZ could substantially reduce sodium intake, improve population health, reduce health sector costs, and advance health equity. Findings support adoption of this strategy in Aotearoa NZ.</p>
+<p>Requiring food manufacturers in Aotearoa New Zealand to meet World Health Organization sodium (salt) targets could reduce salt intake, prevent disease, save health sector costs, and improve health equity for Māori.</p>
+<p>• Mandatory sodium reformulation of packaged foods was estimated to reduce average sodium intake by 470 mg per person per day (equivalent to 1.18 g of salt), a 22% reduction from current levels, resulting in health benefits across the population.</p>
+<p>• The policy was estimated to generate 55,600 health-adjusted life years and save NZ$535 million in healthcare costs over the population&#x27;s lifetime, with greater health gains per person for Māori than non-Māori, helping reduce health inequities.</p>
+<h3>Introduction</h3>
+<p>Sodium intake demonstrates a dose-response association with blood pressure and is a wellestablished, modifiable risk factor for hypertension and vascular disease (1-3), with evidence also linking higher intake to gastric cancer and chronic kidney disease (4, 5). Cardiovascular disease (CVD) is the leading cause of death in NZ, and high systolic blood pressure is the largest contributor to CVD burden, accounting for approximately one-quarter to one-third of total CVD disability-adjusted life years and an estimated 5,400 deaths in 2019 (6). The economic cost associated with CVD is substantial, in 2020 approximately $600 million NZD in direct healthcare system costs were attributed to CVD (7).</p>
+<p>Hypertension is treatable, however, of an estimated 968,000 NZ adults (30-79 years) with hypertension in 2019 only 63% had been given a formal hypertension diagnosis, 50% had received treatment, and 27% had their hypertension controlled (6, 8). Driven by the impacts of colonisation, Māori (the indigenous population (tangata whenua) of NZ) are inequitably burdened by high blood pressure and related conditions (9, 10). Unfair differences in access to healthy food and the health system have also impacted people of Pacific and South Asian ethnicity living in NZ, who are also disproportionately burdened by CVD (9, 10). These inequities highlight the importance of population-level prevention strategies that reduce exposure to upstream risk factors (9, 11). Effective population blood pressure-lowering interventions have considerable potential to reduce CVD inequities in NZ.</p>
+<p>In 2013 all World Health Organization (WHO) member states, including NZ, agreed to a goal of a 30% reduction in population sodium intake by 2025 (12). While some countries have made meaningful progress (12, 13), there is no evidence that any member country has met this target, with the goal subsequently extended to 2030. In NZ, gold standard 24-hour urine collection surveys conducted in 2012 indicated that adults consume around 3400 mg of sodium per day (mg/d), well above the WHO recommended amount of 2000 mg/d or less, with processed and packaged foods being the major dietary source (14, 15). Reducing sodium content in packaged foods is considered an effective and cost effective approach to combat non-communicable diseases (12, 16). In NZ there are limited population level sodium reduction initiatives, and no comprehensive and co-ordinated sodium reduction strategy. While there are two key initiatives that are relevant to sodium, the Health Star Rating front of package labelling scheme (17) and the NZ Heart Foundation food reformulation programme (HeartSAFE) (18), both are voluntary, and have not been applied comprehensively across the packaged food supply, limiting their potential impact (19) (20) (21).</p>
+<p>To support international efforts to reduce population sodium intake, the WHO has set global benchmarks for sodium levels across numerous packaged food categories (22). First released in 2021 and subsequently updated in 2024, the benchmarks include sodium targets for a wide variety of packaged foods that are key dietary contributors to sodium intake (11 food categories and 58 subcategories). The targets for each category are based on the lowest targets already implemented by individual countries (22). While the impact of full compliance to the NZ HeartSAFE scheme on mean sodium intake has been estimated (260 mg/day reduction) (19), the WHO benchmarks cover a wider range of products (18, 22) and as such, the hypothesis is that application of the WHO benchmarks would have a greater impact on sodium intake. Further, it is not known what impact application of the WHO benchmarks would have on health and health related cost savings in NZ, due to reductions in sodium consumption. The aim of this study was to apply these benchmarks to the NZ packaged food supply to estimate the sodium consumption, health, health equity and health system cost impacts of mandating the WHO sodium benchmarks in NZ.</p>
+<h3>Methods</h3>
+<p>The current study modelled the potential impact of full implementation of the WHO sodium benchmarks on sodium consumption, health adjusted life years gained (HALYs), health equity and health system costs in NZ, following the process below (Figure 1).</p>
+<h3>Information used to estimate the impact of the WHO sodium benchmarks on sodium consumption</h3>
+<p>Purchased products, New Zealand Nielsen Homescan The 2019 New Zealand Nielsen Homescan data was used to identify foods purchased at a household level. The data comprises purchasing information voluntarily submitted by participating households, which is then checked through a standardised procedure to ensure accurate data. The panel households scan barcodes of consumer goods purchased and brought into the home, encompassing groceries from diverse retail channels like supermarkets, convenience stores, specialist stores, pharmacies, liquor outlets, and online platforms (23). In 2019, 1,800 households from across NZ participated, and 30,900 unique food and beverage products were scanned. From this, 17,527 unique items were excluded for this analysis, based on the following criteria: -Fresh food products (containing limited or no sodium), n=2,656 -Alcohol products, n=3,702 -Non-food products, n=29 -Products that were &lt;2.5 th percentile for sales, n=11,140</p>
+<p>This resulted in 13,373 unique packaged foods from 1,799 households (Supplementary Figure).</p>
+<p>Sodium content of purchased products, Nutritrack Nielsen Homescan data does not contain nutrient content information. As such, food items from Nielsen Homescan were matched with data from 2019 Nutritrack (24). Nutritrack is a database of packaged foods and beverages sold at major supermarkets in New Zealand, capturing nutrition information recorded on the mandatory back of pack product Nutrition Information Panel (NIP). Nutritrack data can be linked to Nielsen data by product barcode. In 2019 17,796 unique packaged food and beverage products were identified. From this, 851 products were excluded based on the following: • Identical products with different package sizes, n=3 • Products with a NIP reporting reconstituted nutrition information only, n=692 • Products with a problem NIP (for example, products containing infeasible nutrient values (sodium content being extraordinarily high beyond what is physically possible or safe for consumption), n=45 • Products with multiple NIPs (for example, a meal kit with a separate NIP for each component), n=111 This resulted in 16,945 unique packaged food and beverage items (Supplementary Figure ).</p>
+<p>Linking Nielsen Homescan data with Nutritrack data A total of 9,687 products were matched by barcode between Nielsen and Nutritrack databases. There were 3,686 products from the Nielsen database that did not match to a barcode in Nutritrack. Of these, 3,580 products were manually matched to Nutritrack food categories, with sample means for the missing nutrients calculated based on these categories. One hundred and six products were unable to be matched and were excluded. This resulted in a combined data set of 13,267 packaged food and beverage products, from 1,700 households, providing information on sales weighted sodium purchased.</p>
+<p>Calculating change in sodium content, based on application of the WHO Sodium Benchmarks The WHO sodium benchmarks provide target levels for the sodium content of specific food categories, with those categories to either meet the benchmark, or ideally, be below the benchmark. For this study we considered application of the WHO sodium benchmarks as a mandatory policy (i.e., all foods with a relevant sodium benchmark would reduce their sodium content to meet the benchmark if they did not already). We matched Nutritrack foods with the food categories and subcategories covered in the WHO sodium benchmarks, Figure 1. Baseline: 1.</p>
+<p>Each product&#x27;s total amount of sodium was calculated by dividing its sodium content (mg/100g) by 100 and multiplying it by its packaging size (g) 2. The total amount of sodium purchased was calculated by multiplying each product&#x27;s total amount of sodium by the number of purchases for that product. 3. The amount of sodium purchased was summed for all products within each food group Intervention: 1.</p>
+<p>Reductions in sodium content, in terms of absolute (mg) and then as a percentage were calculated after intervention, that is all foods identified as a food of interest by the WHO (and with a sodium content above the WHO benchmark) had their average sodium content level reduced, mimicking reformulation, to meet the target. This was conducted for each of the 58 WHO subcategories. 2. The amount of sodium purchased was summed for all products by food group as described above for the new &quot;intervention&quot; total sodium. Percentage change in sodium content was calculated as the difference between baseline and intervention sodium content for each food group.</p>
+<h3>Converting to sodium consumption using the Adult Nutrition Survey</h3>
+<p>The most recent New Zealand Adult Nutrition Survey (ANS) was carried out from October 2008 to October 2009, collecting nutrition intake information by 24-hour diet recall from 4,721 New Zealand adults (aged 15 years and older) (25). To convert the household level sales weighted sodium data into sodium consumption, the Nutritrack food categories were matched to the ANS food categories with corresponding food quantity consumption data. Percentage change in sodium content was applied to absolute sodium levels in the matched ANS categories. Change in daily sodium intake was then calculated by the sodium content of the ANS categories combined with the grams of foods consumed from the ANS. This allowed estimation of changes in sodium consumption at an individual level, used to estimate the HALYs gained, equity impacts, and related health system savings.</p>
+<h3>Effect of changes in sodium consumption on health adjusted life years and health systems savings</h3>
+<p>We used a DIET multi-state life-table (MSLT) model to estimate the difference in health adjusted life years (HALYs), health equity impacts and health system costs between the current NZ diet and the same diet where the WHO sodium benchmarks had been applied as a mandatory policy. Details of this model have been described in depth elsewhere (26), the specific approach for the present study is detailed as follows. The total change in daily sodium intake for Māori males, Māori females, non-Māori males and non-Māori females was calculated for use in the MSLT model. The model was stratified into Māori and non-Māori to assess policy impacts for the Māori population and assess the policy&#x27;s ability to reduce health inequities and meet Te Tiriti o Waitangi obligations. At the time of model development population numbers for Pacific people were too low to estimate disease rates accurately for the Pacific population. The change in sodium intake was combined with disease specific relative risks sourced from the Global Burden of Disease study, for the association between sodium and incidence of coronary heart disease (CHD), stroke and stomach cancer. The proportion of the population (by sex, age, and ethnicity) in each disease life table is a function of the disease incidence and case fatality, with remission rates also considered for cancers (21).</p>
+<p>In the model the entire NZ population, alive in 2011 (N = 4.4 million), classified by sex, age and ethnicity (Māori and non-Māori) was modelled out to death or until year 2121. The intervention was modelled as if it were put in place in the base year (2011) and kept in place indefinitely. The &#x27;base case&#x27; model used 3% discounting and took a health system costing perspective. All disease input parameters were specified by sex, age and ethnicity where data were available. Input parameters have been previously published (27).</p>
+<p>Individually-linked data from publicly-funded (and some privately-funded) health events occurring in 2006-10 were used to calculate age and sex specific health system costs in NZ$ for 2011 (26). These costs included hospitalisations, inpatient procedures, outpatients, pharmaceuticals, laboratories and expected primary care usage. Costs that were assigned in the model fell into the following three categories: (i) Sex and age-specific annual cost of a citizen who does not have a sodium-related disease and is not in the last six months of their life; (ii) Disease-specific excess costs for people in the first year of diagnosis, last six months of life if dying of the given disease, and otherwise prevalent cases of each disease in the model; (iii) Costs associated with the last six months of life if dying from a disease not in the model (26).</p>
+<p>Microsoft Excel using an Ersatz add-in (Epigear International, created by Jan J Barendregt (28)) was used to run the policy with uncertainty. Each of the 2000 simulations involved a random draw from the probability density function about those parameters specified with uncertainty (27). The main results produced were incremental HALYs gained and net health system cost savings. The health system cost savings reflect projected future health system savings resulting from decreases in disease incidence due to the WHO sodium benchmarking policy, including extra health costs from any increased life span.</p>
+<h3>Sensitivity Analysis</h3>
+<p>The impact of colonisation on the Māori population resulted in a higher morbidity and mortality rate than the non-Māori population, thus diluting the potential health gains and creating a disadvantage in the main analyses where impacts for Māori could appear less than they would if Māori had the same life expectancy as non-Māori. As such, an equity analysis was conducted, equally valuing health gain in Māori to that of non-Māori (29). For the equity analysis the underlying morbidity and mortality rates for Māori were set to non-Māori values to estimate impacts as if these inequities were not present.</p>
+<h3>Results</h3>
+<h3>Estimated impact of WHO benchmarks on sodium content of foods</h3>
+<p>In the intervention scenario, application of the WHO benchmarks resulted in sodium reductions of 40% or greater for the food categories: &quot;pies and pastries&quot; (66% reduction), &quot;sausages and processed meats&quot; (52%), &quot;puddings and desserts&quot; (47%), and &quot;beef and veal&quot; (44%). The smallest reductions at a food category level were seen for &quot;bread-based dishes&quot; (5%) and &quot;potatoes, kumara and taro&quot; (8%), Table 1.</p>
+<h3>Estimated impact of WHO benchmarks on sodium intake</h3>
+<p>With application of the benchmarks, an estimated average reduction in sodium intake of 470 milligrams per person per day (mg/day), equivalent to 1.18 g of salt, could be achieved, corresponding to a 22% reduction from baseline (2011) intake levels, Table 2. For Māori, there was an estimated 660 mg/day reduction in sodium intake for males, and a 410 mg/day reduction for females. For both sexes, this corresponds to a 23% reduction in intake from baseline levels. For non-Māori, males had an estimated 530 mg/day reduction in sodium intake, and females had an estimated 380 mg/day reduction, both corresponding to a 22% reduction from baseline.</p>
+<h3>Estimated impact of reformulation on health gains and health system savings</h3>
+<p>The estimated reductions in sodium intake were associated with moderate gains in HALYs across the total NZ population, over the life course of those alive in 2011, at 55,600 (95% Uncertainty Interval (UI): 19,100 to 90,000) and substantial predicted health system cost savings of $535.2 Million(M) (95% UI: 183.0 to 914.6) over the same time period, Table 3. Overall, HALYs gained were higher for males (35, 400) than for females (20, 200). For Māori, 11,600 (4,900 to 17,700) HALYs could be gained, higher for males in comparison to females (7,000 (3,400 to 10,100) vs 4,600 (1,500 to 7,700)). For non-Māori, 44,000 (14,300 to 72,800) HALYs could be gained, with 28,400 (10,700 to 44,800) HALYs gained for males and 15,600 (3,600 to 28,600) HALYs gained for females. Per capita, these findings correspond to 17.2 HALYs gained per 1,000 people for Māori and 11.8 HALYs gained per 1,000 people for non-Māori. Most of the health gain seen in this policy came from the prevention of CHD (30,084 HALYs (56% of total HALYs)), then stroke (18,854 HALYs (36%)), with health gain attributed to prevention of stomach cancer as the smallest proportion (4,273 HALYs (8%)), Figure 2.</p>
+<h3>Sensitivity analysis</h3>
+<p>In the equity analysis, where the underlying morbidity and mortality rates for Māori were set to non-Māori values, an estimated 16,400 (6,500 to 25,500) HALYs were gained for Māori, with 9,900 (4,500 to 14,500) HALYs gained for males and 6,500 (2,000 to 11,200) for females. Overall, corresponding to 24.3 HALYs gained per 1000 people, Table 3.</p>
+<h3>Discussion</h3>
+<p>Our modelled scenario, in which the WHO sodium benchmarks are implemented as a mandatory food reformulation policy in New Zealand, resulted in a meaningful reduction in sodium intake of 470 mg/day per person (a 22% reduction). This translated into modest but important reductions in disease burden, with an estimated 30,084 health-adjusted life years (HALYs) gained from preventing coronary heart disease, 18,854 HALYs from stroke, and 4,273 HALYs from stomach cancer. An estimated 17.2 HALYs per 1000 people were gained for Māori (24.3 HALYs per 1000 people in the equity analysis), and 11.8 HALYs gained per 1000 people for non-Māori, indicating direct benefit to the Māori population. The intervention generated substantial health system cost savings, estimated at $535.2 million over the population&#x27;s lifetime. Together, these findings highlight the potential of population level sodium reformulation as an effective strategy for reducing the burden of diet-related disease in NZ.</p>
+<p>Given the substantial burden of sodium-related disease experienced by Māori in NZ (9, 10), it was important to assess the potential impacts of the intervention for Māori specifically. Twenty-one percent of the total health gain accrued to Māori (37% in the equity analysis), despite Māori comprising approximately 15% of the NZ population in the 2013 NZ census, the closest census conducted to the model base year of 2011 (30). On a per-person basis, for Māori the intervention generated 0.017 HALYs in the main analysis and 0.024 HALYs per person in the equity analysis. These findings are consistent with previous NZ modelling demonstrating that sodium reduction interventions may contribute to reducing health inequities. Nghiem et al. (31) similarly reported modelled health gains for Māori across a range of sodium reduction interventions. In that study, the largest gains for Māori were estimated for the full replacement of regular salt in the packaged food supply with reduced-sodium salt substitutes, resulting in 0.163 QALYs gained per person, while the introduction of strict sodium limits for bread (280 mg sodium per 100 g) generated approximately 0.024 QALYs per person, greater than findings in the present study. Taken together, these findings suggest that policies that reduce the sodium content of foods have the potential to contribute to health gains for Māori in NZ. This is the first study to estimate the potential effects of applying the WHO sodium benchmarks on health outcomes and health system costs in NZ. A previous NZ study examined the potential impacts of full compliance with the HeartSAFE Heart Foundation reformulation targets (19). That study assessed effects on sodium intake only and estimated that full compliance could reduce intake by 260 mg/day, which is smaller than the 470 mg/day reduction estimated in the present study. This difference is likely due to the HeartSAFE targets applying to fewer food categories and in some cases having less stringent targets than the WHO benchmarks, making it plausible that the HeartSAFE targets would generate proportionally smaller health gains than those estimated here. Our findings are broadly consistent with modelling studies from other countries, which similarly suggest that sodium reformulation could deliver meaningful health and economic benefits. In Australia, full implementation of the WHO benchmarks was estimated to reduce mean sodium intake by 404 mg/day and prevent mortality and morbidity, including approximately 1,770 deaths annually (32). In Canada, modelling of a scenario in which sodium intake was reduced to 2,000 mg/day (the WHO recommended limit) estimated that 3,252 cardiovascular disease deaths (95% UI 1,380-5,321) could be averted, corresponding to 5.6% of all CVD deaths in Canada in 2019 (33). Similarly, modelling of the UK&#x27;s country-specific sodium targets, which apply to a wider range of products than the WHO benchmarks by including foods sold in restaurants and fast-food outlets (34), estimated that mandatory implementation could reduce sodium intake by 17.5% and generate net savings of more than £1 billion for the National Health Service (35). Although the magnitude of predicted benefit varies by country context and the specific reformulation scenario modelled, the overall direction of evidence is consistent. Taken together, these findings reinforce that mandatory, population level sodium reformulation targets are likely to be beneficial from both a health and an economic perspective.</p>
+<p>Modelling studies produce important estimates of the likely impact of different policy scenarios; however, real world evaluations are needed to show whether sodium targets can be implemented at scale, and how this translates into reductions in population intake. In 2019, 19 countries had mandatory maximum sodium limits for foods (13), but few policies covered a broad range of packaged food products, and even fewer have been comprehensively evaluated. South Africa provides one example of mandatory sodium regulation in practice. The government introduced sodium regulations in 2013, applying to 13 categories of processed foods, using a stepwise implementation approach to support the food industry in meeting final sodium targets (36). Monitoring of the food supply showed that, in 2021, 75% of products had sodium levels at or below the final targeted limits (36). Although not designed as a formal policy evaluation, a survey using 24-hour urine samples found a 460 mg/day reduction in sodium intake among adults with a median age of 54 years between 2015 and 2019 (37). These findings suggest that mandatory reformulation can be translated into meaningful reductions in population sodium intake. The UK salt reduction programme, established in 2003/04, is also widely cited as a successful sodium reduction strategy (38). This was a voluntary programme, but one of its central components was the setting of progressively lower salt targets for different food categories, with clear timeframes for industry compliance. Over a seven-year period, the programme achieved a 15% reduction in sodium intake, as measured by 24-hour urine collections, from 3,800 mg/day to 3,240 mg/day (a 560 mg/day reduction) (38). Despite this reduction, mean population sodium intake in the UK remains well above recommended levels, and efforts to further reduce intake continue (35, 39). Together, these examples suggest that sodium reformulation targets can reduce sodium intake at the population level, particularly when they are mandatory and are accompanied by strong implementation and monitoring systems. At the same time, they also highlight the need for additional interventions to support sodium reduction, with reformulation being one component of a broader coordinated sodium reduction strategy.</p>
+<p>To support Member States in achieving the 2030 sodium reduction targets, WHO developed the SHAKE technical package (16). SHAKE is intended to guide governments in leading comprehensive sodium reduction programmes and emphasises the importance of a governmentled approach that limits industry influence. The package outlines seven key strategies (16): food reformulation; front-of-pack labelling; food procurement and food service policies (including limiting the sale or provision of high-sodium foods in public settings and government food programmes); restrictions on food marketing; taxation of unhealthy foods; behaviour change communication and mass media campaigns to promote healthy diets; and the replacement of regular salt with lower-sodium salt substitutes. The INTERSALT study reported that a 100 mmol/day reduction in sodium intake was associated with at least a 2.2 mmHg reduction in systolic blood pressure, a change linked to meaningful reductions in cardiovascular disease mortality (40). Although the sodium reduction estimated in our study was more modest (equivalent to 20.4 mmol/day), it would still be expected to contribute to improved cardiovascular health. However, achieving larger reductions in blood pressure and disease burden will likely require reformulation to be implemented alongside additional sodium reduction interventions. The previous modelling by Nghiem et al. (31) estimated the impact of a range of sodium reduction initiatives that align with some of the SHAKE recommendations, in the NZ context and considering impacts for Māori. Compared with the scenario modelled here, interventions such as replacing regular sodium salt with potassium-enriched salt across the food supply or applying stricter sodium targets specifically to bread (a key contributor to sodium intake in NZ) generated larger reductions in sodium intake and related health gains than the application of the WHO benchmarks alone, with proportionally higher health gains for Māori (31). Collectively, the findings from this study and from previous NZ modelling illustrate the value of a package of complementary sodium reduction interventions. Consistent with the WHO SHAKE guidelines (16), these results suggest that such an approach would lead to national level health gains and health system cost savings.</p>
+<h3>Strengths and limitations</h3>
+<p>This is the first study to model the health and health sector cost savings resulting from mandatory application of the WHO benchmarks in NZ. Nationally representative data sources have been utilised to inform this modelling, including foods purchased and sodium content, sodium intake, disease burden and health sector related costs, utilising the most relevant model input data. The model used was developed specifically for the NZ context and has been used to estimate the impact of other diet related policies in NZ (21, 31). There are important limitations in our approach to consider in line with our findings. Changes in sodium intake because of reformulation were estimated through use of the ANS 2008/09 (25). This is the most recent national nutrition survey in NZ. However, it is likely that diets have changed since 2008/09. There is evidence of an increased reliance globally on ultra-processed foods (41), with studies conducted in the UK indicating that higher ultra-processed food intake is linked with higher sodium intake (42). This means our findings may underestimate the potential health impacts of reformulation. Further, the WHO benchmarks have since been updated to be stronger (lower sodium limits, across a broader range of food categories) (43), meaning there would be a greater predicted impact from their application compared to the targets applied in the present study. Our equity analysis was conducted for Māori, however, inequities in exposure to diet related disease risk are prevalent for other groups within the NZ population, and broader equity considerations would be important to include in future studies. Our approach also assumed that people do not respond to reformulation by adding more salt to food during cooking or when eating. Evidence suggests that gradual reformulation of products to contain less sodium is often not detected by consumers (44). Finally, implementation costs were not included when modelling the impact on health sector costs. However, if implementation costs were below NZD$530 million, the policy would be considered cost saving and if the implementation costs were below NZD$2.5 billion the policy would be considered cost effective. Economic modelling of application of the WHO benchmarks in the Australian context suggest that implementation costs would be approximately AUD$55 million (approximately NZD$66 million) across the population lifetime, indicating that it would be cost saving and effective in the NZ context (45).</p>
+<h3>Conclusion</h3>
+<p>This study modelled the health and health system cost savings associated with mandating the WHO sodium benchmarks in New Zealand, estimating meaningful reductions in sodium intake and modest but important reductions in the related disease burden. The intervention was equitable, importantly generating more health gains for Māori than non-Māori, with the potential to generate substantial health system cost savings. Overall, these findings demonstrate that sodium reformulation, aligned with food category specific sodium targets, would be an important component of a broader, government-led sodium reduction strategy to support improved population health in Aotearoa New Zealand. Figure 2. Proportion of health adjusted life years (HALYs) gained attributable to specific diseases on application of the WHO sodium benchmarks (% (HALYs))    56% (30,084) 36% (18,854) 8% (4,273) CHD Stroke Stomach Cancer</p>
+<h3>Acknowledgements</h3>
+<p>We acknowledge and thank the following: Julia Lyon for early collaboration and support. Essa Tawfiq for their support with data linkage. Imogen Roux for their support in applying the WHO benchmarks. The Nutritrack data collectors and project management team. Those who contributed to models used in this work (Tony Blakely, Nick Wilson, Linda Cobiac, Anja Mizdrak, Giorgi Kvizhinadze, Nhung Nghiem). We thank the 4,721 New Zealanders who participated in the</p>
+<p>Funding Dr Fuavao was supported in conducting his PhD by a National Health and Medical Research Council of Australia, Centre of Research Excellence program (APP1041020), work from his PhD contributed to this manuscript. Assoc. Prof. Cleghorn&#x27;s time was supported by an HRC Hercus Fellowship (23/026). Assoc. Prof Eyles was a Heart Foundation of New Zealand Senior Fellow at the time of this research (grant #1843).</p>
+<p>Dr Fuavao was supported in conducting his PhD by a National Health and Medical Research Council of Australia, Centre of Research Excellence program (APP1041020), work from his PhD contributed to this manuscript. Assoc. Prof. Cleghorn&#x27;s time was supported by an HRC Hercus Fellowship (23/026). Assoc. Prof Eyles was a Heart Foundation of New Zealand Senior Fellow at the time of this research (grant #1843). None of the authors declare any conflicts of interest in relation to this work.</p>
+<h3>Conflict of interest</h3>
+<p>None of the authors declare any conflicts of interest in relation to this work.</p>
+<p>2008/09 New Zealand Adult Nutrition Survey. The New Zealand Ministry of Health funded the 2008/09 New Zealand Adult Nutrition Survey. Collection of Nutritrack data were funded by a Health Research Council of New Zealand Programme Grant to C.N.M (18/672). Access to some of the data used in this study was provided by Statistics New Zealand under conditions designed to keep individual information secure in accordance with requirements of the Statistics Act 1975. Data interpretation does not necessarily represent an official view of Statistics New Zealand. Artificial Intelligence (AI) was used via Microsoft 365 CoPilot to suggest a layout and animations for the graphical abstract submitted with this manuscript and to provide suggested grammatical changes to aid readability in specific sections of the manuscript discussion only. It was not used outside of these two areas or to interpret findings or generate new information.</p>
+<h3>Figure 1 .Figure 2.</h3>
+<p>Figure1. Flow chart of approach to applying the WHO sodium reduction benchmarks to the New Zealand food supply and estimating the related impact on sodium intake, health, equity and health systems cost savings outcomes</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Flow chart of approach to applying the WHO sodium reduction benchmarks to the New Zealand food supply and estimating the related impact on sodium intake, health, equity and health systems cost savings outcomes</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Proportion of health adjusted life years (HALYs) gained attributable to specific diseases on application of the WHO sodium benchmarks (% (HALYs))</p>
+<h3>Table 1.</h3>
+<p>Percent change in sodium content by food group</p>
+<h3>Table 2.</h3>
+<p>Estimated reduction in sodium intake, following application of the WHO sodium benchmarks</p>
+<h3>Table 3</h3>
+<p>Estimated impact of the WHO sodium reduction benchmarks on daily sodium intake, health adjusted life years (HALYs) and health systems costs All gains are for the 2011 population over their life course, 3% discounting, generated from changes in CHD, stroke, and stomach cancer incidence. *95% uncertainty intervals in brackets. **per capita results: HALYs/1000 people &amp; $/person. Crude HALYs with age standardised HALYs in brackets.</p>
+<h3>Supplementary Figure.</h3>
+<p>Flow chart showing exclusion criteria and matching results for matching New Zealand Nielsen Homescan data to Nutritrack food composition data</p>
+<h3>References</h3>
+<p>Filippini T, Malavolti M, Whelton PK, Naska A, Orsini N, Vinceti M. Blood pressure effects of sodium reduction: dose-response meta-analysis of experimental studies. Circulation. 2021;143(16):1542-67.</p>
+<p>Huang L, Trieu, K., Yoshimura, S., Neal, B., Woodward, M., Campbell, N.R., Li, Q., Lackland, D.T., Leung, A.A. &amp; Anderson, C.A. Effect of dose and duration of reduction in dietary sodium on blood pressure levels: systematic review and meta-analysis of randomised trials. BMJ. 2020.</p>
+<p>Strazzullo P, D&#x27;Elia, L., Kandala, N.-.B. &amp; Cappuccio, F.P. Salt intake, stroke, and cardiovascular disease: meta-analysis of prospective studies. BMJ. 2009.</p>
+<p>Deckers IA, van den Brandt, P.A., van Engeland, M., Soetekouw, P.M., Baldewijns, M.M., Goldbohm, R.A. &amp; Schouten, L.J. Long-term dietary sodium, potassium and fluid intake; exploring potential novel risk factors for renal cell cancer in the Netherlands Cohort Study on diet and cancer. British journal of cancer. 2014:797-801.</p>
+<p>D&#x27;Elia L, Rossi, G., Ippolito, R., Cappuccio, F.P. &amp; Strazzullo, P. Habitual salt intake and risk of gastric cancer: a meta-analysis of prospective studies. Clinical Nutrition. 2012:489-98.</p>
+<p>Murray CJ, Aravkin, A.Y., Zheng, P., Abbafati, C., Abbas, K.M., Abbasi-Kangevari, M., Abd- Allah, F., Abdelalim, A., Abdollahi, M. &amp; Abdollahpour, I. Global burden of 87 risk factors in 204 countries and territories, 1990-2019: a systematic analysis for the Global Burden of Disease Study 2019. The Lancet. 2020:1223-49.</p>
+<p>Telfar-Barnard L. Heart Disease in Aotearoa: Morbidity, mortality and service delivery Wellington, New Zealand Kia Manawanui Trust 2025.</p>
+<p>World Health Organization. New Zealand Hypertension Profile. World Health Organization; 2023.</p>
+<p>Wheeler A, Rahiri, J.-.L., Ellison-Lupena, R., Hanchard, S., Brewer, K.M., Paynter, J., Winter-Smith, J., Selak, V., Ameratunga, S. &amp; Grey, C. Assessing the gaps in cardiovascular disease risk assessment and management in primary care for Māori and Pacific peoples in Aotearoa New Zealand-a systematic review. The Lancet Regional Health-Western Pacific. 2025.</p>
+<p>Mazengarb J, Grey, C., Lee, M., Poppe, K., Mehta, S., Harwood, M., Harrison, W., Earle, N., Jackson, R. &amp; Kerr, A. Inequity in one-year mortality after first myocardial infarction in Maori and Pacific patients: how much is associated with differences in modifiable clinical risk factors?(ANZACS-QI 49). The New Zealand Medical Journal (Online). 2020:40-5.</p>
+<p>Selak V, Paynter, J., Hanchard, S., Brewer, K.M., Taueetia-Su&#x27;a, T., Mehta, S., Ameratunga, S., Harwood, M. &amp; Grey, C. CVD risk assessment by ethnicity in Aotearoa New Zealand: a national observational study. BMC Global and Public Health. 2025.</p>
+<p>World Health Organization. WHO global report on sodium intake reduction. Geneva: World Health Organization; 2023.</p>
+<p>Santos JA, Tekle, D., Rosewarne, E., Flexner, N., Cobb, L., Al-Jawaldeh, A., Kim, W.J., Breda, J., Whiting, S. &amp; Campbell, N. A systematic review of salt reduction initiatives around the world: a midterm evaluation of progress towards the 2025 global non-communicable diseases salt reduction target. Advances in Nutrition. 2021:1768-80.</p>
+<p>McLean R, Edmonds, J., Williams, S., Mann, J. &amp; Skeaff, S. Balancing sodium and potassium: estimates of intake in a New Zealand adult population sample. Nutrients. 2015:8930- 8.</p>
+<p>Wang NX, McLean, R.M., Cameron, C. &amp; Skeaff, S.A. The quantification of sodium intake from discretionary salt intake in New Zealand using the lithium-tagged salt method. Frontiers in Nutrition. 2023.</p>
+<p>World Health Organization. SHAKE the salt habit, second edition Geneva World Health Organization 2026.</p>
+<p>Government A. Health Star Rating System, An Australian and New Zealand front-of-pack nutrition labelling initiative. 2026.</p>
+<p>Zealand HFN. Heart Foundation Food Reformulation Programme. 2024.</p>
+<p>Wang NX, Skeaff, S., Cameron, C., Fleming, E. &amp; McLean, R.M. Sodium in the New Zealand diet: proposed voluntary food reformulation targets will not meet the WHO goal of a 30% reduction in total sodium intake. European journal of nutrition. 2022:3067-76.</p>
+<p>Bablani L, Mhurchu, C.N., Neal, B., Skeels, C.L., Staub, K.E. &amp; Blakely, T. Effect of voluntary Health Star Rating labels on healthier food purchasing in New Zealand: longitudinal evidence using representative household purchase data. BMJ Nutrition, Prevention &amp; Health. 2022.</p>
+<p>Cleghorn CL, Blakely, T., Bablani, L. &amp; Ni Mhurchu, C. Estimated health impacts of reformulation resulting from Health Star Rating nutrition labelling in Aotearoa New Zealand. Journal of the Royal Society of New Zealand. 2025:1904-20.</p>
+<p>World Health Organization. WHO global sodium benchmarks. Geneva World Health Organization; 2021.</p>
+<p>Einav L, Leibtag, E.S. &amp; Nevo, A. On the accuracy of Nielsen Homescan data. United States: United States Department of Agriculture 2008.</p>
+<p>Eyles H, Ni Mhurchu C. The Nutritrack database: an annually updated database of information on packaged foods and beverages sold at major supermarkets in New Zealand (2013 to 2023). The University of Auckland. 2024;10:k6.</p>
+<p>University of Otago, Ministry of Health. A Focus on Nutrition: Key findings of the 2008/09</p>
+<p>Cleghorn C, Blakely T, Nghiem N, Mizdrak A, Wilson N. Technical report for BODE³ intervention and DIET MSLT models, Version 1. Burden of disease epidemiology, equity and cost- effectiveness programme. Department of Public Health UoO, Wellington Wellington; 2017.</p>
+<p>Cleghorn C, Wilson N, Nair N, Kvizhinadze G, Nghiem N, McLeod M, et al. Health benefits and cost-effectiveness from promoting smartphone apps for weight loss: multistate life table modeling. JMIR mHealth and uHealth. 2019;7(1):e11118.</p>
+<p>Barendregt JJ. Ersatz user guide. 2012.</p>
+<p>McLeod M, Blakely T, Kvizhinadze G, Harris R. Why equal treatment is not always equitable: the impact of existing ethnic health inequalities in cost-effectiveness modeling. Population health metrics. 2014;12(1):15.</p>
+<p>Statistics New Zealand, Tatauranga Aotearoa. 2013 QuickStats About Maori, 2013 Census Wellington, New Zealand Statistics New Zealand 2013.</p>
+<p>Nghiem N, Blakely T, Cobiac LJ, Cleghorn CL, Wilson N. The health gains and cost savings of dietary salt reduction interventions, with equity and age distributional aspects. BMC Public Health. 2016;16(1):423.</p>
+<p>Trieu K, Coyle DH, Rosewarne E, Shahid M, Yamamoto R, Nishida C, et al. Estimated dietary and health impact of the World Health Organization&#x27;s global sodium benchmarks on packaged foods in Australia: a modeling study. Hypertension. 2023;80(3):541-9.</p>
+<p>Flexner N, Christoforou AK, Bernstein JT, Ng AP, Yang Y, Fernandes Nilson EA, et al. Estimating Canadian sodium intakes and the health impact of meeting national and WHO recommended sodium intake levels: A macrosimulation modelling study. PLoS One. 2023;18(5):e0284733.</p>
+<p>Nicholas J, Knowles B, Rayson Z. Salt reduction targets for 2024. Public Health England: London, UK. 2020.</p>
+<p>Bandy L, Amies-Cull B, Luick M, Cobiac LJ, Jebb SA, Scarborough P. Estimating the Potential Impact of the 2024 UK Salt Reduction Targets on Cardiovascular Health Outcomes and Health Care Costs in Adults: A Modeling Study. Hypertension. 2026;83(3):e25159.</p>
+<p>Charlton KE, Pretorius B, Shakhane R, Naidoo P, Cimring H, Hussain K, et al. Compliance of the food industry with mandated salt target levels in South Africa: towards development of a monitoring and surveillance framework. Journal of Food Composition and Analysis. 2024;126:105908.</p>
+<p>Charlton KE, Corso B, Ware L, Schutte AE, Wepener L, Minicuci N, et al. Effect of South Africa&#x27;s interim mandatory salt reduction programme on urinary sodium excretion and blood pressure. Preventive medicine reports. 2021;23:101469.</p>
+<p>He FJ, Brinsden H, MacGregor GA. Salt reduction in the United Kingdom: a successful experiment in public health. Journal of human hypertension. 2014;28(6):345-52.</p>
+<p>Alonso S, Tan M, Wang C, Kent S, Cobiac L, MacGregor GA, et al. Impact of the 2003 to 2018 population salt intake reduction program in England: a modeling study. Hypertension. 2021;77(4):1086-94.</p>
+<p>Stamler J, Rose G, Stamler R, Elliott P, Dyer A, Marmot M. INTERSALT study findings. Public health and medical care implications. Hypertension. 1989;14(5):570-7.</p>
+<p>Monteiro CA, Louzada ML, Steele-Martinez E, Cannon G, Andrade GC, Baker P, et al. Ultra-processed foods and human health: the main thesis and the evidence. The Lancet. 2025;406(10520):2667-84.</p>
+<p>Rauber F, Louzada MLdC, Steele EM, Millett C, Monteiro CA, Levy RB. Ultra-processed food consumption and chronic non-communicable diseases-related dietary nutrient profile in the UK (2008-2014). Nutrients. 2018;10(5):587.</p>
+<p>World Health Organization. WHO global sodium benchmarks for different food categories, second edition Geneva World Health Organization 2024.</p>
+<p>Jaenke R, Barzi F, McMahon E, Webster J, Brimblecombe J. Consumer acceptance of reformulated food products: A systematic review and meta-analysis of salt-reduced foods. Critical reviews in food science and nutrition. 2017;57(16):3357-72.</p>
+<p>Marklund M, Trieu K, Aminde LN, Cobiac L, Coyle DH, Huang L, et al. Estimated health effect, cost, and cost-effectiveness of mandating sodium benchmarks in Australia&#x27;s packaged foods: a modelling study. The Lancet Public Health. 2024;9(11):e861-e70.</p>
 </div>
 </details>
 </div>
