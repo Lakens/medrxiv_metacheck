@@ -196,7 +196,7 @@ Beyond Haploinsufficiency: Protein Domain and Variant Class Shape
 Language Outcomes in SYNGAP1-DEE
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.04.26367250
+2026-11-21 · Metacheck 0.4.4.29 · DOI 10.64898/2026.11.04.26367250
 </p>
 </header>
 <div class="mc-main">
@@ -358,8 +358,8 @@ ethics approval statement.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 11 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 11 detected.</p>
 </div>
 </div>
 </div>
@@ -444,8 +444,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -806,9 +807,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -830,7 +835,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -845,9 +851,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -860,13 +884,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -886,6 +913,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -893,12 +926,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -999,6 +1038,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1018,6 +1077,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1273,19 +1367,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1395,6 +1571,207 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Language outcomes in SYNGAP1-DEE differ according to protein domain and variant class. C2 missense variants are associated with markedly poorer expressive language and functional communication, whereas PH truncating/splicing variants are linked to better language abilities. These findings may inform patient stratification and outcome assessment in upcoming antisense oligonucleotide trials.</p>
+<h3>2. Introduction</h3>
+<p>SYNGAP1-related developmental and epileptic encephalopathy (SYNGAP1-DEE) is a genetic neurodevelopmental disorder characterized by intellectual disability, developmental delay, epilepsy, and a broad range of behavioral difficulties [4, 9]. One of its most striking features is the considerable variability in language development. While some affected individuals acquire functional speech and develop sentence-level communication, others remain limited to a few words or do not develop meaningful spoken language at all. Communication difficulties can substantially affect everyday functioning, independence, and social participation. Understanding the factors underlying this variability is therefore important for clinical counseling, assessment of developmental outcomes, and the design of future therapeutic studies [1, 5, 11].</p>
+<p>The SYNGAP1 gene encodes SynGAP, a synaptic GTPase-activating protein that plays a central role in glutamatergic synaptic signaling and plasticity. SynGAP is highly enriched in the postsynaptic density, where it regulates Ras-and Rap-dependent signaling pathways involved in synaptic maturation and AMPA receptor trafficking [2, 3]. Pathogenic SYNGAP1 variants are generally considered to cause disease through haploinsufficiency, resulting in reduced levels of functional SynGAP protein. This mechanism is well established for many truncating and splice-disrupting variants. However, SynGAP is a multidomain protein containing several functionally distinct regions, including an N-terminal pleckstrin homology (PH) domain, a C2 domain, a Ras GTPase-activating (RasGAP) domain, and C-terminal regions involved in protein regulation and synaptic interactions. Variants affecting these regions may differ in their functional consequences, particularly when comparing variants expected to reduce protein expression with missense variants that alter specific amino acids within the protein.</p>
+<p>Whether these molecular differences are reflected in distinct clinical outcomes remains insufficiently understood. Most clinical descriptions of SYNGAP1-DEE emphasize the overall disease phenotype, while relatively little is known about the relationship between individual protein domains and specific developmental abilities. Expressive language is particularly relevant in this context because it varies considerably between patients and represents a meaningful measure of functional development. Moreover, expressive language and functional communication are related but distinct abilities: individuals with limited speech may still communicate effectively through gestures, facial expressions, or other nonverbal means. Examining both dimensions may therefore provide a more complete picture of the clinical consequences of different SYNGAP1 variants. This distinction is becoming increasingly relevant as targeted therapies, including antisense oligonucleotides (ASOs) intended to increase functional SYNGAP1 expression, advance toward clinical development [5, 12]. Such approaches aim to address the underlying molecular disorder rather than individual symptoms. However, it remains uncertain whether patients with different variant classes and affected protein domains have comparable baseline developmental profiles or will respond similarly to treatments that modify SYNGAP1 expression. A better understanding of genotype-specific language and communication outcomes could help inform patient stratification, treatment-arm balance, endpoint selection, and the interpretation of future clinical trials.</p>
+<p>In the present study, we investigated the relationship between SYNGAP1 variant location, variant class, and language outcomes using genetically verified, caregiver-reported data from the international PATRE SYNGAP1 registry. Rather than grouping patients according to overall clinical severity, we focused directly on current expressive language ability, acquisition of two-word phrases, and functional communication. Variants were assigned to predefined functional regions of the SynGAP protein, and associations were analyzed separately for missense and truncating/splicing variants. Our objective was to determine whether specific protein domains are associated with distinct language and communication profiles and whether these associations differ according to variant class, providing a clinically relevant foundation for genotype-informed research and future precision therapies.</p>
+<h3>3. Methods</h3>
+<p> &gt;Methods</p>
+<h3>3.1. Study Design and Registry Framework</h3>
+<p>This retrospective cross-sectional study used data from the international PATRE (PATient-Based phenotyping and evaluation of therapy for Rare Epilepsies) SYNGAP1 registry. PATRE is a patient-centered digital platform developed to support structured phenotyping, treatment evaluation, and natural history research in rare developmental and epileptic encephalopathies [6].</p>
+<p>The SYNGAP1 registry collects caregiver-reported information on molecular diagnosis, developmental milestones, epilepsy, behavior, language, communication, and everyday functioning. Data are collected through a multilingual digital application [8], allowing participation from families across different countries. The registry was initiated by the German SYNGAP1 patient organization in collaboration with its medical advisory board and is supported by a European network of patient organizations. The present study was conducted within the EURAS consortium (European network for neurodevelopmental RASopathies; Horizon Europe Grant No. 101080580) [7].</p>
+<p>The analysis focused specifically on expressive language and functional communication in relation to SYNGAP1 variant class and protein domain. No composite disease-severity score or phenotype clustering was used.</p>
+<h3>3.2. Study Population and Inclusion Criteria</h3>
+<p>The registry dataset contained 440 individual participant records. For the present analysis, participants were eligible if their reported SYNGAP1 variant could be assigned to a protein position and classified as either a missense or truncating/splicing variant.</p>
+<p>A total of 334 participants met these criteria, including 79 individuals with missense variants and 255 with truncating/splicing variants. Participants without sufficient variant information for protein-domain assignment or with variant types outside these two categories were excluded from the domain-based comparisons.</p>
+<p>Availability of language and communication data varied between participants. Rather than requiring completion of all questionnaires, analyses were performed using the available observations for each outcome. Consequently, sample sizes differed across individual analyses. No missing clinical values were statistically imputed.</p>
+<h3>3.3. Variant Classification and Protein-Domain Assignment</h3>
+<p>SYNGAP1 variants were classified into two groups according to their reported molecular consequence. Truncating/splicing variants included nonsense, frameshift, canonical splicesite, and exonic variants with a possible splice effect. Missense variants were analyzed separately.</p>
+<p>Variant positions were determined primarily from the reported protein-level HGVS annotation. When a protein position was unavailable, an approximate amino acid position was derived from the coding-DNA coordinate. The source of each positional assignment was retained for quality control.</p>
+<p>Variants were assigned to seven predefined regions of the SynGAP protein:</p>
+<h3>Region</h3>
+<p>Amino acid positions N-terminal 1-102 Pleckstrin homology (PH) 103-247 C2 248-392 RasGAP 393-729 Post-GAP regulatory 730-936 Distal C-terminal 937-1339 Terminal QTRV-containing region ≥1340 These regions were applied consistently across the entire protein. Each participant was assigned to one region according to the position of the reported variant.</p>
+<p>For each region, language and communication outcomes were compared with those of participants carrying variants in all other protein regions. Comparisons were performed separately within the missense and truncating/splicing groups. This approach allowed regional associations to be evaluated without combining variant classes with potentially different molecular consequences.</p>
+<h3>3.4. Assessment of Expressive Language</h3>
+<p>The primary outcome was current expressive language ability, assessed using caregiver responses to structured questions within the PATRE registry.</p>
+<p>The questionnaire first asked whether the patient&#x27;s current language abilities were ageappropriate. For patients whose language was not considered age-appropriate, an additional question assessed the highest level of expressive language ability. Based on this branching structure, a five-level ordinal expressive language score was derived:</p>
+<h3>Level Expressive language ability 1</h3>
+<p>No understandable, meaningfully used words 2</p>
+<p>Few single words (up to 50 words) 3</p>
+<h3>Numerous single words and very simple two-word phrases 4</h3>
+<p>Simple language with multiple words and complete sentences, but not age-appropriate 5</p>
+<p>Age-appropriate language Higher scores indicated better expressive language ability.</p>
+<p>Participants whose language was explicitly reported as age-appropriate were assigned level 5. For all other participants, the reported language category was retained. This approach accounted for the questionnaire&#x27;s branching logic without treating structurally unavailable responses as missing values.</p>
+<p>The resulting score was used as an ordinal measure of current expressive language ability. It represents a registry-derived clinical classification rather than a separately validated standardized language assessment.</p>
+<h3>3.5. Developmental Language Milestones</h3>
+<p>As a secondary outcome, caregivers reported whether the patient had acquired the ability to speak two-word phrases.</p>
+<p>This variable was analyzed as a binary developmental outcome (achieved versus not achieved). For participants who had acquired two-word phrases, additional questions documented whether this milestone had been reached by 24 months of age or later, as well as the reported age at acquisition in months.</p>
+<p>The proportion of participants who had achieved two-word phrases was compared across protein regions. Age at acquisition and delayed acquisition after 24 months were evaluated only among participants who had achieved the milestone.</p>
+<p>Participants who had not acquired two-word phrases were retained in the binary attainment analysis but were not assigned an artificial acquisition age.</p>
+<h3>3.6. Assessment of Functional Communication</h3>
+<p>Functional communication was assessed separately from expressive language using caregiver responses to the Communication Function Classification System (CFCS) decision questions.</p>
+<p>The questionnaire evaluated whether the patient could effectively communicate as both sender and receiver, whether communication was effective with familiar and unfamiliar partners, and whether communication occurred at a comfortable pace.</p>
+<p>Responses were used to derive CFCS levels I-V, ranging from effective communication with familiar and unfamiliar partners (level I) to severely limited communication effectiveness (level V).</p>
+<p>For statistical analysis, CFCS levels were transformed into a functional communication score:</p>
+<p>Higher scores therefore indicated better functional communication.</p>
+<p>Additional caregiver-reported variables assessed the presence of communication difficulties and their impact on everyday functioning.</p>
+<p>Expressive language and functional communication were analyzed as separate outcomes because effective communication may occur through speech, gestures, facial expressions, or other nonverbal means.</p>
+<h3>3.7. Statistical Analysis</h3>
+<p>All analyses were performed in R [10].</p>
+<p>The primary analysis examined associations between protein-domain location and the fivelevel expressive language score. Each domain was compared with all remaining protein regions within the same variant class.</p>
+<p>Descriptive results were summarized using medians and interquartile ranges for ordinal variables and proportions for binary outcomes.</p>
+<p>Unadjusted comparisons were performed using Wilcoxon rank-sum tests for ordinal or continuous outcomes and Fisher&#x27;s exact tests for binary outcomes.</p>
+<p>To account for potential differences in age between domain groups, the primary expressive language analysis additionally used proportional-odds ordinal logistic regression. Models included protein-domain membership and age as explanatory variables:</p>
+<p>Age was treated as a continuous variable in years, calculated from the reported birth year and the analysis year (2026).</p>
+<p>Odds ratios (ORs) and 95% confidence intervals were calculated for the domain effect. An OR greater than 1 indicated higher odds of belonging to a better expressive language category among participants with variants in the respective domain, while an OR below 1 indicated lower odds.</p>
+<p>Secondary binary outcomes, including acquisition of two-word phrases, were assessed using Fisher&#x27;s exact tests and age-adjusted logistic regression where model estimation was feasible. Ordinal functional communication outcomes were analyzed using Wilcoxon tests and ageadjusted proportional-odds regression.</p>
+<p>Models with insufficient complete observations, inadequate outcome variation, or unstable parameter estimates were not interpreted as providing reliable adjusted effects.</p>
+<p>To account for multiple comparisons, Benjamini-Hochberg false discovery rate (FDR) correction was applied across the tested protein domains, separately for each variant class, outcome, and statistical test. An FDR-adjusted q &lt; 0.05 was considered statistically significant. Results with0.05 ≤ q &lt; 0.10 were considered exploratory.</p>
+<p>All statistical analyses were based on available observations without imputation of missing outcomes.</p>
+<h3>3.8. Ethics, Consent, and Data Availability</h3>
+<p>The study was conducted within the established PATRE research framework. Ethical approval was granted by the Ethics Committee of the Bavarian Medical Association (approval No. 21058; 25 August 2021).</p>
+<p>Caregivers provided informed consent for registry participation and the use of de-identified data for research purposes. The present analysis used de-identified registry data.</p>
+<h3>Data Availability</h3>
+<p>De-identified data underlying the findings of this study are not publicly available due to governance and privacy constraints in a rare disease registry context. Access to de-identified data may be considered upon reasonable request to the corresponding author and/or registry governance body, subject to scientific review, data use agreements, and applicable regulatory and ethical requirements.</p>
+<h3>4. Results</h3>
+<p> &gt;Results</p>
+<h3>4.1. Study Cohort and Distribution of Variants Across SynGAP Domains</h3>
+<p>The registry dataset comprised 440 participants. Of these, 334 had sufficient molecular information to assign their SYNGAP1 variant to a protein position and one of the two predefined variant classes. The resulting study cohort included 255 participants with truncating/splicing variants and 79 with missense variants.</p>
+<p>Variants were distributed across the predefined regions of the SynGAP protein, with substantial differences in the number of individuals represented within each domain and variant class. For the primary analysis of current expressive language, complete outcome and age data were available for 253 participants with truncating/splicing variants and 78 with missense variants.</p>
+<p>Current expressive language varied considerably across the cohort, ranging from the absence of meaningful spoken words to age-appropriate language. Domain-specific differences were observed in both variant classes, with the strongest associations involving missense variants in the C2 domain and truncating/splicing variants in the PH domain (Figure 1).</p>
+<h3>4.2. C2-Domain Missense Variants Are Associated With Poorer Expressive Language</h3>
+<p>Among participants with missense variants, those with variants in the C2 domain (aa248-392; n=28) had substantially poorer expressive language than individuals with missense variants elsewhere in the protein.</p>
+<p>The median current expressive language score was 1 in the C2 group, corresponding to no meaningful spoken words, compared with 2 among participants with missense variants outside C2, corresponding to the use of a limited number of single words.</p>
+<p>This difference was significant in the unadjusted Wilcoxon analysis (p=0.000379; FDRadjusted q=0.0015).</p>
+<p>The association remained significant after adjustment for age. In proportional-odds ordinal logistic regression, C2 missense variants were associated with markedly lower odds of belonging to a higher expressive language category (OR 0.16, 95% CI 0.06-0.46; p=0.000635; q=0.0025).</p>
+<p>Thus, among individuals with missense variants, C2 localization was associated with substantially poorer current expressive language, independent of the age adjustment included in the model.</p>
+<h3>4.3. Reduced Acquisition of Two-Word Phrases and Functional Communication in C2 Missense Variants</h3>
+<p>The association between C2 missense variants and expressive language was also reflected in the developmental milestone of acquiring two-word phrases.</p>
+<p>Only 2 of 28 participants (7.1%) with C2 missense variants had acquired two-word phrases, compared with 26 of 50 participants (52.0%) with missense variants outside the C2 domain.</p>
+<p>This difference remained significant after adjustment for age (OR 0.07; q=0.0023).</p>
+<p>Functional communication showed a similar pattern. Participants with C2 missense variants had lower CFCS function scores than those with other missense variants (median 2 vs. 3; Wilcoxon p=0.0025; q=0.0101).</p>
+<p>The difference also remained significant after age adjustment (OR 0.23, 95% CI 0.09-0.56; q=0.0052).</p>
+<p>Together, these findings show that the poorer expressive language associated with C2 missense variants was accompanied by lower attainment of an important language milestone and greater impairment in everyday functional communication.</p>
+<h3>4.4. PH-Domain Truncating/Splicing Variants Are Associated With Better Language Outcomes</h3>
+<p>In contrast to the unfavorable association observed for C2 missense variants, truncating/splicing variants in the PH domain (aa103-247; n=50) were associated with better expressive language.</p>
+<p>The median current expressive language score was 3 among participants with PH-domain truncating/splicing variants, compared with 2 among individuals carrying truncating/splicing variants elsewhere in the protein.</p>
+<p>This difference was significant in the unadjusted analysis (p=1.24×10⁻⁵; q=7.42×10⁻⁵).</p>
+<p>Following adjustment for age, PH-domain truncating/splicing variants remained associated with higher odds of better expressive language (OR 3.52, 95% CI 1.99-6.24; p=1.59×10⁻⁵; q=9.54×10⁻⁵).</p>
+<p>The same direction of association was observed for acquisition of two-word phrases. Among participants with truncating/splicing variants in the PH domain, 62.0% had acquired two-word phrases, compared with 31.5% of those with truncating/splicing variants outside PH.</p>
+<p>This difference remained significant following age adjustment (OR 3.69; q&lt;0.001).</p>
+<p>These findings identify the PH domain as a region in which truncating/splicing variants are associated with relatively preserved expressive language compared with truncating/splicing variants in other parts of SynGAP.</p>
+<h3>4.5. Variant-Class Specificity and Findings in Other Protein Regions</h3>
+<p>The domain-associated language differences were not uniform across variant classes.</p>
+<p>Importantly, the unfavorable language association observed for C2 missense variants was not observed for truncating/splicing variants within the same domain.</p>
+<p>Among participants with C2 truncating/splicing variants (n=28), the median expressive language score was 2, identical to that of participants with truncating/splicing variants outside C2. Neither the unadjusted comparison (p=0.971) nor the age-adjusted analysis (OR 0.93, 95% CI 0.45-1.91; p=0.845) showed evidence of a corresponding association.</p>
+<p>Similarly, no significant regional language association was identified for variants in the RasGAP domain in either variant class. The age-adjusted odds ratios were 0.94 for missense variants (p=0.889) and 0.73 for truncating/splicing variants (p=0.243).</p>
+<p>Among truncating/splicing variants in the distal C-terminal region (aa937-1339; n=75), current expressive language was somewhat poorer than in the remaining truncating/splicing cohort (median 1 vs. 2). This association reached the predefined FDR threshold in the unadjusted analysis (p=0.0235; q=0.0470), but was weaker after age adjustment (OR 0.60, 95% CI 0.36-1.00; p=0.0498; q=0.0995).</p>
+<p>Additional associations were observed in some sparsely represented domains, including Nterminal truncating/splicing variants and PH or distal C-terminal missense variants. However, these subgroups contained only three to six individuals, resulting in substantial uncertainty around their effect estimates. These findings were therefore considered exploratory.</p>
+<p>Overall, the strongest and most consistently supported regional associations involved poorer expressive language and functional communication among C2 missense variants and better expressive language among PH-domain truncating/splicing variants.</p>
+<h3>5. Discussion</h3>
+<p> &gt;Discussion</p>
+<h3>5.1. Principal Findings</h3>
+<p>This study identifies distinct associations between SynGAP protein domains, variant class, and language outcomes in a large international cohort of individuals with SYNGAP1-related developmental and epileptic encephalopathy. By focusing directly on expressive language and functional communication, rather than composite measures of overall disease severity, we found two particularly relevant patterns: missense variants within the C2 domain were associated with markedly poorer language and communication, whereas truncating/splicing variants within the PH domain were associated with better expressive language compared with variants of the same class located elsewhere in the protein.</p>
+<p>The C2 association was particularly consistent. Among individuals with missense variants, C2 localization was associated with substantially lower odds of reaching a higher expressive language category after adjustment for age (OR 0.16, 95% CI 0.06-0.46). This difference was also reflected in developmental language milestones: only 7.1% of individuals with C2 missense variants had acquired two-word phrases, compared with 52.0% of those with missense variants outside C2. Functional communication, assessed using the CFCS, showed a similar association.</p>
+<p>In contrast, truncating/splicing variants within the PH domain were associated with better expressive language (age-adjusted OR 3.52, 95% CI 1.99-6.24) and more frequent acquisition of two-word phrases. No comparable language association was observed for truncating/splicing variants within C2, while RasGAP variants showed no significant regional association in either variant class.</p>
+<p>These findings suggest that protein location provides clinically relevant information beyond the broad distinction between missense and truncating/splicing variants. More importantly, they raise the possibility that variants affecting different functional regions of SynGAP may contribute to language impairment through different molecular mechanisms.</p>
+<h3>5.2. C2-Domain Missense Variants: Convergence of Clinical and Structural Evidence</h3>
+<p>The strongest adverse language association in our study involved missense variants within the C2 domain. This finding is particularly interesting in light of recent structural investigations into the molecular consequences of SynGAP missense variants.</p>
+<p>In a study published in September 2026, Ali and colleagues investigated the interaction of SynGAP with Ras and Rap1b using molecular dynamics simulations, computational mutagenesis, and binding free-energy calculations. Their work provides a detailed structural framework for understanding how individual missense substitutions may interfere with SynGAP function [13].</p>
+<p>The authors propose that SynGAP regulates Ras through a relatively conventional RasGAP mechanism, whereas its interaction with Rap1b involves a distinct, Plexin-like mechanism. In the latter model, the C2 domain contributes to stabilizing the conformation of Rap-Switch II required for efficient GTP hydrolysis. This implies that the C2 domain is not merely an accessory structural element but may participate directly in the organization of the SynGAP-GTPase interaction.</p>
+<p>Importantly, the authors identified several substitutions affecting the C2 region that were predicted to destabilize interactions with Ras or Rap. These included R272W and E360K, as well as substitutions involving Arg401 at the structurally defined C2 interaction interface. The predicted effects included disruption of electrostatic contacts, reduced stability of the proteinprotein interface, and changes in the positioning of residues involved in catalytic regulation.</p>
+<p>These structural findings provide a plausible molecular context for the pronounced language impairment observed in our C2 missense subgroup. While our registry data cannot establish the precise functional consequences of individual variants, the association between C2 localization and impaired expressive language is consistent with the possibility that alterations in this domain interfere with functions extending beyond a simple reduction in total SynGAP abundance.</p>
+<p>The potential contribution of Rap signaling is particularly intriguing.</p>
+<p>Ali et al. propose that the C2 domain plays a critical role in stabilizing the open Rap-Switch II conformation required for efficient SynGAP-mediated Rap inactivation. Their models further suggest that certain substitutions may affect Ras and Rap interactions differently, raising the possibility that missense variants can alter specific aspects of SynGAP signaling rather than producing an equivalent reduction in all protein functions.</p>
+<p>Such differences could contribute to clinical heterogeneity, although the relationship between altered Ras/Rap regulation and expressive language development remains to be established experimentally.</p>
+<p>The relevance of the C2 domain may also extend beyond catalytic activity. Its proposed contribution to membrane interactions and the structural organization of SynGAP-GTPase complexes suggests that missense variants could interfere with protein localization, molecular interactions, or the organization of postsynaptic signaling complexes.</p>
+<p>This distinction is important because recent experimental studies have demonstrated that the catalytic and structural functions of SynGAP are not necessarily equivalent in their contribution to neurodevelopmental phenotypes [15]. Consequently, the adverse language association observed in our C2 subgroup should not be attributed exclusively to impaired Ras/Rap GTPase activity.</p>
+<p>Our clinical findings and the structural models of Ali et al. therefore provide complementary evidence: the former identifies a domain-associated clinical phenotype, while the latter suggests specific molecular mechanisms through which C2-region substitutions might alter SynGAP function.</p>
+<p>Further studies combining patient-derived cellular models, direct measurements of protein expression and stability, and functional analysis of Ras/Rap signaling will be required to determine which of these mechanisms contribute to the observed language phenotype.</p>
+<h3>5.3. PH-Domain Truncating/Splicing Variants and Relative Preservation of Language</h3>
+<p>A second important finding was the association between truncating/splicing variants in the PH domain and relatively better expressive language.</p>
+<p>Participants with PH-domain truncating/splicing variants were more likely to demonstrate higher current language abilities and had more frequently acquired two-word phrases than individuals with truncating/splicing variants elsewhere in the protein.</p>
+<p>This observation suggests that the clinical consequences of variants classified as truncating or splice-disrupting may not be uniform across the SynGAP protein.</p>
+<p>Haploinsufficiency remains the principal established disease mechanism for many pathogenic SYNGAP1 variants. Premature termination codons and certain splice-disrupting variants are expected to reduce the abundance of functional SynGAP, often through nonsense-mediated mRNA decay (NMD). However, the consequences of individual variants may depend on their transcript context, position relative to exon junctions, alternative splicing, and the expression of different SynGAP isoforms.</p>
+<p>These factors could potentially contribute to differences in functional protein availability or the production of residual protein products.</p>
+<p>One possible explanation for the favorable association observed in the PH-domain subgroup is that variants in this region have different transcript-level consequences from variants in other parts of the gene. Alternatively, the observed effect could reflect differences in isoform expression or other molecular features not captured by broad variant-consequence categories.</p>
+<p>However, our findings do not establish that PH-domain truncating variants undergo more efficient NMD or preserve specific SynGAP functions. NMD is not determined by proteindomain membership alone, and many truncating variants outside PH are also expected to undergo transcript degradation.</p>
+<p>Furthermore, the favorable language association should not be interpreted as evidence that PH-domain truncating variants produce a generally mild form of SYNGAP1-DEE. Our analysis addresses expressive language and communication, not overall disease severity or longitudinal developmental trajectories.</p>
+<p>The biological basis of this association therefore remains uncertain. Transcript-specific annotation, RNA expression analyses, and studies of protein abundance and isoform composition may help determine whether PH-domain truncating/splicing variants represent a functionally distinct subgroup.</p>
+<h3>5.4. Implications for the Haploinsufficiency Model</h3>
+<p>Our results support a more differentiated understanding of genotype-phenotype relationships in SYNGAP1-DEE.</p>
+<p>Haploinsufficiency is well established as a major disease mechanism, particularly for pathogenic variants that reduce functional SynGAP expression. However, this mechanism does not necessarily imply that all pathogenic variants produce identical molecular consequences or equivalent clinical outcomes.</p>
+<p>The present findings suggest that both variant class and protein location are relevant to expressive language development. The unfavorable association observed for C2 missense variants, together with the absence of a corresponding association among C2 truncating/splicing variants, is particularly noteworthy. This difference is compatible with the possibility that at least some missense substitutions alter specific protein functions in ways that are not reproduced by truncating variants.</p>
+<p>Such effects might include impaired catalytic regulation, altered interactions with signaling partners, changes in protein stability or localization, or interference with postsynaptic protein complexes.</p>
+<p>These possibilities are consistent with the structural diversity of missense effects proposed by Ali et al. [13], who demonstrated through molecular modelling that different substitutions may affect SynGAP-GTPase interactions through distinct mechanisms.</p>
+<p>Importantly, neither the present clinical data nor the available structural models establish dominant-negative activity or toxic gain-of-function as a general mechanism for C2 missense variants. Severe phenotypes may also result from substantial loss of specific protein functions without requiring an active interference mechanism.</p>
+<p>Moreover, although the domain associations differed descriptively between variant classes, a formal domain-by-variant-class interaction analysis would be required to establish whether these effects differ statistically between missense and truncating/splicing variants.</p>
+<p>Our findings therefore do not challenge haploinsufficiency as a central mechanism of SYNGAP1-related disease. Rather, they indicate that a uniform haploinsufficiency model may be insufficient to account for the observed variation in language and communication outcomes across different molecular variant groups.</p>
+<h3>5.5. Clinical Implications and Relevance for Upcoming ASO Trials</h3>
+<p>The identification of domain-associated differences in language and communication may have important implications for clinical assessment and the development of targeted therapies.</p>
+<p>Expressive language is a particularly relevant clinical outcome in SYNGAP1-DEE because the ability to communicate meaningfully affects everyday functioning, social participation, and caregiver-patient interactions. The substantial differences observed between variantdefined subgroups suggest that molecular genotype may contribute to the variability of these abilities.</p>
+<p>For clinical counseling, information about variant class and protein location could potentially complement existing assessments when discussing expected developmental abilities with families. However, the substantial variability among individuals and the cross-sectional nature of the present study preclude deterministic predictions for individual patients.</p>
+<p>The translational implications are especially relevant as antisense oligonucleotides and other approaches intended to increase functional SYNGAP1 expression move toward clinical evaluation.</p>
+<p>Such therapies are generally designed around the concept that increasing functional SynGAP availability may improve disease-related outcomes. However, the molecular consequences of different pathogenic variants may influence both baseline clinical characteristics and the biological effects of a given therapeutic strategy.</p>
+<p>For variants associated with transcript degradation and reduced functional protein expression, increasing expression from the remaining functional allele may be a biologically appropriate approach.</p>
+<p>In contrast, some missense variants may produce altered proteins with residual, selectively impaired, or potentially interfering functions. Depending on the mechanism of the therapeutic approach, increasing gene expression might affect wild-type and mutant alleles differently.</p>
+<p>The consequences of such treatment cannot be inferred from the present study and require variant-specific functional investigation.</p>
+<p>Our findings therefore support considering variant class and protein domain when characterizing participants in future ASO trials. Such information could be relevant for cohort composition, treatment-arm balance, subgroup analyses, and interpretation of developmental outcomes.</p>
+<p>The marked baseline differences in expressive language are particularly important for endpoint selection. A participant without meaningful spoken words and a participant already using sentences may have substantially different opportunities to demonstrate improvement on a categorical language scale. Baseline language ability, age, and communication function should therefore be considered when evaluating the sensitivity and clinical relevance of language-related endpoints.</p>
+<p>Functional communication may provide complementary information, particularly for individuals whose expressive speech remains severely limited but who communicate through gestures, facial expressions, or alternative communication methods.</p>
+<p>Ultimately, genotype-informed stratification may help distinguish differences in baseline disease expression from potential treatment-related changes. However, the present findings do not establish that any subgroup will respond more favorably or less favorably to ASO treatment. Prospective clinical studies and functional investigations are needed before proteindomain location can be considered a predictive biomarker of therapeutic response.</p>
+<h3>5.6. Strengths and Limitations</h3>
+<p>A major strength of this study is the use of a large international registry cohort with structured caregiver-reported language and communication data linked to molecular variant information.</p>
+<p>Unlike analyses based on multidimensional severity composites, the present study focused on directly interpretable clinical outcomes. Expressive language ability, acquisition of two-word phrases, and functional communication were evaluated separately, allowing the consistency of regional associations to be assessed across related but distinct measures.</p>
+<p>The systematic analysis of predefined protein regions, performed separately for missense and truncating/splicing variants, also reduced the dependence on arbitrarily selected protein intervals. Age-adjusted models and false discovery rate correction were used to address potential age differences and multiple comparisons.</p>
+<p>Several limitations warrant consideration.</p>
+<p>First, the study was retrospective and cross-sectional. Current language ability and retrospectively reported developmental milestones cannot establish individual developmental trajectories or predict future language acquisition.</p>
+<p>Second, the language and communication measures were caregiver-reported. Although they capture clinically meaningful everyday abilities, they are not equivalent to standardized clinician-administered developmental assessments. The five-level expressive language score was derived from the registry questionnaire and has not been independently validated as a standardized outcome measure. Similarly, CFCS levels were reconstructed from caregiver responses rather than established through a dedicated clinician-administered classification process.</p>
+<p>Third, the age-adjusted analyses used age estimated from birth year and the analysis year. Differences between this estimate and the actual age at questionnaire completion may introduce residual measurement error. In addition, the assumption of a linear age effect and the proportional-odds assumption require further assessment, particularly because language acquisition is strongly age-dependent during early childhood.</p>
+<p>Fourth, the distribution of variants was uneven across protein regions. Several domains contained only small numbers of individuals, especially within the missense group. Recurrent variants may also contribute disproportionately to observed regional associations, and the extent to which individual substitutions drive the C2 association requires further investigation.</p>
+<p>Fifth, domain assignment was based on a predefined protein annotation. Boundaries between functional domains may vary between annotations or structural definitions, and SynGAP isoforms can differ in their sequence organization. These considerations are relevant when comparing our clinically assigned protein positions with structural models derived from specific isoforms.</p>
+<p>Sixth, the study does not directly assess the molecular consequences of individual variants. We did not measure transcript abundance, NMD efficiency, protein stability, subcellular localization, or Ras/Rap signaling. Although the work of Ali et al. [13] provides a plausible structural framework, its computational predictions do not establish the functional consequences of the variants represented in our registry cohort.</p>
+<p>Finally, additional genetic, environmental, therapeutic, and ascertainment-related factors may contribute to language outcomes. The observational design does not permit causal attribution of language impairment to particular molecular pathways or protein domains.</p>
+<h3>5.7. Future Directions</h3>
+<p>The present findings identify several opportunities for further investigation.</p>
+<p>A particularly relevant next step would be to combine detailed clinical phenotyping with functional characterization of recurrent and representative C2 missense variants. Patientderived neuronal models could be used to examine protein abundance, synaptic localization, interactions with Ras and Rap, and downstream signaling.</p>
+<p>The structural predictions of Ali et al. [13] provide a framework for selecting molecular interactions and functional mechanisms for such investigations. Comparing experimentally measured effects with language and communication outcomes may help determine whether particular molecular abnormalities are associated with more severe neurodevelopmental phenotypes.</p>
+<p>Complementary evidence was recently provided by Miotto et al. [14], who investigated the membrane-binding dynamics of the SynGAP C2 domain using molecular dynamics simulations. Their findings suggest that C2 missense variants can alter membrane interactions and lateral diffusion without substantially disrupting the overall protein fold. These observations provide an additional mechanistic perspective on our clinical findings. Together with the structural models of Ali et al. [13], they suggest that C2 missense variants may interfere with multiple aspects of SynGAP function, including membrane-associated dynamics and Ras/Rap-GTPase interactions. Whether these molecular alterations contribute to the pronounced language impairment observed in our cohort remains to be established experimentally.</p>
+<p>Similarly, transcript-specific analyses of PH-domain truncating/splicing variants could clarify whether differences in RNA processing, isoform expression, or residual protein production contribute to the relatively favorable language association observed in this subgroup.</p>
+<p>Longitudinal follow-up will also be essential. Repeated language and communication assessments within the PATRE registry could establish whether the domain-associated differences observed cross-sectionally correspond to distinct developmental trajectories, rates of skill acquisition, or changes in functional communication over time.</p>
+<p>These investigations could ultimately support the development of biologically informed patient subgroups and more sensitive clinical outcome measures for future targeted-treatment studies.</p>
+<p>Taken together, our findings provide clinical evidence that expressive language and functional communication in SYNGAP1-DEE are associated with variant class and protein-domain location. The convergence between the adverse C2 missense phenotype and recent structural models of altered SynGAP-GTPase interactions offers a compelling basis for further mechanistic research. As targeted therapies advance, integrating clinical phenotyping with molecular characterization may become increasingly important for understanding disease heterogeneity and designing genotype-informed clinical trials.</p>
+<h3>6. Conclusion</h3>
+<p>Our findings demonstrate that expressive language and functional communication in SYNGAP1-DEE are associated with both protein domain and variant class. C2-domain missense variants were linked to markedly poorer language outcomes, whereas truncating/splicing variants in the PH domain were associated with relatively preserved expressive language. Together with emerging structural evidence, these findings suggest that SYNGAP1-related disease cannot be fully understood through a uniform haploinsufficiency model alone. As targeted therapies, including antisense oligonucleotides, advance toward clinical trials, considering variant class and protein location may be important for patient stratification, endpoint selection, and interpretation of treatment outcomes.</p>
+<p>This work was supported by the EURAS project, funded by the European Union under Horizon Europe (Grant No. 101080580).</p>
+<h3>References</h3>
+<p>Holder JL, Hamdan FF, Michaud JL. SYNGAP1-Related Intellectual Disability. In: Adam MP, Bick S, Mirzaa GM, Pagon RA, Wallace SE, Amemiya A, editors. GeneReviews® [Internet].</p>
+<p>Seattle (WA): University of Washington, Seattle; 1993 [cited 2026 Feb 14]. Available from: http://www.ncbi.nlm.nih.gov/books/NBK537721/</p>
+<p>Hamdan FF, Gauthier J, Spiegelman D, Noreau A, Yang Y, Pellerin S, et al. Mutations in SYNGAP1 in autosomal nonsyndromic mental retardation. N Engl J Med. 2009 Feb 5;360(6):599-605.</p>
+<p>Clement JP, Aceti M, Creson TK, Ozkan ED, Shi Y, Reish NJ, et al. Pathogenic SYNGAP1 mutations impair cognitive development by disrupting maturation of dendritic spine synapses. Cell. 2012 Nov 9;151(4):709-23.</p>
+<p>McTague A, Howell KB, Cross JH, Kurian MA, Scheffer IE. The genetic landscape of the epileptic encephalopathies of infancy and childhood. Lancet Neurol. 2016 Mar;15(3):304-16.</p>
+<p>Scheffer IE, French J, Valente KD, Auvin S, Cross JH, Specchio N. Operational definition of developmental and epileptic encephalopathies to underpin the design of therapeutic trials. Epilepsia. 2025 Apr;66(4):1014-23.</p>
+<p>von Stülpnagel C, van Baalen A, Borggraefe I, Eschermann K, Hartlieb T, Kiwull L, et al. Network for Therapy in Rare Epilepsies (NETRE): Lessons From the Past 15 Years. Front Neurol. 2020;11:622510.</p>
+<p>EURAS: European network for neurodevelopmental RASopathies [Internet]. [cited 2026 Feb 14]. Available from: https://euras-project.eu/</p>
+<p>Harris PA, Swafford J, Serdoz ES, Eidenmuller J, Delacqua G, Jagtap V, et al. MyCap: a flexible and configurable platform for mobilizing the participant voice. JAMIA Open. 2022 Jul;5(2):ooac047.</p>
+<p>Scheffer IE, Berkovic S, Capovilla G, Connolly MB, French J, Guilhoto L, et al. ILAE classification of the epilepsies: Position paper of the ILAE Commission for Classification and Terminology. Epilepsia. 2017 Apr;58(4):512-21.</p>
+<p>R Core Team. R: A Language and Environment for Statistical Computing [Internet].</p>
+<p>Vienna, Austria: R Foundation for Statistical Computing; [cited 2026 Feb 14]. Available from: https://www.r-project.org/</p>
+<p>Vlaskamp DRM, Shaw BJ, Burgess R, Mei D, Montomoli M, Xie H, et al. SYNGAP1 encephalopathy: A distinctive generalized developmental and epileptic encephalopathy. Neurology. 2019 Jan 8;92(2):e96-107.</p>
+<p>Quinlan MA, Guo R, Clark AG, Luber EM, Christian RJ, Martinez RA, et al. AAV delivery of full-length SYNGAP1 rescues epileptic and behavioral phenotypes in a mouse model of SYNGAP1-related disorders. Mol Ther. 2025 Dec 3;33(12):6398- 414.</p>
+<p>Ali AE, Liljeblad A, Lehtonen JV, Komiyama NH, Postila PA. Investigating the effects of missense mutations on the dual Ras/Rap activation mechanism of SYNGAP1 using molecular modelling. J Struct Biol X. 2026;14:100162.</p>
+<p>Miotto M, Bo&#x27; L, Ruocco G, Di Angelantonio S, Basilico B. Missense mutations on SynGAP C2 domain impair membrane diffusion. Protein Sci. 2026 May;35(5):e70574.</p>
+<p>Araki Y, Rajkovich KE, Gerber EE, Gamache TR, Johnson RC, Tran THN, et al. SynGAP regulates synaptic plasticity and cognition independently of its catalytic activity. Science. 2024 Mar 1;383(6686):eadk1291.</p>
 </div>
 </details>
 </div>
