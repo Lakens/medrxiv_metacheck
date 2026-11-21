@@ -196,7 +196,7 @@ Metabolome-wide Association Study of Bronchopulmonary Dysplasia in
 Extremely Premature Infants
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.06.26367452
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.06.26367452
 </p>
 </header>
 <div class="mc-main">
@@ -219,7 +219,7 @@ P-Values</span></p>
 <p>What we found</p>
 </div>
 <div class="text">
-<p>We found 5 imprecise <em>p</em> values out of 23 detected <em>p</em>
+<p>We found 5 imprecise <em>p</em> values out of 25 detected <em>p</em>
 values.</p>
 </div>
 </div>
@@ -509,8 +509,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -876,9 +879,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -900,7 +907,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -915,9 +923,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -930,13 +956,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -956,6 +985,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -963,12 +998,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1069,6 +1110,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1088,6 +1149,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1343,19 +1439,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1465,6 +1643,147 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Rationale: Untargeted metabolomics may identify novel pathways involved in bronchopulmonary dysplasia (BPD), a poorly understood lung disease in extremely premature infants.</p>
+<p>Objective: To identify metabolites and pathways altered in infants who develop BPD through a metabolome-wide association study.</p>
+<p>Methods: We performed untargeted urinary metabolomics in 314 infants (&lt;29 weeks gestational age) at two time points between postnatal days 5-15 and 23-32, with detailed time-series for 28 infants. We compared metabolite levels between infants with and without BPD at 36 weeks postmenstrual age using logistic regression and pathway enrichment analysis. A stratified analysis by nutrition type was performed at 23-32 days.</p>
+<p>Results: Among the 913 analyzed urinary metabolites, 23 and 68 were nominally associated with BPD between postnatal days 5-15 and 23-32, respectively (p&lt;0.05). We found enrichment in the lactoyl amino acid sub-pathway (5-15 days; p=0.005, q=0.4) and xanthine metabolism and fatty acid metabolism (23-32 days; p≤0.002, q&lt;0.1). Most BPDdifferential metabolites were lower in infants with BPD at days 23-32 (OR=7.1, p=2x10 -6 ), with similar patterns among infants receiving parenteral (OR=9.2, p=7x10 -7 ) and full enteral nutrition (OR=6.1, p=0.003). Twenty-four metabolites, including vitamins C, B1, and B6, were lower in infants on parenteral nutrition with BPD at postnatal days 23-32.</p>
+<p>Discussion: BPD in extremely premature infants was associated with lower levels of vitamin-related metabolites and dysregulation of lactoyl amino acids, xanthine, and fatty acid metabolism. BPD-differential metabolites were lower in infants with BPD during the fourth week of life, potentially related to higher energy demand, metabolic dysregulation, 39 insufficient nutrient availability, and/or impaired intestinal absorption. 40</p>
+<h3>INTRODUCTION</h3>
+<p>Bronchopulmonary dysplasia (BPD) is a developmental lung disease and major contributor to neurodevelopmental and growth abnormalities, long-term respiratory morbidity, and mortality among extremely low gestational age newborns [1, 2].</p>
+<p>Heterogeneity of BPD and advances in neonatal healthcare have led to evolving definitions [3]. The recently described &quot;new BPD&quot; in extremely premature infants is characterized by impaired alveolar development and dysregulated pulmonary vasculature, leading to persistent abnormalities in gas exchange, airway function, respiratory mechanics, and lung volumes [4]. Risk factors associated with BPD include low gestational age and birthweight, male sex, and social and environmental factors that sometimes correlate with race/ethnicity [5, 6]. Despite advances in neonatal healthcare, there has been minimal change in the incidence of BPD during the last 20 years [7]. The limited understanding of BPD pathophysiology has hindered the development of effective diagnostics, preventive therapies, and treatments that may help lower the incidence of BPD [7, 8]. Novel approaches are needed to identify the biological mechanisms involved in BPD.</p>
+<p>Metabolomics involves the quantification of many hundreds of biochemicals (metabolites) that are present in a biological sample and has emerged as a powerful approach for studies of complex disease. It can simultaneously capture the combined effects of environmental and genetic factors that may impact human physiology, and increase our overall comprehension of disease pathogenesis [9]. Previous studies have implicated metabolic dysregulation in amino acid, lipid, and/or carnitine pathways in BPD; however, there is a limited consensus across studies [10] [11] [12] [13] [14] [15] [16] [17] [18] [19] [20]. This may be due to varying infant demographics, small sample sizes of individual studies (&lt;100 preterm infants), differences in the type of biofluid sampled, and reliance on single time point sampling during the clinical course of premature infants in the neonatal intensive care unit (NICU). Furthermore, the majority of studies have used a targeted approach to characterize metabolites of interest, whereas untargeted metabolomics can query a greater number of metabolites to test for associations with disease and provide a broader view of the pathways involved.</p>
+<p>In this study, we characterized the urinary metabolome of 314 extremely premature infants at high risk of developing BPD (including 178 infants diagnosed with BPD at 36 weeks) using an untargeted approach to identify a broad array of metabolites present in urine. We performed a metabolome-wide association study (MWAS) for BPD at 36 weeks postmenstrual age to identify metabolites and metabolic pathways associated with BPD, including multiple time point assessments in the first 30 days of life. Our results provide insight into the metabolic pathways associated with BPD development and offer information to support future studies of early diagnosis and the development of more effective therapies and interventions. Some of the results of this study have been previously reported in abstract form [21].</p>
+<h3>METHODS</h3>
+<h3>Study Description.</h3>
+<p>A total of 171 infants from the Trial of Late Surfactant for included in our study (details in data supplement). Clinical data were obtained for both cohorts and summarized in Table 1. BPD was assessed at 36 weeks postmenstrual age by physiological testing [22]. Research protocols were approved by the institutional review boards of the participating institutions, and a parent of each infant provided written informed consent.</p>
+<h3>Sample Selection.</h3>
+<p>Urine samples were collected from each infant and stored at -80°C until processing. Infants were selected based on survival at 40 weeks gestational age and availability of urine samples. Two samples were selected for each infant, one collected between postnatal days 5-15 (time point 1, mean±SD 8±2 days) and another between postnatal days 23-32 (time point 2, mean±SD 28±2 days).</p>
+<h3>Metabolomics Profiling.</h3>
+<p>Untargeted metabolomic assays were performed using Ultra High-Performance Liquid Chromatography-Tandem Mass Spectroscopy (UHPLC/MS-MS) by Metabolon Inc. as previously described [23, 24]. Metabolic profiling was conducted separately for each cohort, with anchor samples included to facilitate the comparison of metabolite abundance between cohorts. Metabolite levels were normalized to osmolality and median scaled. Metabolites with &gt;30% of values below the limit of detection within either cohort were removed from further analysis. A detailed description of metabolomic profiling is provided in the data supplement.</p>
+<h3>Statistical Analyses.</h3>
+<p>Principal component analysis (PCA) was performed across all metabolites to evaluate global differences in the urinary metabolome. A Mann-Whitney U-test was performed to assess differences in the first two principal components (PCs) for infants with and without BPD. At time point 2, PCA was also performed separately by nutrition source (parenteral vs full enteral nutrition).</p>
+<p>A metabolome-wide association study (MWAS) was performed using logistic regression to test for associations between BPD and quantitative levels of individual metabolites at each time point and the fold-change in levels at time point 2 vs time point 1. Covariates included clinical and demographic characteristics (Table 1). Analyses were done within each cohort and combined using a fixed-effects meta-analysis. Sub-analyses were performed by nutrition type at time point 2 to evaluate whether patterns of association with BPD differed by nutrition source. Details on infant feeding status categorization, statistical models, and covariates are included in the data supplement.</p>
+<p>Metabolites with nominal p&lt;0.05 were carried forward for exploratory characterization and pathway enrichment analyses and are referred to as &quot;BPD-differential metabolites&quot; throughout. A Fisher&#x27;s exact test was used to assess whether BPD-differential metabolites were more likely than non-differential metabolites to have lower versus higher levels in infants with BPD, with odds ratios used to quantify the directional enrichment.</p>
+<p>To account for multiple testing, false discovery rates were estimated separately within each MWAS using the qvalue package in R [25]. Metabolites of known identity were annotated to 88 sub-pathways, and 91 sub-pathways at time points 1 and 2, respectively (Metabolon Inc, April 2025). Pathway enrichment analysis was performed for each superpathway and sub-pathway using a Fisher&#x27;s exact test for each MWAS comparison (additional details in data supplement).</p>
+<p>Longitudinal data for selected BPD-differential metabolites from a prior study [24] were aligned to days relative to discontinuation of parenteral nutrition and visualized using timecourse plots with locally estimated scatterplot smoothing (LOESS) by BPD status. Data included untargeted metabolomics of 302 urine samples from 28 infants (17 with BPD and 11 without BPD) in TOLSURF (additional details in data supplement), of whom 25 were also included in the current two-time point study.</p>
+<p>Analyses were performed using Python 3.11.4 [26] and R 4.5.1 [27].</p>
+<h3>RESULTS</h3>
+<p>Clinical and demographic characteristics were similar between infants with and without BPD at 36 weeks postmenstrual age, apart from infants with BPD having higher respiratory severity scores (RSS) at both time points (Table 1). Mean values across groups for gestational age ranged between 25-26 weeks, and birthweight between 720-790 g. Untargeted urinary metabolomic profiling identified 1441 unique metabolites across both cohorts at time points 1 and 2, of which 874 and 913 passed quality control thresholds, respectively (851 overlapping between time points). The first two principal components across all metabolites showed little to no separation of infants by BPD status (p&gt;0.05; Figure 1A-D; Figure E1A-B, E1D), apart from infants on parenteral nutrition at time point 2 (PC1; p=0.042; Figure E1C).</p>
+<h3>Metabolome-Wide Association Study (MWAS).</h3>
+<p>We tested for an association between BPD and levels of urinary metabolites for 1) each time point separately, 2) foldchange across time points, and 3) sub-analyses at time point 2 with infants separated by feeding modality (parenteral vs. full enteral).</p>
+<p>Levels of 23 and 68 individual metabolites were nominally associated with BPD (p&lt;0.05) at time points 1 and 2, respectively (Figure 2A-B and Supplemental Table E1-E2), and 28 metabolites were nominally associated with BPD based on fold-change between time points (Table E3). Odds ratios for the 10 BPD-differential metabolites with the smallest p-values are shown in Figure 3, with cohort-specific effect estimates in the same direction. Across BPD-differential metabolites, 13 and 44 were of known identity at time points 1 and 2, respectively, and belonged to a variety of sub-pathways (Table 2, Table 3). Five BPD-differential metabolites were identified at both time points, including 3-hydroxykynurenine (tryptophan metabolism), pipecolate (lysine metabolism), betahydroxyisovaleroylcarnitine (leucine/isoleucine/valine metabolism), and two unnamed metabolites. One of these, 3-hydroxykynurenine, showed an opposite direction of association with BPD across time points, with higher levels in infants with BPD at time point 1 and lower levels at time point 2. A similar trend was observed in longitudinal data following discontinuation of parenteral nutrition (Figure 4A). Pipecolate was higher in infants with BPD at both time points, and beta-hydroxyisovaleroylcarnitine and two unnamed metabolites were lower in infants with BPD at both time points. Fold-change over time in 19 metabolites of known identity was nominally associated with BPD, including hexanoylcarnitine (C6) and four unnamed metabolites that were also BPDdifferential at time point 2.</p>
+<p>Sub-analyses among infants separated by mode of nutrition at time point 2 identified 60 BPD-differential metabolites in those receiving parenteral nutrition and 30 in those receiving full enteral nutrition (Figure 2C-D; Supplemental Tables E4-E5), of which three overlapped in the same direction of effect [androstenediol (3beta,17beta) disulfate (2), 5-(galactosylhydroxy)-lysine, and an unnamed metabolite]. A total of 28 BPDdifferential metabolites were unique to infants receiving parenteral nutrition (Table 4), and 13 were unique to infants on full enteral nutrition (Table 5). Of the 68 BPD-differential metabolites at time point 2 across all infants, 29 were identified among infants receiving parenteral nutrition and 14 among infants receiving full enteral nutrition (Figure 5).</p>
+<p>Levels of metabolites at time point 2 were asymmetric in the direction of effect in BPD, including in the analyses stratified by mode of nutrition (Figure 2B, 2C, and 2D). Among all infants, 94% of BPD-differential metabolites (64 of 68) were lower in infants with BPD at time point 2 (OR=7.1, p=2.2x10 -6 ; Supplemental Table E2). A similar pattern was observed among infants on parenteral nutrition (57 of 60 [95%], OR=9.2, p=7.2x10 - 7 ; Supplemental Table E4) and full enteral nutrition (28 of 30 [93%], OR=6.1, p=0.003; Supplemental Table E5). This asymmetry was not observed at time point 1, where only 8 of 23 BPD-differential metabolites were at lower levels in infants with BPD (35%, OR=0.81, p=0.83). Longitudinal trends for selected BPD-differential metabolites, evaluated using a time-course design in a smaller subset of infants, showed trajectories of increasing metabolite levels after discontinuation of parenteral nutrition, with visually slower increases among infants who developed BPD (Figure 4). See online data supplement Table E6-E10 for summary statistics on all profiled metabolites for each analysis.</p>
+<h3>Pathway Enrichment Analysis.</h3>
+<p>We performed pathway enrichment analyses for each MWAS using annotations provided by Metabolon. A total of 71 and 73 sub-pathways with ≥2 metabolites were evaluated for enrichment at time points 1 and 2, respectively, which belonged to 8 super-pathways. At time point 1, BPD-differential metabolites showed nominal enrichment of the Lactoyl Amino Acid sub-pathway (p=0.005, q=0.4, Table 6) within the Amino Acid super-pathway. At time point 2, BPD-differential metabolites were enriched in Fatty Acid Metabolism: Acyl Carnitine, Medium Chain (p=0.002, q=0.09), and Xanthine Metabolism (p=0.0006, q=0.04) (Table 6). For infants on parenteral nutrition at time point 2, BPD-differential metabolites were enriched in two lipid sub-pathways involved in fatty acid metabolism (Acyl Carnitine/Dicarboxylate  6).</p>
+<p>Metabolites with fold-change nominally associated with BPD were enriched in Secondary Bile Acid Metabolism (p=0.008, q=0.59; Supplemental Table E11).</p>
+<p>See online data supplement Table E11-E15 for summary statistics on all subpathways evaluated for each analysis.</p>
+<h3>DISCUSSION</h3>
+<p>In this study, we characterized the urinary metabolome of 314 extremely premature infants from two cohorts within the first four weeks of life, including infants with and without a later diagnosis of BPD at 36 weeks postmenstrual age. We detected over a thousand unique metabolites representing more than 50 metabolic pathways, highlighting the breadth of physiological processes captured through performing untargeted metabolomics in a relatively non-invasive biofluid. Principal component analyses over all metabolites revealed little to no separation between infants with and without BPD, suggesting a high degree of infant variability in the urinary metabolome in this large, multicohort study. Levels of 86 unique individual metabolites were found to be nominally associated with BPD across time points, for which the false discovery rate should be considered when weighing their individual relevance to BPD pathophysiology. However, taken together, BPD-differential metabolites were significantly more likely to be at lower levels in the urine of infants with BPD as compared to infants without BPD, particularly during the fourth week of life and around the transition to enteral feeding. This was an unexpected finding and supports our hypothesis that infants who develop BPD are experiencing metabolic dysregulation early in life.</p>
+<p>BPD-differential metabolites were enriched in specific metabolic pathways, including nominal enrichment of lactoyl amino acids in the second week of life, and enrichment of xanthine and fatty acid metabolism in the fourth week of life. At the earlier time point, we observed higher levels of two lactoyl amino acid metabolites in infants who developed BPD (N-lactoyl isoleucine and N-lactoyl leucine), leading to modest enrichment of the Lactoyl Amino Acid sub-pathway. N-lactoyl-amino acids are involved in a number of processes, including energy metabolism and sleep patterns [28], and higher levels have been associated with a variety of other diseases, such as gestational diabetes [29] and retinopathy of prematurity [30]. Elevated levels in infants who develop BPD could indicate greater early postnatal acidosis and a shift toward anaerobic metabolism, which may contribute to increased lung injury and poor respiratory outcomes. Previous studies have also found an association between BPD and urinary lactate levels, with lactate being a precursor of lactoyl-amino acids, including the two we identified to be at higher levels in infants with BPD. In one study, lactate was found to be higher in infants with BPD [15], whereas in another it was found to be lower in infants with BPD [16]. While we find no association between urinary lactate levels and BPD, we note that prior studies involving a smaller number of infants used a method that has lower sensitivity and is prone to degradation of lactoyl amino acids into lactate (hydrogen nuclear magnetic resonance, or H-NMR) [15, 16], which may in part explain these discrepancies.</p>
+<p>During the fourth week of life, levels of several caffeine metabolites (methylxanthines, methylurates) and acylcarnitines were lower in infants with BPD, with enrichment of the respective sub-pathways. Caffeine, an adenosine receptor antagonist commonly prescribed in the NICU to prevent apnea of prematurity, stimulates breathing, the central nervous system, and the cardiovascular system [31] and has been suggested to reduce the incidence of BPD [32]. Caffeine metabolism in preterm infants is limited by immature hepatic enzymes, while clearance is constrained by immature renal function, both of which are influenced by gestational age, post-conception age, and feeding modality [31]. Thus, lower levels of caffeine metabolites in infants who develop BPD may be attributed to these developmental limitations that reduce caffeine metabolism and renal excretion, as well as differences in dosing regimens based on body weight, caffeine blood levels, and apneic frequency. The use of caffeine was similar between infants with and without BPD, but data for dosing was not collected.</p>
+<p>The enrichment in fatty acid metabolism was particularly evident among infants receiving parenteral nutrition as compared to infants receiving full enteral nutrition, although longitudinal trajectories suggest the role of nutrition is complex and requires further study. Acylcarnitines and carnitine are essential for energy production due to their crucial role in fatty acid oxidation, and thus they support metabolism and growth of the premature infant, which could improve respiratory outcomes. Hydroxylated fatty acids, produced by tissues and some gut microbes, may also have anti-inflammatory effects and protect against lung damage caused by inflammation, which is also a hallmark of BPD.</p>
+<p>The involvement of carnitines in BPD has similarly been observed in prior studies that used different statistical approaches, metabolomics platforms, most commonly targeted metabolomics, and that included smaller cohorts varying by gestational age, postnatal age, modes of nutrition, and biofluid [12, 14, [17] [18] [19], with conflicting directions of effect reported. Studies that collected samples during the first week of life or at 6 months corrected age found acylcarnitines to be higher in infants with BPD [12, 14, 19]. Similarly, a study evaluating metabolic differences across nutritional stages reported that the direction of carnitine dysregulation changes during these transitional periods, with higher levels predominantly in infants who developed BPD [18]. In contrast, a cross-sectional study analyzing four time points found that most acylcarnitines, particularly short-and medium-chain carnitines, were lower in infants who developed BPD at postnatal day 28, but not at postnatal days 1, 7, or 42 [17]. Our findings are consistent with those of the cross-sectional study in infants of similar postnatal age, including the replication of lower hexanoylcarnitine (C6) levels in infants who develop BPD and no differences at earlier time points. Collectively, our study, along with others, suggests that the relationship between fatty acid metabolism and BPD varies over time and by mode of nutrition (parenteral vs. enteral), a longitudinal pattern also observed for several carnitines, and that reduced fatty acid availability during the fourth week of life may be either a marker or a contributor to BPD development.</p>
+<p>We also observed lower levels of C and B-complex vitamins during the fourth week of life in infants who developed BPD, including vitamins B1, B6, and C among infants receiving parenteral nutrition, with less pronounced differences among infants who transitioned to full enteral feeding. These findings are consistent with prior literature linking vitamin deficiencies to BPD [33] [34] [35]. Vitamin C is a cofactor in reactions regulating hypoxia-induced transcription factors and enhancing immune and anti-inflammatory responses, and a deficiency has also been attributed to cases of pulmonary hypertension [36], a common complication of BPD. B-complex vitamins support mitochondrial function [37] (vitamin B2), the metabolism of carbohydrates [38] (vitamins B1 and B6), amino acids [38] (vitamin B6), and lipids [38] (vitamin B6), and gut health and development [39, 40].</p>
+<p>Thus, deficiencies in B vitamins may limit energy availability in the lung, which relies on the catabolism of glucose, proteins, and lipids. Essential vitamins are obtained through nutrition and may have varying degrees of bioavailability and concentration in parenteral vs. enteral nutrition, prompting our subanalyses comparing infants receiving parenteral nutrition (either exclusively, transitioning to enteral feeding, or full enteral feeds for &lt;4 days) at time point 2 vs. those receiving full enteral nutrition for at least 4 days. It is important to note that during the feeding transition, infants routinely receive both parenteral and increasing amounts of enteral nutrition, and data on daily amounts were not available. Thus, lower urinary levels of vitamin-related metabolites in infants who developed BPD could reflect impaired enteral absorption, gut immaturity, insufficient vitamin supplementation, and/or higher physiological demand in sicker preterm infants. Future studies should evaluate whether targeted nutritional supplementation, including vitamin C, B1, B2 and B6, may benefit infants receiving parenteral nutrition, particularly those with later or delayed transition to enteral feeds.</p>
+<p>Vitamin deficiencies along with aberrant fatty acid metabolism could contribute to suboptimal weight gain, reduced growth, and impaired lung repair, warranting further investigation regarding their role in BPD and relationship with nutrition source. The lung and gut of infants who develop BPD are less mature developmentally for their gestational age, resulting in an increased need for respiratory, nutritional, and metabolic support.</p>
+<p>Over the first few postnatal weeks, sicker infants may have increased work of breathing and resting energy expenditure, leading to slower weight gain, less linear growth, and lower energy reserves. In addition, delays in maturational development and repair of lung structure and function could result in higher supplemental oxygen requirements, increased ventilatory pressure requirements, and transient hypoxemia with associated oxidative stress and inflammation.</p>
+<p>Strengths of our study include the multi-cohort design, including hundreds of infants from multiple centers at two time points, thereby capturing a greater degree of individual-level variation in the urinary metabolome of extremely premature infants. A potential weakness includes the use of urine samples stored at -80°C for up to 10 years, which may have led to oxidation or degradation of certain important metabolites. In addition, our study lacked detailed information on the volume of enteral nutrition received, infant growth parameters, and caloric intake. Therefore, additional studies are needed to replicate our findings in a more contemporary cohort and to incorporate more detailed information on nutrition type. In summary, we performed a metabolome-wide association study in extremely 361 premature infants during the first few weeks of life and identified specific metabolites and 362 metabolic pathways associated with the development of BPD. Our findings identify 363 nutritional and metabolic pathways for future clinical trials of nutritional supplementation 364 spanning lipids, essential amino acids, and vitamins B and C. Future studies are also 365 needed to determine whether there is a causal relationship between metabolic 366 dysregulation and the development of BPD, including the role of nutrition and nutrient 367 absorption. 368 369 infants from both cohorts at two sampling time points. Scatter plots of the first two principal components (PC1 and PC2). (A) PCA of 874 biochemicals detected in urine samples collected between postnatal days 5-15 (time point 1) across all infants. (B) PCA of 913 biochemicals detected in urine samples collected between postnatal days 23-32 (time point 2) across all infants. At time point 2, PCA was performed separately among infants receiving (C) parenteral nutrition and (D) full enteral nutrition. Percent values on each axis indicate the variance explained. points. Metabolite odds ratios are presented as log2(OR), and nominal p-values as -log10(p-value). The dashed red line indicates the nominal p=0.05 threshold used to define BPD-differential metabolites, and the dashed black line divides metabolites higher in infants who developed BPD (log2(OR)&gt;0) from those higher in infants who did not (log2(OR)&lt;0). Each metabolite is represented by a dot colored according to its super pathway. (A) Days 5-15 postnatal (time point 1) across all infants, (B) Days 23-32 postnatal (time point 2) across all infants, (C) Time point 2 among infants on parenteral nutrition, (D) Time point 2 among infants on full enteral nutrition. analysis p-values. Metabolites are shown in ascending p-value order from top to bottom. Horizontal error bars denote 95% confidence intervals. The solid vertical black line at  parenteral nutrition discontinuation by BPD status. Locally estimated scatterplot smoothing (LOESS) plots are shown for (A) 3-hydroxykynurenine, (B) 2methylmalonylcarnitine (C4-DC), (C) pimeloylcarnitine/3-methyladipoylcarnitine (C7-DC), (D) adipoylcarnitine (C6-DC), (E) vitamin C (ascorbic acid 3-sulfate*), and (F) vitamin B2 (riboflavin). Points represent individual observations, with connected points indicating measurements from the same infant. Shaded bands represent 95% confidence intervals around the LOESS fit for descriptive visualization and do not account for within-infant correlation from repeated measurements. The dashed vertical line indicates the day parenteral nutrition was discontinued (day 0). For all metabolites shown, increasing levels are generally observed after stopping parenteral nutrition, with visually slower increases among infants who develop BPD. indicate the number of BPD-differential metabolites identified in each analysis (set size). 578 Intersection bars show the number of metabolites shared across analyses. BPD-579 differential metabolites of known identity in more than one analysis are listed below their 580 corresponding intersections. Each metabolite is accompanied by a colored dot 581 corresponding to its super-pathway. Several BPD-differential metabolites identified 582 among all infants at time point 2 were also identified in the nutrition-stratified analyses, 583   Analysis used logistic regression for the TOLSURF and PROP cohorts separately, stratified by nutrition source (parenteral vs enteral nutrition), adjusting for gestational age, birthweight, sex, self-reported maternal race/ethnicity, and corticosteroids (&gt;1 day), followed by a meta-analysis. A negative effect size/unit change (beta) indicates metabolites of lower abundance in BPD infants. Metabolites are grouped by sub-pathway. Sub-pathways and metabolites are listed alphabetically. Complete results are provided in the supplementary material. Corresponding q-values from the parenteral nutrition MWAS ranged from 0.45 to 0.73 and are provided in Supplemental Table E4..</p>
+<h3>ACKNOWLEDGEMENTS</h3>
+<p>The authors would like to acknowledge all investigators and parents of the infants for their contributions to the TOLSURF and PROP studies.</p>
+<h3>FUNDING</h3>
+<p>This study was supported by NIH grants R01HL153429 (D.T.G., P.L.B., and C.C.), R01HL175076 (D.T.G. and R.D.H.), and R35GM158240 (R.D.H.). T.I.M.M. is a recipient of the National Science Foundation Graduate Research Fellowship. M.G. is a recipient of the Howard Hughes Medical Institute Gilliam Fellowship, Achievement Award for College Scientists Foundation Scholarship, and a UCSF Discovery Fellows Program Award. The funders had no role in the study design, data collection, analysis or interpretation, manuscript preparation, or decision to submit the manuscript for publication.</p>
+<h3>DATA AVAILABILITY STATEMENT</h3>
+<p>Summary statistics supporting the main findings of this study are provided in the main manuscript and supplementary material. Complete summary statistics for all metabolites profiled in each MWAS will be made available after manuscript acceptance. Individuallevel metabolite data are not publicly available and may be accessed upon reasonable request to Dara G. Torgerson, subject to the applicable study data access procedures and approvals.</p>
+<h3>COMPETING INTERESTS</h3>
+<p>The authors declare no competing interests.</p>
+<p>AUTHOR CONTRIBUTIONS Concept and design: Torgerson, Ballard, Malave-Mendez, Hernandez. Acquisition, analysis, and interpretation of data: All authors. Drafting of the manuscript: Malave-Mendez, Torgerson. Critical review of the manuscript for important intellectual content: Malave-Mendez, Ballard, Torgerson. Statistical analysis: Malave-Mendez, Torgerson, Hernandez. Obtained funding: Ballard, Torgerson, Hernandez. Administrative, technical, or material support: All authors. Supervision: Torgerson.</p>
+<h3>ETHICS APPROVAL</h3>
+<p>The research protocols for both studies were approved by the institutional review boards of the participating institutions. Written informed consent was obtained from a parent or guardian of each infant.</p>
+<h3>PATIENT AND PUBLIC INVOLVEMENT</h3>
+<p>Patients and the public were not involved in the design, conduct, reporting, or dissemination plans of this research.</p>
+<h3>[</h3>
+<p>p=0.0002, q=0.007], and Acyl Carnitine/Hydroxy [p=0.0002, q=0.007]), and Vitamin B6 Metabolism (p=0.02, q=0.50) (Table 6). The Cofactors and Vitamins super-pathway was enriched for infants on parenteral nutrition at time point 2 (p=0.02, q=0.15). No other analyses showed enrichment of super-pathways (data not shown). For infants on full enteral nutrition at time point 2, BPD-differential metabolites were enriched for Tryptophan Metabolism (p=0.03, q=1.0) and Androgenic Steroids (p=0.04, q=1.0) (Table</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Principal component analyses (PCA) of urinary metabolite levels of</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Volcano plot identifying BPD-differential metabolites at two sampling time</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Odds ratios for the 10 BPD-differential metabolites with the smallest meta-</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Longitudinal trajectories of selected individual metabolites relative to</p>
+<h3>Figure 5.</h3>
+<p>Figure 5. Overlap of BPD-differential metabolites across time point 2 analyses. The</p>
+<p>Figure 1.</p>
+<h3>.Figure 2.</h3>
+<p>Figure 2.</p>
+<h3>Figure 3.</h3>
+<p>Figure 3.</p>
+<h3>Figure 4.</h3>
+<p>Figure 4.682</p>
+<h3>Figure 5.</h3>
+<p>Figure 5.</p>
+<h3>Table 1.</h3>
+<p>Characteristics of infants from TOLSURF and PROP included in metabolomic 586studies by BPD status at 36 weeks postmenstrual age. 587</p>
+<h3>Table 2.</h3>
+<p>BPD-differential metabolites of known identity during postnatal days 5-15 (time 596 point 1). 597</p>
+<h3>Table 3.</h3>
+<p>BPD-differential metabolites of known identity during postnatal days 23-32 (time 599 point 2). 600 Meta meta-analysis; Beta beta-coefficient; SE standard error; p p-value; q q-value representing the false discovery rate associated with each metabolite Vitamins are in boldface.</p>
+<h3>Table 4.</h3>
+<p>BPD-differential metabolites of known identity unique to infants on parenteral 604nutrition during postnatal days 23-32 (time point 2). 605</p>
+<h3>Table 5.</h3>
+<p>BPD-differential metabolites of known identity unique to infants on full enteral 607 nutrition during postnatal days 23-32 (time point 2). 608Analysis used logistic regression for the TOLSURF and PROP cohorts separately, stratified by nutrition source (parenteral vs enteral nutrition), adjusting for gestational age, birthweight, sex, self-reported maternal race/ethnicity, and corticosteroids (&gt;1 day), followed by a meta-analysis. A negative effect size/unit change (beta) indicates metabolites of lower abundance in BPD infants. Metabolites are grouped by sub-pathway. Sub-pathways and metabolites are listed alphabetically. Complete results are provided in the supplementary material. Corresponding q-values from the full enteral nutrition MWAS were all 0.68 and are provided in Supplemental TableE5.</p>
+<h3>Table 6.</h3>
+<p>Metabolomic sub-pathway enrichment analyses of BPD-differential metabolites. 610 p p-value; q q-value representing the false discovery rate associated with each sub-pathway.Enrichment ratio was calculated as the proportion of BPD-differential metabolites within each sub-pathway divided by the proportion of BPD-differential metabolites among all metabolites evaluated in the pathway enrichment analysis. An enrichment ratio &gt;1 indicates overrepresentation of BPD-differential metabolites within the sub-pathway.</p>
+<h3>References</h3>
+<p>Cheong JLY, Doyle LW. An update on pulmonary and neurodevelopmental outcomes of bronchopulmonary dysplasia. Seminars in Perinatology. 2018;42:478-84. doi: 10.1053/j.semperi.2018.09.013</p>
+<p>Jensen EA, Edwards EM, Greenberg LT, et al. Severity of Bronchopulmonary Dysplasia Among Very Preterm Infants in the United States. Pediatrics. 2021;148:e2020030007. doi: 10.1542/peds.2020-030007</p>
+<p>Ibrahim J, Bhandari V. The definition of bronchopulmonary dysplasia: an evolving dilemma. Pediatr Res. 2018;84:586-8. doi: 10.1038/s41390-018-0167-9</p>
+<p>Thekkeveedu RK, Guaman MC, Shivanna B. Bronchopulmonary dysplasia: A Review of Pathogenesis and Pathophysiology. Respir Med. 2017;132:170-7. doi: 10.1016/j.rmed.2017.10.014</p>
+<p>Lewis TR, Kielt MJ, Walker VP, et al. Association of Racial Disparities With In-Hospital Outcomes in Severe Bronchopulmonary Dysplasia. JAMA Pediatrics. 2022;176:852- 9. doi: 10.1001/jamapediatrics.2022.2663</p>
+<p>Ambalavanan N, Van Meurs KP, Perritt R, et al. Predictors of death or bronchopulmonary dysplasia in preterm infants with respiratory failure. J Perinatol. 2008;28:420-6. doi: 10.1038/jp.2008.18</p>
+<p>7 Hennelly M, Greenberg RG, Aleem S. An Update on the Prevention and Management of Bronchopulmonary Dysplasia. Pediatric Health, Medicine and Therapeutics. 2021;12:405-19. doi: 10.2147/PHMT.S287693</p>
+<p>Principi N, Di Pietro GM, Esposito S. Bronchopulmonary dysplasia: clinical aspects and preventive and therapeutic strategies. J Transl Med. 2018;16:36. doi: 10.1186/s12967-018-1417-7</p>
+<p>Qiu S, Cai Y, Yao H, et al. Small molecule metabolites: discovery of biomarkers and therapeutic targets. Sig Transduct Target Ther. 2023;8:1-37. doi: 10.1038/s41392-023-01399-3</p>
+<p>You Y, Wang L, Liu C, et al. Early metabolic markers as predictors of respiratory complications in preterm infants with bronchopulmonary dysplasia. Early Human Development. 2024;190:105950. doi: 10.1016/j.earlhumdev.2024.105950</p>
+<p>Course CW, Lewis PA, Kotecha SJ, et al. Evidence of abnormality in glutathione metabolism in the airways of preterm born children with a history of bronchopulmonary dysplasia. Sci Rep. 2023;13:19465. doi: 10.1038/s41598-023-46499-w</p>
+<p>Chiu C-Y, Chiang M-C, Chiang M-H, et al. Metabolomic Analysis Reveals the Association of Severe Bronchopulmonary Dysplasia with Gut Microbiota and Oxidative Response in Extremely Preterm Infants. Metabolites. 2024;14:219. doi: 10.3390/metabo14040219</p>
+<p>Sun H, Yu M, He L, et al. Targeted blood metabolomics in infants with bronchopulmonary dysplasia. Research Square [Preprint]. 2024. doi:10.21203/rs.3.rs-4544343/v1</p>
+<p>La Frano MR, Fahrmann JF, Grapov D, et al. Umbilical cord blood metabolomics reveal distinct signatures of dyslipidemia prior to bronchopulmonary dysplasia and pulmonary hypertension. American Journal of Physiology-Lung Cellular and Molecular Physiology. 2018;315:L870-81. doi: 10.1152/ajplung.00283.2017</p>
+<p>Fanos V, Cristina Pintus M, Lussu M, et al. Urinary metabolomics of bronchopulmonary dysplasia (BPD): preliminary data at birth suggest it is a congenital disease. The Journal of Maternal-Fetal &amp; Neonatal Medicine. 2014;27:39-45. doi: 10.3109/14767058.2014.955966</p>
+<p>Pintus MC, Lussu M, Dessì A, et al. Urinary 1H-NMR Metabolomics in the First Week of Life Can Anticipate BPD Diagnosis. Oxid Med Cell Longev. 2018;2018:7620671. doi: 10.1155/2018/7620671</p>
+<p>Ye C, Wu J, Reiss JD, et al. Progressive Metabolic Abnormalities Associated with the Development of Neonatal Bronchopulmonary Dysplasia. Nutrients. 2022;14:3547. doi: 10.3390/nu14173547</p>
+<p>Wang L, Zhong WH, Liu DY, et al. Metabolic analysis of infants with bronchopulmonary dysplasia under early nutrition therapy: An observational cohort study. Exp Biol Med (Maywood). 2022;247:470-9. doi: 10.1177/15353702211060513</p>
+<p>Piersigilli F, Lam TT, Vernocchi P, et al. Identification of new biomarkers of bronchopulmonary dysplasia using metabolomics. Metabolomics. 2019;15:20. doi: 10.1007/s11306-019-1482-9</p>
+<p>Bonadies L, Calgaro S, Stocchero M, et al. Early prediction of bronchopulmonary dysplasia by urinary metabolomics: a case-control study. Published Online First: 1 March 2026. doi: 10.1136/thorax-2025-223090</p>
+<p>Malave-Mendez T, Guardado M, Chapin C, et al. Metabolomic Fingerprint of Bronchopulmonary Dysplasia in Extremely Premature Infants. Am J Respir Crit Care Med. 2025;211:A5432-A5432. doi: 10.1164/ajrccm.2025.211.Abstracts.A5432</p>
+<p>Ballard RA, Truog WE, Cnaan A, et al. Inhaled Nitric Oxide in Preterm Infants Undergoing Mechanical Ventilation. New England Journal of Medicine. 2006;355:343-53. doi: 10.1056/NEJMoa061088</p>
+<p>Guardado M, Steurer M, Chapin C, et al. The Urinary Metabolomic Fingerprint in Extremely Preterm Infants on Total Parenteral Nutrition vs. Enteral Feeds. Metabolites. 2023;13:971. doi: 10.3390/metabo13090971</p>
+<p>Torgerson D, Guardado M, Steurer M, et al. The hydrocortisone-responsive urinary metabolome of premature infants. Pediatr Res. 2023;94:1317-26. doi: 10.1038/s41390-023-02610-5</p>
+<p>Storey J, Bass A, Dabney A, et al. qvalue: Q-value estimation for false discovery rate control. 2025. doi: 10.18129/B9.bioc.qvalue</p>
+<p>Welcome to Python.org. Python.org. 2026. https://www.python.org/ (accessed 9 February 2026)</p>
+<p>R: The R Project for Statistical Computing. https://www.r-project.org/ (accessed 9 February 2026)</p>
+<p>Naja K, Hedaya L, Elashi AA, et al. N-Lactoyl Amino Acids: Emerging Biomarkers in Metabolism and Disease. Diabetes/Metabolism Research and Reviews. 2025;41:e70060. doi: 10.1002/dmrr.70060</p>
+<p>Harville EW, Bazzano L, Qi L, et al. Branched-chain amino acids, history of gestational diabetes, and breastfeeding: The Bogalusa Heart Study. Nutrition, Metabolism and Cardiovascular Diseases. 2020;30:2077-84. doi: 10.1016/j.numecd.2020.06.015</p>
+<p>Yang Y, Yang Q, Luo S, et al. Comparative Analysis Reveals Novel Changes in Plasma Metabolites and Metabolomic Networks of Infants With Retinopathy of Prematurity. Invest Ophthalmol Vis Sci. 2022;63:28. doi: 10.1167/iovs.63.1.28</p>
+<p>Abdel-Hady H, Nasef N, Shabaan AE, et al. Caffeine therapy in preterm infants. World J Clin Pediatr. 2015;4:81-93. doi: 10.5409/wjcp.v4.i4.81</p>
+<p>Ma J, Chen L, Mu K, et al. Early caffeine therapy decreases bronchopulmonary dysplasia but might increase mortality in preterm infants? a systematic review and meta-analysis. Front Pediatr. 2025;13:1528054. doi: 10.3389/fped.2025.1528054</p>
+<p>Park HW, Lim G, Park Y-M, et al. Association between vitamin D level and bronchopulmonary dysplasia: A systematic review and meta-analysis. PLoS One. 2020;15:e0235332. doi: 10.1371/journal.pone.0235332</p>
+<p>Ge H, Liu W, Li H, et al. The association of vitamin D and vitamin E levels at birth with bronchopulmonary dysplasia in preterm infants. Pediatric Pulmonology. 2021;56:2108-13. doi: 10.1002/ppul.25414</p>
+<p>Verma RP, McCulloch KM, Worrell L, et al. Vitamin A deficiency and severe bronchopulmonary dysplasia in very low birthweight infants. Am J Perinatol. 1996;13:389-93. doi: 10.1055/s-2007-994376</p>
+<p>Hemilä H, de Man AME. Vitamin C deficiency can lead to pulmonary hypertension: a systematic review of case reports. BMC Pulm Med. 2024;24:140. doi: 10.1186/s12890-024-02941-x</p>
+<p>Balasubramaniam S, Yaplito-Lee J. Riboflavin metabolism: role in mitochondrial function. jtgg. 2020;4:285-306. doi: 10.20517/jtgg.2020.34</p>
+<p>Stach K, Stach W, Augoff K. Vitamin B6 in Health and Disease. Nutrients. 2021;13:3229. doi: 10.3390/nu13093229</p>
+<p>Yates CA, Evans GS, Pearson T, et al. Absence of luminal riboflavin disturbs early postnatal development of the gastrointestinal tract. Dig Dis Sci. 2003;48:1159-64. doi: 10.1023/a:1023785200638</p>
+<p>Park J, Hosomi K, Kawashima H, et al. Dietary Vitamin B1 Intake Influences Gut Microbial Community and the Consequent Production of Short-Chain Fatty Acids. Nutrients. 2022;14:2078. doi: 10.3390/nu14102078</p>
 </div>
 </details>
 </div>
