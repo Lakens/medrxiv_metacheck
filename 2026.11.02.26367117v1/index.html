@@ -198,7 +198,7 @@ testing and later pregnancy complications: a secondary analysis of the
 nuMoM2b cohort
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.02.26367117
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.02.26367117
 </p>
 </header>
 <div class="mc-main">
@@ -466,8 +466,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -837,9 +838,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -861,7 +866,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -876,9 +882,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -891,13 +915,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -917,6 +944,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -924,12 +957,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1030,6 +1069,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1049,6 +1108,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1304,19 +1398,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1426,6 +1602,122 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>We tested whether direction-specific nocturnal cardiorespiratory coupling (CRC) in the first trimester differed in pregnancies that later developed obstetric complications. The analysis included 2,504 nulliparous women from the nuMoM2b cohort with valid level 3 home sleep recordings at 6-13 weeks&#x27; gestation. Bidirectional CRC between RR intervals and abdominal respiratory effort was quantified using bivariate phase-rectified signal averaging in consecutive 5min segments. Coupling strength, local transition dynamics, and waveform irregularity were summarized by nightly mean and standard deviation. Associations with gestational diabetes mellitus (GDM; n = 111), preeclampsia (n = 149), preterm birth (n = 192), and fetal macrosomia (n = 186) were examined using proportional-odds models with CRC feature quintile as the ordered outcome. Models included all four complications simultaneously and adjusted for maternal age, pre-pregnancy body mass index, race and ethnicity, gestational age at recording, relevant medical and family history, medication use, and apnea-hypopnea index &gt;5 events•h⁻¹. Holm correction was applied across outcomes. GDM was associated with lower respiration-to-heart rate coupling strength (cumulative odds ratio, 0.45; 95% CI, 0.31-0.64; P &lt; 0.001) and shallower slope at the anchor point (0.63; 0.45-0.89; P = 0.03). Fetal macrosomia was associated with lower within-night variability in heart rate-to-respiration waveform irregularity (0.59; 0.45-0.77; P &lt; 0.001). No associations with preeclampsia or preterm birth remained significant after correction. Directionspecific differences in nocturnal CRC were detectable in the first trimester in pregnancies that later developed GDM or resulted in fetal macrosomia.</p>
+<p>Using home sleep recordings from 2,504 women in the first trimester, we found direction-specific differences in maternal cardiorespiratory coupling in pregnancies that later developed gestational diabetes or resulted in fetal macrosomia. Gestational diabetes was associated with lower respiration-to-heart rate coupling strength, whereas fetal macrosomia was associated with lower within-night variability in heart rate-to-respiration coupling irregularity. No significant associations were observed for preeclampsia or preterm birth.</p>
+<h3>1. Introduction</h3>
+<p>Pregnancy complications such as gestational diabetes mellitus (GDM), preeclampsia (PE), preterm birth (PTB), and fetal macrosomia remain common and contribute substantially to maternal and perinatal morbidity worldwide [1] [2] [3] [4] [5]. These complications span distinct pathophysiological domains: GDM and fetal macrosomia share a common metabolic substrate centered on insulin resistance and altered glucose-lipid metabolism [6, 7]. PE is strongly associated with placental and vascular dysfunction, whereas PTB has heterogeneous causes [8, 9]. Because physiological maladaptation may begin before clinical diagnosis, identifying early changes in maternal regulation could help determine when diqerences associated with pregnancy complications first become detectable [10] [11] [12] [13].</p>
+<p>Much of the existing physiological literature on early pregnancy has focused on unidimensional autonomic markers, such as heart rate variability, which provide a broad picture of maternal autonomic adaptation but do not capture direction-specific coordination between cardiovascular and respiratory regulation [14] [15] [16] [17] [18] [19]. Cardiorespiratory coupling (CRC) oqers a way to characterize this interaction more directly. Previous studies have reported altered cardiorespiratory coupling in pregnancies complicated by PE, but these studies were generally small, clinic-based, crosssectional, or conducted after the complication had already emerged [20] [21] [22]. As a result, it remains unclear whether altered CRC is already detectable in early pregnancy and whether any associations are shared across, or diqer between, later obstetric complications.</p>
+<p>Sleep provides a relatively stable physiological context for assessing CRC because voluntary activity and behavioral variability are reduced. Home sleep recordings also allow prolonged assessment of cardiac and respiratory signals under unsupervised conditions [23, 24].</p>
+<p>In this study, we examined whether direction-specific nocturnal CRC, assessed from first-trimester home sleep recordings, was associated with subsequent GDM, PE, PTB, and fetal macrosomia. We further assessed whether the associations were shared across complications or were outcome specific.</p>
+<h3>2. Methods</h3>
+<p> &gt;Methods</p>
+<h3>2.1 Study design, participants, and data source</h3>
+<p>This study was a secondary analysis of the Nulliparous Pregnancy Outcomes Study: Monitoring Mothers-to-Be (nuMoM2b), a prospective multicenter cohort conducted at eight US clinical centers [25]. In the parent cohort, nulliparous women with singleton pregnancies were enrolled and attended study visits at 6-13 weeks&#x27; gestation (visit 1), 16-21 weeks (visit 2), 22-29 weeks (visit 3), and at delivery, with prospective ascertainment of obstetric outcomes [25].</p>
+<p>The present analysis used data from the nuMoM2b sleep ancillary study, in which a subset of participants underwent level-3 home sleep testing at visit 1 [26]. Participants were eligible for the current analysis if they had valid visit-1 home sleep recordings with analyzable electrocardiogram and respiratory effort signals, complete outcome ascertainment, and complete prespecified baseline covariates. Participants with pregestational diabetes were excluded because GDM was an outcome of interest. The cohort selection process is summarized in Supplemental Figure S1.</p>
+<p>Prespecified maternal covariates included age, pre-pregnancy body-mass index (BMI), race and ethnicity, polycystic ovary syndrome (PCOS), family history of diabetes or obstetric complications, psychotropic or cardiovascular medication use before or in early pregnancy, and gestational age at the sleep test. Family-history variables, although ascertained after visit 1 in the parent study, were treated as baseline variables because they reflect pre-pregnancy status. Respiratory events were scored centrally by certified scorers in the nuMoM2b sleep ancillary study; full scoring and qualitycontrol procedures have been described previously [26]. Because the level-3 recordings did not include electroencephalography, the apnea-hypopnea index (AHI) was calculated as the number of apneas and hypopneas per hour of estimated sleep, with the sleep period estimated from recorded times in bed together with heart rate, respiratory, movement, and position signals. Hypopneas were defined as a reduction in nasal pressure (or the respiratory sum channel when nasal pressure was unavailable) lasting at least 10 seconds and accompanied by at least a 3% oxygen desaturation. AHI greater than 5 events per hour was included as a prespecified covariate in the primary adjusted models.</p>
+<p>The Eunice Kennedy Shriver National Institute of Child Health and Human Development review board and the Eindhoven University of Technology ethical review board approved this secondary analysis. In the parent nuMoM2b study, written informed consent was obtained from all participants by trained study personnel at each site, as previously described [25].</p>
+<h3>2.2 Signal extraction and preprocessing</h3>
+<p>From visit-1 home sleep recordings, we used the single-lead bipolar electrocardiogram (ECG; 200 Hz), abdominal respiratory effort signal (50 Hz), and body activity signal derived from the internal X-Y gravity sensor (10 Hz) [26]. Because gross motion and sensor displacement can distort physiological signals in home recordings, segments with non-zero motion counts derived from the body activity signal were excluded [27].</p>
+<p>For the electrocardiogram, the signal was band-pass filtered (0.5-40 Hz) and normalized to facilitate R-peak detection [28]. R-peaks were detected using HeartPy, which applies adaptivethreshold peak detection to the filtered signal [28], and consecutive RR intervals were calculated. RR intervals considered physiologically implausible or likely artifactual (&gt;2.0 s, &lt;0.4 s, or differing by more than 20% from the preceding interval) were excluded. The remaining RR intervals were retained as a beat-to-beat tachogram for subsequent BPRSA analysis.</p>
+<p>For the respiratory effort signal, a low-pass filter (0.6 Hz) was applied to emphasize breathing-cycle morphology for peak and trough detection [29]. The signal was then centered by subtracting its median value. Respiratory peaks and troughs were identified from turning points based on sign changes in the first derivative. Detected respiratory events were excluded if they failed prespecified interval or amplitude thresholds [29].</p>
+<h3>2.3 Direction-specific CRC analysis</h3>
+<p>We quantified direction-specific CRC using bivariate phase-rectified signal averaging (BPRSA) [26].</p>
+<p>BPRSA permits direction-specific analysis of nonstationary physiological signals by defining anchor points in a trigger signal and quantifying the corresponding response in a target signal [30].</p>
+<p>For clarity, we use the term &quot;heart rate&quot; when describing the coupling direction, although the analysis was performed on the beat-to-beat RR-interval tachogram. We examined two distinct directional pathways. The first, respiration-to-heart rate coupling, used the onsets of exhalation and inhalation as respiratory anchor points. For each anchor point, a window of 2L+1 consecutive RR intervals (L=150 RR intervals) was extracted from the beat-to-beat tachogram, aligned by RRinterval lag, and averaged to construct a BPRSA waveform. For heart rate-to-respiration coupling, the respiratory effort signal was resampled to 10 Hz so that the 301-point window spanned a duration similar to that used in previous work [16]. Heart-rate acceleration and deceleration events served as cardiac anchor points. For each anchor point, 301 respiratory samples were extracted, aligned, normalized, and averaged to generate a BPRSA waveform. From each BPRSA waveform, we extracted maximum BPRSA amplitude (MBA), slope at the anchor point (SAP), and sample entropy (Entropy), representing coupling strength, local transition dynamics, and waveform irregularity or complexity, respectively. For sample entropy, the embedding dimension was set to 4 and the tolerance to 0.2 times the waveform standard deviation [16].</p>
+<p>To characterize overnight dynamics, the trigger signal was divided into non-overlapping 5-minute segments. For each segment and each coupling direction, anchor points identified within that segment were used to construct a local BPRSA waveform; extraction windows in the target signal were allowed to extend beyond segment boundaries when needed. MBA, SAP, and Entropy were then computed for each local waveform. For each feature and coupling direction, nightly mean and nightly standard deviation were calculated, yielding 12 CRC features per participant (3 features × 2 summaries × 2 directions). For presentation, the same feature labels are used for both directions, with the coupling direction specified separately in the Results and Tables.</p>
+<h3>2.4 Ascertainment of pregnancy outcomes</h3>
+<p>Prespecified primary outcomes were GDM, PE, PTB, and fetal macrosomia. Outcome definitions followed nuMoM2b criteria and established obstetric definitions [25, 31, 32]. PTB was defined as delivery between 20 and 36 completed weeks of gestation. GDM was diagnosed using routine oral glucose tolerance testing at 24-28 weeks according to nuMoM2b prespecified criteria [25]. PE was defined as new-onset hypertension after 20 weeks with proteinuria or severe end-organ dysfunction [25]. Fetal macrosomia was defined as birthweight greater than 4000 g [31, 32].</p>
+<h3>2.5 Statistical analysis</h3>
+<p>We assessed associations between first-trimester CRC features and subsequent outcomes using proportional-odds ordinal logistic regression. Because CRC features are dimensionless and were not assumed to relate linearly to obstetric risk, each feature was divided into cohort-specific quintiles and modeled as an ordered outcome.</p>
+<p>For each feature and coupling direction, GDM, PE, PTB and fetal macrosomia were entered simultaneously as predictors, together with prespecified maternal covariates. Primary models adjusted for age, pre-pregnancy body-mass index, race and ethnicity, polycystic ovary syndrome, family history of diabetes or obstetric complications, psychotropic or cardiovascular medication use before or in early pregnancy, gestational age at the sleep test, and AHI greater than 5 events per hour. Results are reported as cumulative odds ratios with 95% confidence intervals. An odds ratio greater than 1 indicates a shift toward higher feature quintiles, whereas an odds ratio less than 1 indicates a shift towards lower feature quintiles.</p>
+<p>Nightly mean features were prespecified as primary CRC outcomes, and nightly standard deviation features were considered secondary outcomes. Holm correction was applied to the four obstetric predictors within each model. For associations meeting Holm-adjusted p&lt;0.05, we derived modelbased predicted probabilities across feature quintiles and estimated 95% confidence intervals using 1000 bootstrap resamples.</p>
+<p>Because the prespecified CRC features represented distinct aspects of coupling strength, transition dynamics, waveform irregularity, direction, and overnight variability, each feature was analyzed separately. Within each model, the four pregnancy complications constituted one family of hypotheses and were corrected using the Holm procedure. As a sensitivity analysis, the Benjamini-Hochberg procedure was applied jointly across all features, directions, summaries, and complications. All signal processing, BPRSA feature extraction, and statistical analyses were performed in Python 3.8.12.</p>
+<h3>2.6 Exploratory prediction analyses</h3>
+<p>To complement the association analyses, we examined whether first-trimester CRC features provided information about subsequent complications beyond routinely available maternal characteristics. For each complication, we compared a baseline model containing the prespecified maternal covariates (section 2.5) with an augmented model that additionally included the coupling features, and assessed whether adding coupling features improved the identification of affected women. Model performance was summarized by discrimination (area under the receiver operating characteristic curve and area under the precision-recall curve), with calibration and reclassification reported in Supplemental Figure S2. Model performance and its incremental change were estimated by bootstrap resampling (1000 resamples). These analyses were exploratory and were not intended to develop or validate a clinical prediction model.</p>
+<h3>3. Results</h3>
+<p> &gt;Results</p>
+<h3>3.1 Cohort characteristics</h3>
+<p>Of the women enrolled in the nuMoM2b sleep ancillary study, 2504 met the eligibility criteria for the present analysis, having valid first-trimester electrocardiogram and respiratory eqort signals, complete outcome ascertainment, and prespecified covariates. The mean gestational age at the home sleep recording was 12.2 weeks (SD 1.5). Overall, 205 (8.2%) women reported psychotropic medication use before or in early pregnancy, and 80 (3.2%) had an apnea-hypopnea index (AHI) greater than 5 events per hour. During follow-up, 111 (4.4%) women developed gestational diabetes mellitus (GDM), 149 (5.9%) developed preeclampsia (PE), 192 (7.7%) had preterm birth (PTB), and 186 (7.4%) delivered a macrosomic infant. Baseline characteristics and outcome frequencies are summarized in Table 1. When stratified by complication status (Supplemental Tables S1-S2), women who later developed GDM were on average older (29.9 vs 26.6 years), had a higher prepregnancy BMI (29.5 vs 26.3 kg/m²), and were more likely to have a family history of diabetes (31.5% vs 20.4%); a similar metabolic profile was seen for fetal macrosomia. By contrast, the PE and PTB groups diqered primarily in the distribution of race/ethnicity and corresponding family histories. A comparison of baseline characteristics between the analytic cohort and eligible women not included in the analysis showed no statistically significant diqerences in age, BMI, medication use, or family history (Supplemental Table S3). The prevalence of all four pregnancy outcomes was also similar between groups (all p&gt;0.05). Modest diqerences were observed in the distribution of two race/ethnicity categories, although absolute diqerences were small (&lt;2 percentage points) and race/ethnicity was included as a covariate in all adjusted models. PCOS prevalence diqered nominally, but this comparison was limited by a high proportion of missing PCOS data (&gt;80%) in the parent cohort.</p>
+<p>Table 1: Maternal sociodemographic factors and pregnancy complications Characteristics Age, mean (SD), y 26.8 (5.6) Pre-pregnancy BMI, mean (SD), kg/m 2 26.3 (6.3) Family history of diabetes, No. (%) 522 (20.8%) Family history of PE, No. (%) 262 (10.4%) Family history of PTB, No. (%) 252 (10.4%) PCOS, No. (%) 140 (5.6%) Race and Ethnicity, No. (%) -Non-Hispanic White 1552 (62.0%) -Non-Hispanic Black 289 (11.5%) -Hispanic 454 (18.1%) -AAPI 97 (3.9%) -Other/Unknown 113 (4.5%) R-R Interval, mean (SD), ms 847.8 (67.7) Breathing Interval, mean (SD), s 3.7 (0.4) Use of cardiovascular medications, No. (%) 122 (4.8%) Use of psychotropic medications, No. (%) 205 (8.2%) AHI &gt; 5, No. (%) 80 (3.2%) Gestational age, mean (SD), weeks 12.2 (1.5) Pregnancy complications PTB 192 (7.7%) GDM 111 (4.4%) PE 149 (5.9%) Fetal macrosomia 186 (7.4%) Abbreviations: SD, standard deviation; y, years; BMI, body mass index; kg/m², kilograms per square meter; No. (%), number (percentage); PCOS, polycystic ovary syndrome; AAPI, Asian American and Pacific Islander; AHI, apnea-hypopnea index; PTB, preterm birth; GDM, gestational diabetes mellitus; PE, preeclampsia.</p>
+<h3>3.2 Primary associations: Nightly mean coupling features</h3>
+<p>After covariate adjustment and Holm correction, significant associations among the nightly mean features were observed only for GDM and only in the respiration-to-heart rate direction. Effect estimates for overall PE, PTB, and fetal macrosomia were generally close to the null (Figure 1).</p>
+<p>Specifically, women who later developed GDM were less likely to occupy higher quintiles of respiration-to-heart rate coupling strength (maximum BPRSA amplitude [MBA] nightly mean: cumulative odds ratio 0.45, 95% CI 0.31-0.64; Holm-adjusted p&lt;0.001) and of local transition dynamics (slope at the anchor point [SAP] nightly mean: 0.63, 0.45-0.89; Holm-adjusted p=0.03). In the heart rate-to-respiration direction, cumulative odds ratios for nightly mean features were close to 1 across all outcomes.</p>
+<p>Model-based predicted probabilities illustrated the magnitude of this shift (Figure 2). For respiration-to-heart rate coupling strength, women who subsequently developed GDM had a higher predicted probability of falling into the lowest quintile than those who did not (33% vs 19%) and a lower probability of occupying the highest quintile (10% vs 20%). The corresponding differences in predicted probability were +14 percentage points for the lowest quintile and -10 percentage points for the highest quintile.</p>
+<h3>3.3 Secondary associations: Within-night coupling variability</h3>
+<p>Among nightly SD features, fewer associations remained significant after Holm correction than among nightly mean features. The clearest association was observed for fetal macrosomia in the heart rate-to-respiration direction (Figure 3).</p>
+<p>Lower within-night variability in heart rate-to-respiration waveform irregularity (entropy nightly SD) was associated with fetal macrosomia (cumulative odds ratio 0.59, 95% CI 0.45-0.77; Holmadjusted p&lt;0.001). Women who later delivered a macrosomic infant were more likely to fall into the lowest entropy-SD quintile and less likely to fall into the highest quintile than women without macrosomia; the corresponding differences in predicted probability +10 and -7 percentage points, respectively (Figure 4). Variability features in the respiration-to-heart rate direction were not significantly associated with any prespecified outcome after Holm correction.</p>
+<h3>3.4 Exploratory prediction analyses</h3>
+<p>Across all four complications, the additional information from coupling features was most 299 consistent for GDM, for which discrimination improved (area under the receiver operating 300 characteristic curve 0.68 to 0.71). A smaller improvement in the same direction was seen for fetal 301 macrosomia (0.62 to 0.64), whereas gains for the PTB and PE were minimal and inconsistent. The 302 exploratory prediction results were consistent with the primary analyses, with the clearest 303 incremental information observed for GDM and, to a lesser extent, fetal macrosomia. 306 show cumulative odds ratios (ORs) and 95% CIs for cohort-specific quintiles of nightly mean features in the 307 respiration-to-heart rate direction (A-C) and the heart rate-to-respiration direction (D-F). Dashed vertical 308 lines indicate OR=1. Models were adjusted as described in Methods. MBA=maximum BPRSA amplitude. 309 SAP=slope at the anchor point. 310 GDM PE PTB FM GDM PE PTB FM (a) (b) (c) Coupling from respiration to heart rate Coupling from heart rate to respiration  &gt;Discussion</p>
+<h3>4.1 Main findings</h3>
+<p>In this secondary analysis of first-trimester home sleep recordings from 2,504 women, nocturnal CRC showed outcome-and direction-specific associations with later pregnancy complications.</p>
+<p>Women who later developed GDM had lower respiration-to-heart rate coupling strength and slower local transition dynamics, whereas fetal macrosomia was associated with lower within-night variability in heart rate-to-respiration coupling irregularity. Associations with PE and PTB were not significant after multiplicity correction.</p>
+<h3>4.2 Interpretation and relation to previous work</h3>
+<p>The GDM association was graded across CRC quintiles and was observed specifically in the respiration-to-heart rate direction. This is consistent with previous findings of reduced maternal autonomic modulation before GDM diagnosis [33]. Because CRC was measured at 6-13 weeks and GDM was diagnosed at 24-28 weeks, the observed coupling differences preceded clinical diagnosis. These differences may involve pathways related to insulin resistance and inflammatory signaling that affect central cardiorespiratory control [33, 34, 36], although the present study cannot establish the mechanism.</p>
+<p>The pattern for fetal macrosomia was distinct from that of GDM and should be interpreted more cautiously, as it was supported by a single coupling feature rather than by convergent associations across features. Lower within-night variability in heart rate-to-respiration coupling irregularity may reflect reduced flexibility of cardiorespiratory regulation in pregnancies resulting in fetal macrosomia [15, 35, 36]. GDM and fetal macrosomia both involve altered maternal metabolic regulation, although the present data do not establish a shared mechanism.</p>
+<p>The principal GDM and macrosomia findings remained significant after global false-discovery-rate correction. Similar associations were not observed for PE or PTB.</p>
+<h3>4.3 Physiological and translational implications</h3>
+<p>Nocturnal CRC may provide information about maternal physiological regulation in early pregnancy, but the modest improvements in the exploratory prediction analyses do not support its use as a standalone clinical predictor. Further evaluation will require independent cohorts.</p>
+<p>Future studies should determine whether the observed CRC associations differ across sleep stages rather than relying only on whole-night averages. External validation and prospective studies are also needed to assess their reproducibility and physiological relevance. The derivation of CRC features from unsupervised home recordings may facilitate their evaluation beyond the sleep laboratory. Future wearable systems capable of recording cardiac and respiratory signals during sleep could provide opportunities to evaluate these physiological features in larger prospective cohorts.</p>
+<h3>4.4 Strengths and limitations</h3>
+<p>The strengths of this study include its basis in a large prospective multicenter cohort of nulliparous women, the use of scalable first-trimester home sleep recordings, and a direction-specific analytical framework applied to synchronized ECG and respiratory effort signals. Evaluating multiple major outcomes within a single modeling framework allowed direct comparison of coupling associations across complications.</p>
+<p>Several limitations should be considered. First, the level-3 home recordings did not include EEGbased sleep staging; because coupling varies by sleep state [16], averaging across the night may have diluted state-specific associations. Second, only a subset of the parent cohort had analyzable first-trimester recordings and complete data, which may limit generalizability. The analytic cohort and the remaining eligible women were similar in age, BMI, clinical characteristics, and the prevalence of all four pregnancy outcomes (Supplemental Table S3), although selection bias cannot be excluded. Third, adjustment for an AHI greater than 5 events per hour did not materially change the main estimates, although residual confounding by other dimensions of sleepdisordered breathing remains possible. Snoring was not explicitly detected during preprocessing.</p>
+<p>Although the RR-interval and respiratory-event quality criteria may have removed some obvious snoring-related disturbances, residual interference with the CRC estimates cannot be excluded.</p>
+<p>Fourth, by design, our coupling features emphasized dynamic interaction rather than absolute heart-rate or respiratory variability; the latter has also been linked to adverse outcomes [33, 37] and could provide complementary information. Fifth, discretizing continuous coupling features into quintiles improved interpretability but may have reduced statistical power and obscured nonmonotonic associations. Sixth, although we corrected for multiple testing within each model and confirmed the primary associations under a global false-discovery-rate correction, the observed association with macrosomia was confined to a single coupling feature and therefore requires independent replication. Finally, the prediction analyses were internally derived using bootstrap resampling, without an external validation cohort, and should be regarded as hypothesisgenerating.</p>
+<h3>5. Conclusion</h3>
+<p>First-trimester nocturnal CRC showed direction-and outcome-specific associations with later GDM and fetal macrosomia, whereas associations with PE and PTB were not significant after multiplicity correction. These findings suggest that diqerences in maternal cardiorespiratory regulation were detectable in the first trimester in pregnancies that later developed GDM or resulted in fetal macrosomia. External validation and studies incorporating sleep-state information are needed to clarify the physiological basis and reproducibility of these associations.</p>
+<h3>Grants</h3>
+<p>This work was supported by the China Scholarship Council (Grant No. 201906340168 to Y.W.). The study was conducted within the framework of the Eindhoven MedTech Innovation Center.</p>
+<h3>Data availability</h3>
+<p>No new participant data were collected for this secondary analysis. Deidentified clinical and pregnancy-outcome data from the Nulliparous Pregnancy Outcomes Study: Monitoring Mothers-to-Be (nuMoM2b) are available through the Eunice Kennedy Shriver National Institute of Child Health and Human Development Data and Specimen Hub (NICHD DASH), subject to the repository&#x27;s application procedures and data-use agreement. Deidentified home sleep recordings are available through the National Sleep Research Resource, subject to its access requirements and data-use agreement. Data dictionaries and study documentation are available through the respective repositories. The authors are not permitted to redistribute the source participant-level data.</p>
+<p>Analysis code used to generate the reported results will be available from the corresponding author upon reasonable request, subject to the terms of the original data-use agreements.</p>
+<h3>Figure 1 :Figure 2 :Figure 3 :Figure 4 :</h3>
+<p>Figure 1: Associations of nightly mean CRC features with later pregnancy complications. Forest plots</p>
+<h3>References</h3>
+<p>Chawanpaiboon S, Vogel JP, Moller A-B, et al. Global, regional, and national estimates of levels of preterm birth in 2014: a systematic review and modelling analysis. Lancet Glob Health 2019; 7(1): e37-46. doi:10.1016/S2214-109X(18)30451-0.</p>
+<p>Ohuma EO, Moller A-B, Bradley E, et al. National, regional, and global estimates of preterm birth in 2020, with trends from 2010: a systematic analysis. Lancet 2023; 402(10409): 1261-71. doi:10.1016/S0140-6736(23)00878-4.</p>
+<p>Steegers EAP, von Dadelszen P, Duvekot JJ, Pijnenborg R. Pre-eclampsia. Lancet 2010; 376(9741): 631-44. doi:10.1016/S0140-6736(10)60279-6.</p>
+<p>Saravanan P, Magee LA, Banerjee A, et al. Gestational diabetes: opportunities for improving maternal and child health. Lancet Diabetes Endocrinol 2020; 8(9): 793-800. doi:10.1016/S2213-8587(20)30161-3.</p>
+<p>Cresswell JA, Campbell OMR, De Silva MJ, et al. Global and regional causes of maternal deaths 2009-20: a WHO systematic analysis. Lancet Glob Health 2025; 13(4): e626-34. doi:10.1016/S2214-109X(24)00560-6.</p>
+<p>McIntyre HD, Catalano P, Zhang C, Desoye G, Mathiesen ER, Damm P. Gestational diabetes mellitus. Nat Rev Dis Primers 2019; 5: 47.</p>
+<p>HAPO Study Cooperative Research Group. Hyperglycemia and adverse pregnancy outcomes. N Engl J Med 2008; 358: 1991-2002.</p>
+<p>Chappell LC, Cluver CA, Kingdom J, Tong S. Pre-eclampsia. Lancet 2021; 398: 341-54.</p>
+<p>Romero R, Dey SK, Fisher SJ. Preterm labor: one syndrome, many causes. Science 2014; 345: 760-5.</p>
+<p>Rasmussen M, Reddy M, Nolan R, Camunas-Soler J, Khodursky A, Scheller NM, et al. RNA profiles reveal signatures of future health and disease in pregnancy. Nature 2022; 601: 422-27. doi:10.1038/s41586-021-04249-w.</p>
+<p>Chappell LC, Cluver CA, Kingdom J, Tong S. Pre-eclampsia. Lancet 2021; 398(10297): 341-54. doi:10.1016/S0140-6736(20)32335-7.</p>
+<p>Rahman ML, Feng YCA, Fiehn O, Albert PS, Tsai MY, Zhu Y, et al. Plasma lipidomics profile in pregnancy and gestational diabetes risk: a prospective study in a multiracial/ethnic cohort. BMJ Open Diabetes Res Care 2021; 9(1): e001551. doi:10.1136/bmjdrc-2020-001551.</p>
+<p>Ngo TTM, Moufarrej MN, Rasmussen MLH, Camunas-Soler J, Pan W, Okamoto J, et al. Noninvasive blood tests for fetal development predict gestational age and preterm delivery. Science 2018; 360(6393): 1133-36. doi:10.1126/science.aar3819.</p>
+<p>Garcia AJ, Koschnitzky JE, Dashevskiy T, Ramirez J-M. Cardiorespiratory coupling in health and disease. Auton Neurosci 2013; 175: 26-37. doi:10.1016/j.autneu.2013.02.006.</p>
+<p>Iatsenko D, Bernjak A, Stankovski T, Shiogai Y, Owen-Lynch PJ, Clarkson PBM, et al. Evolution of cardiorespiratory interactions with time-delayed information flow. Philos Trans A Math Phys Eng Sci 2013; 371(1997): 20110622. doi:10.1098/rsta.2011.0622.</p>
+<p>Bester M, Perciballi G, Fonseca P, et al. Maternal cardiorespiratory coupling diierences between pregnant and nonpregnant women amplified by sleep-stage stratification. J Appl Physiol 2023; 135(5): 1199- 1212. doi:10.1152/japplphysiol.00296.2023.</p>
+<p>Shaier F, Ginsberg JP. An overview of heart rate variability metrics and norms. Front Public Health 2017; 5: 258. doi:10.3389/fpubh.2017.00258.</p>
+<p>Moertl MG, Ulrich D, Pickel KI, et al. Changes in haemodynamic and autonomous nervous system parameters measured non-invasively throughout normal pregnancy. Eur J Obstet Gynecol Reprod Biol 2009; 144(suppl 1): S179-83. doi:10.1016/j.ejogrb.2009.02.037.</p>
+<p>Speranza G, Verlato G, Albiero A. Autonomic changes during pregnancy: assessment by spectral heart rate variability analysis. J Electrocardiol 1998; 31(2): 101-09. doi:10.1016/S0022-0736(98)90040-1.</p>
+<p>Berg K, Kraemer JF, Riedl M, Stepan H, Kurths J, Wessel N. Increased cardiorespiratory coordination in preeclampsia. Physiol Meas 2017;38(5):912-24. doi:10.1088/1361-6579/aa64b0.</p>
+<p>Riedl M, Suhrbier A, Stepan H, Kurths J, Wessel N. Short-term couplings of the cardiovascular system in pregnant women suiering from pre-eclampsia. Philos Trans A Math Phys Eng Sci 2010; 368(1918): 2237-50. doi:10.1098/rsta.2010.0029.</p>
+<p>Pichardo-Carmona EY, Reyes-Lagos JJ, Ceballos-Juárez RG, Ledesma-Ramírez CI, Mendieta-Zerón H, Peña-Castillo MA, et al. Changes in the autonomic cardiorespiratory activity in parturient women with severe and moderate features of preeclampsia. Front Immunol 2023; 14: 1190699. doi:10.3389/fimmu.2023.1190699.</p>
+<p>Scott AK, Oyen ML. Virtual pregnancies: predicting and preventing adverse pregnancy outcomes with digital twins. Lancet Digit Health 2024; 6(7): e436-7. doi:10.1016/S2589-7500(24)00086-4.</p>
+<p>Golbus JR, Pescatore NA, Nallamothu BK, et al. Wearable device signals and home blood pressure data across age, sex, race, ethnicity, and clinical phenotypes in the Michigan Predictive Activity &amp; Clinical Trajectories in Health (MIPACT) study: a prospective, community-based observational study. Lancet Digit Health 2021; 3(11): e707-15. doi:10.1016/S2589-7500(21)00138-2.</p>
+<p>Haas DM, Parker CB, Wing DA, et al. A description of the methods of the Nulliparous Pregnancy Outcomes Study: monitoring mothers-to-be (nuMoM2b). Am J Obstet Gynecol 2015; 212(4): 539.e1-24. doi:10.1016/j.ajog.2015.01.019.</p>
+<p>Facco FL, Parker CB, Reddy UM, et al. NuMoM2b Sleep-Disordered Breathing Study: objectives and methods. Am J Obstet Gynecol 2015; 212(4): 542.e1-27. doi:10.1016/j.ajog.2015.01.021.</p>
+<p>Brønd JC, Arvidsson D. Sampling frequency aiects ActiGraph raw acceleration data and activity counts. J Appl Physiol 2016; 120(3): 362-69. doi:10.1152/japplphysiol.00628.2015.</p>
+<p>van Gent P, Farah H, van Nes N, van Arem B. Analysing Noisy Driver Physiology Real-Time Using Oi-the- Shelf Sensors: Heart Rate Analysis Software from the Taking the Fast Lane Project. J Open Res Softw 2019; 7(1): 32. doi:10.5334/jors.241.</p>
+<p>Long X, Haakma R, Leufkens TRM, et al. Eiects of between-and within-subject variability on autonomic cardiorespiratory activity during sleep and their limitations on sleep staging: a multilevel analysis. Comput Intell Neurosci 2015; 2015: 583620. doi:10.1155/2015/583620.</p>
+<p>Bauer A, Kantelhardt JW, Bunde A, et al. Phase-rectified signal averaging detects quasi-periodicities in non-stationary data. Physica A 2006; 364: 423-34. doi:10.1016/j.physa.2005.08.080.</p>
+<p>Langer O. Fetal macrosomia: etiologic factors. Clin Obstet Gynecol 2000; 43(2): 283-97. doi:10.1097/00003081-200006000-00004.</p>
+<p>Weissmann-Brenner A, Simchen MJ, Zilberberg E, et al. Maternal and neonatal outcomes of macrosomic pregnancies. Med Sci Monit 2012; 18(9): PH77-81. doi:10.12659/MSM.883340.</p>
+<p>Wu Y, Asvadi S, van der Ven M, van der Hout-van der Jagt MB, Peri E, Fonseca P, et al. Overnight maternal heart rate variability for early prediction of gestational diabetes mellitus: a retrospective cohort study. npj Womens Health 2025;3:37. doi:10.1038/s44294-025-00081-z.</p>
+<p>Matsumoto J, Dohgu S, Takata F, et al. TNF-α-sensitive brain pericytes activate microglia by releasing cytokines through IκB-NFκB and JAK-STAT3 pathways. Brain Res 2018; 1692: 34-44. doi:10.1016/j.brainres.2018.04.023.</p>
+<p>Ahlsson F, Diderholm B, Jonsson B, et al. Insulin resistance and β-cell function link overweight and fetal macrosomia in nondiabetic pregnancies. Horm Res Paediatr 2010; 74(4): 267-74. doi:10.1159/000295710.</p>
+<p>Lindmark S, Wiklund U, Bjerle P, Eriksson JW. Does the autonomic nervous system play a role in the development of insulin resistance? A study on heart rate variability in first-degree relatives of type 2 diabetes patients and control subjects. Diabet Med 2003; 20(5): 399-405. doi:10.1046/j.1464-5491.2003.00969.x.</p>
+<p>Rueda-Ochoa OL, Cordero Agon LS, Quiroz Vargas KJ, et al. Heart rate variability as a predictor factor of the development of preeclampsia: systematic review of the literature. Eur Heart J 2021; 42(suppl 1): ehab724.2785. doi:10.1093/eurheartj/ehab724.2785.</p>
 </div>
 </details>
 </div>
