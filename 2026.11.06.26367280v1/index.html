@@ -196,7 +196,7 @@ Longitudinal Participation and Cognitive Score Interpretation in the
 J-TRC Webstudy
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.06.26367280
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.06.26367280
 </p>
 </header>
 <div class="mc-main">
@@ -241,8 +241,8 @@ ethics approval statement.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 2 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 2 detected.</p>
 </div>
 </div>
 </div>
@@ -338,8 +338,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -748,9 +749,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -772,7 +777,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -787,9 +793,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -802,13 +826,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -828,6 +855,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -835,12 +868,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -941,6 +980,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -960,6 +1019,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1215,19 +1309,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1337,6 +1513,151 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>INTRODUCTION: Web-based registries support remote cognitive assessment for Alzheimer&#x27;s disease research, but participant-driven reassessment raises questions about long-term data yield and interpretation of repeated scores. We evaluated data contribution, selective observation, and retest-dependent estimates of cognitive change in the Japanese Trial-Ready Cohort (J-TRC) Webstudy. METHODS: We analyzed over six years of J-TRC Webstudy data (launched October 2019; registrations through March 31, 2025; assessments through May 31, 2026). We examined data contribution, inactivity, reactivation, score-associated observation, first-exposure contrasts, and sensitivity to retest models and estimators. RESULTS: Among 14,912 registered accounts, 10,863 participants were eligible; 10,645 (98.0%) completed the Cognitive Function Instrument (CFI), 6,419 (59.1%) completed Cogstate, and 5,792 (53.3%) contributed assessments on multiple days. Among those with sufficient opportunity, 19.4% and 14.1% contributed data at or beyond three and five years. After 365 days without assessment, the estimated probability of resuming within two years was 7.2%. Worse prior cognitive scores were associated with lower odds of subsequent assessment (adjusted odds ratios per standard deviation: CFI, 0.952; Cogstate, 0.845). By assessment 12, returnee changes were +0.43 and +1.14 favorable baseline standard deviations (CFI, Cogstate), versus -0.06 and +0.08 in first-exposure contrasts. Marginal CFI time estimates differed under categorical versus flexible retest adjustment (+0.080 versus -0.227 standard deviations/year). DISCUSSION: High initial completion was accompanied by limited long-term data contribution. Subsequent assessment was associated with prior scores, and estimated time trends varied by retest model. Reporting assessment histories and testing model sensitivity are important for interpreting repeated online cognitive scores.</p>
+<h3>[div-01]</h3>
+<p>Using over six years of J-TRC Webstudy data, we evaluated the yield and interpretation of longitudinal cognitive data collected through participant-driven reassessment. We first characterized progression from registration to repeated assessment, multiyear data contribution, inactivity, and reactivation. We then examined how prior cognitive scores and assessment histories were associated with subsequent observation. Finally, we compared score changes among returnees with.</p>
+<h3>Methods</h3>
+<h3>Study design and participants</h3>
+<p>We conducted a longitudinal observational study of the ongoing Japanese Trial-Ready Cohort (J-TRC) Webstudy, launched in October 2019 for AD prevention research [Sato2021(PMID: 34292159); Sato2021(PMID: 33778148)]. The Webstudy&#x27;s public landing page is shown in Figure 1A. Participants register and consent online; the Cognitive Function Instrument (CFI) is integrated into the assessment process, whereas Cogstate testing is optional. The same instrument becomes available for voluntary reassessment 90 days after completion, without scheduled study visits (Figure 1B).</p>
+<p>For Cogstate, participants received an email notification approximately three months after completing an assessment, when retesting became available. This notification was sent once per completed assessment and was not repeated if the participant did not retest. We distinguished registered accounts, accounts with explicit affirmative consent, participants with ascertainable eligibility information, and eligible consented participants. The primary registry-level analytical population comprised individuals who had provided affirmative . consent, had ascertainable age and self-reported AD status, were aged 50-85 years at registration, and did not report a previous AD diagnosis. Completion of all registration workflow stages or a valid cognitive assessment was not required for inclusion in this population. Assessment-specific populations were subsequently defined according to the availability of valid CFI or Cogstate records, and regression analyses were restricted to participants with the variables required by each model.</p>
+<p>Accordingly, the denominators for registered accounts, eligible participants, participants completing valid assessments, and longitudinal modeling populations were distinguished throughout the analyses (Figure 2B; Table 1; Supplementary Table S1).</p>
+<h3>Cognitive assessments and scoring</h3>
+<p>The CFI is a 15-item self-reported measure of cognitive and functional difficulties, with higher scores indicating greater reported difficulties [Amariglio2015(PMID: 25706191); Walter2020(PMID: 32920625)]. Item responses were coded as 0 for &quot;No,&quot; 0.5 for &quot;Maybe,&quot; and 1 for &quot;Yes&quot; [Amariglio2015(PMID: 25706191)]. A &quot;Does not apply&quot; response counted toward questionnaire completion but did not contribute a numerical item score. A valid CFI record required completion-valid responses to all 15 items, an assessment date, and an available recorded total. The primary CFI score was reconstructed as the sum of scorable item responses without prorating. Two separate sensitivity analyses were conducted: one restricted to assessments with all 15 items numerically scorable, and another using total scores prorated to 15 items according to the number of scorable responses. Exact duplicate CFI records were removed, and when multiple valid assessments occurred on the same calendar day, the latest record was retained.</p>
+<p>Cogstate comprised Detection (DET; psychomotor speed), Identification (IDN; visual attention), One Card Learning (OCL; visual recognition learning), and One Back (ONB; working memory) [Maruff2013(PMID: 25566378); Sato2021(PMID: 33778148)]. Standard primary measures are reaction time for DET and IDN and accuracy for OCL and ONB. Four task scores were exported, treated as higher-is-better without further sign reversal, and re-standardized using the task-specific means and standard deviations at participants&#x27; first observed Cogstate assessments. Their average defined the study-specific composite when at least two task scores were available. Duplicate sessions were removed. For longitudinal analyses, the Cogstate composite and CFI were scaled by their respective first-assessment standard deviations, with CFI changes sign-reversed so that positive values indicated improvement.</p>
+<h3>Participation and longitudinal data contribution</h3>
+<p>We quantified progression from registration to consent, eligibility, initial assessment, repeated assessment, and long-term data contribution. Assessment activity was defined using calendar dates; CFI and Cogstate assessments occurring on the same day contributed one day to the combined activity count. Repeated participation was defined as activity on at least two distinct calendar days.</p>
+<p>Longitudinal data contribution was assessed by determining whether participants provided at least one assessment at or beyond 12, 36, and 60 months after registration. For each threshold, the denominator was restricted to eligible participants whose registration dates allowed sufficient observation opportunity before May 31, 2026. We also calculated the proportion with assessment activity during the final 365 days of observation. These measures describe observed data contribution rather than adherence to scheduled visits, which did not exist in the Webstudy. Assessment occasion was each participant&#x27;s cumulative number of valid assessments for an instrument, not a scheduled visit. We summarized occasion-specific participant counts and score medians and interquartile ranges (Figure 2C-E) and examined their relationship with elapsed time (Supplementary Figure S1). Participation was compared between 2019-2021 and 2022-2023 registration cohorts within a common 24-month window. Characteristics across participation stages were described using standardized mean differences (Supplementary Tables S1 and S2), without seeking independent determinants of engagement.</p>
+<h3>Dynamic participation and reactivation</h3>
+<p>To characterize changing participation states, we divided each participant&#x27;s follow-up period into nonoverlapping 90-day intervals starting from their registration date. At the end of each complete interval, eligible participants were classified into three mutually exclusive states: no previous valid assessment, recently active (an assessment less than 365 days earlier), or inactive (previous assessment activity followed by at least 365 consecutive days without assessment). State proportions were calculated among participants with sufficient observation opportunity at each interval endpoint.</p>
+<p>Incomplete terminal intervals were excluded. Kaplan-Meier analyses estimated time from the first assessment to the first 365-day gap without an assessment, with administrative censoring. Reactivation was defined as the next assessment after such a gap; time zero was when the first qualifying gap reached 365 days.</p>
+<p>Cumulative reactivation probabilities used Kaplan-Meier estimation with log-log confidence intervals (Figure 3A,B). For reactivation episodes with at least 365 days of subsequent observation opportunity, we assessed whether assessments occurred on at least two additional days within the following year. Sensitivity analyses varied the inactivity threshold (180 or 730 days) and registration-anchored panel width (60 or 120 days; Supplementary Figure S2).</p>
+<h3>Associations with subsequent assessment completion</h3>
+<p>We investigated whether previously observed scores and assessment histories were associated with the probability of subsequent assessment completion. For each instrument, outcome-specific rolling 90-day risk intervals were constructed beginning when reassessment became available, 90 days after the preceding assessment. The initial assessment was conditioned on, and subsequent intervals were classified according to whether an analyzable assessment was observed. We fitted logistic regression models for interval-specific observation, including elapsed time and its squared term, age, sex, educational attainment, registration year, the last observed score, prior assessment count, previous observation history, and days since the most recent Webstudy activity. Missing prior-score history was represented using a median-imputed value and a missingness indicator. Confidence intervals for the association between prior score and subsequent observation were obtained using participant-clustered robust sandwich estimators and expressed as odds ratios per 1-standard-deviation worse prior score. Model-standardized probabilities were obtained by averaging predictions over the empirical covariate distribution while varying the prior score or time since the most recent activity. Recency categories were used to summarize these standardized probabilities for presentation (Figure 3C,D).</p>
+<h3>Analysis of longitudinal cognitive score patterns</h3>
+<p>The score analyses addressed three related but distinct quantities: within-person score change among observed returnees, contrasts between matched first-exposure assessments from different participants, and model-specific elapsed-time associations conditional on the specified retest terms. We compared retest-model specifications (Supplementary Figure S3; Supplementary Table S3), constructed contemporaneous first-exposure references, and examined sensitivity to selective observation. We examined these quantities separately because they capture different aspects of the observed score data. To contextualize score changes among repeatedly assessed participants, we constructed an internal reference using contemporaneous first-observed assessments from other participants (Figure 4A). This comparison is conceptually related to replacement-participant approaches [Elman2018(PMID: 30003138)], and provided an empirical benchmark for score changes observed among returnees. For returnee assessment occasions 2-12 occurring within 36 months of the participant&#x27;s first assessment, we calculated within-person score changes. Two distinct participants completing their first observed J-TRC assessment were separately matched to each returnee&#x27;s initial and subsequent assessment dates. Matching used greedy nearest-neighbor matching without replacement within each matching analysis, requiring the same sex, calendar dates within ±180 days, attained ages within ±2 years, and educational attainment within ±2 years. The reference contrast was calculated as the difference between the two independently matched first-exposure scores, whereas the returnee change was calculated within the same participant.</p>
+<p>. We summarized occasion-specific mean changes, reference contrasts, and their differences, with 95% confidence intervals (Supplementary Table S4A). An overall reference slope was estimated using participant-equal-weighted regression through the origin. Confidence intervals for this slope were obtained from 500 participant-level bootstrap replicates with repeated matching.</p>
+<p>Sensitivity analyses restricted first-exposure assessments to within 90 days of registration or narrowed the calendar matching window to ±90 days (Supplementary Figure S4; Supplementary Table S4B). The comparator pool could include participants registering after the primary March 2025 cutoff. The reference contrasts compared different participants at their first recorded J-TRC assessments, and previous cognitive testing outside J-TRC could not be assessed.</p>
+<p>We examined the dependence of elapsed-time estimates on retest specification using assessments collected within 36 months of each participant&#x27;s first valid assessment of the respective instrument (Figure 4B). For each instrument, the latest analyzable assessment within each nonoverlapping 90-day interval anchored to registration was retained. Five representations of cumulative assessment exposure were evaluated, including categorical assessment numbers and linear or spline functions of log assessment number. Each specification included the interval since the preceding assessment and either linear elapsed time or a three-degree-of-freedom natural spline of elapsed time. Models adjusted for baseline age, sex, educational attainment, and registration year.</p>
+<p>Elapsed time was measured in years since the first valid assessment, whereas baseline age was defined at registration.</p>
+<p>For each specification, we compared working-independence marginal Gaussian regression with participant-clustered robust inference, maximum-likelihood linear mixed-effects models, and participant fixed-effects models. Mixed-effects models included participant-specific random intercepts and time slopes where supported by the data, whereas fixed-effects models required at least two observations per participant. Linear-time coefficients were reported per year, and spline-time estimates were summarized using the model-implied 0-36-month contrast divided by three years. All coefficients were expressed in favorable baseline-standard-deviation units. Model fit was compared using AIC within comparable marginal and mixed-effects models, and predictive performance was evaluated using five repetitions of participant-clustered 10-fold cross-validation for marginal models. The full specification grid is provided in Supplementary Table S3. These analyses quantified the sensitivity of elapsed-time estimates to retest specifications and statistical estimators. Sensitivity to selective observation was examined using inverse-probability-of-observation weighting (IPOW) across instrument-specific rolling risk intervals [Seaman2013(PMID: 21220355); Cole2008(PMID: 18682488)] (Supplementary Figure S5; Supplementary Table S4C).</p>
+<p>Interval-specific stabilized weights came from logistic observation models: numerator models included elapsed time and baseline covariates; denominator models additionally included previous scores, cumulative assessment history, recent activity, and lagged observation. The first assessment received weight one, and interval weights were not accumulated across previous intervals. We assessed 1st-99th percentile and alternative truncation, observation probabilities, weight distributions, and effective sample sizes. Complete-case outcome models did not impute unobserved scores. We also evaluated alternative time origins using the same assessment records (Supplementary Table S5).</p>
+<p>Analyses were performed in R using data.table, survival, lme4, and related packages. Two-sided 95% confidence intervals were calculated using participant-clustered inference or bootstrap resampling as specified for each analysis.</p>
+<h3>Results</h3>
+<h3>Registry growth and longitudinal data yield</h3>
+<p>Between October 2019 and the registration cutoff of March 31, 2025, the J-TRC Webstudy accumulated 14,912 registered accounts, of which 12,068 (80.9%) had provided explicit affirmative consent and 10,863 met the eligibility criteria (Figure 2A,B; Table 1). Among eligible participants, the mean age was 62.5 years (SD 8.4), 54.6% of those with recorded sex were women, and the mean educational attainment was 15.2 years (SD 2.0). Registration increased substantially during 2022, which accounted for 4,326 (39.8%) of eligible participants. A total of 10,645 eligible participants (98.0%) completed at least one valid assessment, all of whom had CFI data; 6,419 (59.1%) completed at least one valid Cogstate assessment. Overall, 5,792 participants (53.3%) contributed assessments on at least two distinct days.</p>
+<p>Longitudinal data contribution decreased substantially with increasing time since registration (Table 1; Supplementary Table S2). At least one assessment at or beyond 12 months was available from 3,611 of 10,863 eligible participants (33.2%). Among participants with sufficient observation opportunity, 1,936 of 9,977 (19.4%) contributed data at or beyond 36 months and 651 of 4,602 (14.1%) at or beyond 60 months. The corresponding proportions for CFI were 33.1%, 19.3%, and 14.0%, compared with 26.8%, 16.9%, and 12.9% for Cogstate. Only 1,825 eligible participants (16.8%) had completed a valid assessment within the 365 days preceding the administrative observation cutoff of May 31, 2026. Thus, high initial assessment completion was accompanied by substantially lower rates of long-term data contribution.</p>
+<p>Participation patterns were similar across 2019-2021 (n=5,133) and 2022-2023 (n=5,212) registration cohorts during a common 24-month window (Supplementary Tables S1 and S2). Initial CFI completion was 98.1% versus 97.9%, repeated CFI completion 51.8% versus 51.9%, initial Cogstate completion 60.4% versus 57.8%, and data contribution beyond 12 months 34.9% versus 32.3%.</p>
+<h3>Repeated assessments and observed score distributions</h3>
+<p>Contributing participant numbers decreased across assessment occasions (Figure 2C): for CFI, 10,645 completed occasion 1, 5,610 occasion 2, 2,072 occasion 9, and 435 occasion 21; for Cogstate, 6,419, 3,994, and 384 completed occasions 1, 2, and 21. Occasions were not scheduled visits; corresponding elapsed times varied across participants (Supplementary Figure S1).</p>
+<p>Observed score distributions also shifted across assessment occasions (Figure 2D,E). The median CFI total score, for which higher values indicate greater self-reported cognitive-functional difficulties, was 3.0 (interquartile range [IQR], 1.5-5.0) at the first assessment, 2.5 (IQR, 1.5-4.5) at the second, and 1.5 (IQR, 0.5-3.5) at the 21st. The median Cogstate composite score increased from 0.04 (IQR, -0.34 to 0.39) at the first assessment to 0.21 (IQR, -0.15 to 0.54) at the second and 0.83 (IQR, 0.52-1.20) at the 21st. These distributions summarize the participants observed at each assessment occasion, whose composition changed over time.</p>
+<h3>Dynamic participation, inactivity, and selective observation</h3>
+<p>Participation status changed markedly with time since registration (Figure 3A; Supplementary Table S2). At approximately 1.23 years after registration, 5,375 of 10,833 participants with sufficient observation opportunity (49.6%) had completed an assessment within the preceding 365 days, whereas 5,208 (48.1%) had previously been assessed but were inactive for at least 365 days. At approximately 3.20 years, the proportion classified as inactive had increased to 75.7% (7,279/9,617), . and by 6.16 years it reached 83.5% (2,348/2,813). The Kaplan-Meier median time to the first assessment gap of at least 365 days was 1.00 year for CFI and 1.37 years for Cogstate; the probabilities of remaining without such a gap at three years were 20.3% and 29.6%, respectively (Supplementary Table S2).</p>
+<p>Prolonged inactivity was not invariably followed by permanent cessation of assessment activity (Figure 3B). Following the first period of at least 365 consecutive days without a valid assessment, the Kaplan-Meier cumulative probabilities of reactivation were 3.6% (95% CI, 3.3-4.0%) at approximately six months, 5.2% (95% CI, 4.8-5.7%) at 12 months, and 7.2% (95% CI, 6.7-7.8%) at 24 months. The corresponding numbers at risk were 8,456, 7,983, and 6,896. Estimates varied with the operational definition of prolonged inactivity: when inactivity was defined using a 180-day threshold, cumulative reactivation at 24 months was 13.1%, compared with 3.5% using a 730-day threshold (Supplementary Figure S2; Supplementary Table S2). Among 666 reactivation events with at least 365 days of subsequent observation opportunity, 203 (30.5%) were followed by assessment activity on at least two additional days within the following year.</p>
+<p>Subsequent observation was associated with both prior assessment scores and recent participation history (Figure 3C,D; Supplementary Table S2). In adjusted models of 168,263 CFI risk intervals from 9,611 participants, each 1-SD worse prior CFI score was associated with lower odds of a subsequent observed assessment (odds ratio [OR], 0.952; 95% CI, 0.929-0.976; cluster-robust P &lt; 0.001). The corresponding association for Cogstate was stronger (OR, 0.845; 95% CI, 0.819-0.872; P &lt; 0.001), based on 102,479 intervals from 5,894 participants. Model-standardized probabilities of subsequent observation also differed according to time since the most recent Webstudy assessment activity, whether CFI or Cogstate. For CFI, the predicted probability decreased from 22.8% for a recency category of less than 90 days to 13.1% for 730 days or longer; the corresponding values for Cogstate were 34.3% and 2.6%. These findings indicate that subsequent assessment completion was associated with previously observed scores and assessment histories.</p>
+<h3>Interpretation of longitudinal score changes</h3>
+<p>Among participants who returned for repeated assessments, observed score changes were consistently more favorable than the corresponding contrasts derived from contemporaneous first-observed J-TRC assessments (Figure 4A; Supplementary Table S4A). By the 12th assessment occasion, the estimated change from the first assessment among matched returnees was +0.433 favorable baseline SD (95% CI, 0.381-0.484) for CFI and +1.140 SD (95% CI, 1.063-1.217) for Cogstate. The corresponding first-exposure reference contrasts were -0.058 SD (95% CI, -0.149 to 0.033) and +0.080 SD (95% CI, -0.029 to 0.189), yielding differences of +0.491 SD (95% CI, 0.385-0.596) and +1.060 SD (95% CI, 0.925-1.196), respectively. At this occasion, 931 CFI returnees (83.7% of eligible returnees) and 628 Cogstate returnees (67.8%) were successfully matched. Across the matched observations, the participant-equal first-exposure reference slopes were -0.033 favorable SD/year for CFI (95% rematching-bootstrap CI, -0.057 to -0.007) and +0.025 SD/year for Cogstate (95% CI, -0.005 to 0.054). Restricting the reference to participants whose first J-TRC assessment occurred within 90 days of registration yielded similar estimates of -0.038 SD/year (95% CI, -0.058 to -0.009) and +0.021 SD/year (95% CI, -0.004 to 0.058), respectively (Supplementary Figure S4; Supplementary Table S4B). These comparisons quantify differences between within-person returnee changes and matched first-exposure contrasts from different participants.</p>
+<p>The estimated elapsed-time associations varied substantially depending on how repeated-assessment exposure was represented (Figure 4B; Supplementary Figure S3; Supplementary Table S3). In working-independence marginal models over the first 36 months after the first valid assessment, categorical adjustment for assessment number (1/2/3/4+) yielded annual coefficients of +0.080 favorable baseline SD/year for CFI (95% CI, 0.061-0.099) and +0.265 SD/year for Cogstate (95% CI, 0.245-0.285). With a post-first-assessment indicator and a spline of log assessment number, the corresponding coefficients were -0.227 SD/year (95% CI, -0.327 to -0.127) and -0.049 SD/year (95% CI, -0.153 to 0.055). Similar dependence on retest specification was observed with mixed-effects and participant fixed-effects models. For CFI, the categorical and spline-log specifications yielded coefficients of +0.078 versus -0.115 SD/year in mixed-effects models and +0.081 versus -0.094 SD/year in fixed-effects models. The corresponding Cogstate estimates were +0.248 versus -0.060 SD/year and +0.252 versus -0.071 SD/year, respectively. Among linear-time models, AIC favored more flexible retest representations. Across marginal models with linear or spline elapsed-time functions, cross-validated prediction errors differed little; the maximum excess root mean squared error was 0.125% for CFI and 0.377% for Cogstate. Thus, substantial variation in elapsed-time estimates was accompanied by only small differences in cross-validated prediction error among marginal models. Sensitivity analyses using time since registration or additionally adjusting for the delay from registration to the first valid assessment are reported in Supplementary Table S5.</p>
+<p>Inverse-probability-of-observation weighting sensitivity analyses remained dependent on retest specification and weight truncation (Supplementary Figure S5; Supplementary Table S4C).</p>
+<p>Estimated observation probabilities were below 0.01 for 49.9% of CFI intervals and 43.4% of Cogstate intervals, while effective sample sizes under the primary weighting scheme were only 13.3% and 26.8% of observed weighted assessments, respectively. Longitudinal data contribution was concentrated early: almost all eligible participants completed CFI initially, approximately half contributed on multiple days, and far fewer contributed after three or five years. These proportions are not conventional fixed-visit retention rates because assessments were voluntary and observation opportunity differed. Inactivity did not necessarily mean withdrawal: reactivation within two years after a 365-day gap occurred with 7.2% cumulative probability, sometimes followed by further assessments. Similar 24-month patterns across registration cohorts suggest that reduced longer-term contribution was not confined to early recruitment. Registries should distinguish activity, inactivity, and return, and report recent activity separately from longer-term contribution. Neither directly establishes readiness for an onsite study or trial.</p>
+<p>The association between prior cognitive scores and subsequent observation has additional implications for the interpretation of longitudinal data. Participants with less favorable prior scores were less likely to complete subsequent assessments, particularly for Cogstate, while recent assessment activity was strongly associated with further observation. Consequently, participants contributing data at later assessment occasions represented a progressively selected subset of the original eligible cohort. The occasion-specific score distributions observed in this study therefore cannot be interpreted as longitudinal trajectories of the full registry population. Similar concerns have been raised in statistical research on informative observation processes, in which the probability of obtaining an outcome measurement is related to observed or unobserved participant characteristics Elapsed-time coefficients varied materially across retest specifications. This dependence persisted when CFI analyses were restricted to fully scorable responses or used prorated totals (Supplementary Table S1). With linear time, AIC favored more flexible retest models in marginal and mixed-effects analyses (mixed-effects AIC differences: 76.1 for CFI; 99.0 for Cogstate), but participant-clustered cross-validated RMSE was nearly unchanged. Categorical occasion adjustment gave favorable time coefficients, whereas flexible specifications yielded less favorable or negative estimates across marginal, mixed-effects, and fixed-effects models. Estimators also used different sources of variation and, for fixed effects, a restricted population (Supplementary Table S3). Time and cumulative assessment count were strongly correlated, limiting their empirical separation [Ferrer2004(PMID: 15222818); Hoffman2011(PMID: 21639642); Vivot2016(PMID: 26825924)].</p>
+<p>The marked variation in elapsed-time estimates despite similar prediction errors highlights the importance of retest-model specification for interpreting longitudinal cognitive change.</p>
+<p>The contemporaneous first-exposure comparisons provided an empirical reference for observed returnee changes. Constraining elapsed-time coefficients to the reference slopes had little effect on cross-validated prediction error (Supplementary Table S3). IPOW and alternative time-origin analyses further showed that elapsed-time estimates remained sensitive to retest specification, while low observation probabilities and reduced effective sample sizes limited weighted inference (Supplementary Figure S5; Supplementary Tables S4C and S5). Together, these findings identified retest-model specification as an important source of variation in estimated longitudinal trends.</p>
+<p>These results have practical implications for trial-ready registries. Reports should separate enrollment, eligibility, recent activity, and multiyear data contribution using opportunity-adjusted denominators. Assessment dates, cumulative exposure, intervals, inactivity, and reactivation should be preserved for analysis. Future studies should test whether reminder timing and frequency improve long-term assessment participation. Longitudinal modeling should report sensitivity to plausible retest specifications, time origins, and estimators, rather than a single adjusted trajectory. Repeated online scores also require validation against independently measured cognitive or biomarker outcomes before use in natural-history estimation or risk enrichment.</p>
+<p>In J-TRC, A4-derived models incorporating CFI and Cogstate scores have been used to This study has several strengths, including its large nationwide registry population, more than six years of observation, explicit accounting of registration and eligibility denominators, and repeated assessment data from both CFI and Cogstate. The availability of assessment dates and histories allowed us to evaluate long-term data contribution, inactivity, reactivation, score-associated subsequent observation, and sensitivity to retest-model specification within the same cohort. Several limitations should be considered. Participants were self-selected internet users with relatively high educational attainment, and eligibility was partly self-reported, limiting generalizability [Hall2015(PMID: 25156311); Ashford2020(PMID: 32478165)]. Cogstate assessment was optional, and experiences with unsupervised cognitive testing may differ across participants [Ashford2023(PMID: 37357303)]. Assessment timing was not randomized, the reasons for stopping or resuming assessments were unknown, and cognitive scores during unobserved periods were unavailable. Thus, we could not determine the direction or magnitude of bias related to selective observation. First-exposure reference contrasts compared different participants matched on a limited set of measured characteristics, leaving possible differences in unmeasured factors, calendar time, and the composition of new registrants. These contrasts do not isolate causal effects of repeated testing or individual cognitive aging trajectories. Fewer participants contributed data at later assessment occasions. Some models required complete baseline covariates or repeated observations, resulting in analytic samples that differed from the eligible cohort. Those excluded because of incomplete covariate information were more often women (Supplementary Table S1). IPOW analyses were additionally limited by very low estimated observation probabilities and small effective sample sizes. Finally, we did not directly validate longitudinal scores against independently adjudicated clinical progression or AD biomarkers. These limitations should be considered when interpreting the observed cognitive score patterns.</p>
+<h3>Conclusions</h3>
+<p>The J-TRC Webstudy achieved high initial assessment completion in a large nationwide cohort, while sustained data contribution became concentrated among a smaller group. Subsequent assessment was associated with prior scores and participation history, and returnee changes were substantially more favorable than contemporaneous first-exposure contrasts. Estimated elapsed-time coefficients differed markedly across retest specifications. These findings demonstrate the complementary importance of opportunity-adjusted data yield, assessment history, and retest-model sensitivity for evaluating web-based registries and interpreting longitudinal cognitive scores in AD research.</p>
+<p>TI has no conflicts of interest related to the content of the manuscript, had received consultancy/speaker fee from Biogen, Eisai, Eli-Lilly, and Roche/Chugai. This manuscript has been prepared in a neutral and objective manner, and all disclosed financial relationships are not relevant to the content of this work. (A) Representative screenshot of the Japanese-language J-TRC Webstudy public landing page (https://www.j-trc.org/ja/welcome), captured in October 2026. The screenshot illustrates the public-facing interface and was obtained after the administrative observation cutoff of the present study. English translations are overlaid on the original Japanese text for presentation purposes. The original website is in Japanese. (B) Schematic overview of online registration, electronic consent and eligibility assessment, CFI self-report, optional Cogstate assessment, and participant-driven follow-up. Following completion of an assessment, reassessment using the same instrument becomes available after 90 days; subsequent completion is voluntary and does not follow a fixed visit schedule. Illustrative assessment histories demonstrate irregular intervals, possible prolonged inactivity (at least 365 days without an assessment), and subsequent reactivation. These pathways are conceptual and do not represent individual participant data. Abbreviations: CFI, Cognitive Function Instrument; J-TRC, Japanese Trial-Ready Cohort. (A) Cumulative numbers of registered accounts, accounts with explicit affirmative consent, eligible consented participants, and participants completing at least one valid assessment, by calendar date. (B) Registry-to-assessment progression showing registered accounts, explicit affirmative consent, eligibility, completion of at least one valid assessment, and repeated assessment activity on at least two distinct calendar days. Percentages in panel B use all registered accounts (n = 14,912) as the denominator. Corresponding percentages based on the eligible consented cohort are provided in Table 1. (C) Numbers of participants completing each assessment occasion, from the first through the 21st, separately for CFI and Cogstate. (D) Observed CFI total scores by assessment occasion. (E) Observed Cogstate composite scores by assessment occasion. In panels D and E, filled circles represent medians and vertical intervals represent interquartile ranges. Assessment occasion denotes the cumulative number of valid assessments completed by an individual participant for the respective instrument, rather than a scheduled follow-up visit or fixed elapsed time. Higher CFI scores indicate greater self-reported cognitive-functional difficulties; higher Cogstate composite scores indicate favorable performance under the analytic scoring convention. Distributions at each occasion reflect participants completing that assessment; within-person changes among returnees are shown in Figure 4A. Registrations were restricted to March 31, 2025, and assessment data were available through May 31, 2026. Abbreviations: CFI, Cognitive Function Instrument; IQR, interquartile range; J-TRC, Japanese Trial-Ready Cohort; n, number. (A) Distribution of participation states at registration-anchored 90-day endpoints among eligible participants with sufficient observation opportunity. States comprise no previous assessment, assessment within the preceding 365 days, and previous assessment followed by at least 365 days of inactivity. The vertical dotted line indicates the first time at which the prolonged-inactivity criterion could be met. Labels above selected intervals indicate the numbers of eligible participants contributing to the respective denominators. (B) Kaplan-Meier cumulative probability of reactivation after the first episode of at least 365 consecutive days without a valid assessment. Time is measured from attainment of the inactivity threshold until subsequent assessment or administrative censoring. The shaded region represents the 95% confidence interval. Cumulative reactivation probabilities at approximately 6, 12, and 24 months were 3.6%, 5.2%, and 7.2%, with corresponding numbers at risk of 8,456, 7,983, and 6,896. These risk-set counts are not simple denominators for the cumulative probabilities. (C) Model-standardized probability of subsequent assessment observation according to the previously observed score, expressed in standard-deviation units with higher values indicating worse performance for both instruments. Annotated odds ratios represent the adjusted association per 1-SD worse prior score, with participant-clustered 95% confidence intervals. (D) Model-standardized probability of subsequent assessment observation according to time since the most recent Webstudy assessment activity, irrespective of instrument. Predictions in panels C and D were averaged over the empirical covariate distribution of the respective analytical samples. Abbreviations: CFI, Cognitive Function Instrument; CI, confidence interval; OR, odds ratio; SD,</p>
+<h3>Important Notice</h3>
+<h3>Sign Up Log In</h3>
+<p>We conduct an online registry study to support the development of drugs to prevent dementia.</p>
+<h3>Start the Dementia Check</h3>
+<p>* J-TRC registration is required to take the check.</p>
+<p>0 5,000 10,000 15,000 2020 2021 2022 2023 2024 2025 2026 Calendar year Cumulative n Registered Consented Eligible &gt;=1 valid A. Registry growth 14,912 12,068 10,863 10,645 5,792 Repeated (38.8%) &gt;=1 valid (71.4%) Eligible (72.8%) Consented (80.9%) Registered (100.0%) 0 5,000 10,000 15,000 Accounts / participants (n) Percentages of all registered accounts B. Assessment progression 0 3,000 6,000 9,000 Participants observed CFI Cogstate Exact observed counts; not fixed-time retention C. Participants by assessment occasion 1 2 3 4 5 CFI total (higher = worse) D. CFI total score 0.0 0.5 1.0 1 2 3 5 7 9 11 13 15 17 19 21 Assessment occasion Cogstate z (higher = better) E. Cogstate composite n=10,833 n=9,617 n=4,225 n=2,813 0% 25% 50% 75% 100% 0 2 4 6 Years since registration Eligible participants in state (%) No assessment yet Assessed within 365 d Previously assessed; inactive &gt;=365 d Dotted line: first possible inactivity classification A. Assessment activity during follow-up 3.6% 5.2% 7.2% 0% 2.5% 5% 7.5% 10% 12.5% 0 20 40 60 Months after first 365-day inactivity Cumulative reactivation probability Kaplan-Meier estimate after first &gt;=365-day inactivity B. Reactivation after prolonged inactivity CFI: OR 0.95 (95% CI 0.93-0.98) Cogstate: OR 0.85 (95% CI 0.82-0.87) 0% 10% 20% 30% 40% 50% -2 -1 0 1 2 Prior score (SD; higher = worse) Adjusted probability of next assessment CFI Cogstate OR per 1-SD worse score; next assessment (noncausal) C. Prior score and subsequent observation 0% 10% 20% 30% 40% 50% &lt;90 90-179 180-364 365-729 &gt;=730 Days since prior CFI or Cogstate activity CFI Cogstate Recent activity and next assessment (noncausal) D. Recent activity and subsequent observation 2 6 12 2 6 12 0.0 0.5 1.0 CFI Cogstate composite 0.5 1.0 1.5 2.0 2.5 3.0 0.5 1.0 1.5 2.0 2.5 3.0 -0.2 0.0 0.2 0.4 0.6 Years since first observed assessment Change from first assessment (favorable SD) Returnee change First-exposure reference change Descriptive comparison; point labels = assessment occasion A. Returnee versus first-exposure score change CFI Cogstate -0.3 -0.2 -0.1 0.0 0.1 -0.1 0.0 0.1 0.2 0.3 Post-first + spline log N Post-first + linear log N Categorical N (1/2/3/4+) Time slope (favorable baseline SD/year) Estimator Marginal LMM Participant FE</p>
+<p>Linear time; 0-36 months after first valid assessment; full grid: Fig. S3 / Table S3 B. Time slopes depend on retest model and estimator</p>
+<h3>Acknowledgements</h3>
+<p>Some authors&#x27; affiliation (KS, YN, TI), &quot;Dementia Inclusion and Therapeutics,&quot; is an endowed department at the University of Tokyo Hospital funded by Effissimo Capital Management Pte Ltd. AI-assisted tools were used for language editing; authors take full responsibility for the content.</p>
+<p>AI has no conflicts of interest related to the content of the manuscript, received research grants from Eisai, FUJIREBIO, Janssen pharma, Sysmex, Kobayashi Pharma, Eli Lilly, Fujifilm, SONY, Biogen and Chugai/Roche; advisory fees from Eisai, FUJIREBIO, Eli Lilly, Roche, GSK, Otsuka, Soundwave Innovation; honoraria for lectures from Eisai, Eli Lilly, Biogen, Chugai/Roche, HU frontier, FUJIREBIO, Kowa, Sysmex, Ono, Otsuka, Alnylam, Daiichi Sankyo, Tokio Marine &amp; Nichido Fire Insurance, PDR pharma, IQVIA, Sumitomo Pharma, MSD, Janssen pharma, and Kyowa Kirin; patent assignment fee from FUJIREBIO; and is involved in postmarketing surveillance of lecanemab in Japan.</p>
+<h3>Funding</h3>
+<p>This study was supported by AMED Grant Numbers JP23dk0207048 (TI), JP23dk0207054 (YN), and JP24dk0207069 (YN), and JSPS KAKENHI Grant Number JP25K19014 (KS). The sponsors had no role in the design and conduct of the study; collection, analysis, and interpretation of data; preparation of the manuscript; or review or approval of the manuscript.</p>
+<h3>Consent Statement</h3>
+<p>All participants provided online informed consent through the Webstudy registration process.</p>
+<h3>Data Availability</h3>
+<p>The J-TRC Webstudy data supporting the findings of this study are not publicly available due to ethical restrictions.</p>
+<h3>Conflicts of Interest</h3>
+<p>KSato has no conflicts of interest related to the content of the manuscript, is involved in a joint research project with the MetLife Foundation, and had received a research grant from Eli Lilly for collaborative research unrelated to the current manuscript.</p>
+<p>YN has no conflicts of interest related to the content of the manuscript, is involved in collaborative researches with NIPRO Corporation, CANON Medical Systems Corporation, and Eli Lilly &amp; Company, and had received consultancy/speaker fees from Eisai, and Eli Lilly. RI has no conflicts of interest related to the content of the manuscript, received advisory fees from Eisai, Eli Lilly and MSD; consultant fee from Chugai; and honoraria for lectures from Eisai, Eli Lilly, Nihon Medi-Physics, PDR Pharma, FUJIREBIO, Sysmex and IQVIA.</p>
+<p>KSuzuki has no conflicts of interest related to the content of the manuscript.</p>
+<p>.</p>
+<p>(B) Estimated annual elapsed-time coefficients over the first 36 months after the first valid assessment of the respective instrument under three representative repeated-assessment specifications: categorical assessment number (1/2/3/4+), an indicator for assessments after the first combined with linear log assessment number, and an indicator combined with a spline of log assessment number. Estimates are shown for working-independence marginal regression (blue circles), maximum-likelihood linear mixed-effects models (green triangles), and participant fixed-effects models (orange squares). Horizontal intervals represent 95% confidence intervals.</p>
+<p>Positive coefficients indicate favorable change in baseline-standard-deviation units. The fixed-effects models require at least two observations per participant and therefore do not necessarily involve the same analytical population as the other estimators. The full specification grid is presented in Supplementary Figure S3 and Supplementary Table S3; sensitivity to the time origin is reported in Supplementary Table S5.</p>
+<p>The first-exposure reference is a matched between-participant contrast, and the elapsed-time coefficients are conditional on the specified retest models.</p>
+<p>Abbreviations: CFI, Cognitive Function Instrument; CI, confidence interval; FE, fixed effects;</p>
+<h3>Introduction</h3>
+<p>Identifying individuals at risk of Alzheimer&#x27;s disease (AD) and maintaining their participation over extended periods are important challenges for observational research and prevention trials [Grill2010(PMID: 21172069); Aisen2020(PMID: 32920621)]. Web-based registries offer opportunities to recruit large numbers of participants, collect cognitive and functional assessments remotely, and facilitate referral to in-person studies, potentially reducing geographical and logistical barriers [Weiner2018(PMID: 29754989); Walter2020(PMID: 32920623)]. Several web-based research initiatives, including the Brain Health Registry (BHR) [Weiner2018(PMID: 29754989)], Alzheimer Prevention Trials (APT) Webstudy [Walter2020(PMID: 32920623)], Healthy Brain Project (HBP) [Lim2019(PMID: 30909237)], and PROTECT study [Wesnes2017(PMID: 28128869)], have demonstrated the feasibility of large-scale recruitment and remote cognitive assessment. The Japanese Trial-Ready Cohort (J-TRC) Webstudy, launched in October 2019 as the web-based component of the J-TRC program and adapted from the APT Webstudy, was established to identify and longitudinally monitor potential participants for AD prevention trials in Japan [Iwatsubo2024(PMID: 38842037); Sato2021(PMID: 34292159)]. The J-TRC Webstudy combines online registration with repeated self-reported cognitive-functional assessments using the Cognitive Function Instrument (CFI) and optional computerized testing using the Cogstate Brief Battery [Sato2021(PMID: 33778148)]. The J-TRC program has used amyloid-risk estimates derived from models trained on A4 screening data and applied to Webstudy participants&#x27; demographic characteristics and available CFI and Cogstate scores to prioritize invitations to the onsite study [Sato2021(PMID: 33778148); Nakashima2026(PMID: 41536849)]. Thus, the interpretation of online cognitive assessments is relevant to both longitudinal monitoring and risk stratification within a trial-ready cohort. Beyond initial recruitment, the longitudinal value of trial-ready registries depends on sustained data contribution and the interpretation of repeated assessments. Sustaining participation over time remains challenging: the Brain Health Registry reported follow-up return rates of 41% at six months and 25% at 24 months [Weiner2018(PMID: 29754989)]. Subsequent research has examined participant characteristics associated with repeated assessment completion, including sociodemographic differences in online registry participation [Ashford2020(PMID: 32478165); Ashford2024(PMID: 38188606)]. However, return rates alone do not characterize irregular assessment intervals, prolonged inactivity followed by reactivation, or how these assessment histories relate to the scores that are observed. Evaluating participation and score interpretation together is therefore important when reassessment is participant-driven. Repeated assessments pose an additional challenge for interpreting cognitive and cognitive-functional scores. Repeated exposure can improve cognitive test performance [Stricker2020(PMID: 32010922); Murchland2026(PMID: 42224199)], and estimates of longitudinal cognitive change can vary depending on how retest exposure is modeled [Hoffman2011(PMID: 21639642); Vivot2016(PMID: 26825924); Chen2023(PMID: 37199336)]. At the same time, reduced practice effects have been investigated as potential markers of cognitive impairment and future decline [Jutten2020(PMID: 32671181)]. Changes in self-reported scores may also reflect changes in reporting behavior [Shrout2018(PMID: 29255039)]. In addition, participants with poorer cognitive performance may be less likely to complete subsequent assessments [Hernandez2024(PMID: 38453191)], potentially altering the composition of the observed sample. Together, retest effects and selective follow-up complicate the interpretation of observed score trajectories [Vivot2016(PMID: 26825924); Gasparini2020(PMID: 31894164); Weuve2015(PMID: 26397878)].</p>
+<p>We included registrations through March 31, 2025, allowing at least 12 months of potential follow-up, and assessments through May 31, 2026. The University of Tokyo Hospital Institutional Review Board approved the Webstudy (2019132NI). All participants included in the eligible analytical cohort provided electronic informed consent. Initial recruitment activities included a press release at the Webstudy launch in October 2019, followed by newspaper and online media coverage. Additional recruitment efforts included search-engine listing and banner advertisements, paid newspaper advertisements, and email invitations to participants in an existing cognitive registry. The timing and short-term recruitment effects of these activities have been reported previously [Sato2021(PMID: 34292159)]. A further public announcement highlighting progress in the J-TRC program and encouraging participation in the Webstudy was issued in February 2022 [UTokyoAMED2022].</p>
+<h3>.</h3>
+<p>Descriptive comparisons across participation stages showed differences in measured participant characteristics, particularly educational attainment and sex. Compared with participants without a valid Cogstate assessment, those completing a valid Cogstate assessment had higher educational attainment (standardized mean difference [SMD], 0.242) and a lower proportion of women (SMD, -0.219). Across the examined contribution-stage comparisons, absolute SMDs did not exceed 0.242.</p>
+<h3>.</h3>
+<p>DiscussionUsing over six years of J-TRC Webstudy data, we found high initial assessment completion but limited multiyear contribution; frequent inactivity, occasional reactivation, and score-associated subsequent observation; and more favorable returnee changes than first-exposure contrasts. In marginal models, estimated elapsed-time coefficients varied markedly across retest specifications despite similar cross-validated prediction errors. Together, these findings show the importance of sustained participation, selective observation, and retest-model specification when interpreting longitudinal cognitive scores from web-based registries. The Brain Health Registry and Alzheimer Prevention Trials Webstudy have demonstrated large-scale remote recruitment [Weiner2018(PMID: 29754989); Walter2020(PMID: 32920623)], while other studies have examined unsupervised cognitive assessment [Banh2022(PMID: 35542999)]. Early J-TRC recruitment strategies and their short-term effects have been reported previously [Sato2021(PMID: 34292159)], as have Webstudy usability and questionnaire participation [Sato2024(PMID: 38706282); Nakashima2025(PMID: 40115874)]. Because assessment schedules and follow-up definitions differ, retention rates cannot be directly compared across registries. Our study extends this literature by characterizing opportunity-adjusted multiyear data contribution, inactivity and reactivation, score-associated subsequent observation, and the model dependence of repeated cognitive score interpretation.</p>
+<h3>[</h3>
+<p>Gasparini2020(PMID: 31894164); Pullenayegum2016(PMID: 24855119)]. These findings demonstrate that subsequent assessment was associated with prior cognitive scores and participation histories, highlighting the importance of the observation process when interpreting longitudinal cognitive data. The favorable score changes among returnees were substantially greater than contemporaneous first-exposure contrasts. By assessment 12, favorable changes reached 0.43 baseline SD for CFI and 1.14 SD for Cogstate, whereas the first-exposure contrasts were close to zero. Several mechanisms may contribute to these differences, including repeated exposure, familiarity with testing, and selective continuation. Practice-related gains have been documented in longitudinal cognitive research [Salthouse2010(PMID: 20804244); Hoffman2011(PMID: 21639642); Chen2023(PMID: 37199336)]. Recent randomized evidence also showed that the number and frequency of previous Cogstate assessments influence subsequent performance [Murchland2026(PMID: 42224199)]. For the self-reported CFI, changes in symptom reporting [Shrout2018(PMID: 29255039)] and the handling of non-scorable items may also contribute. . Together, these findings highlight the importance of assessment exposure and changing participant composition when interpreting longitudinal online cognitive scores.</p>
+<p>prioritize onsite invitations [Sato2021(PMID: 33778148); Nakashima2026(PMID: 41536849)]. One A4-derived model included a score difference between screening visits 1 and 3 [Sato2021(PMID: 33778148)], whereas Webstudy participants could complete tests over longer, irregular intervals. Whether this heterogeneity affects amyloid-risk predictions or invitation priority was not assessed. ADNI-3 findings demonstrate longitudinal utility of remote Cogstate under structured follow-up [Maruff2026(PMID: 42138182)]. More regular schedules, prospectively defined first-exposure comparators, documentation of test versions, and linkage to clinical or biomarker outcomes warrant evaluation. The AlzMatch pilot additionally showed feasibility of remote registry-linked blood collection [Walter2024(PMID: 39350391)]. Online scores are informative, but should not be treated as equivalent to scheduled clinical follow-up.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. J-TRC Webstudy interface and participant-driven assessment process</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Registry growth, assessment progression, and repeated-score distributions</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Dynamic participation, reactivation, and associations with subsequent assessment observation</p>
+<h3>Figure 4.</h3>
+<p>Observed score changes and the dependence of elapsed-time estimates on repeated-assessment specifications (A) Mean change from the first observed assessment among repeatedly assessed participants (returnees) and the corresponding contrast derived from contemporaneously matched first-exposure observations. For each returnee assessment occasion, two distinct participants completing their first observed J-TRC assessment were matched separately to the returnee&#x27;s initial and later assessment dates, using calendar date, age, sex, and educational attainment. The first-exposure reference change represents the difference between these two cross-sectional observations, whereas the returnee change is calculated within an individual. Points represent estimates, and vertical intervals represent occasion-specific 95% confidence intervals. Labels 2, 6, and 12 identify selected assessment occasions, not sample sizes. Results are expressed in favorable baseline-standard-deviation units, with positive values indicating improvement. Full matched comparisons are reported in Supplementary Table</p>
+<h3>References</h3>
+<p>Grill JD, Karlawish J. Addressing the challenges to successful recruitment and retention in Alzheimer&#x27;s disease clinical trials. Alzheimers Res Ther. 2010;2(6):34. doi:10.1186/alzrt58. PMID: 21172069. https://doi.org/10.1186/alzrt58</p>
+<p>Aisen PS, Sperling RA, Cummings J, Donohue MC, Langford O, Jimenez-Maggiora GA, et al. The Trial-Ready Cohort for Preclinical/Prodromal Alzheimer&#x27;s Disease (TRC-PAD) Project: An overview. J Prev Alzheimers Dis. 2020;7(4):208-212. doi:10.14283/jpad.2020.45. PMID: 32920621. https://doi.org/10.14283/jpad.2020.45</p>
+<p>Weiner MW, Nosheny R, Camacho M, Truran-Sacrey D, Mackin RS, Flenniken D, et al. The Brain Health Registry: An internet-based platform for recruitment, assessment, and longitudinal monitoring of participants for neuroscience studies. Alzheimers Dement. 2018;14(8):1063-1076. doi:10.1016/j.jalz.2018.02.021. PMID: 29754989. https://doi.org/10.1016/j.jalz.2018.02.021</p>
+<p>Walter S, Clanton TB, Langford OG, Rafii MS, Shaffer EJ, Grill JD, et al. Recruitment into the Alzheimer Prevention Trials (APT) Webstudy for a Trial-Ready Cohort for Preclinical and Prodromal Alzheimer&#x27;s Disease (TRC-PAD). J Prev Alzheimers Dis. 2020;7(4):219-225. doi:10.14283/jpad.2020.46. PMID: 32920623. https://doi.org/10.14283/jpad.2020.46</p>
+<p>Lim YY, Yassi N, Bransby L, Properzi M, Buckley R. The Healthy Brain Project: An online platform for the recruitment, assessment, and monitoring of middle-aged adults at risk of developing Alzheimer&#x27;s disease. J Alzheimers Dis. 2019;68(3):1211-1228. doi:10.3233/JAD-181139. PMID: 30909237. https://doi.org/10.3233/JAD-181139</p>
+<p>Wesnes KA, Brooker H, Ballard C, McCambridge L, Stenton R, Corbett A. Utility, reliability, sensitivity and validity of an online test system designed to monitor changes in cognitive function in clinical trials. Int J Geriatr Psychiatry. 2017;32(12). doi:10.1002/gps.4659. PMID: 28128869. https://doi.org/10.1002/gps.4659</p>
+<p>Iwatsubo T. Development of disease-modifying therapies against Alzheimer&#x27;s disease. Psychiatry Clin Neurosci. 2024;78(9):491-494. doi:10.1111/pcn.13681. PMID: 38842037. https://doi.org/10.1111/pcn.13681</p>
+<p>Sato K, Niimi Y, Ihara R, Suzuki K, Toda T, Iwata A, et al. Efficacy and cost-effectiveness of promotion methods to recruit participants to an online screening registry for Alzheimer disease prevention trials: Observational study. J Med Internet Res. 2021;23(7). doi:10.2196/26284. PMID: 34292159. https://doi.org/10.2196/26284</p>
+<p>Sato K, Ihara R, Suzuki K, Niimi Y, Toda T, Jimenez-Maggiora G, et al. Predicting amyloid risk by machine learning algorithms based on the A4 screen data: Application to the Japanese Trial-Ready Cohort study. Alzheimers Dement (N Y). 2021;7(1). doi:10.1002/trc2.12135. PMID: 33778148. https://doi.org/10.1002/trc2.12135</p>
+<p>Nakashima S, Sato K, Niimi Y, Ihara R, Ikeuchi T, Ishii K, et al. Characterizing Japanese older adults without dementia by amyloid PET status: A comparative study of amyloid-positive and amyloid-negative groups from Japanese trial-ready cohort study. Alzheimers Dement (Amst). 2026;18(1). doi:10.1002/dad2.70242. PMID: 41536849. https://doi.org/10.1002/dad2.70242</p>
+<p>Ashford MT, Eichenbaum J, Williams T, Camacho MR, Fockler J, Ulbricht A, et al. Effects of sex, race, ethnicity, and education on online aging research participation. Alzheimers Dement (N Y). 2020;6(1). doi:10.1002/trc2.12028. PMID: 32478165. https://doi.org/10.1002/trc2.12028</p>
+<p>Ashford MT, Jin C, Neuhaus J, Diaz A, Aaronson A, Tank R, et al. Participant completion of longitudinal assessments in an online cognitive aging registry: The role of medical conditions. Alzheimers Dement (N Y). 2024;10(1). doi:10.1002/trc2.12438. PMID: 38188606. https://doi.org/10.1002/trc2.12438</p>
+<p>Stricker NH, Lundt ES, Alden EC, Albertson SM, Machulda MM, Kremers WK, et al. Longitudinal comparison of in clinic and at home administration of the Cogstate Brief Battery and demonstrated practice effects in the Mayo Clinic Study of Aging. J Prev Alzheimers Dis. 2020;7(1):21-28. doi:10.14283/jpad.2019.35. PMID: 32010922. https://doi.org/10.14283/jpad.2019.35</p>
+<p>Murchland AR, Chen R, Blacker D, Kang JH, Glymour MM, Haneuse S. Improvements in Cogstate test performance depend on number and frequency of prior tests: Evidence from a randomized follow-up design. Alzheimer Dis Assoc Disord. 2026;40(2):77-84. doi:10.1097/WAD.0000000000000728. PMID: 42224199. https://doi.org/10.1097/WAD.0000000000000728</p>
+<p>Hoffman L, Hofer SM, Sliwinski MJ. On the confounds among retest gains and age-cohort differences in the estimation of within-person change in longitudinal studies: A simulation study. Psychol Aging. 2011;26(4):778-791. doi:10.1037/a0023910. PMID: 21639642. https://doi.org/10.1037/a0023910</p>
+<p>Vivot A, Power MC, Glymour MM, Mayeda ER, Benitez A, Spiro A 3rd, et al. Jump, hop, or skip: Modeling practice effects in studies of determinants of cognitive change in older adults. Am J Epidemiol. 2016;183(4):302-314. doi:10.1093/aje/kwv212. PMID: 26825924. https://doi.org/10.1093/aje/kwv212.</p>
+<p>Chen R, Calmasini C, Swinnerton K, Wang J, Haneuse S, Ackley SF, et al. Pragmatic approaches to handling practice effects in longitudinal cognitive aging research. Alzheimers Dement. 2023;19(9):4028-4036. doi:10.1002/alz.13067. PMID: 37199336. https://doi.org/10.1002/alz.13067</p>
+<p>Jutten RJ, Grandoit E, Foldi NS, Sikkes SAM, Jones RN, Choi SE, et al. Lower practice effects as a marker of cognitive performance and dementia risk: A literature review. Alzheimers Dement (Amst). 2020;12(1). doi:10.1002/dad2.12055. PMID: 32671181. https://doi.org/10.1002/dad2.12055</p>
+<p>Shrout PE, Stadler G, Lane SP, McClure MJ, Jackson GL, Clavél FD, et al. Initial elevation bias in subjective reports. Proc Natl Acad Sci U S A. 2018;115(1). doi:10.1073/pnas.1712277115. PMID: 29255039. https://doi.org/10.1073/pnas.1712277115</p>
+<p>Hernandez R, Jin H, Lee PJ, Schneider S, Junghaenel DU, Stone AA, et al. Attrition from longitudinal ageing studies and performance across domains of cognitive functioning: An individual participant data meta-analysis. BMJ Open. 2024;14(3). doi:10.1136/bmjopen-2023-079241. PMID: 38453191. https://doi.org/10.1136/bmjopen-2023-079241</p>
+<p>Gasparini A, Abrams KR, Barrett JK, Major RW, Sweeting MJ, Brunskill NJ, et al. Mixed-effects models for health care longitudinal data with an informative visiting process: A Monte Carlo simulation study. Stat Neerl. 2020;74(1):5-23. doi:10.1111/stan.12188. PMID: 31894164. https://doi.org/10.1111/stan.12188</p>
+<p>Weuve J, Proust-Lima C, Power MC, Gross AL, Hofer SM, Thiébaut R, et al. Guidelines for reporting methodological challenges and evaluating potential bias in dementia research. Alzheimers Dement. 2015;11(9):1098-1109. doi:10.1016/j.jalz.2015.06.1885. PMID: 26397878. https://doi.org/10.1016/j.jalz.2015.06.1885</p>
+<p>The University of Tokyo; Japan Agency for Medical Research and Development. The J-TRC study enters a new phase: Building Japan&#x27;s largest online cohort of approximately 20,000 participants to advance research and treatment of very early Alzheimer&#x27;s disease, with full-scale collaboration with international prevention and treatment trials. Press release; title translated from Japanese. Published February 3, 2022. Accessed November 3, 2026. https://www.amed.go.jp/news/release_20220203-02.html</p>
+<p>Amariglio RE, Donohue MC, Marshall GA, Rentz DM, Salmon DP, Ferris SH, et al. Tracking early decline in cognitive function in older individuals at risk for Alzheimer disease dementia: The Alzheimer&#x27;s Disease Cooperative Study Cognitive Function Instrument. JAMA Neurol. 2015;72(4):446-454. doi:10.1001/jamaneurol.2014.3375. PMID: 25706191. https://doi.org/10.1001/jamaneurol.2014.3375.</p>
+<p>Walter S, Langford OG, Clanton TB, Jimenez-Maggiora GA, Raman R, Rafii MS, et al. The Trial-Ready Cohort for Preclinical and Prodromal Alzheimer&#x27;s Disease (TRC-PAD): Experience from the first 3 years. J Prev Alzheimers Dis. 2020;7(4):234-241. doi:10.14283/jpad.2020.47. PMID: 32920625. https://doi.org/10.14283/jpad.2020.47</p>
+<p>Maruff P, Lim YY, Darby D, Ellis KA, Pietrzak RH, Snyder PJ, et al. Clinical utility of the Cogstate Brief Battery in identifying cognitive impairment in mild cognitive impairment and Alzheimer&#x27;s disease. BMC Psychol. 2013;1(1):30. doi:10.1186/2050-7283-1-30. PMID: 25566378. https://doi.org/10.1186/2050-7283-1-30</p>
+<p>Elman JA, Jak AJ, Panizzon MS, Tu XM, Chen T, Reynolds CA, et al. Underdiagnosis of mild cognitive impairment: A consequence of ignoring practice effects. Alzheimers Dement (Amst). 2018;10:372-381. doi:10.1016/j.dadm.2018.04.003. PMID: 30003138. https://doi.org/10.1016/j.dadm.2018.04.003</p>
+<p>Seaman SR, White IR. Review of inverse probability weighting for dealing with missing data. Stat Methods Med Res. 2013;22(3):278-295. doi:10.1177/0962280210395740. PMID: 21220355. https://doi.org/10.1177/0962280210395740</p>
+<p>Cole SR, Hernán MA. Constructing inverse probability weights for marginal structural models. Am J Epidemiol. 2008;168(6):656-664. doi:10.1093/aje/kwn164. PMID: 18682488. https://doi.org/10.1093/aje/kwn164</p>
+<p>Banh T, Jin C, Neuhaus J, Mackin RS, Maruff P, Stricker NH, et al. Unsupervised performance of the Cogstate Brief Battery in the Brain Health Registry: Implications for detecting cognitive decline. J Prev Alzheimers Dis. 2022;9(2):262-268. doi:10.14283/jpad.2021.68. PMID: 35542999. https://doi.org/10.14283/jpad.2021.68</p>
+<p>Sato K, Niimi Y, Ihara R, Suzuki K, Iwata A, Iwatsubo T. Usability of a web-based registry for preclinical Alzheimer&#x27;s disease: Implications from a cross-sectional online survey. J Prev Alzheimers Dis. 2024;11:661-671. doi:10.14283/jpad.2024.48. PMID: 38706282. https://doi.org/10.14283/jpad.2024.48</p>
+<p>Nakashima S, Sato K, Niimi Y, Toda T, Iwatsubo T. Factors affecting participation in web-based Alzheimer&#x27;s questionnaire surveys: Lessons from the Japanese trial-ready cohort. JAR Life. 2025;14:100008. doi:10.1016/j.jarlif.2025.100008. PMID: 40115874. https://doi.org/10.1016/j.jarlif.2025.100008</p>
+<p>Pullenayegum EM, Lim LSH. Longitudinal data subject to irregular observation: A review of methods with a focus on visit processes, assumptions, and study design. Stat Methods Med Res. 2016;25(6):2992-3014. doi:10.1177/0962280214536537. PMID: 24855119. https://doi.org/10.1177/0962280214536537</p>
+<p>Salthouse TA. Influence of age on practice effects in longitudinal neurocognitive change. Neuropsychology. 2010;24(5):563-572. doi:10.1037/a0019026. PMID: 20804244. https://doi.org/10.1037/a0019026</p>
+<p>Ferrer E, Salthouse TA, Stewart WF, Schwartz BS. Modeling age and retest processes in longitudinal studies of cognitive abilities. Psychol Aging. 2004;19(2):243-259. doi:10.1037/0882-7974.19.2.243. PMID: 15222818. https://doi.org/10.1037/0882-7974.19.2.243</p>
+<p>Maruff P, Albala B, Harvey D, Saito N, Kanoria S, Aisen P, et al. Remote, unsupervised assessment of cognitive impairment and decline in Alzheimer&#x27;s disease using the Cogstate Brief Battery in ADNI-3. Alzheimers Dement. 2026;22(5). doi:10.1002/alz.71357. PMID: 42138182. https://doi.org/10.1002/alz.71357</p>
+<p>Walter S, Langford O, Jimenez-Maggiora GA, Abdel-Latif S, Rissman RA, Grill JD, et al. The AlzMatch pilot study: Feasibility of remote blood collection of plasma biomarkers for preclinical Alzheimer&#x27;s disease trials. J Prev Alzheimers Dis. 2024;11(5):1435-1444. doi:10.14283/jpad.2024.101. PMID: 39350391. https://doi.org/10.14283/jpad.2024.101</p>
+<p>Hall AK, Bernhardt JM, Dodd V, Vollrath MW. The digital health divide: Evaluating online health information access and use among older adults. Health Educ Behav. 2015;42(2):202-209. doi:10.1177/1090198114547815. PMID: 25156311. https://doi.org/10.1177/1090198114547815</p>
+<p>Ashford MT, Eichenbaum J, Jin C, Neuhaus J, Aaronson A, Ulbricht A, et al. Associations between participant characteristics and participant feedback about an unsupervised online cognitive assessment in a research registry. J Prev Alzheimers Dis. 2023;10(3):607-614. doi:10.14283/jpad.2023.40. PMID: 37357303. https://doi.org/10.14283/jpad.2023.40.</p>
 </div>
 </details>
 </div>
