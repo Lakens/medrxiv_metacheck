@@ -197,7 +197,7 @@ Screening Renin-Aldosterone Profiles and Long-term Cardiovascular Risk
 After Primary Aldosteronism Evaluation
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.09.26367682
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367682
 </p>
 </header>
 <div class="mc-main">
@@ -526,8 +526,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -877,9 +880,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -901,7 +908,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -916,9 +924,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -931,13 +957,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -957,6 +986,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -964,12 +999,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1070,6 +1111,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1089,6 +1150,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1344,19 +1440,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1466,6 +1644,154 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Aldosterone-to-renin ratio (ARR) and plasma renin activity (PRA) are measured at the screening stage of primary aldosteronism (PA) evaluation, but their prognostic relevance after confirmatory classification and subsequent treatment remains uncertain.</p>
+<p>Methods: We linked the seven-hospital Taiwan Primary Aldosteronism Investigation cohort (1991-2023) with nationwide health insurance and mortality data through June 2025. Patients were classified as confirmatory-test-defined essential hypertension (EH), PA without adrenalectomy, or PA with subsequent adrenalectomy. Covariate-adjusted Cox models evaluated screening logARR, logPRA, and logPAC separately in relation to incident major adverse cardiovascular events (MACE; myocardial infarction, stroke, heart failure hospitalization, or cardiovascular death).</p>
+<p>Results: Among 3,178 participants (EH, 1,433; PA without adrenalectomy, 834; PA with adrenalectomy, 911), 441 (13.9%) experienced MACE during a median 7.9-year follow-up. Adjusted hazard ratios (95% CIs) per 1-unit increase in logARR were 1.09 (1.00-1.19), 1.14 (1.03-1.26), and 0.95 (0.87-1.05), respectively; corresponding logPRA estimates were 0.91 (0.83-0.99), 0.87 (0.79-0.97), and 1.04 (0.93-1.16). LogPAC showed no consistent associations. Primary biomarker-byphenotype interactions were not significant for logARR (P=0.057) or logPRA (P=0.069); timevarying adrenalectomy analyses were supportive but exploratory.</p>
+<p>Conclusions: Higher screening ARR and lower PRA were associated with subsequent MACE in confirmatory-test-defined EH and PA without adrenalectomy, but not clearly in PA with subsequent adrenalectomy.</p>
+<h3>Introduction</h3>
+<p>Primary aldosteronism (PA) is a common, underdiagnosed, and treatable cause of hypertension associated with excess cardiovascular and kidney risk beyond blood pressure elevation [1] [2] [3] . At the screening stage, paired aldosterone and renin measurements guide initial PA evaluation 1, 4 . The aldosterone-to-renin ratio (ARR) reflects aldosterone relative to renin suppression, whereas plasma renin activity (PRA) and plasma aldosterone concentration (PAC) are its components 5, 6 ; these measures are related but not interchangeable [5] [6] [7].</p>
+<p>Renin-independent aldosterone physiology spans subclinical or low-renin states to overt PA 6,8- 10 . Higher ARR and lower renin have been associated with hypertension, cardiovascular events, and kidney function decline, whereas aldosterone alone has shown less consistent associations 8,11-14. However, prior population-based studies did not distinguish confirmatory-test-defined essential hypertension (EH) from PA or account for subsequent PA treatment pathways [12] [13] [14] . Conversely, clinical PA studies have not focused on the long-term prognostic significance of screening ARR and PRA [15] [16] [17] [18] . Thus, whether screening renin-aldosterone profiles provide prognostic information beyond diagnostic classification in the real-world PA evaluation pathway remains uncertain. Using a large hypertension cohort linked to nationwide health insurance data, we evaluated screening ARR, PRA, Adults were eligible if they underwent PA evaluation with baseline PRA and PAC measured before confirmatory testing. Exclusions were a missing or post-June 30, 2023 index date, unavailable baseline PRA or PAC, adrenalectomy before index, or qualifying MACE before index. PA was confirmed by autonomous aldosterone production according to the TAIPAI framework, including validated post-captopril or post-losartan ARR criteria 19, 20, 22.</p>
+<p>Patients were classified as (1) EH, without confirmatory evidence of PA; (2) PA without adrenalectomy; or (3) PA with subsequent adrenalectomy (Figure 1). Because adrenalectomy occurred after PA evaluation and was not randomized, these analyses were interpreted as treatmentpathway-stratified prognostic associations rather than causal effects of surgery 23, 24.</p>
+<h3>Identification of PA and Biomarker Measurement</h3>
+<p>Other causes of secondary hypertension were excluded according to TAIPAI procedures 20, 25.</p>
+<p>Potentially interfering antihypertensive medications were withheld for at least 21 days when clinically appropriate; doxazosin and/or diltiazem were used when needed, and usual sodium intake was maintained and assessed by urinary testing 1, 20 . PA was diagnosed according to TAIPAI and Taiwan Society of Aldosteronism criteria 19, 20, 22, 25 ; detailed confirmation and subtype procedures are provided in the Supplementary Methods.</p>
+<p>PAC and PRA were measured by radioimmunoassay (ALDO-RIACT, Cisbio Bioassays; Ang I RIA, Beckman Coulter). The aldosterone detection limit was 10.0 pg/mL; upright reference ranges were 70-350 pg/mL for PAC and 2.63 ± 1.32 ng/mL/h for PRA. PRA intra-assay and interassay coefficients of variation were 1.9% and 4.5%.</p>
+<h3>Exposure Assessment</h3>
+<p>Screening ARR and PRA were defined as measurements obtained at the initial PA evaluation after a medication washout period for antihypertensive agents that could interfere with the reninaldosterone system, whenever clinically feasible. ARR, PRA, and PAC measured at the screening/index visit were natural-log transformed because of right-skewed distributions and analyzed in separate models with identical covariate adjustment. No data-driven ARR or PRA cutoffs were used because thresholds vary with assay and clinical conditions 1, 5, 7.</p>
+<h3>Outcomes</h3>
+<p>Outcomes were ascertained by linking TAIPAI to Taiwan&#x27;s NHIRD, which covers approximately 99% of the population 26 . Baseline clinical and laboratory data came from TAIPAI; claims and mortality data were linked using encrypted identifiers and national data services 27 . Causespecific mortality was obtained from death certificates. The primary outcome was MACE, defined as incident myocardial infarction, stroke, heart failure hospitalization, or cardiovascular death. Baseline heart failure in Table 1 reflected comorbidity at study entry; patients with a qualifying heart failure hospitalization before the index date were excluded, and the heart failure component of MACE required a hospitalization after the index date. Secondary outcomes were individual MACE components and all-cause mortality.</p>
+<p>Claims-based cardiovascular definitions have been previously validated 28, 29 , and stroke ascertainment used diagnostic codes with neuroimaging information 30 . Detailed ICD definitions are provided in eTable 1. Follow-up began at index and continued until first MACE, noncardiovascular death, loss to follow-up, or study end.</p>
+<h3>Statistical Analysis</h3>
+<p>Baseline characteristics were summarized by clinical phenotype. Separate Cox models evaluated associations of logARR, logPRA, and logPAC with MACE within each phenotype, adjusting for age category, sex, body mass index, systolic blood pressure category, estimated glomerular filtration rate, and serum potassium; biomarker-by-phenotype interactions were tested separately. Hazard ratios and 95% confidence intervals were reported per 1-unit increase in each natural-log-transformed biomarker. Negative control analyses excluded participants with the corresponding pre-index outcome and modeled logARR and logPRA using the same covariates 31.</p>
+<h3>Results</h3>
+<h3>Study Cohort and Baseline Characteristics</h3>
+<p>The final analytic cohort included 3,178 patients who underwent PA evaluation. Among them, 1,433 were classified as EH, 834 as PA without adrenalectomy, and 911 as PA with adrenalectomy (Figure 1 and Table 1).</p>
+<p>Patients with PA had lower PRA and higher ARR than patients with EH. Median PRA was 0.6 [0.1-1.7] ng/mL/h in the overall cohort, 1.4 [0.5-3.7] in EH, 0.4 [0.1-0.9] in PA without adrenalectomy, and 0.3 [0.1-0.7] in PA with adrenalectomy. Median ARR was 53.6 [18.5-220.2] overall, 20.5 [9.2-56.7] in EH, 97.8 [39.7-304.7] in PA without adrenalectomy, and 156.1 [50.5-520.0] in PA with adrenalectomy. Median PAC was 34.1 [23.1-51.7], 30.4 [20.6-45.4], 34.8 [24.1-51.5], and 40.0 [26.7-63.2] ng/dL, respectively. Other baseline differences, including blood pressure, potassium, kidney function, comorbidities, and medication use, are summarized in Table 1.</p>
+<h3>Clinical Outcomes</h3>
+<p>During a median follow-up of 7.9 years (IQR, 4.4-12.9), 441 patients (13.9%) experienced MACE. The overall MACE incidence rate was 16.3 per 1,000 person-years, with rates of 15.0, 21.4, and 14.3 per 1,000 person-years in EH, PA without adrenalectomy, and PA with adrenalectomy, respectively. Overall, myocardial infarction occurred in 107 patients (3.4%), heart failure hospitalization in 104 (3.3%), stroke in 260 (8.2%), cardiovascular death in 70 (2.2%), and all-cause death in 262 (8.2%) (Table 2).</p>
+<p>Screening Renin-Aldosterone Markers and Incident MACE (Table 3 and Figure 2) Higher logARR was associated with higher MACE risk in EH (adjusted HR, 1.09; 95% CI, 1.00-1.19; P=0.046) and PA without adrenalectomy (adjusted HR, 1.14; 95% CI, 1.03-1.26; P=0.013), but not in PA with adrenalectomy (adjusted HR, 0.95; 95% CI, 0.87-1.05; P=0.348). The logARR-by-clinical-phenotype interaction did not reach conventional statistical significance (P for interaction=0.057).</p>
+<p>Higher logPRA was associated with lower MACE risk in EH (adjusted HR, 0.91; 95% CI, 0.83-0.99; P=0.020) and PA without adrenalectomy (adjusted HR, 0.87; 95% CI, 0.79-0.97; P=0.011), but . not in PA with adrenalectomy (adjusted HR, 1.04; 95% CI, 0.93-1.16; P=0.467). The logPRA-byclinical-phenotype interaction did not reach statistical significance (P for interaction=0.069). Thus, ARR and PRA showed parallel qualitative patterns across the three clinical phenotypes.</p>
+<p>LogPAC showed no consistent association with MACE across clinical phenotypes, with adjusted HRs of 0.88 (95% CI, 0.69-1.12; P=0.311), 1.03 (95% CI, 0.76-1.39; P=0.851), and 0.89 (95% CI, 0.67-1.18; P=0.419) in EH, PA without adrenalectomy, and PA with adrenalectomy, respectively. There was no evidence of effect modification by clinical phenotype for logPAC (p for interaction=0.725).</p>
+<h3>Dose-Response Analyses</h3>
+<p>Cox generalized additive models showed broadly concordant patterns for ARR and PRA: MACE risk increased with higher logARR and decreased with higher logPRA in EH and PA without adrenalectomy, whereas both associations were relatively flat in PA with adrenalectomy (eFigure 1).</p>
+<h3>Adrenalectomy Timing Sensitivity Analysis</h3>
+<p>In time-varying analyses among patients with PA, higher screening logARR was associated with MACE during the non-operated state (adjusted HR, 1.13; 95% CI, 1.03-1.25) but not during the operated state (adjusted HR, 0.95; 95% CI, 0.85-1.05; P for interaction=0.010). Similarly, higher screening logPRA was inversely associated with MACE during the non-operated state (adjusted HR, 0.88; 95% CI, 0.79-0.97) but not during the operated state (adjusted HR, 1.05; 95% CI, 0.94-1.18; P for interaction=0.016) (eTable 2). Operational post-treatment clinical and biochemical response classifications are summarized descriptively in eTable 3.</p>
+<h3>Calendar-Era Sensitivity Analysis</h3>
+<p>After additional adjustment for index year, the effect estimates for logARR, logPRA, and logPAC were materially similar to those in the primary models. The biomarker-by-clinicalphenotype interaction reached statistical significance for logARR (P=0.022) and logPRA (P=0.033), but not for logPAC (P=0.825) (eTable 4). In era-stratified analyses, no significant biomarker-by-era interaction was observed within any clinical phenotype. Estimates in the 2020-2023 era were imprecise because of the limited number of MACE events, particularly among patients with PA who underwent adrenalectomy.</p>
+<h3>Exploratory Negative Control Outcome Analyses</h3>
+<p>Exploratory analyses of abdominal hernia, lumbar/lumbosacral radiculopathy, gastrointestinal bleeding, and traffic accidents showed adjusted HRs of 0.837-1.193 for logARR and 0.834-1.156 for logPRA across clinical phenotypes (eTable 5).</p>
+<h3>Discussion</h3>
+<p>In this structured PA evaluation cohort, higher screening ARR and lower screening PRA were associated with incident MACE among patients ultimately classified as EH or PA without adrenalectomy, whereas PAC alone showed no consistent association. Prior population studies linked low-renin, high-ARR phenotypes to cardiorenal events 6,11-14 . Our findings indicate that higher ARR and lower PRA remain associated with MACE even after negative confirmatory testing for PA.</p>
+<p>Differences across treatment pathways require cautious interpretation because the primary biomarker-by-phenotype interactions were not statistically significant. In EH, negative confirmatory testing does not necessarily exclude risk-relevant renin-aldosterone physiology [8] [9] [10] 32.</p>
+<p>In medically managed PA, the same ARR-PRA pattern may indicate persistent aldosteronerelated risk and supports reassessment of MRA adequacy, renin recovery, potassium correction, and blood pressure control 15, 17, 18, 33, 34 . Conversely, the absence of a clear association in the adrenalectomy pathway suggests that baseline screening physiology may be less informative after surgery, and post-treatment markers may warrant separate evaluation in future studies.</p>
+<p>These findings show concordant associations of higher ARR and lower PRA with MACE, consistent with overlapping renin-aldosterone physiology. Prior population-based and hypertension cohorts have linked higher ARR and suppressed renin, but less consistently aldosterone concentration alone, with cardiovascular and kidney outcomes [11] [12] [13] [14] . Our study extends this evidence to a clinically adjudicated PA pathway by distinguishing confirmatory-test-defined EH from overt PA and stratifying PA by subsequent adrenalectomy. This design evaluates whether screening ARR and PRA retain prognostic relevance after diagnostic classification and across treatment pathways.</p>
+<h3>Comparative Interpretation of ARR and PRA</h3>
+<p>ARR and PRA provide different but overlapping views of renin-aldosterone physiology. Both measures showed qualitatively similar risk patterns in EH and PA without adrenalectomy, whereas PAC alone did not. This pattern accords with recent population-based evidence showing that both higher ARR and lower renin, but not aldosterone concentration alone, were associated with longitudinal kidney outcomes 13, 14 . Our findings extend that comparative framework to MACE within a clinically defined PA evaluation pathway.</p>
+<p>The EH finding deserves careful interpretation. Although these patients did not meet confirmatory criteria for PA, the EH group may include occult or subclinical PA phenotypes below conventional confirmatory thresholds 6, [8] [9] [10] . Prior studies have linked higher ARR and suppressed renin to incident hypertension and cardiovascular events 8, 11, 12 . Long-term follow-up of patients with elevated ARR but initially negative confirmatory testing has also demonstrated progression toward more overt PA phenotypes 32 . In this cohort, higher ARR and lower PRA showed concordant associations with MACE after PA evaluation; these findings do not establish the added predictive value of using both markers together.</p>
+<h3>Clinical Interpretation Across the PA Evaluation Pathway</h3>
+<p>Among patients with PA without adrenalectomy, higher ARR or lower PRA may each reflect a higher-risk renin-independent aldosterone phenotype. Persistent renin suppression in PA may indicate ongoing mineralocorticoid receptor activation and volume expansion despite blood pressure treatment, while ARR incorporates the relation between renin suppression and aldosterone concentration. This distinction is clinically relevant because outcomes in medically treated PA appear to depend not merely on whether MRA therapy is prescribed, but on the adequacy of mineralocorticoid receptor blockade, renin recovery, potassium correction, blood pressure control, and standardized medical response 15, 17, 18, 33, 34 . Thus, an abnormal ARR-PRA pattern in medically managed PA should prompt reassessment of treatment adequacy rather than be interpreted as a static diagnostic finding.</p>
+<h3>Treatment Pathway, Adrenalectomy, and Residual Risk</h3>
+<p>In the main models, neither ARR nor PRA was associated with MACE among patients who underwent adrenalectomy. Targeted adrenalectomy can remove unilateral aldosterone excess, correct hypokalaemia, and improve blood pressure control 16, 21 . Observational studies and meta-analyses have also reported favorable long-term cardiovascular outcomes after adrenalectomy in selected patients with PA 30, 35, 36 . However, treatment allocation was not randomized, and patients selected for adrenalectomy were likely to differ from non-operated patients 23, 24 . Timing-sensitive analyses showed concordant attenuation of the ARR-and PRA-associated risk signals in the operated state.</p>
+<p>Confounding by indication and treatment-selection bias remain possible, and the exposure-byclinical-phenotype interaction tests did not reach statistical significance.</p>
+<p>The lack of a consistent association between PAC alone and MACE suggests that isolated aldosterone concentration may not capture the same risk-related physiology as ratio-based or reninbased measures. Aldosterone concentration varies with sodium intake, posture, potassium status, medications, and assay conditions 1, 7 ; ARR and PRA incorporate information about renin suppression in different ways 5, 6 . Thus, the prognostic signal observed in this cohort appears to reflect reninaldosterone imbalance rather than aldosterone concentration in isolation 13, 14.</p>
+<h3>Clinical Implications</h3>
+<p>Our findings suggest a practical use for screening ARR and PRA after PA evaluation. In patients classified as EH, higher ARR and lower PRA were still associated with long-term MACE, indicating that negative confirmatory testing does not necessarily eliminate risk related to reninaldosterone imbalance. These patients may merit closer cardiovascular risk assessment and repeat PA evaluation if clinical features evolve 1, 32 . In PA without adrenalectomy, the same ARR-PRA pattern may indicate persistent aldosterone-related risk and may support reassessment of MRA adequacy, renin recovery, potassium correction, and blood pressure control 15, 17, 33, 34 . In contrast, the lack of a clear association after adrenalectomy suggests that baseline screening physiology may be less prognostically informative in this pathway. Thus, higher ARR and lower PRA showed concordant associations with MACE after PA evaluation; their comparative and joint predictive utility, and their value in guiding treatment, remain to be established.</p>
+<p>A recent analysis of the community-based Atherosclerosis Risk in Communities cohort associated higher ARR with incident atrial fibrillation and ischemic stroke 37 . Unlike that study, our cohort comprised patients undergoing structured PA evaluation, allowing prognostic associations to be examined after confirmatory diagnostic classification and across subsequent management pathways. Whether these associations improve cardiovascular risk prediction beyond conventional clinical factors remains to be established.</p>
+<h3>Strengths and Limitations</h3>
+<p>Strengths of this study include evaluation of screening ARR, PRA, and PAC within a structured PA diagnostic pathway, confirmatory-test-based clinical classification, linkage to longterm nationwide outcomes, and assessment across subsequent treatment pathways. This design allowed screening renin-aldosterone physiology in hypertensive patients to be examined in a clinically adjudicated setting rather than only in general population-based cohorts. Several limitations should be acknowledged. First, this cohort consisted of patients selected for PA evaluation and should not be interpreted as representative of an unselected hypertension population.</p>
+<p>Referral for PA testing reflected resistant hypertension, hypokalemia, adrenal abnormalities, or other clinical concerns that were not fully captured in the available data. Second, to reduce medicationrelated interference with ARR, PRA, and PAC, potentially interfering antihypertensive agents were withheld for at least 21 days when clinically appropriate, with doxazosin or diltiazem used for blood pressure control; usual sodium intake was maintained and assessed by urinary testing. Third, ARR and PRA are mathematically coupled because PRA is the denominator of ARR; therefore, their concordant associations should be interpreted in the context of overlapping physiology rather than as statistically independent effects. Separate models allow the associations of ARR and PRA to be evaluated under the same covariate framework but do not establish biological independence. Fourth, the cohort spanned a prolonged period during which PA screening, confirmatory testing, subtype evaluation, and treatment allocation may have evolved. Although additional adjustment for index year and era-stratified analyses showed no significant biomarker-by-era interaction, estimates in the most recent era were imprecise because of sparse events; temporal heterogeneity therefore cannot be completely excluded. Fifth, adrenalectomy was a post-baseline, nonrandomly assigned treatment pathway. Moreover, in the primary phenotype-stratified models, the exposure-by-clinical-phenotype interaction tests for logARR and logPRA did not reach statistical significance. Finally, exploratory negative control analyses showed no consistent associations with screening logARR or logPRA.</p>
+<p>However, some estimates were imprecise, and these analyses cannot exclude residual confounding.</p>
+<h3>Perspectives</h3>
+<p>These results indicate that a negative confirmatory assessment for PA does not necessarily eliminate the cardiovascular prognostic information carried by screening ARR and PRA among patients selected for PA evaluation. Renin-aldosterone measures could provide physiological context for cardiovascular risk assessment after diagnostic workup, particularly for patients managed without adrenalectomy. However, ARR and PRA share the same renin component, and their concordant associations do not demonstrate independent predictive gains. Treatment-pathway differences are vulnerable to confounding and selection; the primary interactions were not statistically significant.</p>
+<p>Further studies should test whether serial renin assessment, adequacy of PA treatment, and validated risk prediction models improve patient management.</p>
+<h3>Novelty and Relevance</h3>
+<p>What Is New?</p>
+<p>• In a seven-hospital PA evaluation cohort linked to nationwide outcomes, screening ARR, PRA, and PAC measured before confirmatory testing were evaluated in parallel for their associations with long-term MACE.</p>
+<p>• Associations were examined across confirmed EH, medically managed PA, and subsequent adrenalectomy pathways.</p>
+<p>What Is Relevant?</p>
+<p>• Higher screening ARR and lower PRA remained associated with MACE even in patients without confirmed PA.</p>
+<h3>Clinical/Pathophysiological Implications?</h3>
+<p>• Renin-aldosterone physiology may inform cardiovascular risk assessment after PA workup.</p>
+<h3>Data Sharing</h3>
+<p>Individual-level data are not publicly available because of privacy and regulatory restrictions governing the NHIRD and institutional registry data.</p>
+<p>integrity of the data and the accuracy of the data analysis. including manuscript text, cited references, figures, and statistical values, was reviewed and verified by the authors, who take full responsibility for its accuracy and integrity. Creatinine, mg/dL 0.9 ± 0.4 0.9 ± 0.4 0.9 ± 0.5 0.9 ± 0.4 eGFR, mL/min/1.73 m² 89.2 ± 25.6 89.5 ± 24.8 88.5 ± 26.4 89.3 ± 26.1</p>
+<h3>Use of Artificial Intelligence in Manuscript Preparation</h3>
+<p>Uric acid, mg/dL 5.9 ± 1.6 6.0 ± 1.6 5.9 ± 1.6 5.8 ± 1.6</p>
+<p>HbA1c, % 6.0 ± 1.0 5.9 ± 0.9 6.0 ± 1.0 6.0 ± 0.9</p>
+<p>LDL cholesterol, mg/dL 113.6 ± 30.8 116.4 ± 31.1 112.8 ± 30.6 110.2 ± 30.2 PRA, ng/mL/h 0.6 [0.1, 1.7] 1.4 [0.5, 3.7] 0.4 [0.1, 0.9] 0.3 [0.1, 0.7] PAC, ng/dL 34.1 [23.1, 51.7] 30.4 [20.6, 45.4] 34.8 [24.1, 51.5] 40.0 [26.7, 63.2] ARR, ng/dL per ng/mL/h 53.6 [18.5, 220.2] 20.5 [9.2, 56.7] 97.8 [39.7, 304.7] 156.1 [50.5, 520.0] Comorbidities Diabetes mellitus, n (%) 469 (14.8) 156 (10.9) 153 (18.3) 160 (17.6) Hyperlipidemia, n (%) 798 (25.1) 372 (26.0) 226 (27.1) 200 (22.0) Atrial fibrillation, n (%) 69 (2.2) 17 (1.2) 29 (3.5) 23 (2.5) CAD*, n (%) 233 (7.3) 95 (6.6) 71 (8.5) 67 (7.4) Baseline heart failure diagnosis*, n (%) 19 (0.6) 11 (0.8) 4 (0.5) 4 (0.4) COPD, n (%) 23 (0.7) 12 (0.8) 5 (0.6) 6 (0.7) Medications ACE inhibitor, n (%) 78 (2.5) 27 (1.9) 20 (2.4) 31 (3.4) ARB, n (%) 1,202 (37.8) 557 (38.9) 302 (36.2) 343 (37.7) Beta-blocker, n (%) 956 (30.1) 316 (22.1) 302 (36.2) 338 (37.1) Alpha-blocker, n (%) 518 (16.3) 159 (11.1) 157 (18.8) 202 (22.2) CCB, n (%) 1,846 (58.1) 725 (50.6) 494 (59.2) 627 (68.8) MRA, n (%) 488 (15.4) 63 (4.4) 148 (17.7) 277 (30.4) Diuretics, n (%) 260 (8.2) 84 (5.9) 91 (10.9) 85 (9.3) Vasodilator, n (%) 146 (4.6) 40 (2.8) 45 (5.4) 61 (6.7) Number of antihypertensive drugs 1.7 ± 1.2 1.3 ± 1.1 1.8 ± 1.2 2.1 ± 1.2 Abbreviation: ARR indicates aldosterone-to-renin ratio; CAD, coronary artery disease; CCB, calcium channel blocker; eGFR, estimated glomerular filtration rate; EH, essential hypertension; MRA, mineralocorticoid receptor antagonist; PA, primary aldosteronism; PAC, plasma aldosterone concentration; PRA, plasma renin activity.</p>
+<p>* Baseline coronary artery disease and heart failure represent recorded comorbidity status. Patients with a qualifying myocardial infarction or heart failure hospitalization before the index date were excluded; only qualifying events occurring after the index date contributed to MACE. * Medication use was assessed at the baseline screening visit and does not represent treatment initiated after PA confirmation or cumulative medication exposure during follow-up. * The index date was the baseline PA screening visit. Cardiovascular Events. Adjusted hazard ratios and 95% confidence intervals are expressed per 1unit increase in each natural-log-transformed biomarker and are shown separately for essential hypertension, primary aldosteronism without adrenalectomy, and primary aldosteronism with subsequent adrenalectomy. Each biomarker was analyzed in a separate model. Interaction P values test whether associations differ across clinical phenotypes. * Models were adjusted for prespecified age category (&lt;65 vs ≥65 years), sex, body mass index, systolic blood pressure category (&lt;150 vs ≥150 mmHg), estimated glomerular filtration rate, and serum potassium.</p>
+<h3>Acknowledgments</h3>
+<p>The authors thank the staff of the Community Medicine Research Center of Keelung Chang Gung Memorial Hospital. We also express our sincere gratitude to the administrative support of the Chang Gung Memorial Hospital Clinical Trial Center and all staff of the Taiwan Clinical Trial Consortium (TCTC). VCW had full access to all the data in the study and takes responsibility for the</p>
+<h3>Funding</h3>
+<p>This study was supported by grants from the Chang Gung Memorial Foundation (CMRPG-5D0111, CMRPG2F0171, CMRPG2F0172, CMRPG2F0173, CMRPG-2G0361, CMRPG-2H0161, CRRPG2H0162, CMRPG-2J0261 and CMRPG-2K0091), the Ministry of Science and Technology, Taiwan (104-2320-B-182A-013, 106-2314-B-182A-064, 107-2314-B-182A-138, 108-2320-B-182A-009-MY3, 108-2314-B-182A-027, 108-2321-B-182-003 and 109-2321-B-182-001) and the Taiwanese Ministry of Health and Welfare (MOHW110-TDU-B-212-124005, MOHW111-TDU-B-212-134005, MOHW112-TDU-B-212-144005).</p>
+<h3>Role of the Funder/Sponsor</h3>
+<p>Funding supported data acquisition. The funders were not involved in designing or conducting the study; collecting, managing, analyzing, or interpreting the data; preparing, reviewing, or approving the manuscript; or deciding to submit it for publication.</p>
+<h3>Declaration of Competing Interest</h3>
+<p>The authors declare no competing financial interests.</p>
+<h3>Contributors</h3>
+<p>All authors contributed significantly to the design and conduct of the study and acquisition of clinical data. HCP and VCW conceived the study. HCP conducted data analyses and wrote the first draft of the manuscript. KHC supervised all analyses, assumes responsibility for the analyses, and assumes responsibility for data interpretation. CHT and YHL reviewed and commented on the manuscript. CYW and VCW constructed the dataset, including the biomarker measurements in each participant, and reviewed and commented on the drafts of the manuscript.</p>
+<h3>Supplemental Material</h3>
+<p>Supplemental Methods eTables 1-5 eFigure 1</p>
+<h3>4 (</h3>
+<p>Cox generalized additive models characterized dose-response patterns. Secondary analyses evaluated calendar-time effects, adrenalectomy timing, and negative control outcomes. All analyses were performed using Stata version 17 (StataCorp, College Station, TX, USA) and SAS version 9•SAS Institute Inc., Cary, NC, USA). Two-sided P&lt;.05 indicated statistical significance. Additional details are provided in the Supplementary Methods.</p>
+<p>ChatGPT (OpenAI) was used during manuscript preparation and revision in 2026, including revisions on November 5, 2026, to assist with English-language editing, manuscript organization, literature review and synthesis, and journal-specific formatting. No extensions were used. Python code developed with assistance from ChatGPT was used to recreate and format Figures 1 and 2 from author-provided results. The exact model versions used in earlier manuscript-preparation and figureformatting sessions could not be retrospectively verified. AI was not used to generate or modify the underlying research data or to perform the primary statistical analyses. All AI-assisted content,</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Study flow and PA evaluation pathway.</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Associations of Screening Renin-Aldosterone Markers With Incident Major Adverse</p>
+<h3>Table 1.</h3>
+<p>Baseline characteristics of the final analytic cohort by clinical phenotype</p>
+<h3>Table 2.</h3>
+<p>Incident clinical outcomes by clinical phenotype Abbreviation: MACE, major adverse cardiovascular events.</p>
+<h3>Table 3.</h3>
+<p>Adjusted Associations of Screening Renin-Aldosterone Indices With Incident MACEHazard ratios are expressed per 1-unit increase in each natural-log-transformed biomarker. Each biomarker was analyzed in a separate model. * Models were adjusted for prespecified age category (&lt;65 vs ≥65 years), sex, body mass index, systolic blood pressure category (&lt;150 vs ≥150 mmHg), estimated glomerular filtration rate, and serum potassium.</p>
+<h3>References</h3>
+<p>Adler GK, Stowasser M, Correa RR, Khan N, Kline G, McGowan MJ, Mulatero P, Murad MH, Touyz RM, Vaidya A. Primary aldosteronism: an endocrine society clinical practice guideline. The Journal of Clinical Endocrinology &amp; Metabolism. 2025;110:2453-2495.</p>
+<p>Brown JM, Siddiqui M, Calhoun DA, Carey RM, Hopkins PN, Williams GH, Vaidya A. The unrecognized prevalence of primary aldosteronism: a cross-sectional study. Annals of internal medicine. 2020;173:10-20.</p>
+<p>Monticone S, D&#x27;Ascenzo F, Moretti C, Williams TA, Veglio F, Gaita F, Mulatero P. Cardiovascular events and target organ damage in primary aldosteronism compared with essential hypertension: a systematic review and meta-analysis. The lancet Diabetes &amp; endocrinology. 2018;6:41-50.</p>
+<p>Hung A, Ahmed S, Gupta A, Davis A, Kline GA, Leung AA, Ruzicka M, Hiremath S, Hundemer GL. Performance of the aldosterone to renin ratio as a screening test for primary aldosteronism. The Journal of Clinical Endocrinology &amp; Metabolism. 2021;106:2423-2435.</p>
+<p>Marcelli M, Bi C, Funder JW, McPhaul MJ. Comparing ARR versus suppressed PRA as screening tests for primary aldosteronism. Hypertension. 2024;81:2072-2081.</p>
+<p>Hundemer GL, Baudrand R, Brown JM, Curhan G, Williams GH, Vaidya A. Renin phenotypes characterize vascular disease, autonomous aldosteronism, and mineralocorticoid receptor activity. The Journal of Clinical Endocrinology &amp; Metabolism. 2017;102:1835- 1843.</p>
+<p>Ng E, Gwini SM, Libianto R, Choy KW, Lu ZX, Shen J, Doery JC, Fuller PJ, Yang J. Aldosterone, renin, and aldosterone-to-renin ratio variability in screening for primary aldosteronism. The Journal of Clinical Endocrinology &amp; Metabolism. 2023;108:33-41.</p>
+<p>Brown JM, Robinson-Cohen C, Luque-Fernandez MA, Allison MA, Baudrand R, Ix JH, Kestenbaum B, De Boer IH, Vaidya A. The spectrum of subclinical primary aldosteronism and incident hypertension: a cohort study. Annals of internal medicine. 2017;167:630-641.</p>
+<p>Baudrand R, Guarda FJ, Fardella C, Hundemer G, Brown J, Williams G, Vaidya A. Continuum of renin-independent aldosteronism in normotension. Hypertension. 2017;69:950- 956.</p>
+<p>Parksook WW, Brown JM, Omata K, Tezuka Y, Ono Y, Satoh F, Tsai LC, Niebuhr Y, Milks J, Moore A. The spectrum of dysregulated aldosterone production: an international human physiology study. The Journal of Clinical Endocrinology &amp; Metabolism. 2024;109:2220- 2232.</p>
+<p>Hundemer GL, Agharazii M, Madore F, Vaidya A, Brown JM, Leung AA, Kline GA, Larose E, Piché M-E, Crean AM. Subclinical primary aldosteronism and cardiovascular health: a population-based cohort study. Circulation. 2024;149:124-134.</p>
+<p>Goupil R, Desbiens L-C, Merabtine A, Agharazii M, Madore F, Vaidya A, Leung AA, Kline GA, Shaw JL, Ramsay T. Subclinical primary aldosteronism and major adverse cardiovascular events: a longitudinal population-based cohort study. Circulation. 2025;152:913-923.</p>
+<p>Ljungberg C, Carlsson B, Shojaiyan P, Franzén S, Bech JN, Chin KL, Christiansen CF, Thomsen RW. Renin-aldosterone profiles and cardiorenal outcomes in hypertension: a nationwide cohort study. Journal of the American College of Cardiology. 2026;87:2846- 2860.</p>
+<p>Hundemer GL, Desbiens L-C, Agharazii M, Madore F, Vaidya A, Leung AA, Kline GA, Sood MM, Akbari A, White C. Subclinical primary aldosteronism and eGFR decline over time. Journal of the American Society of Nephrology: JASN. 2026;37:1754.</p>
+<p>Hundemer GL, Curhan GC, Yozamp N, Wang M, Vaidya A. Cardiometabolic outcomes and mortality in medically treated primary aldosteronism: a retrospective cohort study. The lancet Diabetes &amp; endocrinology. 2018;6:51-59.</p>
+<p>Williams TA, Lenders JW, Mulatero P, Burrello J, Rottenkolber M, Adolf C, Satoh F, Amar L, Quinkler M, Deinum J. Outcomes after adrenalectomy for unilateral primary aldosteronism: an international consensus on outcome measures and analysis of remission rates in an international cohort. The lancet Diabetes &amp; endocrinology. 2017;5:689-699.</p>
+<p>Yang J, Burrello J, Goi J, Reincke M, Adolf C, Asbach E, Brűdgam D, Li Q, Song Y, Hu J. Outcomes after medical treatment for primary aldosteronism: an international consensus and analysis of treatment response in an international cohort. The Lancet Diabetes &amp; Endocrinology. 2025;13:119-133.</p>
+<p>Katsuragawa S, Goto A, Shinoda S, Inoue K, Nakai K, Saito J, Nishikawa T, Tsurutani Y. Association of reversal of renin suppression with long-term renal outcome in medically treated primary aldosteronism. Hypertension. 2023;80:1909-1920.</p>
+<p>Wu V-C, Chang H-W, Liu K-L, Lin Y-H, Chueh S-C, Lin W-C, Ho Y-L, Huang J-W, Chiang C-K, Yang S-Y. Primary aldosteronism: diagnostic accuracy of the losartan and captopril tests. American journal of hypertension. 2009;22:821-827.</p>
+<p>Wu V-C, Hu Y-H, Er LK, Yen R-F, Chang C-H, Chang Y-L, Lu C-C, Chang C-C, Lin J-H, Lin Y-H. Case detection and diagnosis of primary aldosteronism-the consensus of Taiwan Society of Aldosteronism. Journal of the Formosan Medical Association. 2017;116:993- 1005.</p>
+<p>Wu V-C, Wang S-M, Chang C-H, Hu Y-H, Lin L-Y, Lin Y-H, Chueh S-CJ, Chen L, Wu K- D. Long term outcome of aldosteronism after target treatments. Scientific Reports. 2016;6:32103.</p>
+<p>Wu C-H, Yang Y-W, Hu Y-H, Tsai Y-C, Kuo K-L, Lin Y-H, Hung S-C, Wu V-C, Wu K-D, Group TPAIS. Comparison of 24-h urinary aldosterone level and random urinary aldosterone-to-creatinine ratio in the diagnosis of primary aldosteronism. PloS one. 2013;8:e67417.</p>
+<p>Suissa S. Immortal time bias in pharmacoepidemiology. American journal of epidemiology. 2008;167:492.</p>
+<p>Hernán MA, Robins JM. Using big data to emulate a target trial when a randomized trial is not available. American journal of epidemiology. 2016;183:758-764.</p>
+<p>Chao C-T, Wu V-C, Kuo C-C, Lin Y-H, Chang C-C, Chueh SJ, Wu K-D, Pimenta E, Stowasser M. Diagnosis and management of primary aldosteronism: an updated review. Annals of medicine. 2013;45:375-383.</p>
+<p>Hsieh C-Y, Su C-C, Shao S-C, Sung S-F, Lin S-J, Kao Yang Y-H, Lai EC-C. Taiwan&#x27;s national health insurance research database: past and future. Clinical epidemiology. 2019:349-358.</p>
+<p>Lee P-C, Kao F-Y, Liang F-W, Lee Y-C, Li S-T, Lu T-H. Existing data sources in clinical epidemiology: The Taiwan national health insurance laboratory databases. Clinical Epidemiology. 2021:175-181.</p>
+<p>Cheng C-L, Lee C-H, Chen P-S, Li Y-H, Lin S-J, Yang Y-HK. Validation of acute myocardial infarction cases in the national health insurance research database in Taiwan. Journal of epidemiology. 2014;24:500-507.</p>
+<p>Wu V-C, Wu C-H, Huang T-M, Wang C-Y, Lai C-F, Shiao C-C, Chang C-H, Lin S-L, Chen Y-Y, Chen Y-M. Long-term risk of coronary events after AKI. Journal of the American Society of Nephrology: JASN. 2014;25:595.</p>
+<p>Chang Y-h, Chung S-D, Wu C-H, Chueh JS, Chen L, Lin P-C, Lin Y-H, Huang K-H, Wu V- C, Chu T-S. Surgery decreases the long-term incident stroke risk in patients with primary aldosteronism. Surgery. 2020;167:367-377.</p>
+<p>Lipsitch M, Tchetgen ET, Cohen T. Negative controls: a tool for detecting confounding and bias in observational studies. Epidemiology. 2010;21:383-388.</p>
+<p>Buffolo F, Pecori A, Reincke M, Outland M, Veglio F, Schwarzlmüller P, Bidlingmaier M, Kunz S, Stremmel C, Mengozzi G. Long-term follow-up of patients with elevated aldosterone-to-renin ratio but negative confirmatory test: the progression of primary aldosteronism phenotypes. Hypertension. 2024;81:340-347.</p>
+<p>Hundemer GL, Leung AA, Kline GA, Brown JM, Turcu AF, Vaidya A. Biomarkers to guide medical therapy in primary aldosteronism. Endocrine Reviews. 2024;45:69-94.</p>
+<p>Katsuragawa S, Le MV, Fuller PJ, Yang J. Post-treatment renin status and cardiovascular, renal, and mortality outcomes in medically treated primary aldosteronism: a systematic review and meta-analysis. The Lancet Diabetes &amp; Endocrinology. 2025;13:1041-1053.</p>
+<p>Chen S-Y, Chen J-Y, Huang W-C, Puar THK, Chin Kek P, Chueh JS, Lin Y-H, Wu V-C, Group TS. Cardiovascular outcomes and all-cause mortality in primary aldosteronism after adrenalectomy or mineralocorticoid receptor antagonist treatment: a meta-analysis. European Journal of Endocrinology. 2022;187:S47-S58.</p>
+<p>Huang CW, Huang TY, Yang YF, Chang LY, Tu YK, Wu VC, Chen JY. Major adverse cardiovascular events in primary aldosteronism after adrenalectomy or mineralocorticoid receptor antagonist treatment: a systematic review and meta-analysis. Journal of the American Heart Association. 2025;14:e038714.</p>
+<p>Lassen MCH, Ostrominski JW, Claggett BL, Wijkman MO, Lee J, Van&#x27;t Hof JR, Shah AM, Biering-Sørensen T, Solomon SD, Brown JM, et al. Spectrum of Primary Aldosteronism and Risk of Cardiovascular Outcomes: The Atherosclerosis Risk in Communities Study. JAMA Cardiol. 2026;11:341-351. doi: 10.1001/jamacardio.2026.0068</p>
+<p>*Abbreviations: ARR, aldosterone-to-renin ratio; EH, essential hypertension; MACE, major adverse cardiovascular events; PA, primary aldosteronism; PAC, plasma aldosterone concentration; and PRA, plasma renin activity.</p>
 </div>
 </details>
 </div>
