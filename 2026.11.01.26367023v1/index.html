@@ -195,7 +195,7 @@ MetaCheck Report
 Application of Machine Learning and Deep Learning in diagnosis Covid19
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.01.26367023
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.01.26367023
 </p>
 </header>
 <div class="mc-main">
@@ -319,8 +319,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -670,9 +671,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -694,7 +699,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -709,9 +715,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -724,13 +748,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -750,6 +777,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -757,12 +790,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -863,6 +902,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -882,6 +941,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1137,19 +1231,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1259,6 +1435,183 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Preprint -not peer reviewed. Derived from a Master&#x27;s thesis (University of Abdelhamid Mehri -Constantine 2, June 2022).</p>
+<h3>1 Introduction Research context</h3>
+<p>Over the years, the world has experienced several pandemics that have caused significant human and economic losses. However, the COVID-19 pandemic presented a major challenge to healthcare systems worldwide, particularly in the diagnosis and management of patients. Despite advances in medicine and healthcare, hospitals struggled to manage the large number of patients, resulting in significant human losses.</p>
+<p>In this context, Data Science and Machine Learning offer opportunities to support healthcare professionals in assessing patients&#x27; conditions and predicting the possible progression of diseases. These technologies can help improve healthcare processes by collecting, analysing and interpreting patient data. More generally, the growing use of Data Science, Artificial Intelligence and Machine Learning in healthcare has contributed to improving diagnostic and treatment processes, supporting timely medical decisions and increasing the efficiency of healthcare services.</p>
+<h3>Problem statement and motivation</h3>
+<p>Traditional healthcare resource management, overloaded medical services and the lack of appropriate computer systems and medical technologies can affect the quality of care provided by healthcare institutions. In addition, healthcare professionals may lack the tools and data-science expertise needed to visualise and interpret medical data and make use of information from patients&#x27; medical histories.</p>
+<p>During the COVID-19 pandemic, the absence of sufficient prognostic models made it difficult to anticipate which patients were likely to recover and be discharged and which might deteriorate or die and require more specialised treatment. This situation highlighted the need for predictive approaches that could help healthcare professionals assess patients&#x27; conditions and better manage available resources.</p>
+<h3>Objectives and contributions</h3>
+<p>The objective of this work is to develop a predictive approach for assessing the final clinical state of hospitalised COVID-19 patients using Machine Learning and Deep Learning techniques. Feature-selection methods are also employed to identify the patient features that are most relevant to the assessment of their conditions.</p>
+<p>The study investigates five Machine Learning classifiers: Logistic Regression (LR), K-Nearest Neighbours (KNN), Classification and Regression Tree (CART), Naïve Bayes (NB) and Support Vector Machine (SVM). It also examines an Artificial Neural Network (ANN) as a Deep Learning model. Three feature-selection techniques are considered: Recursive Feature Elimination (RFE), Analysis of Variance (ANOVA) and Mutual Information (MI).</p>
+<p>The experimental study is conducted using two datasets. The first is an Algerian dataset developed in cooperation with the Internal Medicine Department of the University Hospital Centre (UCH) of Constantine. The second is a French dataset obtained from previous research by Billoir et al. (2021). Through this comparative study, we aim to evaluate the different approaches and identify the patient features that may be important for assessing clinical conditions.</p>
+<h3>Paper organisation</h3>
+<p>Section 2 reviews related work; Section 3 describes data and methods; Section 4 reports results; Section 5 discusses findings and limitations; Section 6 concludes.</p>
+<p>Machine learning (ML) and deep learning (DL) have been increasingly applied to healthcare problems, including disease diagnosis and the prediction of clinical outcomes. Their performance can vary depending on the dataset, the selected features and the algorithms used. Previous studies have explored these approaches in different medical fields, including diabetes prediction, heart disease classification and COVID-19 analysis. Table 1 summarises the studies discussed in this work, with performance figures as reported by the original authors.</p>
+<p>Fregoso-Aparicio et al. (2021) presented a systematic review of machine learning and deep learning models for type 2 diabetes prediction. Their work examined the application of different predictive approaches in this field. Jindal et al. (2021) investigated the use of machine learning algorithms to predict heart disease using a dataset of 304 patients with 13 medical attributes obtained from the UCI repository. They compared K-nearest neighbors (KNN), logistic regression (LR) and random forest (RF). KNN and LR achieved the highest reported accuracy, at 88.5%.</p>
+<p>Several studies have also applied machine learning techniques to COVID-19-related problems. Kukar et al. (2021) investigated the use of routine laboratory and clinical indicators to distinguish COVID-19-positive patients from negative participants at the University Medical Centre Ljubljana in Slovenia. They evaluated XGBoost, random forest, deep neural networks (DNN) and support vector machines (SVM). XGBoost achieved the best reported performance, with a sensitivity of 81.9%, specificity of 97.9% and AUC of 0.97.</p>
+<p>Guzmán-Torres et al. ( 2021) used supervised machine learning to identify conditions associated with an increased risk of death among COVID-19 patients in Mexico. Their approach combined recursive feature elimination (RFE) with logistic regression to select relevant variables and predict patient mortality. The study reported an accuracy of 87%.</p>
+<p>Similarly, Josephus et al. (2021) investigated mortality prediction among COVID-19 patients using a dataset of 1,085 cases and 25 features. They applied ANOVA and chi-square featureselection techniques with logistic regression. The reported accuracy was 97%. Research Gap and Study Motivation. The reviewed studies show that different machine learning and deep learning methods can achieve different results depending on the dataset and the prediction task. There is no single method that performs best in all cases. Moreover, the studies highlight the importance of data preprocessing and feature selection. Therefore, this work investigates several machine learning classifiers, feature-selection techniques, and deep learning models using two datasets from different countries, with the aim of identifying the most suitable approaches for predicting COVID-19 patient outcomes.</p>
+<h3>3 Materials and Methods</h3>
+<h3>3.1 Overview</h3>
+<p>The objective of this study is to develop a predictive analytics approach for assessing the final clinical state of COVID-19 patients using Machine Learning (ML) and Deep Learning (DL) techniques. The proposed approach consists of three main stages: collecting patient data, preprocessing the data, and applying trained classification models to predict the patient&#x27;s condition.</p>
+<p>Two types of models are investigated: ML classifiers combined with feature-selection methods and a DL model. The experiments are conducted separately on the Algerian and French datasets to identify the most suitable models for predicting each clinical outcome.</p>
+<p>The overall workflow of the proposed approach is illustrated in Figure 1.</p>
+<p>The ML and DL model-building workflows are shown in Figure 2 and 3. Figure 2: ML Model-building workflow.</p>
+<h3>3.2 Datasets</h3>
+<p>Two retrospective datasets were used (Table 2; full attribute listings in Appendix A).</p>
+<p>Algerian dataset. The dataset was compiled by the authors from the confidential archive of the internal medicine department of UCH Constantine, with the permission of the head of department and under the supervision of Dr. Derouiche.A. About 300 medical records of COVID-19 patients were screened, and 80 were retained because the others lacked information.</p>
+<p>Records contain lung imaging findings, blood tests, symptoms and other clinical information for the period July-August 2020; values were recorded at the date closest to admission to the department. Patients were labelled clinically &quot;worsening&quot; if transferred to the ICU or if they died, and &quot;improving&quot; otherwise.</p>
+<p>French dataset. This dataset was taken from the research conducted by (Billoir et al., 2021), which investigated coagulation biomarkers to assess clinical deterioration in SARS-CoV-2 infection. We chose to work with this dataset because it was available and contained almost complete values. It includes 99 patients with COVID-19 hospitalised in dedicated COVID-19 medical units between 16 March and 1 May 2020. The aim of our study was to investigate the association between coagulation and COVID-19 progression. Patients were considered clinically &quot;worsening&quot; if they were transferred to the intensive care unit (ICU) or died, and clinically &quot;improving&quot; otherwise. Of the 99 patients, 64 were clinically &quot;improving&quot; and 35 were registered as clinically &quot;worsening&quot;; 87 were discharged and the remaining 12 were declared dead.</p>
+<p>Outcomes. For both datasets three binary targets were modelled separately: Death (1 = died), ICUadmission (1 = admitted to ICU) and Clinical (1 = improvement,0 = worsening).</p>
+<h3>3.3 Data pre-processing</h3>
+<p>The same steps were applied to both datasets: 1.</p>
+<p>Outliers: abnormal values were removed using plausible bounds for each attribute defined with the help of a doctor.</p>
+<p>2. Missing data: columns or rows with more than 50% missing values were removed; remaining missing values were imputed with scikit-learn&#x27;s KNNImputer. 3. Encoding: categorical variables were binarised (e.g. Yes = 1, No = 0) and ordinal variables encoded accordingly.</p>
+<p>4. Standardisation: each feature x was rescaled as</p>
+<p>As shown in Figures 2 and 3, the preprocessing steps were performed before the training/test split.</p>
+<h3>3.4 Data split and feature sets</h3>
+<p>Each dataset was split into two sets: 80% for training and 20% for testing. The training set was used to train the models, while the testing set was used to evaluate their performance.</p>
+<h3>3.5 Machine learning models</h3>
+<p>Five machine learning classifiers were employed: logistic regression (LR; solver = liblinear, multi class = ovr), k-nearest neighbours (KNN; number of neighbours = 3), naïve Bayes (NB), support vector machine (SVM; gamma = auto), and classification and regression tree (CART). Three feature-selection methods were employed: analysis of variance (ANOVA) and mutual information (MI), each evaluated with two different numbers of selected features (N f s = 20 and N f s = 30), and recursive feature elimination (RFE), using logistic regression as the estimator and a step size of 1.</p>
+<p>The model-building process consisted of several experiments. First, the five classifiers (LR, KNN, CART, NB and SVM) were trained without feature selection to evaluate their performance using all available features. Next, ANOVA and MI were combined with the classifiers using 20 and 30 selected features. Finally, RFE was applied as a feature-selection method without fixing the number of selected features. This process resulted in 15 classifier/feature-selection combinations, as presented in Table 3.</p>
+<p>Training the models. All models were trained 30 times using cross-validation on the training set. In this process, the input data were divided into (k) subsets. The model was trained on (k-1) subsets and evaluated on the remaining subset. This process was repeated (k) times, with a different subset reserved for evaluation each time. The performance of each training run was evaluated using accuracy, specificity, sensitivity, precision and F1-score.</p>
+<p>Selecting the best model. The selection of the best model was based on the mean and standard deviation of the 30 training performance measurements, including accuracy, specificity, sensitivity, F1-score and precision. The model with the highest mean accuracy and the lowest standard deviation of accuracy was selected as the best model, while the other performance metrics were also taken into consideration.</p>
+<p>Final evaluation. The selected model was evaluated on the testing set to assess its classification performance. The evaluation was based on accuracy, sensitivity, specificity, precision, F-score, the confusion matrix and the area under the ROC curve (AUC). The ROC curve illustrates the relationship between the true positive rate (TPR) and the false positive rate (FPR).</p>
+<h3>3.6 Deep learning model</h3>
+<p>A multilayer feed-forward perceptron (MLP) was used to build the deep learning model. The model was implemented using the Keras Sequential API, with ReLU as the activation function and the Adam optimiser to update the network weights during training. The MLP consists of input and output layers, with one or more hidden layers. Different numbers of hidden layers were evaluated to identify the configuration that achieved the best accuracy.</p>
+<h3>Evaluation and selection.</h3>
+<p>The MLP was evaluated using different numbers of hidden layers. Its performance was assessed using loss, accuracy, F1-score, sensitivity, precision and specificity.</p>
+<p>The number of hidden layers that achieved the best accuracy was selected for the final model.</p>
+<h3>3.7 Evaluation metrics</h3>
+<p>The performance of the classification models was evaluated using accuracy, precision, sensitivity, specificity, and F1-score. These metrics were calculated based on the confusion matrix, where TP, TN, FP, and FN represent true positives, true negatives, false positives, and false negatives, respectively.</p>
+<p>Accuracy measures the proportion of correctly classified observations: Accuracy = T P + T N T P + T N + F P + F N (2) Precision measures the proportion of correctly predicted positive observations: Precision = T P T P + F P</p>
+<p>Sensitivity, also known as recall, measures the proportion of actual positive observations correctly identified: Sensitivity = T P T P + F N (4) Specificity measures the proportion of actual negative observations correctly identified:</p>
+<p>The F1-score combines precision and sensitivity through their harmonic mean:</p>
+<h3>3.8 Statistical comparison and implementation</h3>
+<p>The Friedman test was used to evaluate and compare the results of the machine learning classifier/feature-selection combinations for each dataset and identify the best-performing combination.</p>
+<p>The experiments were implemented in Python 3.9 using the Anaconda distribution and Spyder IDE. The libraries used included scikit-learn, Keras, TensorFlow, Matplotlib, Pandas, NumPy, Seaborn and openpyxl. The experiments were conducted on an HP ProBook laptop equipped with an Intel Core i7-6600U processor (2.60 GHz, 2.81 GHz), 8 GB of memory, a 500 GB HDD and Intel UHD Graphics 620, running Windows 10 64-bit.</p>
+<h3>4 Results</h3>
+<h3>4.1 Cross-validation results</h3>
+<p>The cross-validation results showed that selecting 20 features generally gave better results than selecting 30 features or using all features. The best classifier and feature-selection combination varied depending on the dataset and prediction outcome. Table 4 presents the selected combinations and their corresponding mean cross-validated accuracy and standard deviation over 30 repetitions of five-fold cross-validation.</p>
+<h3>4.2 Hold-out test performance of the selected ML models</h3>
+<p>Table 5 presents the hold-out test performance of the selected ML models, together with the confusion-matrix counts shown in Figure 4. The test sets were small, containing between 13 and 20 patients. Moreover, each confusion matrix included only two to six positive cases for Death and ICU admission. Therefore, the reported metrics should be interpreted with caution, as the classification of a single patient can substantially affect the results. The Algerian models achieved accuracies of 0.92 for Death, 0.47 for Clinical status, and 0.86 for ICU admission. For the French dataset, the corresponding accuracies were 0.90, 0.90, and 0.95, respectively. The Algerian Clinical model showed the lowest performance, with an accuracy of 0.47 and an AUC of 0.40.</p>
+<p>The confusion matrices also provide further insight into the classification results. All six models correctly identified the positive cases for Death and Algerian ICU admission, resulting in a sensitivity of 1.00 for these outcomes. However, their specificity values varied, indicating differences in their ability to correctly identify negative cases. In particular, the Algerian Clinical model had a specificity of 0.20, showing difficulty in correctly classifying patients with the negative clinical outcome. By contrast, the French Clinical and ICU admission models achieved a specificity of 1.00.</p>
+<p>The ROC curve analysis yielded AUC values of 0.95, 0.40, and 0.92 for the Algerian Death, Clinical, and ICU admission models, respectively, and 0.94, 0.92, and 0.92 for the corresponding French models ( Figure 7).</p>
+<h3>4.3 Deep learning results</h3>
+<p>The deep learning models were implemented using multilayer perceptrons (MLPs) with one to five hidden layers. Figure 5 presents the validation accuracy across epochs for one run of each configuration and prediction task. In these individual runs, the highest validation accuracies were 1.00, 0.67, and 0.93 for the Algerian Death, Clinical, and ICU admission models, respectively. For the French dataset, the corresponding values were 0.95, 0.80, and 0.90. These results were obtained with five, three, and three hidden layers for the Algerian models, and two, one, and three hidden layers for the French models, respectively. The selected single-run models generally showed higher performance during training than during validation, indicating possible overfitting. For example, the Algerian Clinical model achieved a training accuracy of 1.00, compared with a validation accuracy of 0.67. Since neuralnetwork training can produce different results across runs, each hidden-layer configuration was subsequently evaluated over 30 runs. Table 6 summarizes the mean test accuracy and standard deviation for each configuration. The highest mean accuracy was obtained with two hidden layers for Algerian Death and ICU admission, and four hidden layers for Algerian Clinical status. For the French dataset, the highest mean accuracy was obtained with two hidden layers for Death and Clinical status, and three hidden layers for ICU admission. The French Death model showed equal mean accuracy with two and three hidden layers (0.89).</p>
+<p>The standard deviations indicate variability across repeated runs, reaching 0.17 for the Algerian Clinical model with five hidden layers. In addition, the Algerian ICU admission models had mean sensitivity below 0.25 across all hidden-layer configurations. This indicates that their relatively high accuracy values did not necessarily reflect effective identification of patients in the positive class.</p>
+<h3>4.4 Feature rankings</h3>
+<p>Feature importance was examined for the selected ML models, while SHAP values were used to assess feature contributions in the MLP models. The results for all three prediction outcomes in both datasets are presented in Figures 8 and 9 in the Appendix, respectively. Table 7 summarises the leading feature identified for each model.</p>
+<p>The most important features varied across datasets, prediction outcomes, and modelling approaches. For the ML models, the leading features were ICUadmission, SAO2SO2, and Stiffness for the Algerian Death, Clinical status, and ICU admission models, respectively. For the French models, they were Diabetes, NLratio, and Clinical, respectively.</p>
+<p>For the MLP models, SHAP identified Clinical, Ddimer, and Clinical as the leading features for the Algerian Death, Clinical status, and ICU admission models, respectively. In the French dataset, the leading features were Clinical, Thromboprophylaxis, and Clinical, respectively. Clinical status and ICU admission were also retained as predictors in models for other outcomes because they were considered clinically relevant to the prediction targets. Overall, feature rankings differed according to the dataset, prediction outcome, and modelling approach.</p>
+<h3>4.5 ML versus DL</h3>
+<p>Table 8 compares the selected ML models with the MLP configurations that achieved the highest mean accuracy over 30 runs. The ML models achieved higher test accuracy in five of the six tasks. For Algerian Clinical status, both approaches showed relatively low accuracy (0.47 for ML and 0.51 for DL).</p>
+<p>Differences were also observed in sensitivity, particularly for Algerian ICU admission (1.00 for ML versus 0.14 for DL) and French Death (1.00 versus 0.40). However, this comparison should be interpreted cautiously because ML performance was measured on a single test set, whereas DL results represent averages across 30 runs.</p>
+<h3>4.6 Friedman test</h3>
+<p>The Friedman test was used to compare the 15 classifier-feature-selection combinations within each dataset (Fig. 6). In both the Algerian and French datasets, CART combined with ANOVA achieved the highest rank, followed by LR with RFE and LR with ANOVA. The lowest-ranked combinations were NB with MI and NB with RFE. These results indicate that CART with ANOVA ranked first across both datasets. 5 Discussion</p>
+<h3>5.1 Interpretation of findings</h3>
+<p>The results showed that model performance depended on the dataset and prediction outcome. Although selecting 20 features generally improved cross-validation performance, no single classifier-feature-selection combination was best for all six tasks. The Friedman analysis identified CART with ANOVA as the highest-ranked combination in both datasets. The selected ML models achieved higher hold-out accuracy than the average MLP models in five of the six tasks. However, this comparison should be interpreted cautiously because ML performance was evaluated on one test set, whereas DL performance was averaged over 30 runs.</p>
+<p>Performance also varied by outcome. Death and ICU admission generally showed higher accuracy, but the test sets contained few positive cases. The Algerian ICU MLP models, in particular, had low sensitivity. Clinical-status prediction was more challenging in the Algerian dataset than in the French dataset.</p>
+<h3>5.2 Scientific implications</h3>
+<p>This study highlights the importance of evaluating different combinations of classifiers and feature-selection methods for each prediction outcome and dataset. It also provides a comparative framework that can be further evaluated using larger patient cohorts. In addition, the Algerian dataset contributes data from a setting that is less represented in COVID-19 prognostic research.</p>
+<h3>5.3 Strengths and limitations</h3>
+<h3>5.3.1 Strengths</h3>
+<p>The main strengths of this study include: • The use of two datasets from different countries (Algeria and France).</p>
+<p>• The investigation of three clinically relevant outcomes: death, ICU admission, and clinical status.</p>
+<p>• The comparison of five machine learning classifiers and 15 classifier-feature-selection combinations.</p>
+<p>• The evaluation of multilayer perceptron (MLP) models with different numbers of hidden layers over 30 runs to account for variability between runs.</p>
+<p>• The consideration of clinical input during model selection and interpretation.</p>
+<h3>5.3.2 Limitations</h3>
+<p>Despite these strengths, several limitations should be acknowledged: • Small sample sizes: The datasets included 80 and 99 patients, respectively, and the test sets contained only 13-20 patients.</p>
+<p>Therefore, the classification of a single patient could substantially affect the reported performance metrics.</p>
+<p>• Model selection: MLP configurations were selected based on test-set accuracy, which may have led to optimistic performance estimates.</p>
+<p>• Class imbalance: The death and ICU admission outcomes were imbalanced, and no specific method was applied to address this issue.</p>
+<p>• External validation: The models were not evaluated on independent external datasets, which limits the generalizability of the findings.</p>
+<p>Overall, these limitations indicate that the results should be considered exploratory. Further evaluation using larger, independent datasets is needed before considering potential clinical applications.</p>
+<h3>6 Conclusion and Future Directions Conclusion</h3>
+<p>This study investigated the use of machine learning (ML) and deep learning (DL) methods to predict three outcomes in hospitalised COVID-19 patients: death, ICU admission, and clinical status. The experiments were conducted using two datasets from Algeria and France.</p>
+<p>The main findings can be summarised as follows: • Five ML classifiers were evaluated alongside three feature-selection methods and multilayer perceptron (MLP) models with different numbers of hidden layers.</p>
+<p>• Selecting 20 features generally improved cross-validated accuracy compared with using 30 or all features.</p>
+<p>• The best-performing ML model varied according to the dataset and prediction outcome.</p>
+<p>• CART combined with ANOVA achieved the highest rank in the Friedman test for both datasets.</p>
+<p>• The selected ML models achieved higher hold-out accuracy than the average MLP models in five of the six prediction tasks.</p>
+<p>• The important features varied across datasets, prediction outcomes, and modelling approaches.</p>
+<p>However, the small sample sizes and methodological limitations mean that these findings should be considered exploratory. The models are not yet ready for clinical use and require further validation.</p>
+<h3>Future Work</h3>
+<p>The following directions are proposed to improve and extend this study.</p>
+<h3>Improvements Proposed in the Thesis</h3>
+<p>• Expand the datasets: Add more medical records to the Algerian dataset to increase the number of available observations.</p>
+<p>• Improve the MLP architecture: Experiment with the number of neurons in each layer, the number of training epochs, and dataset size.</p>
+<p>• Tune ML models: Adjust classifier hyperparameters to improve model performance.</p>
+<p>• Evaluate additional methods: Introduce other classification algorithms and featureselection methods and compare their performance.</p>
+<h3>Additional Methodological Recommendations</h3>
+<p>• Apply nested cross-validation and perform preprocessing within each training fold.</p>
+<p>• Reassess predictors that may be derived from or closely related to the prediction outcomes.</p>
+<p>• Report confidence intervals and evaluate probability calibration.</p>
+<p>• Perform external validation using independent datasets.</p>
+<p>• Investigate data-augmentation methods to address limited sample sizes and class imbalance.</p>
+<p>A Dataset attribute listings  SHAP summaries, MLP models (a) Algerian, Death (b) French, Death (c) Algerian, Clinical (d) French, Clinical (e) Algerian, ICU (f ) French, ICU</p>
+<p>Acknowledgements. The authors thank Prof. Y. Kitouni, head of the internal medicine department at UCH Constantine, for access to the archive, and Dr. A. Derouiche for guidance.</p>
+<p>Data and code availability. The Algerian dataset and the analysis code are not publicly available. The French dataset was obtained from the published study by Billoir et al. (2021).</p>
+<h3>Declarations</h3>
+<p>Origin of the work. This preprint is based on the Master&#x27;s thesis &quot;Application of Machine Learning and Deep Learning in diagnosis Covid19&quot; (L. Merchi and C. Boucheham; supervisor A. Layeb; co-supervisor A. Derouiche), University of Abdelhamid Mehri -Constantine 2, June 2022.</p>
+<p>Ethics and data governance. The Algerian data were extracted from the archive of the internal medicine department of UCH Constantine with the permission of the head of department.</p>
+<p>Attribute Dtype Min Max Null count FibrinMonomer float64 0.67 400.0 1 Fibrinogen float64 2.17 11.98 1 VWFGPIb float64 35.0 722.0 1 ProthrombinFragment1+2 float64 41.0 2177.0 1 DICDdimer float64 0.0 5.0 1 DICFibrinMonomer float64 0.0 5.0 1 TGAlagtime float64 2.92 17.5 3 TGAETP float64 282.0 2046.29 3 TGAPeak float64 31.14 380.12 3 TGATTP float64 5.42 25.83 3 TGAVelocity float64 3.97 145.69 3 CRP float64 5.0 343.0 20 ICUadmission object --1 Clinical object --0 Death object --0 B Additional figures ROC curves, selected ML models</p>
+<h3>Figure 1 :</h3>
+<p>Figure 1: Predictive analytic system for Covid-19 patients</p>
+<h3>Figure 3 :</h3>
+<p>Figure 3: DL Model-building workflow.</p>
+<h3>Figure 4 :</h3>
+<p>Figure 4: Confusion matrices of the selected ML models on the test sets</p>
+<h3>Figure 5 :</h3>
+<p>Figure 5: Validation accuracy across epochs for MLP models with different numbers of hidden layers across the three prediction outcomes in the Algerian and French datasets.</p>
+<h3>Figure 6 :</h3>
+<p>Figure 6: Friedman test rankings of the 15 classifier-feature-selection combinations for the Algerian and French datasets.</p>
+<h3>Figure 8 :Figure 9 :</h3>
+<p>Figure8: Feature-importance scores of the selected ML models.</p>
+<h3>Table 1 :</h3>
+<p>Related works</p>
+<h3>Table 2 :</h3>
+<p>Characteristics of the Algerian and French datasets.</p>
+<h3>Table 3 :</h3>
+<p>The 15 classifier/feature-selection pairs</p>
+<h3>Table 4 :</h3>
+<p>Selected classifier and feature-selection pairs and their cross-validated accuracy (mean ± SD).</p>
+<h3>Table 5 :</h3>
+<p>Hold-out test performance of the selected ML models.</p>
+<h3>Table 6 :</h3>
+<p>Mean test accuracy (± standard deviation) of MLP models over 30 runs, according to the number of hidden layers, for the Algerian and French datasets.</p>
+<h3>Table 7 :</h3>
+<p>Highest-ranked features for each dataset and prediction outcome, in descending order of importance.</p>
+<h3>Table 8 :</h3>
+<p>Comparison of the selected ML models and the best-performing MLP configurations across the three prediction outcomes in the Algerian and French datasets.</p>
+<h3>Table 9 :</h3>
+<p>Attributes of the Algerian dataset.</p>
+<h3>Table 10 :</h3>
+<p>Attributes of the French dataset.</p>
+<h3>Figure 7 :</h3>
+<p>(a) Algerian, Death (AUC 0.95) (b) French, Death (AUC 0.94) (c) Algerian, Clinical (AUC 0.40) (d) French, Clinical (AUC 0.92) (e) Algerian, ICU (AUC 0.92) (f ) French, ICU (AUC 0.92)ROC curves of the selected ML models on the test sets.</p>
+<h3>References</h3>
+<p>P. Billoir et al. Investigation of coagulation biomarkers to assess clinical deterioration in SARS- CoV-2 infection. Frontiers in Medicine, 8:670694, 2021. doi: 10.3389/fmed.2021.670694.</p>
+<p>L. Fregoso-Aparicio et al. Machine learning and deep learning predictive models for type 2 diabetes: a systematic review. Diabetology &amp; Metabolic Syndrome, 13:148, 2021. doi: 10.1186/s13098-021-00767-9.</p>
+<p>J. A. Guzmán-Torres et al. Estimation of the main conditions in (SARS-CoV-2) COVID-19 patients that increase the risk of death using machine learning, the case of Mexico. Results in Physics, 27:104483, 2021. doi: 10.1016/j.rinp.2021.104483.</p>
+<p>A. Jandial, A. Gupta, A. Malviya, S. Agastam, and D. Kumar. Coagulation abnormalities &amp; thromboprophylaxis in COVID-19. The Indian Journal of Medical Research, 153(5-6):606-618, 2021. doi: 10.4103/ijmr.IJMR384120.</p>
+<p>H. Jindal et al. Heart disease prediction using machine learning algorithms. In IOP Conference Series: Materials Science and Engineering, volume 1022, page 012072. IOP Publishing, 2021. doi: 10.1088/1757-899X/1022/1/012072.</p>
+<p>B. O. Josephus et al. Predict mortality in patients infected with COVID-19 virus based on observed characteristics of the patient using logistic regression. Procedia Computer Science, 179:871-877, 2021. doi: 10.1016/j.procs.2021.01.076.</p>
+<p>M. Kukar et al. COVID-19 diagnosis by routine blood tests using machine learning. Scientific Reports, 11:10738, 2021. doi: 10.1038/s41598-021-90265-9.</p>
+<p>B. Mahesh. Machine learning algorithms -a review. International Journal of Science and Research, 9(1):381-386, 2020. doi: 10.21275/ART20203995.</p>
+<p>T. Panch, P. Szolovits, and R. Atun. Artificial intelligence, machine learning and health systems. Journal of Global Health, 8(2):020303, 2018. doi: 10.7189/jogh.08.020303.</p>
+<p>L. Yang, S. Liu, J. Liu, Z. Zhang, X. Wan, B. Huang, Y. Chen, and Y. Zhang. COVID-19: immunopathogenesis and immunotherapeutics. Signal Transduction and Targeted Therapy, 5: 128, 2020. doi: 10.1038/s41392-020-00243-2.</p>
 </div>
 </details>
 </div>
