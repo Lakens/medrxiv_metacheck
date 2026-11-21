@@ -197,7 +197,7 @@ Prospective In Silico Simulation of the VESALIUS-CV Trial Using
 Biomedical Knowledge Graph and Real-World Data-Driven AI Modeling
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.1 · DOI 10.64898/2026.08.26.26361436
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.08.26.26361436
 </p>
 </header>
 <div class="mc-main">
@@ -315,6 +315,41 @@ Psychological Association.</p>
 Show details
 </summary>
 <div class="fold">
+<h4 id="whose-deposits">Whose Deposits</h4>
+<table class="dt-static">
+<thead>
+<tr>
+<th style="text-align:left;">
+Repository
+</th>
+<th style="text-align:left;">
+Cited in
+</th>
+<th style="text-align:left;">
+Whose
+</th>
+<th style="text-align:left;">
+Why
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+<a href="https://osf.io/r6eqa" target="_blank">osf.io/r6eqa</a>
+</td>
+<td style="text-align:left;">
+text
+</td>
+<td style="text-align:left;">
+the authors’, for this paper
+</td>
+<td style="text-align:left;">
+a link in the main text, not shown to be anyone else’s
+</td>
+</tr>
+</tbody>
+</table>
 <h4 id="repositories">Repositories</h4>
 <table class="dt-static">
 <thead>
@@ -1101,9 +1136,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -1125,7 +1164,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -1140,9 +1180,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -1155,13 +1213,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1181,6 +1242,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -1188,12 +1255,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1294,6 +1367,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1313,6 +1406,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1568,19 +1696,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1690,6 +1900,167 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Cardiovascular outcomes trials are lengthy and costly. In silico trial simulation using real-world data may support earlier decision-making, but evidence generated before trial results are disclosed remains limited. We applied a semi-mechanistic machine-learning framework integrating patient-level real-world data with knowledge graph derived drug representations to simulate the VESALIUS-CV trial of evolocumab versus placebo before its results were public, using a locked model and prespecified trial design aligned with the trial protocol. Patient-level time-to-event predictions were aggregated into virtual trial arms to estimate cumulative incidence, hazard ratios (HR), confidence intervals (CI), and p-values for three-point major adverse cardiovascular events. In retrospective evaluation of the model&#x27;s patient-level predictive performance, time-dependent areas under the receiver operating characteristic curve ranged from 0.80 to 0.90 across follow-up horizons. In evaluation of retrospective trial-level predictive performance across 22 cardiovascular trials, the model predicted trial meeting the primary outcome with an accuracy of 0.91 (95% CI 0.77-1) and F1 score of 0.95 (95%CI 0.86-1). The prospective simulation predicted a significant reduction in major adverse cardiovascular events with evolocumab (HR 0.78; 95%CI, 0.70 to 0.87) at 54 months. The trial subsequently reported a HR of 0.75 (95% confidence interval, 0.65 to 0.86) at a median follow-up of 55 months, with progressive separation of event curves in both the simulation and the trial. The prospective simulation was concordant with the direction, magnitude, and temporal dynamics of the observed treatment effect, supporting in silico simulation as a tool for early decision-making, trial design, and de-risking in cardiovascular drug development.</p>
+<h3>INTRODUCTION</h3>
+<p>Cardiovascular outcomes trials (CVOTs) represent one of the most resource-intensive components of clinical drug development. They are designed to evaluate the effect of interventions on major adverse cardiovascular events and are typically powered to detect relatively modest treatment effects. As a result, they require large patient populations and prolonged follow-up to accrue a sufficient number of events. CVOTs commonly enroll tens of thousands of participants, with estimated median costs per drug of approximately $141 million and per-patient costs approaching $35,000 1 . Collectively, large sample sizes, extended followup, and intensive operational requirements make CVOTs a high-cost, high-risk component of late-stage development and a major contributor to the overall financial burden of bringing new cardiovascular therapies to market 2.</p>
+<p>Across this development lifecycle, uncertainty regarding treatment effect remains substantial.</p>
+<p>Empirically, overall clinical success rates from early clinical development remain low, typically on the order of 10-30% 3, 4 . In some analyses, the likelihood of approval for cardiovascular drugs from phase 1 has been estimated at below 10% 4 . In this environment, sponsors must make repeated, high-stakes decisions regarding asset and indication prioritization, sequencing of development programs, trial design choices, and continuation or termination of investment, often well before definitive randomized evidence becomes available.</p>
+<p>Conventional planning approaches, such as feasibility assessments, historical benchmarks, and power calculations, provide useful structural guidance but are largely grounded in aggregate assumptions derived from prior trials or epidemiologic averages. However, treatment effects are inherently heterogeneous across patient populations due to variation in baseline risk and other covariates, implying that average effects may not generalize to specific subgroups. Indeed, when baseline risk varies, treatment effect heterogeneity will arise on at least one scale even within randomized studies 5 . Consequently, reliance on population-average assumptions offers limited insight into the expected magnitude, timing, and consistency of treatment effects across heterogeneous patient populations and evolving standards of care, leaving many strategic decisions insufficiently de-risked.</p>
+<p>In this context, in silico trial simulation is increasingly viewed as a tool for continuous de-risking throughout drug development [6] [7] [8] . By enabling patient-level estimation of treatment effects under varying assumptions, indications, and patient subgroups, simulation has the potential to inform program prioritization, guide trial design and endpoint strategy, and support go/no-go decisions at multiple stages of development. Importantly, such insights are most valuable when they extend beyond trial sizing to address broader questions of expected clinical benefit, robustness across populations, and the timing of treatment effect emergence.</p>
+<p>The growing availability of large-scale real-world data (RWD), together with advances in computational modeling, has accelerated interest in in silico trials as a complement to randomized evidence generation 9, 10 . Rather than replacing randomized controlled trials, these approaches aim to provide earlier, population-level insight by emulating trial protocols within representative real-world cohorts. A central promise of this paradigm is the ability to prospectively estimate treatment effects across therapies and clinically relevant subgroups, thereby supporting trial de-risking and more informed decision-making prior to trial readout.</p>
+<p>However, empirical demonstrations of prospective predictive validity, in which simulations are conducted before results are known, remain limited, particularly for large cardiovascular outcomes trials. Addressing this gap is essential to establishing confidence in the broader use of in silico simulation across the development lifecycle.</p>
+<h3>Modeling paradigms for cardiovascular risk prediction</h3>
+<p>Two broad paradigms dominate contemporary approaches to predicting clinical trial outcomes: mechanistic disease modeling 7, 11 and observational modeling grounded in RWD [12] [13] [14].</p>
+<p>Knowledge-based mechanistic models, often implemented as quantitative systems pharmacology (QSP) frameworks, encode biological hypotheses as coupled dynamical systems, typically ordinary differential equations, intended to represent causal relationships among biomarkers, disease processes, and drug mechanisms [15] [16] [17] . These models aim to simulate disease progression and treatment effects through explicit representation of intermediate biological states (e.g., lipid levels, plaque burden) and their evolution over time.</p>
+<p>Mechanistic approaches offer several strengths for long-horizon cardiovascular outcomes prediction, including structured temporal extrapolation and the ability to simulate counterfactual scenarios under alternative biological assumptions. However, a central limitation lies in their capacity to adequately capture the heterogeneity of patient response observed in real-world populations. These models rely on predefined structures and parameterizations, often calibrated to aggregate data or limited experimental settings. This leads to limited representation of relevant patient features, variability in baseline risk, comorbidities, background treatments, and interaction effects across diverse patient subgroups.</p>
+<p>A second paradigm is trial emulation based on RWD, which seeks to reproduce aspects of randomized trials by applying eligibility criteria, treatment definitions, and outcome ascertainment to observational healthcare data 12, 18, 19 . This approach leverages large-scale longitudinal RWD to estimate treatment effects directly from observed clinical practice, often using causal inference or survival analysis techniques. Its primary advantage is tight grounding in observed data, allowing capture of real-world heterogeneity in patient characteristics, background therapy, adherence, and care pathways 13 . However, trial emulation is inherently limited to what is observed in the data: it cannot reliably extrapolate beyond available follow-up, indications, or treatment contexts, and remains sensitive to residual confounding, selection bias, and data incompleteness. As a result, its utility for prospective prediction, particularly for longhorizon outcomes or novel trial settings, is constrained.</p>
+<p>In this study, we describe the prospective simulation of the VESALIUS-CV trial using a hybrid position between these paradigms, combining large-scale RWD with structured biomedical knowledge to support population-level trial simulation. Rather than relying solely on direct trial emulation or explicit mechanistic equations, this framework integrates longitudinal clinical histories with drug-centric knowledge graph representations, enabling learning of treatmentoutcome associations that are informed by both empirical data and curated biological structure. This semi-mechanistic design allows the model to move beyond pure observational replication while avoiding claims of explicit physiological causality 20.</p>
+<h3>Rationale for prospective simulation</h3>
+<p>A central challenge in evaluating in silico trial methodologies is distinguishing genuine predictive capability from post hoc model fitting. Many published demonstrations of trial simulation rely on retrospective benchmarking, in which models are developed, calibrated, or refined using train/test splits on data from trials whose outcomes are already known. While such analyses are valuable for assessing internal consistency and historical performance, they cannot fully address the question most relevant to clinical development decision-making: whether a model can generate reliable predictions before trial outcomes are available.</p>
+<p>Prospective simulation requires strict temporal separation between model prediction and outcome disclosure. Model structure, parameters, eligibility criteria, endpoints, and analysis plans must be fixed prior to trial readout, and no information from interim analyses or unpublished results may inform the simulation. This separation is essential to avoid implicit leakage of outcome knowledge and to ensure that agreement between simulated and observed results reflects predictive signal rather than retrospective alignment. Without this discipline, apparent accuracy may overstate real-world utility. One rigorous approach to satisfying these requirements is to generate trial predictions prospectively, prior to trial completion or public readout, and to lock the simulation outputs until the actual trial results are published. Predicted and observed outcomes can then be compared. This prospective prediction framework was the approach used in the current study: all clinical trial simulation analyses were conducted well ahead of the study readout and locked in a publicly accessible, time-stamped record, preventing any modification of the simulation results 21.</p>
+<h3>Study objective</h3>
+<p>The objective of this study was to assess the agreement between a prespecified, locked in silico simulation and the direction, magnitude, and timing of treatment effects subsequently observed in the VESALIUS-CV randomized outcomes trial.</p>
+<h3>METHODS</h3>
+<h3>Modeling framework</h3>
+<p>The modeling framework is a semi-mechanistic machine-learning approach designed to simulate population-level outcomes of randomized clinical trials using models trained on real-world longitudinal patient-level data combined with drug embeddings derived from a biomedical knowledge graph (Figure 1). Biomedical entities and their relationships were encoded through a knowledge graph capturing molecular, biological, and clinical associations, while patient-level information was derived from linked real-world data sources, including claims, electronic medical records, and treatment histories. These complementary data modalities were combined within a patient-drug response model to estimate individualized time-to-event outcomes. The trained model was subsequently applied prospectively to emulate the VESALIUS-CV trial population according to protocol-defined eligibility criteria. Treatment-specific outcome trajectories were generated for each simulated patient and aggregated to estimate trial-level efficacy endpoints, including survival curves, event rates, hazard ratios, and subgroup-specific treatment effects.</p>
+<p>The framework learns associations between patient characteristics, treatment exposures, and time-to-event outcomes across heterogeneous real-world populations, while incorporating structured biological priors through knowledge graph embeddings that encode relationships between drugs, targets, pathways, and disease biology. This hybrid formulation introduces a latent mechanistic structure without requiring explicit systems-level equations and supports (i) modeling of real-world clinical heterogeneity and endpoint dynamics, consistent with clinical trial emulation principles, and (ii) generalization to previously unseen drugs by embedding them within the same biologically informed latent space. In the present study, patient-level time-toevent models estimated individualized risk trajectories for cardiovascular outcomes from baseline demographic and clinical features, longitudinal health histories, and treatment assignment. Additional details are provided in the Supplementary Methods.</p>
+<h3>Data sources and ethics</h3>
+<p>Model development and trial simulation used two complementary real-world data sources covering the United States: longitudinal open claims data from PurpleLab 22 and electronic health record (EHR) data from OMNY Health 23 , with patients de-identified and linked through a thirdparty tokenization service (Datavant Inc., San Francisco, CA, USA). Both sources provide longitudinal follow-up between 2014 and 2025 and include diagnoses, procedures, medication exposures, and demographic information; the EHR data additionally provide laboratory results and physiological measurements. All source data were standardized to the Observational Medical Outcomes Partnership (OMOP) Common Data Model 24, 25 to ensure consistent representation of clinical concepts and reproducible cohort definition (Supplementary Methods).</p>
+<p>Drug exposures were represented using embeddings derived from a drug-centric biomedical knowledge graph of approximately 150,000 entities and more than 7 million relationships, constructed from over 30 curated databases, including DrugBank 26 , ChEMBL 27 , UniProt 28 , and Reactome 29 , and enriched through literature extraction with expert curation (Supplementary</p>
+<h3>Methods).</h3>
+<p>This study used retrospective, de-identified patient-level data with no direct patient identifiers available to the researchers. As a retrospective analysis of de-identified data, the study received a determination of exemption from WCG IRB under 45 CFR § 46.104(d)(4) and was conducted in accordance with relevant guidelines and regulations. The simulated trial, VESALIUS-CV, is registered at ClinicalTrials.gov (NCT03872401); the authors did not conduct or have access to the trial.</p>
+<h3>Outcome definition and follow-up</h3>
+<p>Cardiovascular outcomes were defined using prespecified code sets aligned with the VESALIUS-CV primary endpoint of 3-point major adverse cardiovascular events (MACE), comprising cardiovascular death, non-fatal myocardial infarction, and non-fatal stroke 30 . Time to event was measured from the index date to the first occurrence of the outcome or the end of available follow-up.</p>
+<h3>Outcome modeling</h3>
+<p>Time to first event was modeled using ClinBoost, a patient-level survival modeling framework described previously 20 . Each patient is assigned an index date representing trial entry, and the outcome label captures both event occurrence and time to event or censoring, enabling appropriate handling of right-censored data. Patient representation incorporates structured clinical history summarized over predefined windows preceding the index date and treatment encoded from the unique drugs received within a fixed pre-index window. ClinBoost combines gradient-boosted trees 31 with time-binned logistic regression layers 32 to estimate event probabilities across discrete time intervals; these interval-specific predictions are transformed into individualized survival curves that form the basis for cumulative incidence estimation and trial simulation (Supplementary Methods).</p>
+<h3>Prevention of information leakage</h3>
+<p>No data from VESALIUS-CV, including interim analyses, outcome estimates, or unpublished results, were used for model training, feature selection, parameter tuning, or validation. Model components, feature definitions, temporal windows, and analysis procedures were fixed before the prospective simulation 33 , and the simulation outputs were deposited in a time-stamped public record before trial readout 21 . For the primary analysis, no recalibration or adjustment was performed after trial results became available; performance was assessed solely by comparing the prespecified simulation outputs with the subsequently published trial outcomes.</p>
+<h3>Virtual trial construction</h3>
+<p>Eligible patients were selected from the real-world data using prespecified criteria aligned with the VESALIUS-CV protocol. The cohort was defined to approximate a high-risk primary prevention population with enriched cardiometabolic and atherosclerotic burden: inclusion required evidence of at least one major cardiometabolic or vascular condition at baseline (type 2 diabetes mellitus, peripheral vascular disease, established atherosclerotic cardiovascular disease, or ischemic cerebrovascular disease) together with elevated low-density lipoprotein (LDL) cholesterol (≥90 mg/dL) or non-high-density lipoprotein (non-HDL) cholesterol (≥120 mg/dL) within the 6 months before cohort entry, and exclusion criteria removed patients with recent or unstable cardiovascular conditions and severe comorbidities (full criteria in the Supplementary Methods). For each patient, outcome trajectories were simulated under both the investigational and comparator treatment scenarios, generating patient-specific counterfactual predictions for each arm independent of actual treatment exposure. Randomization ratio, per-arm sample size, and follow-up duration matched those of the target trial. Patient-level predicted risk trajectories were aggregated within each arm to generate arm-level cumulative incidence functions, and relative treatment effects were summarized as hazard ratios. Event-risk trajectories were estimated using all eligible patients. These estimates were then used to calculate hazard ratios, 95% CIs, and P values, according to a standard analysis plan, assuming the target trial sample size of 6,150 patients per arm. (Supplementary Methods).</p>
+<h3>Model validation</h3>
+<p>The cardiovascular outcomes model was evaluated, independently of the VESALIUS-CV simulation, at the patient level and at the trial level across past randomized cardiovascular outcomes trials with MACE as a primary or secondary endpoint, spanning diverse trial designs, therapeutic mechanisms, and baseline risk profiles. At the patient level, the real-world dataset was randomly partitioned into training (80%), validation (10%), and held-out test (10%) sets at the patient level, and time-to-event predictions were assessed on the test set using timedependent receiver operating characteristic area under the curve (ROC-AUC) computed across discrete time bins, characterizing discrimination along the risk trajectory 34, 35 . At the trial level, simulated outcomes were compared with published randomized trial results (Table S1) for agreement in the statistical success or failure of the investigational arm, in terms of meeting the trial defined primary outcome. Accuracy metrics with 95% confidence intervals were estimated by trial-level bootstrap (10,000 resamples). The proportion of trials without a statistically significant difference between simulated and observed HR was estimated using a log-scale normal approximation based on the reported confidence limits. Agreement between simulated and observed hazard ratios was additionally examined by Bland-Altman analysis (Figure S1).</p>
+<h3>Concordance of the prospective simulation with observed results</h3>
+<p>Following readout, concordance between the prospective simulation and the reported VESALIUS-CV results was assessed across three prespecified dimensions. First, we assessed whether the simulation correctly predicted trial success, defined as a statistically significant treatment benefit on the primary outcome (hazard ratio &lt;1 with P &lt;0.05). Second, we evaluated the accuracy of the predicted treatment effect by comparing the predicted with the observed hazard ratio. Third, we compared arm-level event rates using the Kaplan-Meier estimate of the percentage of participants with an event at the final assessment.</p>
+<h3>Post hoc population-matched sensitivity analysis</h3>
+<p>To assess the influence of population composition on simulated outcomes, the simulation was repeated in a cohort constructed to match the baseline characteristics reported for the trial population, including demographics (age, sex, race, and ethnicity) and key clinical variables (hypertension, obesity, and diabetes). Race and ethnicity were taken as recorded in the source claims and EHR data, using the fixed categories of those sources. Results were compared with the primary simulation to assess the sensitivity of relative and absolute treatment effect estimates to population composition (Supplementary Methods).</p>
+<h3>RESULTS</h3>
+<h3>Summary of model validation</h3>
+<p>A patient-level survival model predicting time to first 3-point MACE was developed using longitudinal clinical histories and treatment representations derived from biologically informed drug embeddings, trained on a real-world longitudinal dataset of 868,533 patients.</p>
+<p>On the held-out test set, time-dependent ROC-AUC values across discrete time bins spanning up to approximately 6.5 years of follow-up were 0.90 at ≤11 days, 0.86 at ≤120 days, and approximately 0.81-0.82 at longer-term horizons extending beyond 5 years (Figure 2). While a modest decline in AUC was observed over time, performance remained stable, providing robust discrimination for both short-term and long-term cardiovascular risk. Trial-level performance was validated against 22 large cardiovascular outcomes trials using 3point MACE as the endpoint, spanning multiple therapeutic classes and mechanisms of action, including glucagon-like peptide-1 receptor agonists, sodium-glucose cotransporter-2 inhibitors, antiplatelet therapy, dipeptidyl peptidase-4 inhibitors, insulin analogs, and other cardiometabolic agents. (Table S1) Simulated hazard ratios showed good concordance with observed outcomes, with an F1 score of 0.95 (95%CI 0.86-1) and accuracy of 0.91 (95% CI 0.77-1); the Bland-Altman mean bias between observed and simulated hazard ratios was -0.09 (limits of agreement, -0.32 to 0.14) (Figure S1), and 18 of 22 trials (81.8%) had a predicted HR not significantly different from the observed HR.</p>
+<h3>Prospective simulation of VESALIUS-CV</h3>
+<p>The simulation of VESALIUS-CV was conducted prior to public disclosure of the trial results, with model structure, parameters, eligibility criteria, endpoints, and analysis procedures locked in advance 21 . The simulation preceded publication of the trial results and was completed without access to interim analyses or any unpublished outcome data. Eligibility criteria were aligned with the VESALIUS-CV protocol, and the primary simulated endpoint was 3-point MACE (cardiovascular death, myocardial infarction, or ischemic stroke), consistent with the trial&#x27;s primary efficacy endpoint. Model outputs were generated at prespecified follow-up horizons to reflect both intermediate and longer-term trial readouts.</p>
+<p>The simulation cohort, defined from the public protocol 36 , represents a high-risk cardiometabolic population with a high prevalence of type 2 diabetes, vascular disease, and elevated lipid levels, consistent with populations targeted in contemporary cardiovascular outcomes trials. The eligible cohort comprised 39,777 patients, with a mean age of 68.5 years (median 69 years) and a predominance of female patients (61.2%), and 6,150 patients were simulated per arm. The population reflects an older, high-risk group with substantial underlying cardiometabolic burden, appropriate for evaluating cardiovascular outcomes in a trial-like setting. Baseline characteristics of the simulation cohort and of the trial population are provided in Table 1.</p>
+<h3>Simulation results and comparison with observed trial results</h3>
+<p>After a median follow-up of 55 months, the VESALIUS-CV trial reported 5-year Kaplan-Meier estimates of 3-point MACE of 6.2% in the evolocumab group and 8.0% in the placebo group, corresponding to a hazard ratio of 0.75 (95% CI, 0.65-0.86; P &lt;0.001) 36 . The prospective simulation generated prior to readout predicted treatment and control arm event rates and relative treatment effects at 54 months of follow-up. The simulation predicted a 3-point MACE event rate of 8.8% in the evolocumab arm and 11.2% in the placebo arm, corresponding to a simulated hazard ratio of 0.78 (95% CI, 0.70-0.87; P &lt;0.01), demonstrating close agreement with the observed estimate, including overlapping confidence intervals and consistent directionality of effect (Figure 3A,B and Table 2). Simulated cumulative incidence curves showed gradual divergence between treatment and control arms, with increasing separation over time. This pattern was concordant with the Kaplan-Meier curves observed in VESALIUS-CV 36 , which similarly exhibited progressive separation during follow-up, consistent with the delayed accrual of benefit characteristic of LDL cholesterol-lowering therapies.</p>
+<p>Simulated subgroup analyses demonstrated that the predicted treatment effect was generally consistent across all examined patient subgroups, consistent with the observed results. Hazard ratios were uniformly below 1.0 across categories of age, sex, race, body mass index (BMI), and key clinical characteristics, indicating a consistent direction of benefit. The magnitude of effect was similar across most subgroups, with overlapping confidence intervals and no evidence of meaningful heterogeneity (Figure 3C). Overall, the simulation recapitulated the pattern observed in the VESALIUS-CV trial, supporting the robustness and generalizability of the predicted treatment effect across diverse patient populations.</p>
+<h3>Post hoc analysis of residual differences</h3>
+<p>The simulated effect size, in terms of both the hazard ratio and the between-arm difference in event rates, was concordant with the observed effect; however, the absolute event rates in each arm were 2.6-3.2 percentage points higher in the simulation. This discrepancy may reflect differences between the simulated population and the population actually enrolled in the trial. To investigate this, a post hoc analysis was conducted in which the simulation was rerun using a population more closely aligned with the enrolled cohort, constructed to match the trial population across key characteristics, including demographics (age, sex, race, and ethnicity) and comorbidities (hypertension, obesity, and diabetes).</p>
+<p>Following this population matching, the predicted treatment effect remained unchanged (hazard ratio 0.78; 95% CI, 0.70-0.88), while the discrepancy between the simulated and observed event rates was reduced, although a residual difference in absolute event rates per arm remained (2.0-2.4 percentage points) (Figure 4A,B and Table 2).  2.</p>
+<h3>DISCUSSION</h3>
+<p>This study evaluates a machine learning-driven in silico trial simulation framework through patient-level predictive validation, retrospective trial-level benchmarking, and a fully prospective application to the VESALIUS-CV trial. At the patient level, the model demonstrated strong and durable discriminatory performance across time horizons, with ROC-AUC values ranging from 0.90 in the short term to approximately 0.81-0.82 over longer follow-up, supporting its ability to accurately capture individual cardiovascular risk trajectories. At the trial level, validation across 22 large cardiovascular outcomes trials showed good concordance between simulated and observed treatment effects across diverse therapeutic classes and study designs.</p>
+<p>Building on this multi-level validation, the prospective simulation of VESALIUS-CV, conducted prior to public disclosure of trial results, accurately anticipated the direction, magnitude, and temporal evolution of treatment benefit observed in the randomized trial. In addition, subgroup analyses demonstrated consistent predicted treatment effects across a broad range of patient subpopulations, including stratifications by demographics and baseline clinical characteristics, with no evidence of meaningful heterogeneity. Together, these findings provide empirical support that a machine learning-based, RWD-driven framework can generate accurate and generalizable trial-level simulations of cardiovascular outcomes trials.</p>
+<p>While differences in absolute event rates were observed, the simulation showed strong concordance with the observed VESALIUS-CV results for the relative treatment effect and close agreement for the between-arm difference in event rates. Simulated event rates exceeded those reported in the trial, with a between-arm difference of 2.4 percentage points compared with 1.8 percentage points in the observed results. Following post hoc alignment of key population characteristics, the gap between simulated and observed absolute event rates was reduced, and the simulated between-arm difference moved closer to the observed value (2.2 versus 1.8 percentage points).</p>
+<p>This pattern highlights an important methodological distinction between relative and absolute measures of treatment effect. The close agreement in hazard ratios, together with the close approximation of the between-arm difference in event rates, despite residual differences in absolute event rates, suggests that the simulation framework captures the underlying treatment effect with high fidelity, even when baseline risk is not perfectly calibrated. This is consistent with prior evidence that relative treatment effects are generally more stable and transportable across populations than absolute risk estimates, which are more sensitive to differences in patient characteristics, event definitions, and measurement processes [37] [38] [39] . The remaining differences in absolute event rates may therefore reflect these sources of variability. More broadly, the ability to generate longitudinal trial simulations enables treatment effects to be evaluated across multiple complementary dimensions, including hazard ratios, cumulative event rates, event-rate differences between treatment arms, and the temporal evolution of treatment benefit, providing a richer basis for trial evaluation and design.</p>
+<p>The partial attenuation of the discrepancy following population matching supports the interpretation that baseline risk calibration, rather than treatment effect estimation, is the primary driver of these differences. Taken together, these findings underscore the importance of a multidimensional evaluation framework for in silico trial performance, in which binary trial success, relative treatment effects, and absolute event rates are considered jointly. Within this framework, relative effect estimates may provide the most robust and decision-relevant signal for prospective applications, while absolute risk estimates remain essential for contextualizing clinical impact and informing trial design assumptions.</p>
+<h3>Implications for cardiovascular drug development</h3>
+<p>The VESALIUS-CV simulation illustrates the framework&#x27;s ability to generalize treatment-effect predictions across distinct clinical settings. Although evolocumab had previously been evaluated in the FOURIER trial 40  Beyond binary decisions, prospective simulations may help support trial design, including evaluating the potential impact of eligibility criteria and the enrolled population on treatment effect, estimation of trial size and the follow-up duration required to detect treatment effects, evaluation of endpoint selection, and assessment of the impact of baseline risk and background therapy on event accrual.</p>
+<h3>Positioning relative to clinical trial emulation and mechanistic models</h3>
+<p>Clinical trial emulation (CTE) and QSP represent two established but distinct approaches to simulating cardiovascular trials. QSP models encode biological mechanisms and causal hypotheses across pathways, biomarkers, and disease progression, enabling mechanistic interpretation but depending heavily on prior knowledge and calibration data.</p>
+<p>CTE approaches, by contrast, use observational clinical data to approximate randomized trial conditions, offering strong empirical validity, real-world generalizability, and the ability to capture patient heterogeneity and clinical endpoints. However, they are generally limited to drugs already observed in the data and lack explicit biological reasoning.</p>
+<p>The framework described here can be viewed as a semi-mechanistic bridge between these paradigms. It combines longitudinal clinical data with knowledge graph embeddings that encode drug properties, mechanisms, and relationships, introducing a biologically structured prior into a data-driven trial simulation model.</p>
+<p>This preserves key strengths of CTE, including modeling diverse patients and real-world endpoints, while addressing a major limitation: generalizing to previously unseen drugs. By representing drugs in a biologically informed embedding space, the model can simulate new interventions without requiring a fully specified systems-level QSP model.</p>
+<p>Thus, this semi-mechanistic approach offers a practical and scalable alternative to purely mechanistic or purely observational methods, combining empirical performance, biological plausibility, and broader generalizability in cardiovascular trial simulation.</p>
+<h3>Limitations and future directions</h3>
+<p>Several limitations should be considered when interpreting these findings. At the same time, many of these limitations represent active areas of methodological development and opportunities for future refinement.</p>
+<p>First, the approach depends on the quality, completeness, and representativeness of real-world data. Observational datasets may differ systematically from randomized trial populations due to selection bias, missing data, and unmeasured confounding, which are not always fully captured by observed covariates. To mitigate these risks, our framework incorporates rigorous cohort construction and validation against epidemiological data and completed clinical trials. Ongoing improvements may include the integration of additional data sources (e.g., registries, omics, or imaging) and integration of explicit causal inference techniques.</p>
+<p>Second, while the model integrates biologically informed representations through knowledge graph embeddings, it does not provide explicit, fully specified mechanistic causality in the way QSP models do. Future work under development includes enhancing explicit interpretability through hybridization with mechanistic sub-models, incorporation of causal graphs, and systematic post hoc model interrogation methods.</p>
+<p>Third, the simulation inherently relies on assumptions regarding the characteristics of the trial to be emulated, including the patient population that will be enrolled, the rate and duration of enrollment, and the overall trial duration. In practice, these elements are uncertain at the design stage and may differ from realized trial execution. The framework addresses this by enabling flexible scenario analysis: investigators can vary inclusion criteria, enrollment dynamics, and follow-up duration to explore a range of plausible outcomes and sensitivities. However, predictions remain contingent on the specified assumptions, and inaccuracies in these inputs may impact simulated results. Future enhancements could include tighter integration with operational trial data and adaptive updating as enrollment progresses.</p>
+<p>Finally, while the ability to simulate previously unseen drugs represents a key strength of the semi-mechanistic approach, it also introduces uncertainty when extrapolating beyond the observed data distribution. This risk is mitigated through biologically grounded embeddings and validation against known drug classes, but careful interpretation is required, particularly for novel mechanisms of action. Continued expansion of the underlying knowledge graph and incorporation of experimental or early-phase data may further improve robustness in these settings.</p>
+<p>Beyond cardiovascular disease, the framework is designed as a general-purpose clinical trial simulation platform that can be applied across therapeutic areas wherever longitudinal patient data and clinically relevant outcomes are available. The underlying methodology is not indication-specific and has already been applied across more than 20 disease areas and clinical development programs, with ongoing expansion to additional indications, endpoints, and treatment modalities. Continued validation across diverse therapeutic settings will further characterize the scope and performance of the approach and help refine its application to an increasingly broad range of clinical development questions.</p>
+<p>Taken together, the results of this study support the potential of RWD-driven, biologically informed simulation as a scalable decision-support tool for clinical development, capable of generating prospective insights to inform trial design, portfolio strategy, and evidence generation across a wide range of therapeutic contexts.</p>
+<h3>STUDY HIGHLIGHTS</h3>
+<h3>What is the current knowledge on the topic?</h3>
+<p>In silico clinical trial simulation using real-world data and machine learning has shown retrospective agreement with completed trials, but prospective evidence, in which predictions are generated and locked before trial readout, remains scarce, particularly for large cardiovascular outcomes trials.</p>
+<h3>What question did this study address?</h3>
+<p>Whether a prespecified, locked simulation of the VESALIUS-CV trial, produced by a semimechanistic model that combines longitudinal real-world data with knowledge graph-derived drug representations, agreed with the direction, magnitude, and timing of the treatment effect subsequently observed in the trial.</p>
+<h3>What does this study add to our knowledge?</h3>
+<p>The prospective simulation predicted a hazard ratio of 0.78 (95% CI, 0.70-0.87) for 3-point MACE with evolocumab versus placebo; the trial reported 0.75 (95% CI, 0.65-0.86), with concordant progressive separation of event curves and consistent effects across subgroups.</p>
+<p>Relative treatment effects were well reproduced, whereas absolute event rates were sensitive to the composition of the simulated population.</p>
+<h3>How might this change clinical pharmacology or translational science?</h3>
+<p>Prospective, time-stamped simulation provides a transparent standard for evaluating in silico trial methods and supports their use as complementary tools for go/no-go decisions, eligibility and endpoint design, and sample-size and follow-up planning in cardiovascular drug development.</p>
+<h3>ACKNOWLEDGEMENTS</h3>
+<p>Large language models (Claude by Anthropic and ChatGPT by OpenAI) were used as assistive tools for manuscript preparation. Figures presenting study results were generated directly from the underlying data using python and do not represent generative-model approximations. All analyses, figures, and manuscript content were reviewed, edited, and verified by the authors, who take full responsibility for the final manuscript.</p>
+<h3>DATA AVAILABILITY STATEMENT</h3>
+<p>The patient-level claims and electronic health record data used in this study were obtained under license from PurpleLab and OMNY Health and cannot be shared publicly owing to contractual and privacy restrictions; access may be requested from the respective data providers. The biomedical knowledge graph and the ClinBoost modeling framework are proprietary to QuantHealth Ltd. The prespecified, time-stamped simulation outputs for VESALIUS-CV deposited before trial readout are publicly available on the Open Science Framework at https://osf.io/r6eqa Aggregate simulation results supporting the findings of this study are provided in the article and its Supplementary Material.</p>
+<h3>AUTHOR CONTRIBUTIONS</h3>
+<p>A.P., E.T., F.D., M.G., M.S., E.B., A.B., T.R., H.S., and O.M. wrote the manuscript; N.G., H.S., A.P., T.R., F.D., and O.M. designed the research; N.G., H.S., A.P., O.M., M.G., E.B., M.S., and A.B. performed the research; N.G., H.S., A.P., and O.M. analyzed the data.</p>
+<h3>SUPPLEMENTARY MATERIAL</h3>
+<p>Supplementary Methods. Modeling framework, data standardization, construction of longitudinal patient histories, ClinBoost architecture, simulation cohort eligibility criteria, generation of simulated trial outcomes, and post hoc population-matched analysis.</p>
+<p>Table S1. Randomized cardiovascular outcomes trials used for trial-level model validation.</p>
+<p>Figure S1. Bland-Altman analysis of observed versus simulated hazard ratios across 22 trials.</p>
+<p>.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Predictive modeling framework and prospective trial simulation workflow. Biomedical knowledge and longitudinal real-world clinical data were integrated to construct patient-specific representations of disease biology and treatment response. Biomedical entities and their relationships were encoded through a knowledge graph capturing molecular, biological, and clinical associations, while patient-level information was derived from linked real-world data sources, including claims, electronic medical records, and treatment histories. These complementary data modalities were combined within a patient-drug response model to estimate individualized time-to-event outcomes. The trained model was subsequently applied prospectively to emulate the VESALIUS-CV trial population according to protocol-defined eligibility criteria. Treatment-specific outcome trajectories were generated for each simulated patient and aggregated to estimate trial-level efficacy endpoints, including survival curves, event rates, hazard ratios, and subgroup-specific treatment effects.</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Model validation performance. Time-dependent receiver operating characteristic curves on the held-out real-world test set across follow-up horizons (area under the curve [AUC] range, 0.80-0.90).</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Prospective simulation of VESALIUS-CV. (A) Simulated cumulative incidence of 3-point major adverse cardiovascular events (MACE; labeled MACE3) for the comparator (placebo) and investigational (evolocumab) arms over 54 months, with 95% confidence intervals assuming 6,150 per arm. (B) Summary of simulation results at 54 months: event rates, hazard ratio, and absolute and relative risk reduction. (C) Simulated hazard ratios by baseline subgroup, with 95% confidence intervals and the proportion of the simulation cohort in each subgroup.</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Post hoc population-matched sensitivity analysis. (A) Simulated cumulative incidence of 3-point major adverse cardiovascular events (MACE; labeled MACE3) over 54 months in the original simulation cohort (all eligible patients; circles) and in the cohort matched to the reported VESALIUS-CV baseline characteristics (N = 10,446; squares); n = 6,150 per arm in both cohorts; shaded regions denote 95% confidence intervals. (B) Event rates by arm at 54 months in the original and population-matched simulations compared with the observed 5-year Kaplan-Meier estimates reported for VESALIUS-CV, showing convergence toward the observed rates with population matching. Corresponding hazard ratios and event rates are given in Table2.</p>
+<p>, VESALIUS-CV enrolled a substantially different population, consisting of high-risk patients without prior myocardial infarction or stroke, with different baseline lipid profiles and longer follow-up. These differences introduce uncertainty to direct extrapolation of treatment effects from prior trials. Rather than relying on historical trial outcomes, the simulation estimated treatment effects under the specific eligibility criteria, population characteristics, and follow-up assumptions of the VESALIUS-CV protocol. The close agreement between predicted and observed outcomes suggests that integrating longitudinal real-world patient data with biologically informed drug representations may enable treatment-effect prediction across new trial settings and patient populations.The ability to generate accurate predictions across distinct patient populations and trial designs has important implications for cardiovascular drug development. Prospective in silico trial simulation has the potential to support earlier and more informed decision-making in cardiovascular drug development. Such simulations can inform go/no-go decisions prior to trial initiation by providing quantitative expectations regarding the likelihood of observing a clinically meaningful effect. This capability is particularly valuable for large, long-duration cardiovascular outcomes trials, where late-stage failure carries substantial clinical and financial cost.</p>
+<h3>Table 1.</h3>
+<p>Baseline characteristics of the simulation cohort and of the VESALIUS-CV trial population.Trial values are as reported by Bohula et al.36 Em dashes (-) denote categories not separately reported in the trial publication. BMI, body mass index; HDL, high-density lipoprotein; IQR, interquartile range; LDL, low-density lipoprotein. a Race and ethnicity as recorded in the source claims and electronic health record data (see Methods).</p>
+<h3>Table 2.</h3>
+<p>Observed VESALIUS-CV results compared with the prospective simulation and the post hoc populationmatched simulation.</p>
+<h3>References</h3>
+<p>Moore, T.J., Heyward, J., Anderson, G. &amp; Alexander, G.C. Variation in the estimated costs of pivotal clinical benefit trials supporting the US approval of new therapeutic agents, 2015- 2017: a cross-sectional study. BMJ Open 10, e038863 (2020).</p>
+<p>Davidson, M.H., Hsieh, A., Dicklin, M.R. &amp; Maki, K.C. The imperative to enhance cost- effectiveness for cardiovascular therapeutic development. JACC Basic Transl. Sci. 9, 1029- 1040 (2024).</p>
+<p>Wong, C.H., Siah, K.W. &amp; Lo, A.W. Estimation of clinical trial success rates and related parameters. Biostatistics 20, 273-286 (2019).</p>
+<p>Hay, M., Thomas, D.W., Craighead, J.L., Economides, C. &amp; Rosenthal, J. Clinical development success rates for investigational drugs. Nat. Biotechnol. 32, 40-51 (2014).</p>
+<p>Lesko, C.R., Henderson, N.C. &amp; Varadhan, R. Considerations when assessing heterogeneity of treatment effect in patient-centered outcomes research. J. Clin. Epidemiol. 100, 22-31 (2018).</p>
+<p>Chen, B. et al. In silico clinical trials in drug development: a systematic review. Ther. Innov. Regul. Sci. 60, 423-439 (2026).</p>
+<p>Pappalardo, F., Russo, G., Tshinanu, F.M. &amp; Viceconti, M. In silico clinical trials: concepts and early adoptions. Brief. Bioinform. 20, 1699-1708 (2019).</p>
+<p>Angoulvant, D. et al. In-silico trial emulation to predict the cardiovascular protection of new lipid-lowering drugs: an illustration through the design of the SIRIUS programme. Eur. J. Prev. Cardiol. 31, 1820-1830 (2024).</p>
+<p>US Food and Drug Administration. Considerations for the use of real-world data and real- world evidence to support regulatory decision-making for drug and biological products: guidance for industry. &lt;https://www.fda.gov/regulatory-information/search-fda-guidance- documents/considerations-use-real-world-data-and-real-world-evidence-support-regulatory- decision-making-drug&gt; (2023). Accessed 28 August 2026.</p>
+<p>Klonoff, D.C. The new FDA real-world evidence program to support development of drugs and biologics. J. Diabetes Sci. Technol. 14, 345-349 (2020).</p>
+<p>Wang, Y. et al. Credibility assessment of a mechanistic model of atherosclerosis to predict cardiovascular outcomes under lipid-lowering therapy. NPJ Digit. Med. 8, 171 (2025).</p>
+<p>Hernán, M.A. &amp; Robins, J.M. Using big data to emulate a target trial when a randomized trial is not available. Am. J. Epidemiol. 183, 758-764 (2016).</p>
+<p>Wang, S.V. et al. Emulation of randomized clinical trials with nonrandomized database analyses. JAMA 329, 1376-1385 (2023).</p>
+<p>Liu, R., Wei, L. &amp; Zhang, P. A deep learning framework for drug repurposing via emulating clinical trials on real-world patient data. Nat. Mach. Intell. 3, 68-75 (2021).</p>
+<p>Aghamiri, S.S., Amin, R. &amp; Helikar, T. Recent applications of quantitative systems pharmacology and machine learning models across diseases. J. Pharmacokinet. Pharmacodyn. 49, 19-37 (2022).</p>
+<p>Cheng, L., Qiu, Y., Schmidt, B.J. &amp; Wei, G.-W. Review of applications and challenges of quantitative systems pharmacology modeling and machine learning for heart failure. J. Pharmacokinet. Pharmacodyn. 49, 39-50 (2022).</p>
+<p>Helmlinger, G. et al. Quantitative systems pharmacology: an exemplar model-building workflow with applications in cardiovascular, metabolic, and oncology drug development. CPT Pharmacometrics Syst. Pharmacol. 8, 380-395 (2019).</p>
+<p>Cashin, A.G. et al. Transparent reporting of observational studies emulating a target trial: the TARGET statement. JAMA 334, 1084-1093 (2025).</p>
+<p>Hernán, M.A., Wang, W. &amp; Leaf, D.E. Target trial emulation: a framework for causal inference from observational data. JAMA 328, 2446-2447 (2022).</p>
+<p>Dormont, F. et al. Simulating ulcerative colitis clinical trials using knowledge graph- enhanced real-world data modeling: validation across 21 studies. Research Square Preprint at https://doi.org/10.21203/rs.3.rs-9272163/v1</p>
+<p>Raveh, T. &amp; Matalon, O. VESALIUS-CV (NCT03872401) simulation results. Open Science Framework https://osf.io/r6eqa (2025).</p>
+<p>PurpleLab. PurpleLab open claims data. &lt;https://purplelab.com/&gt; Accessed 28 August 2026.</p>
+<p>OMNY Health. EHR data and analytics. &lt;https://omnyhealth.com/&gt; Accessed 28 August 2026.</p>
+<p>Hripcsak, G. et al. Observational Health Data Sciences and Informatics (OHDSI): opportunities for observational researchers. Stud. Health Technol. Inform. 216, 574-578 (2015).</p>
+<p>Reich, C. et al. OHDSI Standardized Vocabularies-a large-scale centralized reference ontology for international data harmonization. J. Am. Med. Inform. Assoc. 31, 583-590 (2024).</p>
+<p>Knox, C. et al. DrugBank 6.0: the DrugBank Knowledgebase for 2024. Nucleic Acids Res. 52, D1265-D1275 (2024).</p>
+<p>Zdrazil, B. et al. The ChEMBL Database in 2023: a drug discovery platform spanning multiple bioactivity data types and time periods. Nucleic Acids Res. 52, D1180-D1192 (2024).</p>
+<p>UniProt Consortium. UniProt: the Universal Protein Knowledgebase in 2025. Nucleic Acids Res. 53, D609-D617 (2025).</p>
+<p>Milacic, M. et al. The Reactome Pathway Knowledgebase 2024. Nucleic Acids Res. 52, D672-D678 (2024).</p>
+<p>Hicks, K.A. et al. 2014 ACC/AHA key data elements and definitions for cardiovascular endpoint events in clinical trials. J. Am. Coll. Cardiol. 66, 403-469 (2015).</p>
+<p>Ke, G. et al. LightGBM: a highly efficient gradient boosting decision tree. In Advances in Neural Information Processing Systems 30 (eds. Guyon, I. et al.) 3146-3154 (Curran Associates, Red Hook, New York, USA, 2017).</p>
+<p>Gensheimer, M.F. &amp; Narasimhan, B. A scalable discrete-time survival model for neural networks. PeerJ 7, e6257 (2019).</p>
+<p>Collins, G.S. et al. TRIPOD+AI statement: updated guidance for reporting clinical prediction models that use regression or machine learning methods. BMJ 385, e078378 (2024).</p>
+<p>Heagerty, P.J. &amp; Zheng, Y. Survival model predictive accuracy and ROC curves. Biometrics 61, 92-105 (2005).</p>
+<p>Heagerty, P.J., Lumley, T. &amp; Pepe, M.S. Time-dependent ROC curves for censored survival data and a diagnostic marker. Biometrics 56, 337-344 (2000).</p>
+<p>Bohula, E.A. et al. Evolocumab in patients without a previous myocardial infarction or stroke. N. Engl. J. Med. 394, 117-127 (2026).</p>
+<p>Hemilä, H. &amp; Friedrich, J.O. Many continuous variables should be analyzed using the relative scale: a case study of β2-agonists for preventing exercise-induced bronchoconstriction. Syst. Rev. 8, 282 (2019).</p>
+<p>Engels, E.A., Schmid, C.H., Terrin, N., Olkin, I. &amp; Lau, J. Heterogeneity and statistical significance in meta-analysis: an empirical study of 125 meta-analyses. Stat. Med. 19, 1707- 1728 (2000).</p>
+<p>Deeks, J.J. Issues in the selection of a summary statistic for meta-analysis of clinical trials with binary outcomes. Stat. Med. 21, 1575-1600 (2002).</p>
+<p>Sabatine, M.S. et al. Evolocumab and clinical outcomes in patients with cardiovascular disease. N. Engl. J. Med. 376, 1713-1722 (2017).</p>
 </div>
 </details>
 </div>
