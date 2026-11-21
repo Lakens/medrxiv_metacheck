@@ -199,7 +199,7 @@ for food-policy interventions for prevention of overweight and obesity
 in Kenya and evaluation of the engagement process
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.04.18.26351190
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.04.18.26351190
 </p>
 </header>
 <div class="mc-main">
@@ -321,8 +321,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -686,9 +689,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -710,7 +717,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -725,9 +733,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -740,13 +766,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -766,6 +795,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -773,12 +808,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -879,6 +920,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -898,6 +959,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1153,19 +1249,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1275,6 +1453,140 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Increasing global prevalence of overweight and obesity underscores the need for context-specific evidence to guide preventive policy implementation. Previous modelling found that promoting healthy indigenous foods, implementing a 20% tax on sugar-sweetened beverages (SSBs), and introducing mandatory kilojoule menu labelling in formal-sector restaurants in Kenya were healthpromoting, cost-saving, and cost-effective. We engaged stakeholders to assess additional implementation considerations relevant to decision-makers and to evaluate the stakeholder engagement process used in the modelling study.</p>
+<p>Using the Assessing Cost Effectiveness approach, we conducted a stakeholder-engaged study with national-level Kenya stakeholders recruited through purposive and snowball sampling. Through deliberative dialogue at a hybrid workshop, stakeholders assessed implementation considerations such as equity, feasibility and sustainability using a colour-coded scoring tool. We evaluated the engagement process using an anonymous survey covering seven stakeholder-engaged research domains. We analysed responses thematically. Findings Across the three interventions, most implementation considerations for feasibility, reach and impact, affordability, acceptability, and sustainability were assessed as medium or high. Industry acceptability of kilojoule labelling and SSB tax and affordability of kilojoule labelling to industry were rated low. Equity scores varied. Stakeholders proposed complementary measures that could raise &#x27;low&#x27; ratings to favorable scores. Clarity on stakeholder roles was identified as a key strength of the engagement process, while competing time commitments limited participation. Interpretation Stakeholder insights place prior economic evaluation findings within a broader policy relevant framework and provide context-specific evidence that could inform current fiscal/regulatory debates. Evaluation of the stakeholder engagement processes can strengthen public health research.</p>
+<h3>Introduction</h3>
+<p>Globally, the growing burden of overweight and obesity continues to strain healthcare systems, particularly in low-and middle-income countries already facing persistent childhood malnutrition, infectious diseases and climate change. [1] [2] [3] In Kenya, approximately 47% of adult females and 29% adult males had overweight or obesity in 2021. 1 Elimination of overweight and obesity in Kenya could increase the health-adjusted life expectancy by 2•3 (95% UI 2•0-2•8) years for females and 1•0 (95% UI 0•8-1•1) years for males. 4 If the rise of overweight and obesity were halted by 2025 (Kenya&#x27;s reduction target), 6•8 million health-adjusted life years HALYs (135 HALYs per 1000 persons) and ~US$3 billion healthcare costs could be saved (US$62 per capita) over the lifetime of the 2019 population, compared to recent trends continuing until 2044. 5 By 2044, productivity gains resulting from a reduction in related mortality and morbidity was estimated at ~US$5•8 billion (~US$237 per capita). 5 Changes in dietary patterns and nutrient intakes, fuelled by unhealthy food environments, contribute to the rising burden of overweight and obesity. [6] [7] [8] [9] Targeted and carefully designed policy interventions that aim to create healthy environments with low individual agency can influence entire populations and work to make healthier foods more accessible and affordable. [10] [11] [12] [13] [14] Contextspecific evidence of impact and cost effectiveness of interventions can help policy makers identify and prioritise interventions for the prevention and control of overweight and obesity. 15 In previous work, we evaluated two stakeholder-identified broad strategies. The first was a &#x27;research-based strategy to increase consumption of healthy indigenous foods in Kenya&#x27; which was modelled as two broad scenarios: (1) a reduction in national consumption levels scenario and (2) a change in consumption levels related to reduction in supermarket food purchase; the second was &#x27;creation of healthy food environment&#x27; which was modelled as two specific food policies: (1) taxing sugar-sweetened beverages (SSBs) and (2) mandatory kilojoule menu labelling on food served in formal sector restaurants. 16 We found that all interventions yielded substantial health gains, healthcare cost savings and productivity gains. Considering a health system perspective, the two specific interventions (a 20% SSB tax and mandatory kilojoule menu labelling) were assessed for cost-effectiveness and found to be dominant (health promoting and cost-saving). We proposed that these impactful and cost-effective interventions be considered for implementation in Kenya. 16 In the current study, we engaged stakeholders with the aim of assessing other factors important to decision-makers in their considerations for the implementation of these interventions. The assessment places our evaluation results within a broader framework that seeks to incorporate other factors (implementation considerations) that are important to policy makers. Consistent with the Assessing Cost-Effectiveness (ACE) approach. 13, 17, 18 Our findings may strengthen the policy relevance of our health and economic estimates for priority setting in overweight and obesity prevention in Kenya and similar settings. In addition, we conducted a survey to evaluate the stakeholder engagement process and information delivery in order to identify what worked well and what could be improved in future stakeholder-engaged modelling studies.</p>
+<h3>Methods</h3>
+<h3>Stakeholder recruitment</h3>
+<p>Stakeholders were drawn from various institutions and sectors including the Kenya Ministry of Health, the Kenya National Research Institute, humanitarian aid, university and civil society organizations. Identification of stakeholders and recruitment process are reported elsewhere. 15, 19 In summary, we used purposive and snowball sampling techniques to recruit stakeholders involved policymaking at the national level. At the beginning of the stakeholder engaged modelling study, we prepared a description of potential stakeholders which guided our recruitment process (Supplementary File [SF] Table 1). Table 1 presents a summary and timeline of the stakeholder engagement conducted throughout the project. • Confirmation of willingness to participate in the study (n = 35) • Tentative confirmation citing a busy schedule as the main hindrance for participation (n=1) • Invitation to a stakeholder engagement one-day workshop (n=36) • Stakeholders in attendance at the one-day stakeholder engagement workshop held in Nairobi, Kenya (n=15) Year: 2020-2021 • Online engagement through email correspondence (n =34)</p>
+<p>Year: 2022 • Invitation to a stakeholder engagement through a virtual workshop (n=38) (part of the proceedings reported in this study)</p>
+<p>Year: 2023 • Invitation to a stakeholder engagement through a 1-day hybrid workshop in Nairobi, Kenya (n=40) (reported in this study) • Invitation to participate in the stakeholder engagement evaluation survey (n=40) (reported in this study)</p>
+<p>Research aim 1: Assessment of other implementation considerations for each food policy intervention evaluated in the larger study</p>
+<p>In a 2•5-hour online meeting held in October 2022, the research team proposed to adapt some of the implementation considerations used in previous ACE studies for the assessment. 13, 17 These considerations included equity / capacity to reduce health inequalities; feasibility of implementation; reach and size of impact; affordability; acceptability of intervention and sustainability (Table 2). The meeting was conducted and recorded on Microsoft Teams. Three authors (MNW, LV and LWK-B) facilitated the 45-minute through a deliberative dialogue process, an approach useful for managing potential over-representation of active participants and to ensure balanced participation. 15, 19, 20 Stakeholders participated in value judgement aspects of the assessment of other factors or policy implementation considerations that are important to decision makers in Kenya. Key aspects of each consideration were reviewed and discussed for stakeholder input and buy-in. We used a traffic light colour coded scoring system for the assessment of each of the implementation considerations (Table 2). 13, 17 Each implementation consideration could be scored as being either high, medium or low for each intervention. The implementation consideration &#x27;equity&#x27; would be scored as negative, neutral or positive. Following the online meeting, a copy of the assessment form was circulated to all stakeholders via email to obtain input from those who had not attended the meeting, as well as additional feedback from those who were in the meeting.</p>
+<p>In June 2023, we held a one-day hybrid workshop in Nairobi, Kenya. In preparation for the workshop, the assessment form was recirculated to the stakeholders via email. Using the same deliberative dialogue process, stakeholders assessed each intervention against the listed factors or implementation considerations within a 2•5-hour session. Two authors (MNW and LWK-B) facilitated the deliberations. The agreed upon scores and deliberations were typed into the assessment form by one author (MNW) and projected on the screen for all to view as the deliberations progressed. The online engagement was conducted and recorded on Microsoft Teams. One author (MNW) listened to the workshop recording and checked that all deliberations on the assessment scores and comments given by the stakeholders had been recorded. Two additional authors (LWK-B and LV) had access to the raw data for review and checking.</p>
+<h3>High Medium Low</h3>
+<p>Other important considerations specific to each intervention such as other positive or negative impact that may result from intervention (apart from the health and economic impact included in the modelling) # Definitions and key considerations are largely adapted from previous ACE studies. 13, 17, 18 Research aim 2: Evaluation of the stakeholder engagement process and information delivery in the stakeholder engaged modelling study</p>
+<p>We developed a survey tool guided by the exploratory framework for evaluating stakeholder engaged research proposed by the Ray and Miller 21 which outlines 6 areas of evaluation: 1) expectations from the engagement; 2) representation of stakeholders; 3) degree of involvement; 4) engagement channels and methods; 5) future expectations and 6) benefits and barriers to engagement. For the purposes of our study, we modified this framework and added a 7th area on information delivery in the stakeholder engaged modelling study as a whole. The tool was administered as an anonymous online survey using the Microsoft Office Forms. During the one-day hybrid, a printed version of the survey tool was distributed to stakeholders who preferred to complete the survey using paper and pen (with no names indicated). Stakeholders absent from the workshop were invited to complete the online survey tool within the next two working days after the hybrid workshop. To encourage responses, reminder emails were sent in the weeks following</p>
+<h3>Results</h3>
+<h3>Assessment of other implementation considerations</h3>
+<p>A total of 11 stakeholders attended the online meeting held on Microsoft Teams in October 2022 and 16 stakeholders (ten in person and six online) attended the June 2023 workshop. A list of stakeholders who participated by institution representation is provided in the SF Table 2. The assessment scores of other implementation considerations for each food policy intervention are presented in Table 3. In this section we also report on any stakeholder comments given for each of the scores. Other overall considerations given are reported in Table 3.</p>
+<p>Equity scores varied. The research-based strategy to increase consumption of healthy indigenous foods was assessed as having a neutral impact on equity. The stakeholders commented that readily accessible healthy indigenous foods could reduce inequity. However, these foods could be expensive and some fast [processed] foods may be cheaper, especially in the informal sector in urban settings; the indigenous nature of foods and activity levels/ energy expenditure are community specific; some communities may have less access to the indigenous foods e.g., informal settlements or arid and semi-arid lands (ASAL) in Kenya impacted by climate change.</p>
+<p>The mandatory kilojoule labelling on food served in formal-sector restaurants was assessed as having a negative impact on equity because it was limited to formal sector, which is used predominantly by wealthier, urbanized sections of the population. They indicated that impact will be influenced by people&#x27;s attitudes towards reading kilojoule labels on meals, limited to those who can read and understand issues of calorie measures and dependent on what the labels looked like-would they be visual or text?</p>
+<p>Consideration that food establishments and merchants would pass the cost of calculating the caloric content of their menu options to consumers and thus distort the analysis was made. It was considered that pilot studies in Kenya would be needed. Stakeholders commented that the impact of equity could be more favorable if retailers responded by reducing the number of calories per meal and if health education was done alongside the labelling to increase awareness and urge the people to read the labels. The informal sector could be reached if mandatory labelling also targeted higher levels in the production or supply chain e.g., regulating the sausage manufacturers for the &#x27;smokies&#x27; sold to vendors in the informal sector. However, it was noted that the cooking process plays a role too, e.g. reuse of cooking oil for fried foods in the informal sector. Taxing SSBs was assessed as having a neutral impact on equity. The stakeholders commented that it depended on the scope of the tax. For example, it is important to consider potential industry responses, such as if producers fully pass the resulting price increase to consumers or if they reformulate their products by reducing the sugar content to avoid the tax.</p>
+<p>Feasibility of implementation for all three interventions was scored as high. For the research-based strategy to increase consumption of healthy indigenous foods, it was considered that a small study could be conducted as a starting point, followed by subsequent community-specific studies. For both the mandatory kilojoule labelling on food served in formal sector restaurants and the SSB tax, differences in literacy and awareness levels within communities in Kenya would impact feasibility.</p>
+<p>The reach and size of impact for all three interventions was favorable. The research-based strategy to increase consumption of healthy indigenous foods scored a &#x27;high&#x27; rating with comments that a pilot study could have small reach; the research should have representative samples; include participants from all communities, including those from urban and cosmopolitan areas; definition of indigenous foods to consider loss of diversity (species and varieties that have disappeared or been replaced) or increased diversity (where communities may have integrated a broader range of indigenous foods). Mandatory kilojoule labelling and SSB tax both scored a &#x27;medium&#x27; rating with comments that reach and size of impact would be high for people who ate in the fast-food formal restaurants but low for those who did not and that the intake of SSBs may be more prevalent in urban areas.</p>
+<p>Affordability to the government for all three interventions scored &#x27;high&#x27;. It was noted that although the research-based strategy was likely expensive and time consuming, the government, nongovernmental organizations or other development partners/agencies could allocate funds to such a project. Affordability to the industry was favorable (scored a &#x27;medium&#x27; rating) for the research-based strategy and SSB tax. It was noted that the industry could potentially experience high profits from sale of the healthy indigenous foods, positive changes across the whole food production chain such as increased marketing and industry may increase SSB prices to match the tax. Mandatory kilojoule labelling scored a &#x27;low&#x27; rating on affordability to industry with a comment that if government provided measures that allowed industry to implement labelling at lower costs, this could be a &#x27;medium&#x27; rating. Affordability to the public was scored &#x27;high&#x27; for the research-based strategy since the research itself would not be a direct cost to the public. However, it was noted that the resulting healthy indigenous foods may be expensive. Mandatory kilojoule labelling scored a &#x27;high&#x27; rating too, considering that it doesn&#x27;t cost the public any extra unless the industry pass on labelling costs to the consumers. SSB tax was scored a &#x27;medium&#x27; rating.</p>
+<p>Acceptability to government for all three interventions was assessed as favorable. The researchbased strategy and mandatory kilojoule labelling scored &#x27;high&#x27; and the SSB tax scored &#x27;medium&#x27;.</p>
+<p>Acceptability to industry was scored &#x27;high&#x27; for the research-based strategy but &#x27;low&#x27; for both mandatory kilojoule labelling and SSB tax. Comments were that acceptance may not be as high due to increased production costs in the estimation of the number of kilojoules in the food, preparation and presentation of labels. However, they noted that both mandatory kilojoule labelling and SSB tax are regulatory policies and industry compliance is anticipated. Acceptability to the public was scored &#x27;high&#x27; for the research-based strategy as it was considered it would be appealing to the public and indigenous foods in upcountry regions are affordable. The mandatory kilojoule labelling was scored &#x27;high&#x27; too where implementation was complemented with increased reach and/or improving health literacy around the intervention. Acceptability of SSB tax to the public was scored &#x27;medium&#x27; and &#x27;low&#x27; and no consensus was reached.</p>
+<p>Sustainability of the intervention scored &#x27;high&#x27; for the research-based strategy with a note that it could be &#x27;medium&#x27; due to a generation gap. Younger population groups may not be familiar with the indigenous foods. The mandatory kilojoule labelling was scored &#x27;medium&#x27; and &#x27;low&#x27; with no consensus reached. It was considered a challenge in Kenya as credibility of the labels needed to be reinforced and sustained. Sustainability depended on the population uptake and belief in the labelsinformation provided needed to be trusted. SSB taxation received a &#x27;high&#x27; rating for sustainability. Other considerations (verbatim quotes from participants) • Perhaps it is good to stratify modelling by socioeconomic classes or literacy levels as this may inform the impact of interventions.</p>
+<p>For example on whether people read and understand the kilojoule labelling.</p>
+<p>• From the listed strategies and priorities [previously identified by stakeholders 19 ], similar work linked to physical activity and transport related interventions is needed.</p>
+<p>A call for future research on these areas.</p>
+<p>• Seek collaborations and funding for future research on how else the developed obesity model can be utilised.</p>
+<p>• Stakeholders to play a role in results dissemination, distilling the policy briefs to help findings inform policy in Kenya. It was noted that all publications arising from this study are open access and can be read in full without requiring article purchase or journal subscription fees.</p>
+<p>• Future research into the factors that influence in priority setting for non-communicable disease control in Kenya is needed. How can the factors be optimised or managed? [Factors identified by stakeholders 15 ].</p>
+<p>Development of policy framework that responds to the factors that influence NCD prioritising.</p>
+<p>• Generate own data and evidence from Kenya. For example, disease cost data or database, evidence on intervention effect size in Kenya -from full intervention implementation or pilot studies.</p>
+<p>Definitions and key considerations are largely adapted from previous ACE studies. 13, 17, 18 Overall, this assessment was based on stakeholders&#x27; input.</p>
+<p>Evaluation of the stakeholder engagement process and information delivery in the stakeholder engaged modelling study Of the 40 stakeholders invited, nine completed the evaluation survey; three used the printed form at the workshop and six responded via the online form. Of the nine respondents, seven indicated that they were engaged since the first workshop consultation in 2019 while two joined at the one-day workshop held in 2023.</p>
+<h3>Expectations from the engagement</h3>
+<p>All nine respondents indicated that their role as a stakeholder on this project had been clear.</p>
+<p>Their expectations of this study included adding value to the desired results and meeting the study objectives, learning more about the [study] findings, obtaining new knowledge on obesity and prevention in Kenya, [developing] an adaptable model, gain[ing] knowledge on what works best in the fight against obesity in Kenya and supporting research on lifestyle, behaviour and health. One participant said, &quot;…I came to the workshop to learn and interact with the best that the industry has to offer. I also, aspired to air my contributions towards the realisation of workshop objectives shared prior to the event.&quot;</p>
+<p>Personal expectations that were met during their engagement related to their contribution to the study such as the identification of interventions to be evaluated in the study (n=3). One stakeholder described it as &quot;achieving consensus on priority interventions&quot;. Seven participants listed expectations related to learning, motivation and gaining new information from the study. Of the seven, responses included &quot;I got to learn a lot from a team of dedicated researchers in Kenya and Australia&quot;, &quot;from the modelling, new findings that could support future policy were realised&quot; and one described it as &quot;learning from others globally&quot;. Two listed networking and making new friends with similar interests and another said that &quot;stakeholders&#x27; opinions were taken seriously&quot;.</p>
+<p>Four participants indicated that they had no unmet expectations from their engagement in this study. The remaining five, stated that they had expected the inclusion of stakeholders living with overweight and obesity (n=2); research to get to the mashinani (grass root level); provision of county specific data on obesity parameters; have a wider pool of representative stakeholders and to have evaluated &quot;the impact of physical education (PE) in CBE [Competency-Based Education policy in Kenya]&quot; (this was one of the interventions identified in the 2019 workshop but ranked fourth 19 and not modelled in our study due to limited time and resources 16 ).</p>
+<h3>Information delivery in the stakeholder engaged modelling study</h3>
+<p>All nine respondents considered the information delivered to them throughout the stakeholder engaged modelling study as trustworthy and credible. Quoted responses included &quot;…the discussions were open/frank. No coercion&quot;, &quot;credible and trustworthy. Evidence of work done and literature from previous research&quot;, &quot;the team did very well to find and detail data that is specific to the Kenyan setup despite the obvious lack of documented information in certain areas [example, some evidence on intervention effect size was from international sources 16 ]&quot; and one commended the research team on work published in &quot;several internationally acclaimed journals&quot;.</p>
+<p>All nine respondents indicated that the information delivered in this study had been clear. One added that &quot;the results were especially very well presented&quot; and another said, &quot;It was well delivered and clarifications were made where we had questions.&quot;</p>
+<p>All nine respondents said that the information/results of this study were helpful to them in their daily work and advocacy for NCD control in Kenya. One participant said &quot;…it is clear that obesity cannot be ignored and there are clear benefits for prevention&quot; and another &quot;…I believe that this study has added to the body of knowledge that will be useful when formulating policies at the national Ministry of Health in Kenya where I work.&quot;</p>
+<h3>Representation of stakeholders</h3>
+<p>Six respondents indicated that there had been a good representation of stakeholders. Quoted responses from participants included &quot;a good representation from a wide spectrum of different professions/sectors&quot;; &quot;covers [covered] broad area of key institutions&quot;; &quot;fairly good. Some did not turn up&quot;; &quot;the number of stakeholders that turned up both physically and online was impressive. One participant had no comment on stakeholders for future inclusion and was satisfied that &quot;all stakeholders were well represented.&quot;</p>
+<h3>Degree of involvement</h3>
+<p>All nine respondents indicated adequate engagement in the discussions. All participants were asked to suggest ways the research team could improve stakeholder involvement in the study. The responses included 1) &quot;consider people&#x27;s perceptions of food and indigenous food-values, beliefs and attitudes. Also consider meanings&quot;, 2) &quot;have a mid-term engagement during the research&quot; 3) &quot;development of original research question&quot; 4) &quot;perhaps scheduled feedback.&quot; Two participants said that the engagement had gone well and had been fully involved throughout the study process.</p>
+<h3>Engagement channels and methods</h3>
+<p>All nine respondents expressed that engagement methods and channels utilized in this study had been appropriate. The combination of online and in person sessions was highlighted by two participants &quot;Besides the in-person and Zoom meetings, I was involved via email which worked very well for me. Good&quot; [online sessions had been on Microsoft Teams] and &quot;both virtual and face to face worked well.&quot; Six participants said that the number of interactions held, communications done (both online and face to face) and the duration of the engagement sessions had been adequate. Of the six, one added that one-hour online forums for dissemination/feedback/update engagements could be held regularly e.g. monthly. One participant said that &quot;The nature of the interactions were of high standards and the contributions from either side were significant. This being among the many interactions done and the quality of time that was provided for every session, I believe was optimum.&quot; However, two participants said that the number of interactions could have been more and another commented that online participants had been &quot;a bit quiet though they participated a bit.&quot;</p>
+<h3>Benefits and barriers to engagement</h3>
+<p>All nine respondents said that the stakeholder engagement process was beneficial for NCD control in Kenya. Benefits cited included creating awareness through stakeholders, influencing NCD control policies and informing policy advocacy by relevant institutions. One respondent said &quot;I hope it will bring a true turnaround to the challenge of overweight/obesity and another said that &quot;engaging people at policy level has the potential of catalysing change in policies.&quot;</p>
+<p>It was also stated that the findings increased &quot;available tangible data [which] could go a long way in directing decision making processes and policies in Kenya&quot; and that the work paved way for future research, for example, &quot;...more in-depth analysis that covers specific regions and communities.&quot; One respondent said the process enhanced &quot;credibility. Stakeholder involvement is embedded in the Constitution, so the study is in compliance with this requirement.&quot;</p>
+<p>Five participants said that they had not faced any challenges or barriers faced in the engagement process with one stating that &quot;the communications were prompt and on time and the recommendations provided [by the stakeholders] were duly noted [by the research team].&quot; Of the remaining four participants, one cited &quot;online challenges&quot; and suggested &quot;availability of internet&quot; as a solution. Another participant mentioned &quot;academia/ research linkage is weak and silo mentality of institutions working on certain research topics&quot; and suggested &quot;engagement with all type of stakeholders including industry players. Collaboration/partners from more institutions&quot;. Another challenge given was &quot;competing interests over time&quot; and the participant suggested &quot;work with alternative meetings, invite extra people so the &#x27;remnants&#x27; are reasonable in number.&quot; &quot;Nonattendance by some of the stakeholders&quot; was mentioned as a challenge and one participant suggested to &quot;involve the stakeholders in workshop planning for date of meeting.&quot; Of the five participants who identified no barriers, two responded to the survey question on solutions stating &quot;engagement. Some of us talk more than others&quot; and another said &quot;adequate notice for engagement. Feedback on the outputs from the engagement soon after the occurrence &quot;</p>
+<h3>Future expectations</h3>
+<p>In Table 4, we present the participants thoughts and expectations on future engagement in research related to NCD control policies in Kenya.</p>
+<p>Table 4: Thoughts and expectations of the stakeholders on future engagement in research or advocacy, • Involve other researchers doing cultural research such as anthropologists • Get to the County Level, &#x27;common mwananchi&#x27; [can be translated as the citizens at the grassroots level or general public] • Policy makers/ researchers from our health institutions to be more engaged • Keep the conversation going, both with people in the sector and those outside, as the challenge affects every person in Kenya and not just the experts in NCD • Development of policy brief • Research planning for the interventions [implementation in full or as pilot projects].</p>
+<p>Dissemination of research findings on interventions implemented • &quot;This was a resourceful learning experience for me and I deeply appreciated the teams diligence in their work. The study awakened me to the depth of the problem, but also the opportunities to gather country evidence for contextualized interventions.&quot;</p>
+<p>• &quot;It was lovely to take time and have [title] highlight the excellent work being done on the global scale. It is my hope that the same may be replicated in future similar studies.&quot;</p>
+<p>• Maybe segmenting of results and discussion by urban/rural counties so that the interventions can be applied to the diverse settings</p>
+<h3>Discussion</h3>
+<h3>Assessment of other implementation considerations</h3>
+<p>Our assessment of policy implementation considerations demonstrates stakeholder-engaged research (we aimed to answer research questions while engaging stakeholders as partners in our research, not as subjects of research). 16, 19, 21, 23 This was part of the due process in the Assessing Cost-Effectiveness (ACE) approach to priority setting 13, 17, 18 applied in our larger study. 16 The engagement allows for input beyond the research team and helps improve quality, transparency, relevance of study to policy and could accelerate adoption of findings into policy and practice. 15, 21, [24] [25] [26] [27] [28] [29] This study extends our previous evaluation results by integrating them within a broader framework that seeks to incorporate other factors (policy implementation considerations) important to decision-makers.</p>
+<p>Implementation considerations on feasibility of implementation, reach and size of impact, affordability and acceptability to government, public and industry and sustainability were assessed as favorable (&#x27;high&#x27; or &#x27;medium&#x27;) for all interventions, except in five aspects: the acceptability of a 20% SSB tax to the public and sustainability of the mandatory kilojoule labelling were scored &#x27;medium&#x27; / &#x27;low&#x27; rating with no consensus reached towards either medium or low; affordability to industry for the mandatory kilojoule labelling and acceptability to industry for the mandatory kilojoule labelling and SSB tax were rated &#x27;low&#x27;. The research-based strategy to increase consumption of healthy indigenous foods and SSB taxation were both assessed as having a neutral impact on equity. The mandatory kilojoule labelling was assessed as having a negative impact because it is limited to the formal sector and relies on literacy, label design, and consumer engagement, but stakeholders noted that its equity impact could be improved through health education, product reformulation, piloting in Kenya, and extending regulation upstream in the supply chain to better reach the informal sector.</p>
+<p>The research-based strategy to increase consumption of healthy indigenous foods was a broad, unique intervention and we did not find similar assessments of implementation considerations in the literature. As reported elsewhere, it was envisioned that research would be conducted to identify the nutritional value of indigenous foods, use the evidence to promote its production and ultimately increase consumption of healthy indigenous foods. 16, 19 The results of the assessment implementation considerations for mandatory kilojoule labelling and 20% tax on SSBs are comparable to results by Ananthapavan et al who found acceptability, feasibility and sustainability of both interventions in Australia favorable (&#x27;high&#x27; or &#x27;medium&#x27;) and acceptance of SSB tax by industry was scored a &#x27;low&#x27; rating. 13 Differences in scores were in the acceptability of the SSB tax to public, which Ananthapavan et al gave a &#x27;medium&#x27; rating 13 while we scored a &#x27;medium&#x27; and &#x27;low&#x27; rating. Like our study, the SSB tax was assessed as having a neutral impact on equity. 13 This is generally consistent with some international evidence that indicates stakeholders can sometimes have opposing ideas about the impact of SSB taxes particularly the economic impact on lower income groups (in the short term). [30] [31] [32] [33] [34] While the government of Kenya progress towards implementing a health-based levy on SSB taxes, stakeholder views and insights into the challenges and facilitators of such a policy are valuable. Our previous estimates show that a 20% SSB tax in Kenya could cumulatively generate ~71 billion USD in tax revenue by the 25 th year of implementation. 16 If annual tax revenue were used to fund health initiatives in Kenya or to provide healthy food subsidies, the acceptability of the SSB tax to public and its impact on equity could be more favorable.</p>
+<p>Ananthapavan et al scored mandatory kilojoule labelling a &#x27;medium&#x27; rating for acceptability by industry and a &#x27;high&#x27; rating for sustainability 13 while we scored a &#x27;low&#x27; rating for industry acceptability and a &#x27;medium&#x27; and &#x27;low&#x27; rating for sustainability. They ranked equity as neutral 13 while we assessed it as having a negative impact, mainly due to the intervention targeting only formal restaurants. The differences in ratings could be due to the varying definition of the intervention in the two studies. Ananthapavan et al., evaluated the intervention as a mandatory legislation for fast food outlets to display energy content of foods and drinks on menus accompanied by a government sponsored education campaign. 13 We evaluated mandatory kilojoule labelling on food served in formal sector restaurants. Kenya has a large informal food market and there could be different label literacy, different political economy and preferences to justify differences in acceptability/sustainability ratings between the two countries. In our study, stakeholders suggested that health education done alongside the labelling could enhance the impact on equity. They noted that high population uptake (reading of and acting on labels) and measures to reinforce and sustain the credibility of the labels could impact sustainability of the intervention. Other international studies on kilojoule/calorie labelling reported on menu labelling policies from upper-middle and high-income countries and did not include findings on policy implementation considerations. [35] [36] [37] Evaluation of the stakeholder engagement process All nine respondents indicated that their role as a stakeholder on this project had been clear. Their expectations of this study were aligned to the study objectives and roles of the stakeholders shared in the first workshop. 19 We applied the deliberative dialogue approach and engaged facilitators to promote balanced participation. As indicated earlier, participants reported that they had been adequately involved in the discussions. We recruited stakeholders from the national policymaking level in line with our research aim since we evaluated policy interventions. 19, 24 Future work focusing on the county level will provide insights into the prevention and control of overweight and obesity taking into account varying demographics and cultural aspects. We considered inclusion of stakeholders from civil societies to be a representation of the public. However, we acknowledge that inclusion of people living with overweight and obesity would add value though with a probability of stigma. Nonetheless, some of the stakeholders had lived experience with overweight, though that had not been part of our recruitment criteria. Most of the types of stakeholders suggested for inclusion in future had been included 19 but had not turned up to the workshops and meetings due to multiple engagements and responsibilities. In a similar study conducted in Nepal, conflicting time commitments were identified as a major challenge to stakeholder engagement. 38 In the initial workshop, stakeholders indicated that they preferred to hold workshops or meetings in the middle of the week with a very early morning start time. This advice was helpful in subsequent planning. In the evaluation, participants proposed additional measures to mitigate time limitations and nonattendance which could be implemented in future stakeholder engaged research. Suggestions to include community health volunteers, politicians, the education and agriculture sectors could be considered for inclusion in similar work in alignment to study aims. 24 We experienced challenges with audio technology during the second workshop and those online could not hear the participants speaking in the room without the roaming microphone. Though online engagements were already included in the initial research plan and executed from 2019 (pre-Covid), 15, 19 three participants said that more engagements could have been held, suggesting, for example, holding regular one-hour online forums (e.g., monthly). Sharing of feedback on outputs soon after workshop and meetings was suggested. In the larger study, some of the workshop outputs had been shared inform of a report, in online meeting and emails and as manuscripts which had taken time to prepare. In future work, preliminary outputs could be shared with stakeholders promptly after an engagement. For example, this had been done after the 2022 online meeting where the assessment form for other policy implementation considerations was shared soon after the meeting. The stakeholders&#x27; genuine enthusiasm in the study participation was commendable and inspiring. In a previous engagement, the stakeholders proposed establishing a joint communication platform, and the field researcher (MNW) was tasked with updating the ethics approval and setting up the platform. 19 However, due to limited resources, the proposed platform was not set up. Similar to our study, other studies have also reported benefits in building connections amongst like-minded people and facilitating stakeholders&#x27; advocacy for change and policy influence. [38] [39] [40] As mentioned by one participant, Article 10 of the Constitution of Kenya (2010) firmly establishes inclusiveness, transparency, accountability and public participation (which includes stakeholder involvement), as core national values 41 providing a constitutional foundation for stakeholder involvement in Kenya.</p>
+<p>The study was impacted by the COVID 19 pandemic causing delayed approvals required from Kenya and cancellation of planned research travel to Kenya scheduled for 2020 and 2021. This study as a whole was not funded and costs (workshop venue costs, catering during the in-person workshop, stakeholders&#x27; internet and transport facilitation fees, cost of purchase or printing of workshop materials) were supported by limited funds from a PhD project budget supplemented by principal supervisors&#x27; (LV) research project funds. Despite these limitations, we established a network of stakeholders and maintained continued engagement throughout the study. Sustained stakeholder involvement throughout the research or implementation process has been identified as a positive outcome in other contexts. 38, 39 Stakeholders mentioned future expectations which included involvement of more groups such as anthropologists, the public, having more engagement from health institutions in similar studies, conducting further research at county level, implementation of the evaluated interventions in Kenya either in full or as pilot projects in the first instance and development of policy brief (s).</p>
+<p>In Kenya, prevention and control of overweight and obesity is in its infancy with preventive food policies at the development stage. 42, 43 Our findings offer insights into policy implementation considerations for impactful, cost-effective food policy interventions that could help protect and create a healthy food environment in Kenya. The findings also contribute to enhancement of stakeholder engagement process in public health research. Benchmarking countries that have implemented similar food policies, such as South Africa&#x27;s SSB tax, could generate practical politicaleconomy insights, inform strategies to manage industry responses that blunt the policy intentions, and guide on leveraging gains to strengthen health promotion, literacy, enforcement, and evaluation.</p>
+<h3>Conclusion</h3>
+<p>Most of the policy implementation considerations for the interventions, research-based strategy to increase consumption of healthy indigenous foods in Kenya and creation of healthy food environment modelled through a 20% tax on sugar-sweetened beverages and mandatory kilojoule menu labelling on food served in formal sector restaurants, were assessed as favorable.</p>
+<p>Stakeholders suggested various complementary policy measures that could help raise &#x27;low&#x27; rating to more favorable scores to facilitate possible implementation of these policies in Kenya. These interventions present potential solutions to overweight and obesity in Kenya. Benchmarking countries with similar food policies could inform context-specific design and implementation. Our study provides insights into the process of stakeholder engagement in public health research.</p>
+<p>the workshop and the online form remained open for an additional six weeks. Responses were thematically analysed across the survey tool&#x27;s seven evaluation areas, compiled in MS Excel, and analysed manually in MS Word. . One author (MNW) led the data analysis; two additional authors (LWK-B and LV) reviewed the raw qualitative data sets and the thematic analysis for agreement. All data were de-identified. Data were stored in a university computer and backed up in Griffith University research data storage services. Written informed consent was obtained from each participant in accordance with the Declaration of Helsinki (https://www.wma.net/policiespost/wma-declaration-of-helsinki/). Each participating stakeholder received Kshs. 3,000 (approx. USD25) via M-PESA to cover internet or transport costs for attending the online meeting or hybrid workshop. The study was approved by the Griffith University Human Research Ethics Committee (GU Ref No: 2019/707) and the Kenyatta National Hospital/University of Nairobi Ethics &amp; Research Committee (P81/02/2021).</p>
+<p>However, there is room to reach out to more stakeholders&quot;; &quot;I missed persons from KARLO [Kenya Agricultural &amp; Livestock Research Organisation] and universities such as JKUAT [Jomo Kenyatta University of Agriculture and Technology] Applied Nutrition Program, UON [University of Nairobi]&quot;; &quot;broader representation; stratified according to location (urban/peri-urban and rural).&quot; Participants listed the following types of stakeholders or sectors for inclusion in similar engagements in future: members of parastatals [state corporations], president advisors, ministry of health, universities, researchers, county governors or CECs [County Executive Committee], people living with [high] BMI, &quot;people struggling with overweight/obesity issues themselves (in case they were not intentionally targeted)&quot;, Community Health Volunteers, NGOs [Non-Governmental Organizations], politicians, the education and agriculture sectors.</p>
+<p>The evaluation of the engagement process demonstrates research on stakeholder engagement. We aimed to answer questions about engaging stakeholders21 i.e., identify what worked well and what could be improved in future stakeholder engaged modelling studies. The findings of this evaluation also reflect the strengths and limitations of our study.</p>
+<h3>Table 1 :</h3>
+<p>Summary and timeline of the stakeholder engagement</p>
+<h3>Table 2 :</h3>
+<p>Implementation considerations and categories for classifications</p>
+<h3>Table 3 :</h3>
+<p>Assessment scores for the implementation considerations for each intervention</p>
+<h3>References</h3>
+<p>GBD 2021 Adult BMI Collaborators. Global, regional, and national prevalence of adult overweight and obesity, 1990-2021, with forecasts to 2050: a forecasting study for the Global Burden of Disease Study 2021. The Lancet 2025; 405(10481): 813-38.</p>
+<p>Swinburn BA, Sacks G, Hall KD, et al. The global obesity pandemic: shaped by global drivers and local environments. The Lancet 2011; 378(9793): 804-14.</p>
+<p>Popkin BM, Corvalan C, Grummer-Strawn LM. Dynamics of the double burden of malnutrition and the changing nutrition reality. The Lancet 2020; 395(10217): 65-74.</p>
+<p>Wanjau MN, Aminde LN, Veerman JL. The avoidable disease burden associated with overweight and obesity in Kenya: A modelling study. eClinicalMedicine 2022; 50: 101522.</p>
+<p>Wanjau MN, Aminde NL, Veerman LJ. Potential health and economic impact of achieving Kenya&#x27;s overweight and obesity reduction target: a modelling study. BMJ Public Health 2024; 2(1): e000566.</p>
+<p>Lane MM, Davis JA, Beattie S, et al. Ultraprocessed food and chronic noncommunicable diseases: A systematic review and meta-analysis of 43 observational studies. Obesity reviews : an official journal of the International Association for the Study of Obesity 2021; 22(3): e13146.</p>
+<p>Monteiro CA, Lawrence M, Millett C, et al. The need to reshape global food processing: a call to the United Nations Food Systems Summit. BMJ global health 2021; 6(7): e006885.</p>
+<p>Popkin BM, Ng SW. The nutrition transition to a stage of high obesity and noncommunicable disease prevalence dominated by ultra-processed foods is not inevitable. Obesity Reviews 2022; 23(1): e13366.</p>
+<p>Vorster HH, Kruger A, Margetts BM. The nutrition transition in Africa: can it be steered into a more positive direction? Nutrients 2011; 3(4): 429-41.</p>
+<p>WHO. Obesity and overweight. https://www.who.int/news-room/fact-sheets/detail/obesity- and-overweight, 2018.</p>
+<p>Adom T, Puoane T, De Villiers A, Kengne AP. Protocol for a scoping review of existing policies on the prevention and control of obesity across countries in Africa. BMJ Open 2017; 7(2).</p>
+<p>Swinburn BA. Obesity prevention: the role of policies, laws and regulations. Australia and New Zealand Health Policy 2008; 5(1): 12.</p>
+<p>Ananthapavan J, Sacks G, Brown V, et al. Priority-setting for obesity prevention-The Assessing Cost-Effectiveness of obesity prevention policies in Australia (ACE-Obesity Policy) study. PLOS ONE 2020; 15(6): e0234804.</p>
+<p>Veerman JL, Barendregt JJ, Beeck EF, Seidell JC, Mackenbach JP. Stemming the Obesity Epidemic: A Tantalizing Prospect. Obesity 2007; 15(9): 2365-70.</p>
+<p>Wanjau MN, Kivuti-Bitok LW, Aminde LN, Veerman L. Stakeholder perceptions of current practices and challenges in priority setting for non-communicable disease control in Kenya: a qualitative study. BMJ Open 2021; 11(4): e043641.</p>
+<p>Wanjau MN, Kivuti-Bitok LW, Aminde LN, Veerman JL. The health and economic impact and cost effectiveness of interventions for the prevention and control of overweight and obesity in Kenya: a stakeholder engaged modelling study. Cost Effectiveness and Resource Allocation 2023; 21(1): 69.</p>
+<p>Carter R, Moodie M, Markwick A, et al. Assessing Cost-Effectiveness in Obesity (ACE- Obesity): an overview of the ACE approach, economic methods and cost results. BMC Public Health 2009; 9(1): 419.</p>
+<p>Vos T, Carter R, Barendregt J, et al. ACE-Prevention Team (2010). Assessing Cost- Effectiveness in Prevention (ACE-Prevention): Final Report. 2010.</p>
+<p>Wanjau MN, Kivuti-Bitok LW, Aminde LN, Veerman JL. Stakeholder-engaged research: strategies for the prevention and control of overweight and obesity in Kenya. BMC Public Health 2021; 21(1): 1622.</p>
+<p>Campbell S. Deliberative Priority Setting -a CIHR KT module. 2010. https://cihr- irsc.gc.ca/e/43533.html (accessed October 2019).</p>
+<p>Ray KN, Miller E. Strengthening stakeholder-engaged research and research on stakeholder engagement. Journal of comparative effectiveness research 2017; 6(4): 375-89.</p>
+<p>Safaricom. M-PESA. 2022. https://www.safaricom.co.ke/personal/m-pesa (accessed September 2022).</p>
+<p>Concannon TW, Grant S, Welch V, et al. Practical Guidance for Involving Stakeholders in Health Research. J Gen Intern Med 2019; 34(3): 458-63.</p>
+<p>Concannon TW, Meissner P, Grunbaum JA, et al. A new taxonomy for stakeholder engagement in patient-centered outcomes research. Journal of general internal medicine 2012; 27(8): 985-91.</p>
+<p>Carter R, Vos T, Moodie M, Haby M, Magnus A, Mihalopoulos C. Priority setting in health: origins, description and application of the Australian Assessing Cost-Effectiveness initiative. Expert review of pharmacoeconomics &amp; outcomes research 2008; 8(6): 593-617.</p>
+<p>Ministry of Health Republic of Kenya. Kenya National Strategy for the Prevention and Control of Non-Communicable Diseases 2015-2020 In: Division of Non-communicable Diseases, editor. www.health.go.ke: Government of Kenya; 2015.</p>
+<p>Kapiriri L, Martin DK. Successful priority setting in low and middle income countries: a framework for evaluation. Health Care Anal 2010; 18(2): 129-47.</p>
+<p>van der Graaf P, Forrest LF, Adams J, Shucksmith J, White M. How do public health professionals view and engage with research? A qualitative interview study and stakeholder workshop engaging public health professionals and researchers. BMC Public Health 2017; 17(1): 892.</p>
+<p>Concannon TW, Fuster M, Saunders T, et al. A systematic review of stakeholder engagement in comparative effectiveness and patient-centered outcomes research. Journal of general internal medicine 2014; 29(12): 1692-701.</p>
+<p>Lal A, Mantilla-Herrera AM, Veerman L, et al. Modelled health benefits of a sugar-sweetened beverage tax across different socioeconomic groups in Australia: A cost-effectiveness and equity analysis. PLoS medicine 2017; 14(6): e1002326.</p>
+<p>Eykelenboom M, van Stralen MM, Olthof MR, Renders CM, Steenhuis IH. Public acceptability of a sugar-sweetened beverage tax and its associated factors in the Netherlands. Public Health Nutr 2021; 24(8): 2354-64.</p>
+<p>Eykelenboom M, Djojosoeparto SK, van Stralen MM, et al. Stakeholder views on taxation of sugar-sweetened beverages and its adoption in the Netherlands. Health Promot Int 2022; 37(2).</p>
+<p>Djojosoeparto SK, Eykelenboom M, Poelman MP, et al. Stakeholder views on the potential impact of a sugar-sweetened beverages tax on the budgets, dietary intake, and health of lower and higher socioeconomic groups in the Netherlands. Arch Public Health 2020; 78(1): 125.</p>
+<p>Thow AM, Downs SM, Mayes C, Trevena H, Waqanivalu T, Cawley J. Fiscal policy to improve diets and prevent noncommunicable diseases: from recommendations to action. Bull World Health Organ 2018; 96(3): 201-10.</p>
+<p>Department of Health and Human Services Food and Drug Administration. Food Labeling: Nutrition Labeling of Standard Menu Items in Restaurants and Similar Retail Food Establishments Final Regulatory Impact Analysis FDA-2011-F-0172. In: Office of Regulations Policy and Social Sciences Center for Food Safety and Applied Nutrition, editor.; 2014.</p>
+<p>Queensland Government. Fast Choices: kilojoule menu labelling scheme -Food Act 2006 In: Food Safety Standards and Regulation Department of Health, editor. www.health.qld.gov.au: State of Queensland (Queensland Health); 2017.</p>
+<p>Rincón-Gallardo PS, Zhou M, Da Silva Gomes F, et al. Effects of Menu Labeling Policies on Transnational Restaurant Chains to Promote a Healthy Diet: A Scoping Review to Inform Policy and Research. Nutrients 2020; 12(6).</p>
+<p>Archana S, Karmacharya BM, Rashmi M, et al. Stakeholder Engagement in Planning the Design of a National Needs Assessment for Cardiovascular Disease Prevention and Management in Nepal. Glob Heart 2019; 14(2): 181-9.</p>
+<p>Morgan D, Kosteniuk J, O&#x27;Connell ME, et al. A stakeholder engagement strategy for an ongoing research program in rural dementia care: Stakeholder and researcher perspectives. PLoS One 2022; 17(9): e0274769.</p>
+<p>Laird Y, Manner J, Baldwin L, et al. Stakeholders&#x27; experiences of the public health research process: time to change the system? Health Res Policy Syst 2020; 18(1): 83.</p>
+<p>Government of Kenya. The Constitution of Kenya, 2010. Nairobi, Kenya: The National Council for Law Reporting with the Authority of the Attorney-General; 2010.</p>
+<p>Asiki G, Wanjohi MN, Barnes A, et al. Benchmarking food environment policies for the prevention of diet-related non-communicable diseases in Kenya: National expert panel&#x27;s assessment and priority recommendations. PLoS One 2020; 15(8): e0236699.</p>
+<p>Ministry of Health Kenya. National Non-Communicable Diseases Strategic Plan 2021/22- 2025/26. In: Department of Non-communicable Diseases, editor. Nairobi, Kenya: Government of Kenya; 2021.</p>
 </div>
 </details>
 </div>
