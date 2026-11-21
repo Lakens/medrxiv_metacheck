@@ -198,7 +198,7 @@ Practitioners in Comparison to Non-Yoga Practitioners: A Cross-Sectional
 study
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.05.26359313
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.05.26359313
 </p>
 </header>
 <div class="mc-main">
@@ -441,8 +441,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -780,9 +781,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -804,7 +809,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -819,9 +825,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -834,13 +858,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -860,6 +887,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -867,12 +900,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -973,6 +1012,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -992,6 +1051,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1247,19 +1341,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1369,6 +1545,85 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Lung function is a key indicator of respiratory health and is known to be influenced by lifestyle practices such as yoga. Recent advances in artificial intelligence (AI) have enabled non-invasive, scalable, and real-time assessment of physiological parameters.</p>
+<p>Swaasa is an AI-based novel technique designed to assess lung function through cough analysis, offering a potential alternative to conventional spirometry.</p>
+<p>Objective: The present study aimed to evaluate lung function using Swaasa among yoga practitioners and compare the findings with age-and sex-matched non-yoga practitioners in a cross-sectional design.</p>
+<p>Methods: A cross-sectional comparative study was conducted on adult participants divided into two groups: regular yoga practitioners (≥1 year of practice) and non-yoga practitioners.</p>
+<p>Lung function parameters, including Forced Vital Capacity (FVC), Forced Expiratory Volume in one second (FEV₁), and cough pattern indices, were assessed using the Swaasa AI-based system.</p>
+<p>.</p>
+<h3>Introduction</h3>
+<p>Respiratory health is a basis of preventive and rehabilitative medicine, particularly in the context of chronic respiratory diseases, post-infectious sequelae, and lifestyle-related pulmonary dysfunction. Also, respiratory disorders contribute substantially to global morbidity and mortality, placing a significant burden on health care systems worldwide. [1] Spirometry, a routinely performed pulmonary function test, as the name suggests, is a measurement of the amount of air one breathes. It includes measurements of both the volume and the rate of air that can be inhaled and exhaled as a function of time and enables classification of respiratory disorders into obstructive, restrictive, or mixed patterns in accordance with American Thoracic Society and European Respiratory Society (ERS) guidelines. [2] Recent advancements in the field of artificial intelligence (AI) and machine learning have led to the emergence of digital biomarkers for the detection of disorders of the respiratory system. Acoustic features of cough sounds have been shown to correlate with specific cough pathologies. [3, 4] Swaasa® AI-powered respiratory assessment platform developed by Salcit Technologies Pvt. Ltd., Hyderabad, is a point-of-care technology to assess a user&#x27;s respiratory condition. It uses cough analysis as an additional factor in risk assessment. Using proprietary machine learning and AI algorithms, the platform analyzes cough acoustics in combination with selected symptom inputs derived from the St George&#x27;s Respiratory Questionnaire (SGRQ). Subject to coughing in the mobile, within approximately 10 seconds, the platform identifies underlying respiratory conditions, the pattern of cough (obstructive, restrictive, or normal), and its severity. The Swaasa AI platform also provides the functionality of spirometry without the constraints of time, space, specialized equipment, and trained professionals.</p>
+<p>Yoga is a 5,000-year-old tradition from India that integrates physical, mental, and spiritual pursuits to promote physical, mental, and physiological balance. [5] Pranayama practices influence autonomic nervous system balance, respiratory muscle strength, lung compliance, and gaseous exchange efficiency. [6, 7] As per the WHO, chronic obstructive pulmonary disease (COPD) is a major global health concern and is projected to become the third leading cause of death worldwide by 2030. [8] The Global Initiative for Chronic Obstructive Lung Disease (GOLD) emphasizes the role of non-pharmacological interventions, including reduction in symptoms, complications, exacerbations, improved exercise tolerance, improved health status, and reduced mortality. [9] Evidence suggests that yoga-based breathing interventions improve diffusion capacity, reduce associated stress and anxiety, and help improve quality of life in such patients. [10, 11] Asthma affects approximately 300 million individuals globally and is a significant cause of morbidity, particularly in low-and middle-income countries. [12] Clinical studies report significant improvements in Peak Expiratory Flow Rate (PEFR), Forced Expiratory Volume 1 (FEV1), Forced Vital Capacity (FVC), Vital Capacity (VC), inflammatory markers, and an absolute eosinophil count following breathing interventions. [13, 14] The post-Covid respiratory era has emerged as a major clinical challenge. The patients frequently experience persistent dyspnea, decreased lung function, persistent fatigue, and respiratory symptoms, impaired functional capacity, and diminished quality of life for months after acute infection. Radiological abnormalities and pulmonary function impairments have been documented up to six months after hospital discharge, even in individuals with non-severe disease. [15] Coughing is a powerful and effective defense mechanism to protect the lungs. Leveraging cough as a digital biomarker, the Swaasa AI platform aims to bridge gaps in accessibility, affordability, and scalability, offering location-independent, equipment-free respiratory health assessment. Various validation studies have been done reporting the platform&#x27;s high sensitivity (95.45%) for COVID-19 screening 20, strong diagnostic accuracy (98.82%) for pulmonary tuberculosis screening, and highlighting the platform&#x27;s feasibility for large-scale population screening. [16, 17] When traditional yoga adopts new technology like AI, practitioners are in better control and can monitor and assess their breathing and lung condition. Nonetheless, there is evidence of growing yoga suggesting the benefits of yoga on respiratory health, but a comprehensive and controlled examination is necessary to elucidate the extent to which yoga can influence respiratory parameters. Therefore, integrating AI-enabled respiratory assessment with yoga practices presents a novel, evidence-based approach to assessing the potential benefits of yoga on respiratory health. Also, despite growing evidence supporting both yoga-based respiratory interventions and AI-driven cough analysis independently, studies evaluating their combined application remain limited.</p>
+<p>Therefore, the present study aims to assess the lung health of yoga practitioners and non-yoga (sedentary) practitioners using the Swaasa AI platform and subsequently conduct a large scale randomized controlled trial to evaluate the effectiveness of pranayama and selected yoga practices on lung health indices across different respiratory conditions.</p>
+<h3>Methodology:</h3>
+<p>Ethical considerations :The study was conducted at the Morarji Desai National Institute of Yoga (MDNIY), Ministry of Ayush, Government of India, New Delhi, India. The study protocol was submitted to the Institutional Faculty-Cum-Research Committee (IFCRC) of MDNIY and was reviewed and discussed by the committee on 15 March 2024. Following the review and discussion, the committee granted approval for conducting the study. The approval was obtained before the commencement of the study. Written informed consent was obtained from all participants before their participation in the study.</p>
+<h3>Study Setting and Participants:</h3>
+<p>The study was conducted in Morarji Desai National Institute of Yoga (MDNIY), Ministry of Ayush, Government of India, New Delhi. An announcement was made about the ongoing project, and voluntary participation was invited from the staff and students of MDNIY only. Healthy subjects from both genders, aged between 21-40 years, were included. The participants were screened for seasonal allergies and any acute episode of respiratory disorder. Participants who were taking any medication for a respiratory condition during the course of data collection were excluded. Pregnant women were also excluded from the study. Based on voluntary participation, the subjects were divided into two groups: Group A-who were yoga practitioners-and Group B, who were non-yoga practitioners (sedentary people).</p>
+<p>Parameters: Swaasa AI platform was used to analyze cough signals along with the subset of symptoms from SGRQ (St. George&#x27;s Respiratory Questionnaire). A demographic form was also given to the subjects. Habits (smoking/alcohol/drugs) and history of covid-19 exposure were taken from the demographic form. Outcome measures: Risk, Pattern, Pattern severity, Lung Health Index, Asthma likely, Asthma Risk, COPD likely, COPD Risk, FEV1/FVC ratio, FEV1, FVC, and symptoms such as mucus/sputum, cough during night, difficulty in breathing, wheezing, frequent cough, family history of asthma, and exposure to any smoke were recorded using the Swaasa AI cough sound analyzer and questionnaire.</p>
+<h3>Statistical Analysis:</h3>
+<p>The data was analyzed by calculating the score in terms of frequency, percentage mean, deviation, chi-square and unpaired T-test. Analysis and interpretation of data was done according to the objectives using descriptive and inferential statistics. The level of significance chosen was at p&lt;_ 0.05</p>
+<h3>Results</h3>
+<p>Table 1 depicts the demographic data. The mean age of yoga practitioners was 26.4 ± 7.42 years, while that of the sedentary group was 26.8 ± 5.42 years, indicating comparable age distribution between the groups. In terms of gender distribution, females predominated in both groups, accounting for 64.82% of yoga practitioners and 56.81% of sedentary individuals. The majority of participants in both groups were unmarried (85.92% and 86.36%, respectively). Dietary habits revealed that a higher proportion of yoga practitioners (84.42%) followed a vegetarian diet compared to the sedentary group (90.91%), although both groups predominantly adhered to vegetarianism. The prevalence of smoking, alcohol consumption, and drug use was minimal among both groups, with slightly higher rates of smoking (2.27%) and alcohol consumption (4.54%) observed in the sedentary population, whereas drug use (4.02%) was more reported among yoga practitioners. The level of physical activity differed substantially between groups. Among yoga practitioners, 73.37% engaged in regular exercise, 60.80% in walking, 32.66% in jogging, and 12.06% in other activities. Conversely, the sedentary population reported lower engagement in exercise (4.54%), walking (43.18%), jogging (22.72%), and other activities (9.09%). Only 2.01% of yoga practitioners reported regular medication use compared to none in the sedentary group.</p>
+<p>Previous COVID-19 exposure was noted in 17.09% of yoga practitioners and 11.36% of sedentary individuals.</p>
+<p>Comparative analysis of lung function and cough patterns depicted in Table 2: Yoga practitioners demonstrated significantly superior respiratory performance compared to the sedentary group. Forced Expiratory Volume in one second (FEV₁) was higher in yoga practitioners (86.5 ± 10.71) than in non-yoga participants (77.78 ± 20.48), reflecting a 9.56% improvement, which was statistically significant (p ≤ 0.05). Similarly, Forced Vital Capacity (FVC) showed a 10.13% higher value in the yoga group (84.96 ± 9.85) compared to the sedentary population (76.84 ± 19.75), with stronger statistical significance (p ≤ 0.01). The FEV₁/FVC ratio, an important indicator of airway function and obstruction, was also significantly higher among yoga practitioners (76.21 ± 7.38) than non-yoga individuals (72.09 ± 14.25), indicating better airway patency and ventilatory efficiency (p ≤ 0.01). The total dry cough count was notably lower in yoga practitioners (7.76 ± 3.16) compared to the sedentary group (6.32 ± 2.98), showing an 18.61% difference that was statistically significant (p ≤ 0.01). In contrast, the difference in wet cough count between the two groups (2.01 ± 1.92 in yoga practitioners vs. 1.89 ± 1.63 in sedentary individuals) was minimal (5.95%) and not statistically significant, suggesting that yoga practice may have a more pronounced effect on reducing irritative or non-productive cough rather than productive cough. Cough duration showed no significant difference between the two groups, with yoga practitioners recording a mean duration of 9.94 ± 0.30 compared to 9.89 ± 0.14 in the sedentary population. This indicates that while yoga practice may influence cough frequency, it does not significantly alter the duration of coughing episodes.</p>
+<p>Health condition assessment and questionnaire outcomes depicted in Table 3: The overall risk assessment revealed a more favorable respiratory risk profile among yoga practitioners. A higher proportion of yoga practitioners fell into the low-risk category (73.37%) compared to the sedentary group (47.73%), whereas a substantially larger percentage of sedentary individuals were categorized as high risk (52.27%), indicating increased vulnerability to respiratory dysfunction. The majority of yoga practitioners exhibited a normal respiratory pattern (91.46%), while only 68.18% of sedentary participants showed normal patterns. Restrictive and obstructive patterns were markedly lower among yoga practitioners (4.02% and 4.52%, respectively) compared to the sedentary population, where both restrictive and obstructive patterns were reported in 15.91% of participants each. This suggests better pulmonary mechanics and airway integrity in individuals practicing yoga. A large proportion of yoga practitioners fell within the normal severity category (73.87%), whereas only 40.91% of sedentary individuals were classified as normal. High severity respiratory patterns were considerably more prevalent in the sedentary group (20.45%) compared to yoga practitioners (3.02%), indicating more pronounced functional impairment among non-yoga participants. The Lung Health Index showed a mixed distribution; however, yoga practitioners demonstrated a lower proportion in the high-risk category (8.04%) compared to sedentary individuals (31.82%). Although a greater percentage of yoga practitioners were classified under the low Lung Health Index category (59.80%), this may reflect conservative scoring sensitivity within the app, while the sedentary group exhibited a higher clustering in the high-risk zone, suggesting compromised lung health.</p>
+<p>Yoga practitioners had a lower percentage of individuals categorized as &quot;likely COPD&quot; (26.63%) compared to sedentary participants (36.36%). Similarly, COPD risk stratification revealed that low risk was more prevalent among yoga practitioners (56.78%), whereas a substantially higher proportion of sedentary individuals were classified under high COPD risk (31.82%), highlighting the potential protective role of yoga practice against chronic obstructive airway conditions. Yoga practitioners demonstrated lower asthma likelihood (2.01%) compared to the sedentary population (4.55%). Additionally, asthma risk categorization showed that a majority of yoga practitioners fell into the low-risk category (73.37%), while the sedentary group had a higher proportion of individuals at high asthma risk (27.27%), suggesting increased airway hyperresponsiveness among non-yoga individuals. Analysis of self-reported symptoms indicated a generally lower prevalence of respiratory symptoms among yoga practitioners. Symptoms such as chest pain, frequent cough, wheezing, and difficulty in breathing were more commonly reported in the sedentary population. Notably, wheezing was reported by 15.91% of sedentary individuals compared to 7.04% of yoga practitioners. Exposure to smoke was also higher in the sedentary group (18.18%) compared to yoga practitioners (22.61%), which may contribute to the observed differences in respiratory risk and symptom burden.</p>
+<h3>Discussion</h3>
+<p>The findings of the study highlight that yoga practices are beneficial for respiratory health, or lung health, when compared to a non-yoga sedentary population, as assessed using the Swaasa AI -enabled cough and lung health assessment platform. Also, the study highlights that if an individual is involved in any form of physical activity, then they have a better lung health profile as compared to the ones not involved in any form of physical activity. Collectively, the findings provide technology-assisted evidence supporting the respiratory health benefits of yoga practices.</p>
+<p>Yoga practitioners showed higher FEV1, FVC, and FEV1/FVC ratios than the non-yoga practitioners, which shows improved lung volumes and expiratory flow. The findings are also supported by studies done on asana and pranayama improving the respiratory muscle strength, compliance, and ventilatory efficiency. [18] [19] [20] [21] Yogic breathing practices also influence parasympathetic modulation and decrease sympathetic overactivity [22, 23] The dry cough count was significantly lower in the yoga practitioner group as compared to the non-yoga practitioners, though the wet cough frequency and cough duration did not differ significantly between the groups. The findings may be because of improved airway hydration, reduced epithelial irritation and better regulation of cough reflex sensitivity through vagal modulation. [24] The findings also reflect a more favorable risk profile among the yoga practitioner group, reflecting more individuals at low risk and fewer individuals classified in the high-risk category. The findings are supported by previous studies, which show that long-term yoga practice led to improved lung elasticity and thoracic mobility and delayed age-related changes in the respiratory system. [25] [26] [27] Also, the findings show normal lung patterns in yoga practitioners, while the restrictive/obstructive patterns were considerably high in the non-yoga practitioner group. Regular practice of asanas leads to improved chest expansion and spinal mobility [28]. Also, self-reported symptoms, including wheezing, frequent cough, chest pain, and dyspnea, were more prevalent in the non-yoga practitioners. Wheezing was reported more than twice as frequently among non-yoga practitioners. These findings are also directly correlated to measures of poorer lung function and higher respiratory risk in the group.</p>
+<p>The findings also highlight a preventive or protective effect of yoga, as the yoga practitioner group showed a lower number of individuals categorized as &quot;likely COPD,&quot; as well as lower high-risk stratification for COPD and asthma. The findings are supported by evidence from studies showing that yoga can improve exercise tolerance, reduce dyspnea, and enhance quality of life in individuals with COPD and asthma. [29] [30] [31]</p>
+<h3>Limitations of the study</h3>
+<p>An important strength of the study is the use of an AI-driven app, a cost-effective method, to assess the lung health of yoga practitioners and non-yoga practitioners, which enables non-invasive, scalable, and objective assessment of lung health, thus bridging the gap between traditional practices and modern digital technology. However, there are several limitations that the authors acknowledge. The cross-sectional design of the study limits the causal interference and does not establish temporal or dose-response relationships. The unequal sample size may have influenced the statistical power. The small number of samples in non-yoga practitioners may have increased the likelihood of type II error for certain parameters. The detail of the yogic intervention is missing, limiting the dose-intervention interpretation. Also, the study population consisted of a young, relatively healthy adult population with a low prevalence of comorbidities. Hence, the results may not be generalized to older populations, individuals with respiratory disorders, or populations with increased risk exposures.</p>
+<h3>Conclusion</h3>
+<p>The findings of this study demonstrate that yogic practice may be effective in improving lung function parameters such as FVC, FEV1, FEV1/FVC, cough pattern, COPD risk reduction, etc.</p>
+<h3>Acknowledgements</h3>
+<p>The authors are grateful to the Director of the Morarji Desai National Institute of Yoga for granting necessary permissions to complete the study. Above all, the authors acknowledge the cooperation and support of their colleagues. The authors are also thankful to the Swaasa team and Salcit Technologies Pvt. Ltd., Hyderabad, for their logistic support for providing the app support. Above all, the cooperation and support of the volunteers is gratefully acknowledged.</p>
+<h3>Conflicts of interest</h3>
+<p>The authors have indicated that they have no conflicts of interest regarding the content of this article.</p>
+<h3>Table 1</h3>
+<p>presents the demographic characteristics of the study participants, comprising yoga practitioners (N=199) and a non-yoga sedentary population (N=44).</p>
+<h3>Table 2</h3>
+<p>presents a comparative analysis of lung function parameters and cough patterns measured using the Swaasa App among yoga practitioners (N = 199) and a non-yoga sedentary population (N = 44).expressed as mean ± standard deviation, along with percentage differences and levels of statistical significance.NS = Not Significant Table3summarizes the health condition assessment and questionnaire outcomes recorded during cough evaluation using the Swaasa App among yoga practitioners (N = 199) and a non-yoga sedentary population (N = 44). The findings are expressed as percentage distributions across various respiratory health indicators and risk profiles.</p>
+<h3>References</h3>
+<p>World Health Organization. Global health estimates 2023: disease burden by cause. Geneva: WHO; 2023.</p>
+<p>Graham BL, Steenbruggen I, Miller MR, et al. Standardization of spirometry 2019 update. Eur Respir J. 2019;53(2):1700588.</p>
+<p>Barry SJ, Dane AD, Morice AH, Walmsley AD. The automatic recognition of cough sounds. J Biomed Eng. 2006;28(1):33-40.</p>
+<p>Amoh J, Odame K. Deep neural networks for identifying cough sounds. IEEE Trans Biomed Circuits Syst. 2015;9(3):307-16.</p>
+<p>Feuerstein G. The yoga tradition: its history, literature, philosophy and practice. Prescott: Hohm Press; 2008.</p>
+<p>Joshi LN, Joshi VD, Gokhale LV. Effect of short term pranayama practice on breathing rate and ventilatory functions of lung. Indian J Physiol Pharmacol. 1992;36(2):105-8.</p>
+<p>Pal GK, Velkumary S, Madanmohan. Effect of short-term practice of breathing exercises on autonomic functions in normal human volunteers. Indian J Med Res. 2004;120:115-21.</p>
+<p>World Health Organization. Chronic obstructive pulmonary disease (COPD) fact sheet. Geneva: WHO; 2023.</p>
+<p>Vestbo J, Hurd SS, Agustí AG, et al. Global strategy for the diagnosis, management, and prevention of COPD. Am J Respir Crit Care Med. 2013;187(4):347-65.</p>
+<p>Soni R, Munish K, Singh K. Effect of yoga training on diffusion capacity in chronic obstructive pulmonary disease patients. Indian J Chest Dis Allied Sci. 2012;54(2):99-102.</p>
+<p>Marotta N, Demeco A, Moggio L, et al. Effects of breathing exercises in patients with chronic obstructive pulmonary disease. Multidiscip Respir Med. 2020;15:703.</p>
+<p>Masoli M, Fabian D, Holt S, Beasley R. The global burden of asthma. Allergy. 2011;59(5):469-78.</p>
+<p>Sodhi C, Singh S, Dandona PK. A study of the effect of yoga training on pulmonary function in patients with bronchial asthma. J Asthma. 2009;46(7):651-4.</p>
+<p>Bacon SL, Lavoie KL, Walters J, et al. The impact of yoga on asthma control and quality of life. Chest. 2015;148(4):875-84.</p>
+<p>Sanchez-Ramirez DC, Normand K, Zhaoyun Y, Torres-Castro R. Long-term impact of COVID-19: a systematic review of the literature and meta-analysis. J Clin Med. 2021;10(10):2131.</p>
+<p>Pavithra MB, et al. Respiratory health screening using AI-based cough analysis among nursing students. Indian J Public Health. 2023.</p>
+<p>Lotheti S, et al. Rapid respiratory screening using AI-based cough analysis: clinical validation study. 2023.</p>
+<p>Joshi LN, Joshi VD, Gokhale LV. Effect of short-term pranayama practice on breathing rate and ventilatory functions of lung. Indian J Physiol Pharmacol. 1992;36(2):105-108.</p>
+<p>Birkel DA, Edgren L. Hatha yoga: improved vital capacity of college students. Altern Ther Health Med. 2000;6(6):55-63.</p>
+<p>Cowen VS, Adams TB. Physical and perceptual benefits of yoga asana practice: results of a pilot study. J Bodyw Mov Ther. 2005;9(3):211-219.</p>
+<p>Ross A, Thomas S. The health benefits of yoga and exercise: a review of comparison studies. J Altern Complement Med. 2010;16(1):3-12.</p>
+<p>Pal GK, Velkumary S, Madanmohan. Effect of short-term practice of breathing exercises on autonomic functions in normal human volunteers. Indian J Med Res. 2004;120(2):115-121.</p>
+<p>Streeter CC, Gerbarg PL, Saper RB, et al. Effects of yoga on the autonomic nervous system, gamma-aminobutyric-acid, and allostasis. Med Hypotheses. 2012;78(5):571-579.</p>
+<p>Yadav RK, Das S. Effect of yogic practice on pulmonary functions in young females. Indian J Physiol Pharmacol. 2001;45(4):493-496.</p>
+<p>Vedala SR, Mane AB, Paul CN. Pulmonary functions in yogic and sedentary population. Int J Yoga. 2014;7(2):155-159.</p>
+<p>Kulpati DS, Kumar A. A study on effect of yoga training on pulmonary functions in young healthy subjects. Indian J Physiol Pharmacol. 2013;57(4):380-384.</p>
+<p>Sengupta P. Health impacts of yoga and pranayama: a state-of-the-art review. Int J Prev Med. 2012;3(7):444-458.</p>
+<p>Bhavanani AB, Madanmohan, Sanjay Z. Immediate effect of Mukh Bhastrika (a yogic bellows type breathing) on cardiovascular parameters in healthy volunteers. Int J Yoga. 2012;5(2):109-115.</p>
+<p>Donesky-Cuenco D, Nguyen HQ, Paul S, Carrieri-Kohlman V. Yoga therapy decreases dyspnea-related distress and improves functional performance in people with chronic obstructive pulmonary disease: a pilot study. J Altern Complement Med. 2009;15(3):225-234.</p>
+<p>Liu XC, Pan L, Hu Q, et al. Effects of yoga training in patients with chronic obstructive pulmonary disease: a systematic review and meta-analysis. J Thorac Dis. 2014;6(6):795-802.</p>
+<p>Prem V, Sahoo RC, Adhikari P. Effect of yogic breathing exercises on quality of life in patients with bronchial asthma: a randomized controlled trial. Ann Med Health Sci Res. 2013;3(4):499-504.</p>
 </div>
 </details>
 </div>
