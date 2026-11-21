@@ -196,7 +196,7 @@ Provider-Level and Specialty Variation in ARNI and SGLT2i Use After
 Heart Failure Hospitalization
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.06.26367478
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.06.26367478
 </p>
 </header>
 <div class="mc-main">
@@ -311,8 +311,8 @@ Your Statistical Inferences</a>.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 2 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 2 detected.</p>
 </div>
 </div>
 </div>
@@ -407,8 +407,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -759,9 +762,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -783,7 +790,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -798,9 +806,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -813,13 +839,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -839,6 +868,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -846,12 +881,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -952,6 +993,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -971,6 +1032,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1226,19 +1322,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1348,6 +1526,134 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>This analysis was made possible in part through a Small aWard Initiative For impacT (SWIFT) grant from the Seattle-Denver Center of Innovation for Veteran-Centered and Value Driven Care (COIN) of the US Veterans Affairs awarded to Drs. Doll and Salahuddin and is based upon work supported by the Department of Veterans Affairs,</p>
+<h3>INTRODUCTION</h3>
+<p>Over the last decade, a new generation of medical therapies for heart failure with reduced ejection fraction (HFrEF) has emerged with demonstrated reductions in mortality rates and HF admissions. [1] [2] [3] [4] [5] [6] Despite evidence to support &quot;quadruple therapy&quot; including renin-angiotensin-aldosterone inhibitors (with emphasis on angiotensin receptor-neprilysin inhibitors [ARNI]), sodium glucose co-transporter 2 inhibitors (SGLT2i), beta-blockers, and mineralocorticoid receptor antagonists (MRA), 7 achievement of this medical therapy goal for HFrEF in routine clinical practice remains low. [8] [9] [10] [11] [12] [13] One recent analysis estimated that 82% of patients were eligible for quadruple therapy, but only 15.3% achieved it. 14 The greatest opportunities for improvement were noted for ARNI (31.5% use at hospital discharge) and SGLT2i (26.1%), potentially due to the more recent approval, access challenges, and high cost of these medications compared with other indicated classes. [15] [16] [17] [18] Rapid initiation and up-titration of HF GDMT medications during and after HF hospitalization was proven safe and effective in the STRONG HF randomized trial, 19 with subsequent calls for post-discharge care delivered by multidisciplinary HF teams.</p>
+<p>However, despite some prior analyses, there is still limited understanding of how individual providerlevel characteristics, including provider type (Physician vs Advance Practice Provider [APP] training) and specialty are associated with use of ARNI and SGLT2i in the US. [20] [21] [22] [23] The national integrated VA healthcare system may serve as an ideal setting to study provider use of novel medications. VA has a national formulary and low out-of-pocket costs, standardizing access to branded medications for most patients. 24 Despite this, prior reports from VA have shown substantial sitelevel variation in ARNI and SGLT2i use. [25] [26] [27] We aimed to characterize provider-level variation in ARNI and SGLT2i utilization and identify potential opportunities for improvement in achievement of optimal HF care related to provider characteristics. We hypothesized that patients treated by specialists and pharmacists would be more likely to receive ARNIs and SGLT2is. We also measured the variation among individual providers within each specialty, providing a snapshot of provider-level adoption in the years after guideline incorporation of these therapies.</p>
+<h3>METHODS</h3>
+<h3>Study Cohort</h3>
+<p>This was an exploratory, retrospective cohort study analyzing provider-level medication use in outpatient encounters after HF hospitalization. The cohort was constructed by identifying eligible patientprovider encounters within 6 months of hospitalization for heart failure with reduced ejection fractions (HFrEF) between October 1, 2017 and March 31, 2023 within VA (Fiscal Years 2018-2023). The methodology for identifying Veterans with HFrEF has been previously described. 26 Patients with an inpatient admission for systolic, combined systolic and diastolic, or biventricular heart failure were identified using ICD-10 codes (listed in the Supplemental Methods). 28 If a patient had multiple qualifying hospitalizations, one was randomly selected as the index hospitalization since overall levels of medication use have varied over time 26 and the goal of the analysis was to assess provider-level variation. ARNI use was assessed over the full study period but evaluation of SGLT2i use was limited to the period after October 1 st , 2019 (VA Fiscal Year 2020) to align with the publication of the DAPA-HF trial establishing the efficacy of SGLT2i for HFrEF. Annual data described in this study corresponds to the VA Fiscal Year (October 1-September 30) unless otherwise stated.</p>
+<p>Providers were eligible for inclusion if they had an encounter with an included patient within 6 months following discharge from the index hospitalization. Only providers with at least 5 eligible encounters in the four specialties below were evaluated. For descriptive provider-level analyses, each provider was assigned to the specialty in which they had the most qualifying encounters. Provider characteristics were extracted from VA Informatics and Computing Infrastructure and Corporate Data Warehouse (CDW) and included male or female sex, provider type (physician or Advance Practice Provider [APP: Nurse Practitioner or Physician Assistant/Associate]), and clinical specialty (primary care, cardiology, endocrinology, nephrology). Direct patient care encounters were identified using primary and secondary clinic stop codes; pharmacists and clinical pharmacy visits were identified similarly (Supplement).</p>
+<h3>Covariates</h3>
+<p>To describe patient characteristics that may influence provider use of HF medication, we characterized patient demographics, clinical comorbidities, use of other GDMT classes for heart failure, and laboratory values (e.g. estimated glomerular filtration rate (eGFR) and glycated hemoglobin [HbA1c]). Patient race was self-reported as White, Black or African American, Asian, or Other (American Indian or Alaska native, or Native Hawaiian or Pacific Islander) and ethnicity was characterized as Hispanic/Latino or not Hispanic/Latino based on VA demographic data. Additionally, we obtained VA priority group status as an indicator of out-of-pocket medication costs. Priority groups (1-8) are determined by service history, disability rating, income, and other benefits; Veterans in Priority Group 1 pay no medication copayments, and copayments for all others are capped at $700 per calendar year. 24</p>
+<h3>Outcomes</h3>
+<p>The primary outcomes were provider-level use rates of 1) ARNI or 2) SGLT2i at an individual patient-provider encounter within 6 months of HFrEF hospitalization. A patient was classified as treated with an ARNI or SGLT2i if the medication was filled within 6 months prior to hospital admission, at hospital discharge, or within 6 months after discharge. This included characterizations of patients already on treatment prior to admission, newly started during or after the hospitalization, or previously trialed and discontinued. If a patient was classified as treated with ARNI or SGLT2i, all providers who had an eligible visit with that patient were attributed as users for that medication class.</p>
+<h3>Statistical analysis</h3>
+<p>Descriptive and summary statistics were used to characterize patients by use or non-use of ARNI and SGLT2i. Medication use was plotted over time by provider characteristics and summarized at the encounter level by specialty for the full study period (2018-2023 for ARNI and 2020-2023 for SGLT2i), with visits in January-March 2023 described separately as the most contemporary data in the cohort. For a more detailed description of medication use patterns by specialty, we further classified medication use as: . 1) only before: medication was discontinued during admission or after discharge, 2) continued: patient was already on therapy and it was continued, 3) new start: patient was not on therapy within the 6 months prior to discharge and was started upon discharge or within 6 months of discharge, or 4) untreated: no therapy with the given medication class within 6 months of discharge.</p>
+<p>To test if providers with high use of ARNI also had high use of SGLT2i, a Pearson Correlation coefficient was calculated.</p>
+<p>To further investigate observed differences in medication use by specialty, odds ratios (ORs) were estimated comparing the likelihood of medication use for patients having seen vs not seen each specialty.</p>
+<p>Odds ratios were adjusted using logistic regression for time of prescription (by fiscal year quarter) as well as patient age, sex, race, hypertension, end-stage renal disease, history of prior myocardial infarction, diabetes, Veteran priority status, and clustering by VA site. Renal disease was represented by end-stage renal disease. This was repeated for 2018 (ARNI), 2021, and 2023 to assess changes over time. Odds ratio 95% confidence intervals are Wald intervals; 95% confidence intervals for the median odds ratios were calculated using non-parametric bootstrapping, resampling providers. Provider-level variation was summarized with median odds ratios (mOR), [25] [26] [27] the median odds ratio of receiving a prescription when the same patient is seen by two randomly chosen providers, and with each provider&#x27;s empirical treatment rate (the proportion of that provider&#x27;s qualifying encounters with the medication present). The primary descriptive (unadjusted) measure is the rate ratio: the provider&#x27;s medication use rate at a given percentile divided by the median provider rate of the same group (overall or within a specialty); for example, RR of 0.50 describes half the median rate of medication use and RR of 3.0 is three-fold higher rate of medication use. Median odds ratios were adjusted for patient characteristics, including renal function, with random intercepts for VA site and provider.</p>
+<h3>Clinical pharmacist analysis</h3>
+<p>VA clinical pharmacist practitioners practice under facility-level scopes of practice that include prescriptive authority for noncontrolled medications. In VA, pharmacists may prescribe independently or assist other clinical providers with medication initiation and titration, 29 so we analyzed the association of a pharmacist visit with ARNI and SGLT2i use in two complementary ways: 1) as a distinct provider class assessing independent association with medication use, and 2) as an effect modifier assessing change in association with medication use for a given medical specialty class (i.e. the odds of being prescribed an ARNI when seen by cardiology AND pharmacy vs. cardiology alone), using the logistic regression model described above with inclusion of an interaction term. All analyses were completed using R version 4.2.1.</p>
+<h3>Ethical Approval</h3>
+<p>This study received ethical oversight and approval from the Colorado Multiple Institutional Review Board (COMIRB), protocol #21-4501. COMIRB granted a waiver of informed consent given the retrospective, observational nature of this research using administrative data with no direct patient contact.</p>
+<h3>RESULTS</h3>
+<h3>Medication use and patient characteristics</h3>
+<p>Our cohort included 7,946 VA providers with at least 5 qualifying encounters (not including pharmacists) caring for 76,795 unique Veteran patients over 211,267 qualifying clinical encounters from 2018-2023. The SGLT2i analysis was limited to encounters between 2020-2023 and included 5,996 providers caring for 45,298 patients over 121,918 qualifying encounters. In addition, there were 3,583 pharmacists caring for 48,632 patients. ARNI use increased from 4.9% to 41.6% while SGLT2i use increased from 9.3% to 59.8% over the study period (Figure S1). Patients treated with ARNI and SGLT2i were more likely to be younger, identify as Black, have no medication copayments (Priority group 1), and have lower rates of CKD and dialysis when compared with patients not treated (Table 1). Usage rates of other GDMT included 91.6% of patients on beta-blockers and 31.6% on MRAs. Patients treated with ARNI or SGLT2i were also more . likely to receive these other GDMT classes. Overall use of angiotensin converting enzyme inhibitors or angiotensin receptor blockers (inclusive of ARNI) was 79.9%.</p>
+<h3>Provider Characteristics and treatment patterns</h3>
+<p>Of 7,946 providers in the ARNI analysis, 51.5% were female and 74.5% were physicians (SGLT2i analysis, 5,996 providers: 50.5% and 75.9%). By specialty, 69.7% of ARNI providers were primary care, 19.1% cardiology, 6.7% nephrology, and 4.4% endocrinology. Provider characteristics are summarized in Supplemental Table S1. There were no differences in medication use rate over time by provider type (Physician vs. APP) or sex, but there were differences by specialty (Figure 1). For ARNI, patients seen by cardiology had the highest use. For SGLT2i, patients seen by cardiology or endocrinology had the highest use. Patients seen by nephrologists had the lowest rates of use of both agents. Use increased over time for all provider specialties.</p>
+<h3>Within-specialty variation in use</h3>
+<p>Within each clinical specialty, variability in the provider-level use of ARNI and SGLT2i was substantial (Figure 2). The distribution of ARNI use across providers was right-skewed: most providers had use below 50%, with a notable number in every specialty at near-zero use. For SGLT2i, the distribution was also right-skewed, with the largest number of providers at near-zero use in every specialty. For cardiology and endocrinology providers, there were also a greater number of providers with near-100% use.</p>
+<p>When examining the full cohort of providers, the median odds ratio (mOR) adjusted for patient characteristics was 1.74 (95% CI 1.65-1.99) for ARNI use and 1.82 (95% CI 1.69-2.11) for SGLT2i use.</p>
+<p>When adding adjustment for site-level clustering, the mORs were 1.45 (95% CI 1.41-1.48) and 1.46 (95% CI 1.41-1.48) for ARNI and SGLT2i, respectively. In addition, the correlation between use of ARNI and use of SGLT2i at the provider level was modest (Pearson Correlation Coefficient 0.59), indicating providers with high use of one of the novel medications did not consistently have high use of the other.</p>
+<p>Rate ratios varied widely within every specialty (Table 2). Across all providers, ARNI RRs were 0.46 at the 25th percentile, 1.62 at the 75th, and 2.92 at the 95th. For SGLT2i RRs were 0.58, 1.50, and 2.33, respectively. Across specialties, 95th percentile RRs ranged from 2.52 to 3.20 for ARNI and 1.82 to 2.50 for SGLT2i. RRs for the 25th percentile ranged from 0.37 to 0.56 for ARNI and 0.57 to 0.71 for SGLT2i. The 1st percentile use rate was 0% in every specialty for both drugs, and nephrology and primary care providers had rates of zero through at least the 10th percentile. The 99th percentile medication use rate in cardiology was 72.6% for ARNI and 85.8% for SGLT2i.</p>
+<h3>Specialty and medication use</h3>
+<p>After adjustment for patient characteristics, copayment status, and site-level clustering, ARNI and SGLT2i varied significantly by provider specialty.( Figure 3). Patients who saw a cardiology provider (compared with those who did not see a cardiology provider) had the highest odds of both ARNI (OR 2.30 [95% CI 2.18-2.44]) and SGLT2i use (OR 1.99 [95% CI 1.88-2.11]).</p>
+<p>Patients who saw nephrology providers were less likely to be treated with ARNI (OR 0.67 [95% CI 0.63-0.72]) or SGLT2i (OR 0.64 [95% CI 0.59-0.69]). Visits with endocrinology and primary care were associated with increased SGLT2i use (OR 1.5 [95% CI 1.37-1.65]) and OR 1.12 [95% CI 1.05-1.19], respectively). In contrast, visits with endocrinology and primary care were not associated with increased ARNI use (OR 1.05 [95% CI 0.96-1.14] and OR 1.05 [95% CI 1.00-1.11], respectively).</p>
+<p>The association of cardiology and endocrinology visits with SGLT2i use changed over time, with the increased use associated with endocrinology visits waning in later years while the association of cardiology visits with use increased from 2019 to 2021 (Supplemental Table S2).</p>
+<h3>Pharmacist visits</h3>
+<p>Over half of patients had at least one pharmacy visit within 6 months of hospitalization (55.0% and 55.1% of the ARNI and SGLT2i cohorts). When examined as a separate exposure, a pharmacist visit was independently associated with increased use of ARNI (OR 1.14 [95% CI 1.06-1.23]) and SGLT2i (OR 1.15 [95% CI 1.06-1.24]) after adjustment for patient characteristics and site-level clustering.</p>
+<p>Interaction testing did not show significant effect modification by specialty. However, the interaction term for cardiology and pharmacist visits demonstrated positive associations that neared statistical significance for ARNI (OR 1.08 [95% CI 0.97-1.19, p=0.164]) and SGLT2i (OR 1.11 [95% CI 1.00-1.23, p=0.052]) (Supplemental Table S4).</p>
+<h3>Adoption after guideline incorporation</h3>
+<p>Figure 4 shows post-hospitalization encounters by specialty and treatment status. In the full cohort, cardiology had the largest number of encounters (n = 95,489; 47.0% of total), followed by primary care (n = 86,728, 42.7%), nephrology (n = 14,777, 7.3%), and endocrinology (n = 6,093, 3.0%). Visits with patients who were not on therapy were each a potential opportunity to prescribe the indicated medication. Visits by cardiology providers had the highest proportion of new ARNI starts (11.8%; n=11,224, the greatest number) and the lowest proportion untreated at 6 months (78.7%). For SGLT2i, visits by endocrinology providers had the lowest proportion untreated at 6 months (58.1%), followed by cardiology (63.2%), and cardiology had the greatest number of new starts (n=11,027).</p>
+<p>Because prevalent use credits providers for therapy begun by others, we also examined new starts, defined as no fill in the 6 months before admission and a fill at discharge or within 6 months afterward (Table S3). Across the study period, the new-start proportion of visits was 9.9% for ARNI and 17.3% for SGLT2i (after DAPA-HF). New starts rose from 2.6% in FY18 to 20.7% in FY23 for ARNI and from 5.0% in FY20 to 29.5% in FY23 for SGLT2i. Cardiology contributed the largest number of new starts for both ARNI (n=11,224) and SGLT2i (n=11,027).</p>
+<p>In the final quarter of the study (January-March 2023), 58.4% of visits after HF hospitalization were with patients not treated with ARNI and 40.2% with patients not treated with SGLT2i, each a potential opportunity to prescribe the indicated therapy. Patients with a cardiology or endocrinology visit were least likely to remain untreated with ARNI or SGLT2i compared with other specialties. New starts of both medications were most common among patients with cardiology visits (Figure 4).</p>
+<h3>DISCUSSION</h3>
+<p>In this retrospective cohort of Veterans hospitalized for HFrEF, which included over 7,900 providers and over 210,000 encounters, provider-level variation in ARNI and SGLT2i use was large within every specialty and independent of site effects. Use was also higher among patients seen by cardiology, endocrinology, and pharmacy providers within 6 months of discharge. Although use of both classes increased markedly over time, in early 2023 58.4% of visits after HF hospitalization were with patients not treated with ARNI and 40.2% with patients not treated with SGLT2i. These findings support an emphasis on specialty care, particularly cardiology, with adjunctive pharmacist follow-up after HF admission, and indicate that individual practice patterns within every specialty are an important potential target for implementation of GDMT.</p>
+<p>Rapid initiation and up-titration of quadruple therapy is safe and effective, and site-level variation in ARNI and SGLT2i use has been described. 7, 26 STRONG-HF achieved high rates of GDMT through frequent post-discharge visits with interdisciplinary care teams, 19 but the optimal composition of those teams is unknown, including whether follow-up with a cardiologist is required. Our study examines a period of rapidly increasing use of these medications after guideline incorporation in a national health system with comparatively low financial barriers to medication use.</p>
+<h3>Provider-level variation</h3>
+<p>To our knowledge, this is the first characterization of provider-level variability in ARNI and SGLT2i use after HF hospitalization. Provider-level median odds ratios (mORs) were similar to prior reports of site-level variation, [25] [26] [27] suggesting that which provider a patient sees may be as important as which site in the odds of treatment with ARNI and SGLT2i. The mOR, adjusted for site-level clustering, indicated a 45-46% difference in the odds of an ARNI or SGLT2i prescription from two randomly chosen providers. Provider-level variation therefore contributes in addition to site-level variation.</p>
+<p>The empirical rate ratios describe probability at different percentiles of provider-level medication use relative to the median provider. Median use was highest for ARNI in cardiology (19.4%) and for SGLT2i in endocrinology (40.0%), followed by cardiology (35.0%). Across all providers, the rate ratio was 0.46 at the 25th percentile and 1.62 at the 75th, and a provider at the 95th percentile prescribed ARNI at 2.9 times the median rate; SGLT2i showed a similar pattern and magnitude (0.58, 1.50, and 2.33). In cardiology, the 95th percentile ARNI rate was nearly three times the median (rate ratio 2.99) and the 75th percentile was 1.59 times it. Across specialties, 95th percentile rate ratios ranged from 1.8 to 3.2. These unadjusted rates do not account for case mix, but the pattern was consistent across all specialties.</p>
+<p>The distributions of use likely reflect individual implementation patterns for novel therapies over time. Some providers were early adopters with near-100% use, others were late-or non-adopters, and most fell in between, with right-skewed distributions (most providers at low use). ARNI was recommended in guidelines starting in 2016 3 following key trial publication in 2014, 1 and became increasingly favored over angiotensin-converting enzyme inhibitors or angiotensin receptor blockers, a shift reflected in the 2022 guidelines. 32 SGLT2i was still early in use for HFrEF during the study period, with key trial publication for heart failure without diabetes in 2019 and guideline incorporation in 2021-2022. 32, 33 Use of the two medication classes was only moderately correlated, suggesting that interventions may need to address ARNI and SGLT2i individually. ARNI and SGLT2i use rose steadily and exceeded reported utilization in non-VA cohorts, 8, 13, 22, 32, 33 and the relative ease of access and low copayments in the VA may promote more comprehensive use. Provider-level variation may be even higher outside VA, where national standardization is lower.</p>
+<p>We speculate that plausible drivers of this variation may include therapeutic inertia, differing familiarity with contemporary heart failure evidence, clinic workflow and time constraints, access to multidisciplinary heart failure infrastructure, availability of clinical decision support, and pharmacist collaboration. Our data cannot distinguish among them, and identifying them is an important target for future research.</p>
+<h3>Post-HF hospitalization care by specialty and provider type</h3>
+<p>We found that most outpatient care after HF hospitalization was delivered by primary care and cardiology providers, together comprising 90% of post-HF hospitalization encounters. Importantly, we did not see substantial differences in ARNI or SGLT2i use by provider type (physician vs. APP). In VA, APPs commonly provide primary and specialty care with a broad scope of independent practice, which includes outpatient cardiology care and heart failure clinics. Our data support this care model.</p>
+<p>In addition, over half of patients (55%) received a pharmacy visit within 6 months of hospital discharge. Clinical pharmacy encounters have been associated with increased prescription of SGLT2i and GLP-1 RA. [34] [35] [36] In our study, pharmacist visits were associated with approximately 15% greater odds of treatment with ARNI and SGLT2i, regardless of which other specialties treated the patient. These results support further investigation on the role of pharmacists as independent or adjunctive providers after HF discharge. Our findings may be confounded by referral bias, i.e., patients already prescribed these medications by other providers may be more likely to be referred for pharmacy follow-up. VA clinical pharmacist practitioners practice under facility-level scopes of practice that include prescriptive authority, 29 whereas outside VA, pharmacist prescribing generally depends on state legislation and collaborative practice agreements that are often narrow in practice, so these associations may not be directly generalizable outside VA.</p>
+<p>Our results support a continuing role for specialty care after HF hospitalization, which is previously described to improve outcomes. 37, 38 A cardiology visit within 6 months of discharge was strongly associated with both ARNI and SGLT2i use, and the association persisted over time as overall use rose. An endocrinology visit was strongly associated with SGLT2i use early in the cohort (2019, immediately after DAPA-HF, when the class was already established for diabetes) but less so in later years. Cardiology and endocrinology visits were more likely to result in new medication starts, although endocrinology providers delivered a much smaller share of care. Lower use among patients with nephrology visits is an expected finding, because providers are more hesitant to prescribe these agents at the levels of kidney disease seen in nephrology practice, where benefit is less well established or therapy is considered contraindicated.</p>
+<h3>Limitations</h3>
+<p>Our findings should be interpreted in the context of several limitations. First, we did not characterize which providers initiated or refilled prescriptions. We used a broad definition of medication use in which providers received credit even for continuing a medication started by a colleague; this may overestimate the prescribing of some providers but reflects real-world multidisciplinary management and complements studies focused on prescribing behavior. 8, 22, 39, 40 Second, administrative data and billing codes may misclassify patients. We did not assess ejection fraction, so the cohort may include patients with recovered or mid-range ejection fraction, although identification of systolic heart failure by diagnosis codes has been validated 27 and indications have expanded over time. Medication use was based on VA pharmacy fills, and we cannot assess shared decision making or medications recommended but not filled.</p>
+<p>Third, this observational study cannot exclude unmeasured confounding; patients more likely to receive ARNI and SGLT2i may also be more likely to receive specialty care and pharmacist referral. Finally, the empirical rates are unadjusted for case mix and include providers with as few as five eligible encounters, so the extremes partly reflect sampling variability; the adjusted mOR addresses case mix but cannot exclude residual confounding.</p>
+<h3>CONCLUSIONS</h3>
+<p>Use of ARNI and SGLT2i for patients with HF has increased over time in the VA, but providerlevel variability was substantial despite a universal formulary and low out-of-pocket cost. Within every specialty, providers ranged from near-zero to near-100% use, and providers at the 95th percentile prescribed at 1.8 to 3.2 times the rate of the median provider of the same specialty. Use differed by specialty but not by provider sex or training, and patients seen by cardiology and endocrinology providers were most likely to be treated. RR, rate ratio. % use = proportion of a provider&#x27;s qualifying encounters with the medication present. The median (50th percentile) provider has an RR of 1.00; an RR above 1 means a higher rate than the median provider in the same column, and 0.00 means a rate of zero. N is lower for SGLT2i because the analysis is restricted to encounters after the October 2019 DAPA-HF publication.</p>
+<p>ARNI: angiotensin receptor-neprilysin inhibitor; SGLT2i: sodium-glucose cotransporter-2 inhibitor. Trends in mean medication utilization are shown over time by provider characteristics: physician, advance practice provider, or pharmacist provider type (Panel A), male or female sex (Panel B), and medical specialty (Panel C). Utilization increased for all categories throughout the study period. There were no substantial differences in trends over time by provider type or provider sex, but trends differed by specialty. HF: Heart Failure; ARNI: Angiotensin receptor-neprilysin inhibitor; SGLT2i: Sodium-glucose Cotransporter-2 Inhibitors</p>
+<p>The proportion of provider visits seeing a patient who had medication treatment in 4 categories with respect to discharge: 1) only before; 2) continued; 3) new start; or 4) no treatment within 6 months of discharge. Panels separately show provider visits by specialty for ARNI and SGLT2i for the entire study period (Panels A and B, respectively) as well limited to the visits in 2023 (Panels C and D, respectively) HF: Heart Failure; ARNI: Angiotensin receptor-neprilysin inhibitor; SGLT2i: Sodium-glucose Cotransporter-2 Inhibitors</p>
+<h3>Figure 1 :</h3>
+<p>Figure 1: Medication utilization over time, by provider characteristics</p>
+<h3>Figure 4 :</h3>
+<p>Figure 4: Novel medication treatment status by patient-provider visits, categorized by specialty</p>
+<h3>Table 1 :</h3>
+<p>Heart Failure (HF) cohort characteristics, stratified by receipt of ARNI and SGLT2i</p>
+<h3>Table 2 :</h3>
+<p>Provider-level treatment rate ratios (RR) and prevalent use (% use) by percentile, unadjusted. Each cell shows the RR, defined as the provider&#x27;s treatment rate at that percentile divided by the median provider&#x27;s rate in the same column, followed by the provider&#x27;s rate (% use) in parentheses.</p>
+<h3>Figure 2 :</h3>
+<p>Within-specialty variabilityHistograms show substantial variability in provider-level utilization of novel medications within each specialty.Overall median odds ratios (mORs) and breakdown of provider prescribing by specialty both show substantial variability in overall prescribing. Median odds ratios are adjusted for fiscal year quarter, patient age, gender, race, hypertension, renal function, type 2 diabetes, prior myocardial infarction, Veteran priority status, and VA site-level effects. HF: Heart Failure; ARNI: Angiotensin receptor-neprilysin inhibitor; SGLT2i: Sodium-glucose Cotransporter-2 Inhibitors</p>
+<h3>Figure 3 :</h3>
+<p>Forest Plot of Odds of receiving ARNI or SGLT2i treatment by specialty Adjusted odds ratios (ORs) for receiving respective medication class treatment for having seen vs having not seen the indicated specialty. ORs are adjusted for: time of prescription (by fiscal year quarter) as well as patient age, sex, race, hypertension, renal function, history of prior myocardial infarction, type 2 diabetes, and Veteran priority status. HF: Heart Failure; ARNI: Angiotensin receptor-neprilysin inhibitor; SGLT2i: Sodium-glucose Cotransporter-2 Inhibitors</p>
+<h3>References</h3>
+<p>Mcmurray JJV, Packer M, Desai AS, et al. Angiotensin-Neprilysin Inhibition versus Enalapril in Heart Failure. N Engl J Med. 2014;11:993-1004. doi:10.1056/NEJMoa1409077</p>
+<p>Zinman B, Wanner C, Lachin JM, et al. Empagliflozin, Cardiovascular Outcomes, and Mortality in Type 2 Diabetes. N Engl J Med. 2015;373(22):2117-2128. doi:10.1056/NEJMoa1504720</p>
+<p>Yancy CW, Jessup M, Bozkurt B, et al. 2016 ACC/AHA/HFSA focused update on new pharmacological therapy for heart failure: An update of the 2013 ACCF/AHA guideline for the management of heart failure: A report of the American College of Cardiology/American Heart Association Task Force on Clinic. Circulation. 2016;134(13):e282-e293. doi:10.1161/CIR.0000000000000435</p>
+<p>Fitchett D, Butler J, van de Borne P, et al. Effects of empagliflozin on risk for cardiovascular death and heart failure hospitalization across the spectrum of heart failure risk in the EMPA-REG OUTCOME® trial. Eur Heart J. 2018;39(5):363-370. doi:10.1093/eurheartj/ehx511</p>
+<p>McMurray JJV, Solomon SD, Inzucchi SE, et al. Dapagliflozin in Patients with Heart Failure and Reduced Ejection Fraction. N Engl J Med. Published online September 19, 2019. doi:10.1056/nejmoa1911303</p>
+<p>Maddox TM, Januzzi JL, Allen LA, et al. 2021 Update to the 2017 ACC Expert Consensus Decision Pathway for Optimization of Heart Failure Treatment: Answers to 10 Pivotal Issues About Heart Failure With Reduced Ejection Fraction: A Report of the American College of Cardiology Solution Set Oversight Committee. J Am Coll Cardiol. 2021;77(6):772-810. doi:10.1016/J.JACC.2020.11.022/SUPPL_FILE/MMC3.PDF</p>
+<p>Ahmad T, Desai NR. Quadruple Therapy Is the New Standard of Care for HFrEF. JACC Heart Fail. 2020;8(10):819-821. doi:10.1016/J.JCHF.2020.06.004</p>
+<p>Adhikari R, Jha K, Dardari Z, et al. National Trends in Use of Sodium-Glucose Cotransporter-2 Inhibitors and Glucagon-like Peptide-1 Receptor Agonists by Cardiologists and Other Specialties, 2015 to 2020. J Am Heart Assoc. 2022;11(9):23811.</p>
+<p>Pierce JB, Li Z, Greiner M, et al. Adoption of Sacubitril/Valsartan Among Patients With Heart Failure With Mildly Reduced or Preserved Ejection Fraction: The Get With The Guidelines-Heart Failure Registry. Circ Heart Fail. 2023;16(1). doi:10.1161/CIRCHEARTFAILURE.122.010176</p>
+<p>Warner AL, Lu L, Ghaznavi Z, Jackevicius CA. Inpatient Quality-of-Care Measures for Heart Failure: Treatment Gaps and Opportunities in the Contemporary Era. Circ Cardiovasc Qual Outcomes. 2022;15(10). doi:10.1161/CIRCOUTCOMES.122.008936</p>
+<p>Nanna MG, Kolkailah AA, Page C, Peterson ED, Navar AM. Use of Sodium-Glucose Cotransporter 2 Inhibitors and Glucagonlike Peptide-1 Receptor Agonists in Patients With Diabetes and Cardiovascular Disease in Community Practice. JAMA Cardiol. 2023;8(1):89-95. doi:10.1001/JAMACARDIO.2022.3839</p>
+<p>Hess PL, Langner P, Heidenreich PA, et al. National Trends in Hospital Performance in Guideline-Recommended Pharmacologic Treatment for Heart Failure at Discharge. JACC Heart Fail. Published online April 2024. doi:10.1016/J.JCHF.2024.02.014</p>
+<p>Swat SA, Xu H, Allen LA, et al. Opportunities and Achievement of Medication Initiation Among Inpatients With Heart Failure With Reduced Ejection Fraction. JACC Heart Fail. 2023;11(8 Pt 1):918- 929. doi:10.1016/J.JCHF.2023.04.015</p>
+<p>Greene SJ, Ayodele I, Pierce JB, et al. Eligibility and Projected Benefits of Rapid Initiation of Quadruple Therapy for Newly Diagnosed Heart Failure. JACC Heart Fail. 2024;12(8):1365-1377. doi:10.1016/J.JCHF.2024.03.001/SUPPL_FILE/MMC1.DOCX</p>
+<p>Tummalapalli SL, Montealegre JL, Warnock N, Green M, Ibrahim SA, Estrella MM. Coverage, Formulary Restrictions, and Affordability of Sodium-Glucose Cotransporter 2 Inhibitors by US Insurance Plan Types. JAMA Health Forum. 2021;2(12):e214205-e214205. doi:10.1001/JAMAHEALTHFORUM.2021.4205</p>
+<p>Eberly LA, Yang L, Essien UR, et al. Racial, Ethnic, and Socioeconomic Inequities in Glucagon- Like Peptide-1 Receptor Agonist Use Among Patients With Diabetes in the US. JAMA Health Forum. 2021;2(12):E214182. doi:10.1001/JAMAHEALTHFORUM.2021.4182</p>
+<p>Faridi KF, Dayoub EJ, Ross JS, Dhruva SS, Ahmad T, Desai NR. Medicare Coverage and Out-of- Pocket Costs of Quadruple Drug Therapy for Heart Failure. J Am Coll Cardiol. 2022;79(25):2516- 2525. doi:10.1016/J.JACC.2022.04.031</p>
+<p>Sandhu AT, Heidenreich PA. The Affordability of Guideline-Directed Medical Therapy: Cost Sharing is a Critical Barrier to Therapy Adoption. Circulation. 2021;143:1073-1075. doi:10.1161/CIRCULATIONAHA.120.053291</p>
+<p>Mebazaa A, Davison B, Chioncel O, et al. Articles Safety, tolerability, and efficacy of up-titration of guideline-directed medical therapies for acute heart failure (STRONG-HF): a multinational, open- label, randomised, trial. www.thelancet.com. 2022;400. doi:10.1016/S0140-6736(22)02076-1</p>
+<p>Virani SS, Maddox TM, Chan PS, et al. Provider Type and Quality of Outpatient Cardiovascular Disease Care. JACC. 2015;66(16):1803-1812. doi:10.1016/j.jacc.2015.08.017</p>
+<p>Alkabbani W, Gamble JM. Prescribing Trends of the Sodium-Glucose Cotransporter-2 Inhibitors Among Different Physician Specialties in Canada (2015-2021). Can J Diabetes. 2023;47(2):153-161. doi:10.1016/J.JCJD.2022.11.002</p>
+<p>Vaduganathan M, Sathiyakumar V, Singh A, et al. Prescriber Patterns of SGLT2i After Expansions of U.S. Food and Drug Administration Labeling. J Am Coll Cardiol. 2018;72(25):3370- 3372. doi:10.1016/j.jacc.2018.08.2202</p>
+<p>DeVore AD, Hill CL, Thomas L, et al. Patient, Provider, and Practice Characteristics Associated With Sacubitril/Valsartan Use in the United States. Circ Heart Fail. 2018;11(9):e005400. doi:10.1161/CIRCHEARTFAILURE.118.005400</p>
+<p>2023 VA Health Care Copay Rates | Veterans Affairs. Accessed October 17, 2023. https://www.va.gov/health-care/copay-rates/</p>
+<p>Hussain A, Ramsey D, Lee M, et al. Utilization Rates of SGLT2 Inhibitors Among Patients With Type 2 Diabetes, Heart Failure, and Atherosclerotic Cardiovascular Disease: Insights From the Department of Veterans Affairs. JACC Heart Fail. Published online May 17, 2023. doi:10.1016/J.JCHF.2023.03.024</p>
+<p>Salahuddin T, Hebbe A, Daus M, et al. Trends and Site-level Variation of Novel Cardiovascular Medication Utilization among Patients Admitted for Heart Failure or Coronary Artery Disease in the US Veterans Affairs System: 2017-2021. Am Heart J. Published online November 2023. doi:10.1016/J.AHJ.2023.11.009</p>
+<p>Mahtta D, Ramsey DJ, Lee MT, et al. Utilization Rates of SGLT2 Inhibitors and GLP-1 Receptor Agonists and Their Facility-Level Variation Among Patients With Atherosclerotic Cardiovascular Disease and Type 2 Diabetes: Insights From the Department of Veterans Affairs. Diabetes Care. 2022;45(2):372-380. doi:10.2337/DC21-1815</p>
+<p>Bates BA, Akhabue E, Nahass MM, et al. Validity of International Classification of Diseases (ICD)-10 Diagnosis Codes for Identification of Acute Heart Failure Hospitalization and Heart Failure with Reduced Versus Preserved Ejection Fraction in a National Medicare Sample. Circ Cardiovasc Qual Outcomes. 2023;16(2):E009078. doi:10.1161/CIRCOUTCOMES.122.009078</p>
+<p>McFarland MS, Groppi J, Jorgenson T, et al. Role of the US Veterans Health Administration Clinical Pharmacy Specialist Provider: Shaping the Future of Comprehensive Medication Management. Can J Hosp Pharm. 2020;73(2):152-158.</p>
+<p>2022 AHA/ACC/HFSA Guideline for the Management of Heart Failure: A Report of the American College of Cardiology/American Heart Association Joint Committee on Clinical Practice Guidelines | Circulation. Accessed April 19, 2026. https://www.ahajournals.org/doi/10.1161/CIR.0000000000001063</p>
+<p>McDonagh TA, Metra M, Adamo M, et al. 2021 ESC Guidelines for the diagnosis and treatment of acute and chronic heart failure. Eur Heart J. 2021;42(36):3599-3726. doi:10.1093/eurheartj/ehab368</p>
+<p>Knudsen JS, Baggesen LM, Lajer M, et al. Changes in SGLT2i and GLP-1RA real-world initiator profiles following cardiovascular outcome trials: A Danish nationwide population-based study.</p>
+<p>Shimosawa T, ed. PLOS ONE. 2020;15(3):e0229621. doi:10.1371/journal.pone.0229621</p>
+<p>Sumarsono A, Vaduganathan M, Ajufo E, et al. Contemporary Patterns of Medicare and Medicaid Utilization and Associated Spending on Sacubitril/Valsartan and Ivabradine in Heart Failure. JAMA Cardiol. 2020;5(3):336-339. doi:10.1001/JAMACARDIO.2019.4982</p>
+<p>Wei ET, Gregory P, Halpern DJ, et al. Impact of a clinical pharmacist on provider prescribing patterns in a primary care clinic. J Am Pharm Assoc. 2022;62(1):209-213.e1. doi:10.1016/J.JAPH.2021.10.007</p>
+<p>Ladhar S, Hawkins NM, Virani SA, Turgeon RD. Evaluation of PHARM-HF, a pharmacist-led heart failure medication titration clinic: A pre-post study. J Am Coll Clin Pharm. 2024;7(5):416-425. doi:10.1002/JAC5.1920</p>
+<p>Ahmed KO, Eldin IT, Yousif M, et al. Clinical Pharmacist&#x27;s Intervention to Improve Medication Titration for Heart Failure: First Experience from Sudan. Integr Pharm Res Pract. 2021;10:135. doi:10.2147/IPRP.S341621</p>
+<p>Raby J, Aggour H, George M, et al. Outpatient heart failure specialist care following acute heart failure hospitalisation improves long-term outcomes. Open Heart. 2025;12(2):e003432. doi:10.1136/openhrt-2025-003432</p>
+<p>Baudry G, Pereira O, Roubille F, et al. Cardiologist follow-up and improved outcomes of heart failure: a French nationwide cohort. Eur Heart J. 2025;46(31):3050-3065. doi:10.1093/eurheartj/ehaf218</p>
+<p>Docherty KF, Vaduganathan M, Solomon SD, McMurray JJV. Sacubitril/Valsartan: Neprilysin inhibition 5 Years after PARADIGM-HF. JACC Heart Fail. 2020;8(10):800. doi:10.1016/J.JCHF.2020.06.020</p>
+<p>Sangha V, Lipska K, Lin Z, et al. Patterns of Prescribing Sodium-Glucose Cotransporter-2 Inhibitors for Medicare Beneficiaries in the United States. Circ Cardiovasc Qual Outcomes. 2021;14(12):e008381. doi:10.1161/CIRCOUTCOMES.121.008381 Medical Characteristics BMI, mean (SD)</p>
+<p>Diabetes 38,397 (60.4) 7,951 (60.3)</p>
+<p>&lt;0.001 Hypertension 60,057 (94.4) 12,496 (94.7)</p>
+<p>COPD 28,815 (45.3) 5,251 (39.8)</p>
+<p>&lt;0.001 Prior Myocardial Infarction 21,389 (33.6) 4,535 (34.4)</p>
+<p>Values are n (%) unless otherwise indicated. Percentages are among patients with available data. P values are from χ² tests for categorical variables and t tests for continuous variables. ACEi: angiotensin-converting enzyme inhibitor; ARB: angiotensin receptor blocker; ARNI: angiotensin receptor-neprilysin inhibitor; BMI: body mass index; CABG: coronary artery bypass grafting; COPD: chronic obstructive pulmonary disease; eGFR: estimated glomerular filtration rate; HF: heart failure; MRA: mineralocorticoid receptor antagonist; PCI: percutaneous coronary intervention; SD: standard deviation; SGLT2i: sodium-glucose cotransporter-2 inhibitor; TIA: transient ischemic attack.</p>
 </div>
 </details>
 </div>
