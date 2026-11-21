@@ -198,7 +198,7 @@ Ethiopia: Multilevel analysis of the nationally representative 2024-2025
 DHS
 </p>
 <p class="meta">
-2026-11-12 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.09.26367692
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367692
 </p>
 </header>
 <div class="mc-main">
@@ -416,8 +416,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -800,9 +803,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -824,7 +831,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -839,9 +847,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -854,13 +880,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -880,6 +909,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -887,12 +922,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -993,6 +1034,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1012,6 +1073,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1267,19 +1363,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1389,6 +1567,116 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Population-based data on functional difficulty among school-age children in Ethiopia are scarce. The 2024-2025 Ethiopia Demographic and Health Survey (EDHS) included, for the first time, the UNICEF/Washington Group Child Functioning Module (CFM) for children aged 5-17 years. We estimated the prevalence and domain distribution of functional difficulty and associated factors in Ethiopia.</p>
+<p>Methods: We analysed cross-sectional EDHS data from 11,122 children aged 5-17 years (weighted n = 10,726) and 4,739 mothers. Functional difficulty was defined as &quot;a lot of difficulty&quot; or &quot;cannot do at all&quot; in any of 11 domains, or daily anxiety or depression. We estimated design-based prevalence and fitted multilevel logistic regression models (children within mothers within clusters) for any, non-affective and affective difficulty. Interviewer effects were examined with random-intercept models and within-cluster comparisons.</p>
+<p>Results: Overall, 9.5% (95% CI 8.1-11.1) of children had functional difficulty. Daily depression (6.8%) and anxiety (6.6%) dominated, and 70.3% of affected children had only affective difficulty. Difficulty in at least one non-affective domain affected 2.8% (2.2-3.7), with each domain at 0.5-1.4%. Prevalence ranged from 1.5% in Southwest Regional State, Ethiopia, to 16.5% in Oromia Regional State. In adjusted models, children not attending school had higher odds of non-affective difficulty (AOR 2.82, 95% CI 2.01-3.96), and girls had lower odds (AOR 0.63, 0.48-0.84). Outcomes clustered strongly within families (sibling correlation 67.7%) and clusters (ICC 20.9%). Six of 163 interviewers (7.9% of the weighted sample) contributed 58.2% of weighted cases of daily anxiety or depression; in the same clusters they recorded daily symptoms for 56.4% of children, against 2.1% for other interviewers. Excluding 11 statistically outlying interviewers reduced the prevalence of any difficulty to 4.6% (3.6-5.8) and of daily anxiety or depression to 3.3%. The associations with school non-attendance and sex were unchanged.</p>
+<p>Conclusions: Functional difficulties across the sensory, physical, cognitive, and affective domains, including anxiety or depression, affect about 2-3% of Ethiopian children aged 5-17 years and are strongly associated with being out of school. Appropriate interventions and resource allocation should be considered.</p>
+<h3>Background</h3>
+<p>Globally, one in ten children has at least one disability. They are more likely than other children to be out of school, to live in poverty, and to lack access to health and social protection [1]. The Convention on the Rights of Persons with Disabilities (RPD) and Sustainable Development Goal (SDG) target 4.5 require countries to identify children with disabilities and monitor their inclusion [1, 2]. Survey questions about diagnosed impairments undercount children in settings where diagnostic services are scarce and are not comparable across countries [3].</p>
+<p>UNICEF and the Washington Group on Disability Statistics therefore developed the Child Functioning Module (CFM), which is informed by the biopsychosocial model of disability [3] [4] [5].</p>
+<p>The module for children aged 5-17 years covers 13 domains: seeing, hearing, walking, self-care, communication, learning, remembering, concentrating, accepting change, controlling behaviour, making friends, and the frequency of anxiety and depression. A child is classified as having a functional difficulty if the respondent reports &quot;a lot of difficulty&quot; or &quot;cannot do at all&quot; in any domain, or if the child shows signs of anxiety or depression daily [4, 5]. The module has undergone cognitive and field testing, including in sub-Saharan Africa [4] [5] [6]. Because the affective items ask about the frequency of feelings, they may be more sensitive than the activity items to differences in how questions are translated, understood and administered. Interviewer effects are a recognised source of error in survey measures of sensitive or subjective constructs [7].</p>
+<p>Ethiopia ratified the Convention in 2010 and has adopted a Master Plan for Special Needs/Inclusive Education (2016-2025) [8]. National evidence on functional difficulty among school-age children has nevertheless been limited. The 2024-2025 Ethiopia Demographic and Health Survey (EDHS) is the first nationally representative Ethiopian survey to include the CFM for children aged 5-17 years. Its report gives a national prevalence of 9.4%, driven largely by anxiety and depression, with very large regional differences [8]. No study has examined the correlates of functional difficulty in these data while accounting for the clustering of children within families and communities, or assessed how robust the estimates are to measurement error. This study aimed to (i) estimate the prevalence of functional difficulty among children aged 5-17 years in Ethiopia, overall and by domain; (ii) identify child, maternal, household and community correlates, distinguishing non-affective difficulty from daily anxiety or depression; (iii) quantify variation between families and communities; and (iv) assess interviewer effects and their influence on the estimates.</p>
+<h3>Methods</h3>
+<h3>Data source and design</h3>
+<p>We used cross-sectional data from the 2024-2025 EDHS, conducted by the Ethiopian Statistical Service with technical support from ICF between August 2024 and April 2025 [8]. The survey used a two-stage stratified cluster design. In the first stage, 805 enumeration areas were selected with probability proportional to size from 27 strata defined by region and urban/rural residence.</p>
+<p>In the second stage, 28 households were selected in each area. Fieldwork was completed in 797 clusters; eight clusters in Amhara were excluded for security reasons. The household response rate was 98.8%, and 21,395 women aged 15-49 years were interviewed (96.2%) [8]. We followed the STROBE reporting guideline [9]; the completed checklist is provided in Additional file 3.</p>
+<h3>Study population and linkage of module records</h3>
+<p>The CFM was part of the Women&#x27;s Questionnaire and administered to a random 50% subsample of households. Mothers completed the module for each biological child aged 5-17 years who lived with them, starting with the youngest [8]. In the women recode file (ETIR8AFL), module responses are stored as up to nine repeated records per woman, each indexed to the birth history (idx97) and the pregnancy history (idx97p). We linked each record to the child via the pregnancyhistory index. For 10,450 records (94.0%), this identified a living child aged 5-17 years who lived with the mother. For the remaining 672 records (6.0%), the index pointed to a pregnancy that did not meet these criteria. In every such case, the number of unlinked eligible children matched the number of unlinked records. Among correctly linked records, the order of records matched the children&#x27;s age order (youngest first) for 100% of mothers. We therefore assigned the unlinked records to the unlinked eligible children in age order. With this linkage, the weighted numbers of boys (5,512) and girls (5,214), and of children attending (6,466) and not attending school (4,233), exactly reproduced the published figures [8]. The births recode file (ETBR8AFL) contains only one module record per woman, attached via idx97, and that record refers to an eligible child in only 22% of cases. It should therefore not be used for child-level analysis of the CFM. The analytic sample comprised all 11,122 module records (weighted n = 10,726, matching the survey report); 41 children with unknown school attendance were excluded from the regression models (n = 11,081).</p>
+<h3>Measurement of functional difficulty</h3>
+<p>We used the UNICEF and Washington Group on Disability Statistics-developed Child Functioning Module (CFM), developed in consultation with organisations of persons with disabilities and other stakeholder groups. Children who used glasses or hearing aids were asked about seeing or hearing difficulty while using the device; other children were asked about seeing or hearing difficulty directly. Children who used walking equipment or assistance were asked about walking 100 m and 500 m without and with it. Other children were asked to walk 100 m and 500 m, compared with children of the same age. The remaining domains were self-care; communication (being understood by people inside and outside the household); learning; remembering; concentrating; accepting change in routine; controlling behaviour; and making friends. Each had four response options (no difficulty, some difficulty, a lot of difficulty, cannot do at all). Anxiety and depression were assessed by how often the child seemed very anxious, nervous or worried, or very sad or depressed (daily, weekly, monthly, a few times a year, never) [4, 8].</p>
+<p>Following UNICEF/Washington Group syntax, a child was considered to have difficulty in a domain if the respondent reported &quot;a lot of difficulty&quot; or &quot;cannot do at all&quot;, or daily anxiety or depression [4, 5]. For device users, responses with the device were used for seeing and hearing, and responses without equipment were used for walking. The primary outcome was functional difficulty in at least one of the 13 domains. Secondary outcomes were (a) difficulty in at least one of the 11 non-affective domains (&quot;non-affective difficulty&quot;), (b) daily anxiety or depression (&quot;affective difficulty&quot;), and (c) difficulty in two or more domains. A broader cut-off (&quot;some difficulty&quot; or worse; anxiety or depression at least weekly) was used descriptively. Our national estimate (9.5%) differs from the published 9.4% only because the survey report did not count difficulty reported by device users while using their device. All domain-specific estimates matched the report to within 0.1 percentage points [8].</p>
+<h3>Predictor variables</h3>
+<p>Predictor variables were selected a priori from the literature on disability and child functioning [1, 10, 11]. Child-level variables were age (5-9, 10-14, 15-17 years), sex and attendance at school during the current school year. We obtained school attendance from the household roster and linked it by the child&#x27;s line number. Maternal and household variables were mother&#x27;s age (15-29, 30-39, 40-49 years), mother&#x27;s highest education, sex of the household head, household size and wealth quintile. Community variables were place of residence and region (14 regions and chartered cities).</p>
+<h3>Statistical analysis</h3>
+<p>Prevalence estimates accounted for the women&#x27;s sampling weights, the 792 primary sampling units and the 27 strata (765 design degrees of freedom), with Taylor-linearised standard errors and logit-transformed 95% confidence intervals (CI). Differences across groups were tested with design-adjusted Wald F tests.</p>
+<p>Because siblings share a mother and children share communities, we fitted three-level randomintercept logistic regression models (children within mothers within clusters). These were estimated by maximum likelihood with nested Gauss-Hermite quadrature (25 points per level; estimates changed by less than 0.01 on the log-odds scale with 40 points). For each outcome, a null model provided the variance at each level, and a full model included all explanatory variables, with residence and region as fixed effects. Crude odds ratios were obtained from models with one variable at a time. We report adjusted odds ratios (AOR) with 95% CIs.</p>
+<p>Between-cluster variation is summarised by the intraclass correlation (ICC = σ²(cluster)/[σ²(cluster) + σ²(mother) + π²/3]), the median odds ratio (MOR) and the proportional change in cluster variance (PCV) [12, 13]. The sibling correlation is [σ²(cluster) + σ²(mother)]/[σ²(cluster) + σ²(mother) + π²/3]. Multilevel models were unweighted, an accepted approach when level-specific weights are not available [14]. We fitted design-based single-level logistic regressions, which give population-averaged odds ratios, as a sensitivity analysis. To examine educational exclusion, we modelled non-attendance at school among children aged 7-17 years, with non-affective and affective difficulty as exposures.</p>
+<p>Interviewer effects were assessed in three ways. First, we compared the fit (Akaike information criterion, AIC) of two-level models for affective and non-affective difficulty with a random intercept for cluster or for interviewer. Second, for each of the 163 interviewers, we compared the number of children with daily anxiety or depression with the number expected from the other interviewers working in the same clusters, using a Mantel-Haenszel test stratified by cluster; interviewers with Bonferroni-corrected one-sided p &lt; 0.05 were flagged. Because interviewers within a team worked in the same clusters, this comparison holds the community constant. Third, we repeated all analyses after excluding children interviewed by flagged interviewers. Analyses were performed in Python 3.13 (NumPy, SciPy, pandas). The analysis code was written and run with assistance from Claude (Anthropic), an AI model, using the DHS data files obtained by the authors. The authors independently verified all estimates in Stata version 18. The code is provided in Additional file 2.</p>
+<h3>Ethical considerations</h3>
+<p>This study was a secondary analysis of publicly available, de-identified data from the DHS Program, and the researchers did not interact with participants. No separate ethical approval was sought for this analysis; we obtained permission from the DHS Program to access and use the data, and the datasets were downloaded from https://dhsprogram.com/data/available-datasets.cfm. Ethical approval for the original 2024-25 EDHS data collection was granted to the survey implementers by the Ethiopian Public Health Institute Institutional Review Board and the ICF Institutional Review Board, and informed consent was obtained from all respondents at the time of the survey [8].</p>
+<h3>Results</h3>
+<h3>Study population</h3>
+<p>The 11,122 children (weighted n = 10,726) belonged to 4,739 mothers in 792 clusters. Half (49.9%) were aged 5-9 years, 51.4% were boys, 76.6% lived in rural areas and 60.3% were attending school. Most (61.3%) had mothers with no formal education (Table 1).</p>
+<h3>Prevalence and domain distribution</h3>
+<p>Overall, 9.5% (95% CI 8.1-11.1) of children had functional difficulty in at least one domain (Table 2). Daily depression (6.8%, 5.6-8.3) and daily anxiety (6.6%, 5.4-8.1) were the most common. Each non-affective domain was reported for 0.5% (seeing) to 1.4% (walking, controlling behaviour) of children. In total, 2.8% (2.2-3.7) had difficulty in at least one nonaffective domain and 8.0% (6.6-9.6) had daily anxiety or depression. The two affective items largely overlapped: 5.5% of children had both. Consequently, 6.6% had difficulty in two or more domains, and 70.3% (62.0-77.5) of children with any difficulty had affective difficulty only.</p>
+<p>Daily anxiety or depression was reported for 45.7% of children with non-affective difficulty, compared with 6.9% of other children. With the broader cut-off, 26.4% (23.9-29.0) of children had at least some difficulty, including 12.9% (11.1-14.9) in non-affective domains.</p>
+<h3>Variation by background characteristics</h3>
+<p>Prevalence declined with age, from 10.9% at 5-9 years to 7.1% at 15-17 years (p = 0.040). It did not differ significantly by sex (9.9% vs 9.2%), school attendance (10.0% vs 8.8%), mother&#x27;s education, wealth or residence (Table 1). Prevalence was higher among children of mothers aged 15-29 (14.4%) or 40-49 years (11.0%) than among those of mothers aged 30-39 years (7.3%; p = 0.004). Regional differences were large (p &lt; 0.001), from 1.5% in South West Ethiopia, 2.8% in Central Ethiopia and 3.3% in Amhara and Sidama to 11.4% in Gambella and 16.5% in Oromia.</p>
+<p>In Oromia, 15.3% of children had daily anxiety or depression, whereas non-affective difficulty (3.6%) was similar to that in other regions.</p>
+<h3>Multilevel analysis</h3>
+<p>Functional difficulty was strongly clustered (Table 3). In the null model for any difficulty, the variance was 2.12 between clusters and 4.77 between mothers. This gave a cluster ICC of 20.9%, a sibling correlation of 67.7% and a cluster MOR of 4.02. Clustering was strongest for affective difficulty (cluster ICC 27.8%; sibling correlation 77.3%) and weaker for non-affective difficulty (14.9%; 54.5%). The explanatory variables explained 52.2% of the cluster-level variance for any difficulty and 61.8% for affective difficulty, mainly through region, but only 22.4% for nonaffective difficulty.</p>
+<p>In the full models, children not attending school had higher odds of any difficulty (AOR 1.91, 95% CI 1.46-2.50) and of non-affective difficulty (AOR 2.82, 2.01-3.96). Girls had lower odds of non-affective difficulty than boys (AOR 0.63, 0.48-0.84). Children of mothers with primary education had higher odds of any difficulty than those of mothers with no education (AOR 1.57, 1.09-2.24). For affective difficulty, odds were higher among children of mothers aged 40-49 years (AOR 1.84, 1.02-3.32) and lower in households of 5-7 members (AOR 0.58, 0.35-0.97) and in rural areas (AOR 0.49, 0.24-1.00). Compared with Addis Ababa, odds of any difficulty were higher in Oromia (AOR 12.58, 4.72-33.56), Gambella (AOR 4.57, 1.59-13.15) and Afar (AOR 3.21, 1.12-9.22). The excess in Oromia was confined to affective difficulty (AOR 46.52 vs 1.17 for non-affective difficulty). Wealth, sex of household head and age were not independently associated with any outcome. Population-averaged odds ratios from design-based models were smaller, as expected given the large random-effect variances (Additional file 1, Table S2).</p>
+<p>Among children aged 7-17 years (n = 8,665), non-attendance at school was strongly associated with non-affective difficulty (AOR 4.21, 2.61-6.81) but not with affective difficulty (AOR 1.08, 0.71-1.66) (Additional file 1, Table S1). Unadjusted non-attendance was similar among children with non-affective difficulty (34.9%) and without any difficulty (33.6%), because non-affective difficulty was reported more often in better-off, more educated and urban households where attendance is high.</p>
+<h3>Interviewer effects</h3>
+<p>For affective difficulty, a model with an interviewer random intercept fitted the data much better than one with a cluster random intercept (AIC 2,947 vs 3,401). The interviewer ICC was 43.9%, compared with 24.9% for non-affective difficulty (Table 4). The proportion of interviewed children with daily anxiety or depression ranged from 0% to 72.6% across the 16 interviewers in Oromia. Six of 163 interviewers nationally (four in Oromia, one each in Somali and Harari) recorded daily anxiety or depression for more than 30% of the children they interviewed. These six interviewers covered 273 children (7.9% of the weighted sample) but accounted for 58.2% of the weighted cases of daily anxiety or depression. In the 54 clusters where they worked, 56.4% of the children they interviewed had daily anxiety or depression, compared with 2.1% of the children interviewed by other interviewers in the same clusters. They also recorded non-affective difficulty for 13.2% of children, compared with 1.5%. The cluster-stratified Mantel-Haenszel test flagged 11 interviewers (8 regions; 655 children, 11.1% of the weighted sample; Additional file 1, Table S3).</p>
+<p>After excluding children interviewed by flagged interviewers, the prevalence of any difficulty was 4.6% (3.6-5.8), of non-affective difficulty 1.7% (1.3-2.2), and of daily anxiety or depression 3.3% (2.4-4.5) (Tables 2 and 4). In Oromia, prevalence fell from 16.5% to 6.4%, and the range across regions narrowed to 1.5-9.4%. The associations of non-attendance with any difficulty (AOR 1.84, 1.39-2.43) and with non-affective difficulty (AOR 2.96, 2.07-4.24), and of female sex with non-affective difficulty (AOR 0.61, 0.46-0.83), were essentially unchanged. The Oromia excess in affective difficulty was much smaller (AOR 6.16, 1.79-21.13) (Additional file 1, Table S1).</p>
+<h3>Discussion</h3>
+<p>We found that 1 in 10 children aged 5-17 years (9.5%) had functional difficulties in Ethiopia, per the UNICEF/Washington Group CFM definition. This is close to the global estimate [1]. About 2.8% of children had difficulty in sensory, physical, communication, cognitive or behavioural domains, and 70% of children classified as having a functional difficulty had affective difficulties, including anxiety and depression, alone. We also found that functional difficulties were strongly clustered within families and communities. Anxiety and depression items, and to a lesser extent the other items, showed large interviewer effects that account for much of the national prevalence and most regional differences.</p>
+<p>The interviewer findings are the most consequential. Daily anxiety or depression was recorded for over half of the children seen by a few interviewers and for about 2% of the children seen by their colleagues in the same clusters, where children shared communities, services and exposure to adversity. Differences in true prevalence cannot plausibly explain this pattern, because household allocation within clusters is not related to child characteristics. The pattern points instead to differences in how the questions were asked, translated or recorded, a known risk for subjective items [7]. Possible mechanisms include reading the frequency options incompletely, translating &quot;very anxious&quot; or &quot;very sad&quot; as milder states, or recording default answers. Other evidence supports this interpretation. Siblings were highly correlated (sibling correlation 77% for affective difficulty), as expected if a single respondent-interviewer pair answers for all children in a family. The regional excess was confined to affective items. Prevalence in conflict-affected Tigray and Amhara was low, which argues against an explanation based only on exposure to adversity. Excluding flagged interviewers halved the national prevalence and removed most of the regional variation. We do not regard the trimmed estimates as definitive, because exclusion may also remove some true cases. They show, however, that published CFM estimates for Ethiopia, especially for anxiety, depression and regional comparisons, carry substantial measurement uncertainty that is not captured by sampling errors.</p>
+<p>The non-affective estimates were more robust, and their correlates were consistent across analyses. Children with sensory, physical or cognitive difficulty had about three to four times the odds of being out of school, after adjustment and after excluding flagged interviewers. This agrees with evidence from 30 countries that disability is among the strongest predictors of school exclusion [11]. It also underlines the importance of Ethiopia&#x27;s inclusive education master plan [8]. The raw comparison showed no attendance gap, because non-affective difficulty was reported more often in urban, wealthier and more educated households where attendance is high. This reversal of the expected poverty-disability gradient [10] most likely reflects differences in awareness and reporting: caregivers with more education and access to services may recognise and report difficulties more readily. Higher mortality among children with severe impairments in poorer settings may also contribute. Boys had higher odds of non-affective difficulty than girls, in line with the male excess in developmental and behavioural conditions reported elsewhere [1].</p>
+<p>The predominance of affective items has practical implications. If CFM estimates are reported only as a single indicator, they may be read as describing physical or sensory disability when they largely reflect affective symptoms. These symptoms were also the most error-prone component.</p>
+<p>We recommend that the EDHS and future surveys report non-affective and affective difficulty separately. Interviewer training on the affective items should be strengthened and supported by case vignette, and interviewer-level monitoring should be included in field supervision. The anxiety and depression items should be validated cognitively and against clinical measures in Ethiopia&#x27;s main languages. Child and adolescent mental health needs in Ethiopia are real and largely unmet [15, 16], but planning services for them requires better measurement than these data currently provide.</p>
+<h3>Strengths and limitations</h3>
+<p>Strengths include nationally representative data, an internationally standardised instrument, a linkage of module records to children that reproduced the published totals exactly, three-level models that separate family and community variation, and an explicit assessment of interviewer effects. Limitations include the cross-sectional design, and reliance on maternal report with no clinical assessment. Children who did not live with their mothers, including some of those most likely to have disabilities, were excluded. The cross-language validity of the items is unknown.</p>
+<p>We could not fit models with crossed cluster and interviewer effects, so interviewer and community influences are only partly separated, although the within-cluster comparison addresses this directly. Flagging interviewers relies on a statistical criterion and may misclassify some interviewers who worked with genuinely high-need families. Finally, 6% of module records required probabilistic linkage, although the rule we applied was supported by the perfect concordance between record order and age among correctly linked records.</p>
+<h3>Conclusions</h3>
+<p>About 3% of Ethiopian children aged 5-17 years have difficulty in sensory, physical, communication, cognitive or behavioural functioning, and these children are much more likely to be out of school. Headline estimates of about 10% are driven by reports of daily anxiety and depression, which were highly sensitive to the interviewer. Policy and research should treat the non-affective and affective components separately, strengthen inclusive education for children with functional difficulty, and invest in better measurement of child mental health in national surveys.</p>
+<p>permission to use the data was obtained from the DHS Program. The original 2024-25 EDHS data collection was approved by the Ethiopian Public Health Institute Institutional Review Board and the ICF Institutional Review Board, and informed consent was obtained from all participants by the survey implementers [8].</p>
+<h3>Responsible AI use</h3>
+<p>Claude (Anthropic) assisted with data management and analysis code, and with drafting the manuscript. The authors reviewed and verified all analyses, results and text, and take full responsibility for them.</p>
+<p>Consent for publication: Not applicable. Additional file 1, Table S1. Sensitivity analysis excluding flagged interviewers (three-level models, n = 10,428) and model for school non-attendance among children aged 7-17 years (all interviewers, n = 8,665)</p>
+<p>Variable Any difficulty, AOR (95% CI) Non-affective, AOR (95% CI) Daily anxiety/depression, AOR (95% CI) Not attending school (7-17 y), AOR (95% CI) Age (years) 7-9 (ref) 1.00 1.00 1.00 1.00 10-14 1.07 (0.82-1.38) 0.98 (0.70-1.37) 1.05 (0.74-1.49) 0.33 (0.28-0.39)*** 15-17 0.79 (0.52-1.19) 0.63 (0.36-1.10) 0.90 (0.53-1.53) 0.73 (0.58-0.91)** Sex Male (ref) 1.00 1.00 1.00 1.00 Female 0.84 (0.67-1.06) 0.61 (0.46-0.83)** 1.20 (0.88-1.64) 1.13 (0.98-1.31) School attendance (current year) Attending (ref) 1.00 1.00 1.00 -Not attending 1.84 (1.39-2.43)*** 2.96 (2.07-4.24)*** 1.15 (0.78-1.69) -Mother&#x27;s age (years) 15-29 (ref) 1.00 1.00 1.00 1.00 30-39 0.79 (0.55-1.12) 0.85 (0.55-1.33) 0.92 (0.55-1.52) 0.71 (0.53-0.95)* 40-49 1.10 (0.73-1.66) 1.29 (0.78-2.13) 1.31 (0.73-2.33) 0.99 (0.72-1.37) Mother&#x27;s education No education (ref) 1.00 1.00 1.00 1.00 Primary 1.44 (1.03-2.02)* 1.42 (0.94-2.15) 1.13 (0.71-1.80) 0.46 (0.36-0.60)*** Secondary 1.23 (0.71-2.14) 1.19 (0.59-2.42) 1.08 (0.52-2.24) 0.29 (0.17-0.50)*** More than secondary 1.21 (0.62-2.37) 1.49 (0.65-3.45) 0.67 (0.26-1.69) 0.19 (0.08-0.44)*** Sex of household head Male (ref) 1.00 1.00 1.00 1.00 Female 1.30 (0.94-1.81) 1.39 (0.94-2.06) 1.08 (0.69-1.71) 1.36 (1.04-1.77)* Household size (members) ≤4 (ref) 1.00 1.00 1.00 1.00 5-7 0.71 (0.49-1.04) 0.93 (0.58-1.49) 0.55 (0.34-0.91)* 1.18 (0.87-1.62) ≥8 0.77 (0.50-1.19) 0.87 (0.50-1.50) 0.61 (0.34-1.09) 1.80 (1.26-2.57)** Wealth quintile Variable Any difficulty, AOR (95% CI) Non-affective, AOR (95% CI) Daily anxiety/depression, AOR (95% CI) Not attending school (7-17 y), AOR (95% CI) Lowest (ref) 1.00 1.00 1.00 1.00 Second 0.89 (0.58-1.36) 1.07 (0.64-1.81) 0.77 (0.43-1.39) 0.45 (0.34-0.60)*** Middle 1.05 (0.67-1.67) 1.23 (0.69-2.17) 1.00 (0.54-1.85) 0.22 (0.15-0.30)*** Fourth 0.79 (0.46-1.34) 1.30 (0.69-2.47) 0.61 (0.30-1.25) 0.15 (0.10-0.23)*** Highest 0.85 (0.43-1.65) 1.06 (0.45-2.50) 0.69 (0.29-1.67) 0.03 (0.02-0.06)*** Residence Urban (ref) 1.00 1.00 1.00 1.00 Rural 0.54 (0.33-0.87)* 0.82 (0.46-1.47) 0.36 (0.19-0.69)** 1.13 (0.71-1.82) Region Tigray 2.27 (0.92-5.57) 1.35 (0.49-3.71) 1.80 (0.50-6.41) 2.75 (0.64-11.74) Afar 1.88 (0.72-4.90) 1.23 (0.42-3.60) 1.13 (0.28-4.56) 8.14 (1.86-35.49)** Amhara 0.94 (0.35-2.52) 0.38 (0.12-1.22) 1.34 (0.34-5.30) 32.31 (7.55-138.34)*** Oromia 2.36 (0.95-5.86) 0.34 (0.11-1.05) 6.16 (1.79-21.13)** 3.94 (0.93-16.63) Somali 0.74 (0.28-1.98) 0.51 (0.17-1.52) 0.61 (0.15-2.52) 25.51 (5.92-110.01)*** Benishangul-Gumuz 2.39 (0.92-6.18) 0.95 (0.32-2.84) 3.75 (1.02-13.76)* 1.90 (0.42-8.49) Central Ethiopia 0.88 (0.34-2.33) 0.36 (0.11-1.13) 2.05 (0.56-7.42) 1.64 (0.38-7.15) Sidama 1.01 (0.39-2.65) 0.42 (0.14-1.31) 1.75 (0.47-6.44) 4.74 (1.10-20.41)* South West Ethiopia 0.44 (0.15-1.31) 0.26 (0.07-0.89)* 0.30 (0.06-1.62) 10.84 (2.51-46.88)** South Ethiopia 0.46 (0.16-1.32) 0.16 (0.04-0.58)** 0.67 (0.16-2.85) 11.59 (2.71-49.59)*** Gambella 4.10 (1.60-10.51)** 1.49 (0.51-4.40) 6.41 (1.77-23.26)** 0.85 (0.18-3.94) Harari 0.92 (0.31-2.68) 0.47 (0.13-1.64) 1.22 (0.28-5.36) 3.06 (0.65-14.36) Addis Ababa (ref) 1.00 1.00 1.00 1.00 Dire Dawa 2.06 (0.78-5.44) 1.06 (0.35-3.20) 2.69 (0.71-10.17) 1.24 (0.26-6.03) Type of functional difficulty (exposure in school model) Any non-affective difficulty ---4.21 (2.61-6.81)*** Daily anxiety or depression ---1.08 (0.71-1.66) The school model includes all variables shown except school attendance, plus the two difficulty indicators; the age reference is 7-9 years. * p &lt; 0.05; ** p &lt; 0.01; *** p &lt; 0.001. . Additional file 1, Table S2. Population-averaged odds ratios from design-based single-level logistic regression (selected variables; models include all covariates in Table 3) Variable Any difficulty Non-affective Daily anxiety/depression Any, excl. flagged Non-affective, excl. flagged Not attending school (vs attending) 0.95 (0.72-1.24) 1.40 (0.80-2.46) 0.82 (0.62-1.08) 1.42 (1.01-1.99)* 2.62 (1.44-4.76)** Female (vs male) 0.93 (0.71-1.21) 0.80 (0.49-1.29) 0.98 (0.72-1.34) 0.85 (0.58-1.24) 0.68 (0.41-1.10) Rural (vs urban) 0.73 (0.44-1.21) 0.47 (0.17-1.30) 0.71 (0.38-1.30) 0.36 (0.15-0.88)* 0.66 (0.30-1.45) Oromia (vs Addis Ababa) 3.38 (1.46-7.80)** 0.97 (0.36-2.64) 4.96 (1.67-14.69)** 1.82 (0.70-4.74) 0.27 (0.08-0.88)* Gambella (vs Addis Ababa) 1.76 (0.72-4.34) 0.70 (0.21-2.37) 2.05 (0.65-6.47) 1.90 (0.69-5.21) 1.11 (0.36-3.41) Mother primary education (vs none) 1.28 (0.74-2.23) 0.70 (0.33-1.47) 1.22 (0.64-2.31) 1.44 (0.90-2.29) 1.15 (0.65-2.04)</p>
+<p>Population-averaged odds ratios are expected to be closer to 1 than the conditional odds ratios from multilevel models when random-effect variances are large.</p>
+<h3>Additional file 2. Stata do file</h3>
+<p>/*============================================================================== EDHS 2024-25 | Child Functioning Module (5-17 y) --correct child-level file Use the WOMEN&#x27;S file (ETIR8AFL), NOT the births file (ETBR8AFL): -ETBR8AFL holds only ONE CFM record per woman (4,735 of 11,122) and attaches it through idx97, which points to an eligible 5-17 y child in only 22% of cases. -ETIR8AFL holds up to 9 CFM records per woman: sfcf*_1 ... sfcf*_9, indexed to the pregnancy history by idx97p_k. Validation targets: N = 11,122; weighted N = 10,726; boys 5,512 / girls 5,214; attending 6,466 / not attending 4,233; any difficulty 9.5% (report 9.4%, which ignores device users&#x27; with-device answers); anxiety 6.6%; depression 6.8%. ==============================================================================*/ version 17 clear all set more off global ir &quot;C:\Awoke\EDHS and STEPS\ETIR8ADT\ETIR8AFL.dta&quot; global pr &quot;C:\Awoke\EDHS and STEPS\ETPR8ADT\ETPR8AFL.dta&quot; global out &quot;C:\Awoke\EDHS and STEPS\CFM_out&quot; cap mkdir &quot;$out&quot; *- ---------------------------------------------------------------1. pregnancy history (long) use caseid pidx_* p4_* p5_* p9_* p16_* p19_* using &quot;$ir&quot;, clear reshape long pidx_ p4_ p5_ p9_ p16_ p19_, i(caseid) j(j) string drop if missing(pidx_) rename (pidx_ p4_ p5_ p9_ p16_ p19_) (pidx p4 p5 p9 p16 p19) drop j tempfile preg save `preg&#x27; *- ---------------------------------------------------------------2. CFM records (long) use caseid v001 v002 v005 v012 v021 v022 v024 v025 v028 v106 v136 v151 v190 /// idx97_* idx97p_* sfcf*_* using &quot;$ir&quot;, clear reshape long idx97_ idx97p_ sfcf1_ sfcf2_ sfcf3_ sfcf6a_ sfcf6b_ sfcf8a_ sfcf8b_ /// sfcf10_ sfcf11_ sfcf12_ sfcf13_ sfcf14_ sfcf15_ sfcf16_ sfcf17_ sfcf18_ /// sfcf19_ sfcf20_ sfcf21_ sfcf22_ sfcf23_ sfcf24_ sfcf25_ sfcf26_, i(caseid) j(slot) drop if missing(idx97p_) rename *_ * count // 11,122 *- ---------------------------------------------------------------3. link to child via idx97p gen pidx = idx97p merge m:1 caseid pidx using `preg&#x27;, keep(master match) nogen gen ok = inrange(p19,60,204) &amp; p5==1 &amp; p9==0 tab ok // 10,450 ok ; 672 to re-link * Re-link: for each mother, unlinked records (in slot order) get her unlinked * eligible children (youngest first). Order check among ok records = 100%. preserve keep if ok keep caseid pidx tempfile used save `used&#x27; restore preserve use `preg&#x27;, clear keep if inrange(p19,60,204) &amp; p5==1 &amp; p9==0 merge 1:1 caseid pidx using `used&#x27;, keep(master) nogen sort caseid p19 pidx by caseid: gen r = _n tempfile free save `free&#x27; restore preserve keep if ! ok keep caseid slot sort caseid slot by caseid: gen r = _n merge 1:1 caseid r using `free&#x27;, keep(master match) nogen rename (pidx p4 p5 p9 p16 p19) (n_pidx n_p4 n_p5 n_p9 n_p16 n_p19) keep caseid slot n_* tempfile relink save `relink&#x27; restore gen d_anx = sfcf25==1 gen d_dep = sfcf26==1 egen ndom = rowtotal(d_see-d_dep) egen nnon = rowtotal(d_see-d_frnd) gen anyfd = ndom&gt;0 gen nonaff = nnon&gt;0 gen aff = d_anx | d_dep *- ---------------------------------------------------------------6. covariates gen age = floor(p19/12) recode age (5/9=1 &quot;5-9&quot;) (10/14=2 &quot;10-14&quot;) (15/17=3 &quot;15-17&quot;), gen(agegrp) gen female = p4==2 gen notatt = hv121==0 if inlist(hv121,0,2) recode v012 (15/29=1 &quot;15-29&quot;) (30/39=2 &quot;30-39&quot;) (40/49=3 &quot;40-49&quot;), gen(mage) recode v136 (1/4=1 &quot;&lt;=4&quot;) (5/7=2 &quot;5-7&quot;) (8/max=3 &quot;&gt;=8&quot;), gen(hhsize) gen femhead = v151==2 gen rural = v025==2 gen wt = v005/1e6 save &quot;$out\cfm_5_17_child.dta&quot;, replace *----------------------------------------------------------------7. validation + descriptives svyset v021 [pw=wt], strata(v022) singleunit(centered) svy: mean anyfd nonaff aff d_* total wt tab p4 [iw=wt] tab notatt [iw=wt] *- ---------------------------------------------------------------8. three-level models (as in manuscript Table S3. Interviewers flagged for excess reports of daily anxiety or depression (cluster-stratified Mantel-Haenszel test, Bonferroni p &lt; 0.05/163) Interviewer ID (v028) Region Children (n) Daily anxiety/depression (%) Expected cases a Observed cases z 1406 Oromia 83 71.1 20.3 59 12.5 1508 Oromia 97 46.4 23.6 45 7.5 1311 Oromia 35 62.9 8.4 22 6.6 406 Afar 75 21.3 5.4 16 5.7 1802 Somali 20 65.0 5.0 13 5.6 2806 Gambella 29 27.6 2.2 8 5.1 1207 South Ethiopia 114 23.7 16.0 27 4.4 307 Tigray 85 11.8 4.1 10 3.9 3102 Harari 17 35.3 1.8 6 3.8 1507 Oromia 21 42.9 3.6 9 3.7 706 Amhara 79 5.1 1.1 4 3.6 a Expected from the proportion recorded by other interviewers in the same clusters.</p>
+<h3>Acknowledgements:</h3>
+<p>We thank the DHS Program and the Ethiopian Statistical Service for access to the data, and the families who took part in the survey.</p>
+<h3>Funding: None</h3>
+<p>Authors&#x27; contributions: MD conceptualised the study and led the data analysis. AM drafted the manuscript. Both authors read and approved the final manuscript.</p>
+<h3>Availability of data and materials:</h3>
+<p>The datasets are available from the DHS Program (https://dhsprogram.com) on registration. Analysis code, including the record-linkage procedure, is provided in Additional file 2.</p>
+<h3>Competing interests:</h3>
+<p>The authors declare that they have no competing interests.</p>
+<h3>Declarations</h3>
+<p>Ethics approval and consent to participate: Not applicable for this secondary analysis. The study used publicly available, de-identified data from the DHS Program, with no interaction between the researchers and the participants;</p>
+<h3>Table 1.</h3>
+<p>Characteristics of children aged 5-17 years and weighted prevalence of functional difficulty, Ethiopia DHS 2024-2025 (n = 11,122) Weighted percentages and prevalence account for sampling weights, clustering and stratification. Non-affective difficulty: &quot;a lot of difficulty&quot; or &quot;cannot do at all&quot; in any of 11 domains other than anxiety and depression. School attendance unknown for 41 children.</p>
+<h3>Table 2.</h3>
+<p>Prevalence of functional difficulty by domain among children aged 5-17 years, Ethiopia DHS 2024-2025</p>
+<h3>Table 3.</h3>
+<p>Factors associated with functional difficulty among children aged 5-17 years: three-level mixed-effects logistic regression (children within mothers within clusters), Ethiopia DHS 2024-2025 (n = 11,081) : crude odds ratio (three-level model with the variable alone); AOR: adjusted odds ratio (all variables shown); ref: reference category; ICC: intraclass correlation coefficient; MOR: median odds ratio; PCV: proportional change in cluster variance from null to full model; AIC: Akaike information criterion. * p &lt; 0.05; ** p &lt; 0.01; *** p &lt; 0.001.</p>
+<h3>Table 4.</h3>
+<p>Interviewer effects and sensitivity of prevalence estimates, Ethiopia DHS 2024-2025 11 of 163 interviewers with Bonferroni-corrected one-sided p &lt; 0.05 in a Mantel-Haenszel test comparing their cases of daily anxiety or depression with those of other interviewers in the same clusters; 655 children (11.1% of the weighted sample) excluded.</p>
+<h3>Table 3 )</h3>
+<p>global x i.agegrp i.female i.notatt i.mage i.v106 i.femhead i.hhsize i.v190 i.rural ib14.v024 foreach y in anyfd nonaff aff { melogit `y&#x27; || v001: || caseid:, or intpoints(25)</p>
+<h3>AbbreviationsAIC:</h3>
+<p>Akaike information criterion; AOR: adjusted odds ratio; CFM: Child Functioning Module; CI: confidence interval; EDHS: Ethiopia Demographic and Health Survey; ICC: intraclass correlation coefficient; MOR: median odds ratio; PCV: proportional change in variance; UNICEF: United Nations Children&#x27;s Fund.</p>
+<h3>References</h3>
+<p>United Nations Children&#x27;s Fund. Seen, counted, included: using data to shed light on the well-being of children with disabilities. New York: UNICEF; 2021.</p>
+<p>Loeb M, Mont D, Cappa C, De Palma E, Madans J, Crialesi R. The development and testing of a module on child functioning for identifying children with disabilities on surveys. I: Background. Disabil Health J. 2018;11(4):495-501.</p>
+<p>Massey M. The development and testing of a module on child functioning for identifying children with disabilities on surveys. II: Question development and pretesting. Disabil Health J. 2018;11(4):502-9.</p>
+<p>Cappa C, Mont D, Loeb M, Misunas C, Madans J, Comic T, et al. The development and testing of a module on child functioning for identifying children with disabilities on surveys. III: Field testing. Disabil Health J. 2018;11(4):510-8.</p>
+<p>Zia N, Loeb M, Kajungu D, Galiwango E, Diener-West M, Wegener S, et al. Adaptation and validation of UNICEF/Washington Group Child Functioning Module at the Iganga-Mayuge health and demographic surveillance site in Uganda. BMC Public Health. 2020;20(1):1334.</p>
+<p>West BT, Blom AG. Explaining interviewer effects: a research synthesis. J Surv Stat Methodol. 2017;5(2):175-211.</p>
+<p>Ethiopian Statistical Service (ESS), ICF. Ethiopia Demographic and Health Survey 2024-2025. Addis Ababa and Rockville, Maryland: ESS and ICF; 2026.</p>
+<p>von Elm E, Altman DG, Egger M, Pocock SJ, Gøtzsche PC, Vandenbroucke JP. The Strengthening the Reporting of Observational Studies in Epidemiology (STROBE) statement: guidelines for reporting observational studies. Lancet. 2007;370(9596):1453-7.</p>
+<p>Banks LM, Kuper H, Polack S. Poverty and disability in low-and middle-income countries: a systematic review. PLoS One. 2017;12(12):e0189996.</p>
+<p>Kuper H, Monteath-van Dok A, Wing K, Danquah L, Evans J, Zuurmond M, et al. The impact of disability on the lives of children; cross-sectional data including 8,900 children with disabilities and 898,834 children without disabilities across 30 countries. PLoS One. 2014;9(9):e107300.</p>
+<p>Merlo J, Chaix B, Ohlsson H, Beckman A, Johnell K, Hjerpe P, et al. A brief conceptual tutorial of multilevel analysis in social epidemiology: using measures of clustering in multilevel logistic regression to investigate contextual phenomena. J Epidemiol Community Health. 2006;60(4):290-7.</p>
+<p>Larsen K, Merlo J. Appropriate assessment of neighborhood effects on individual health: integrating random and fixed effects in multilevel logistic regression. Am J Epidemiol. 2005;161(1):81-8.</p>
+<p>Elkasabi M, Ren R, Pullum TW. Multilevel modeling using DHS surveys: a framework to approximate level-weights. DHS Methodological Reports No. 27. Rockville, Maryland: ICF; 2020.</p>
+<p>Kieling C, Baker-Henningham H, Belfer M, Conti G, Ertem I, Omigbodun O, et al. Child and adolescent mental health worldwide: evidence for action. Lancet. 2011;378(9801):1515-25.</p>
+<p>Patel V, Flisher AJ, Hetrick S, McGorry P. Mental health of young people: a global public-health challenge. Lancet. 2007;369(9569):1302-13. merge 1:1 caseid slot using `relink&#x27;, nogen foreach v in pidx p4 p5 p9 p16 p19 { replace `v&#x27; = n_`v&#x27; if !ok } drop n_* gen relinked = !ok *----------------------------------------------------------------4. school attendance (PR) gen hv001 = v001 gen hv002 = v002 gen hvidx = p16 merge m:1 hv001 hv002 hvidx using &quot;$pr&quot;, keepusing(hv121) keep(master match) nogen *----------------------------------------------------------------5. outcomes foreach v of varlist sfcf* { replace `v&#x27; = . if `v&#x27; &gt;= 8</p>
+<p>gen d_see = cond(sfcf1==1, inlist(sfcf6a,3,4), inlist(sfcf6b,3,4)) gen d_hear = cond(sfcf2==1, inlist(sfcf8a,3,4), inlist(sfcf8b,3,4))</p>
+<p>gen d_walk = cond(sfcf3==1, inlist(sfcf10,3,4) | inlist(sfcf11,3,4), inlist(sfcf14,3,4) | inlist(sfcf15,3,4)) gen d_self = inlist(sfcf16,3,4) gen d_comm = inlist(sfcf17,3,4) | inlist(sfcf18,3,4) gen d_learn= inlist(sfcf19,3,4) gen d_rem = inlist(sfcf20,3,4) gen d_conc = inlist(sfcf21,3,4) gen d_acc = inlist(sfcf22,3,4) gen d_beh = inlist(sfcf23,3,4) gen d_frnd = inlist(sfcf24,3,4)</p>
 </div>
 </details>
 </div>
