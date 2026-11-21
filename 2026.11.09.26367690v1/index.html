@@ -197,7 +197,7 @@ Menstrual Cycle Exacerbation of ADHD Symptoms in Adults: Common,
 Person-Specific, and Not Confined to the Luteal Phase
 </p>
 <p class="meta">
-2026-11-12 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.09.26367690
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367690
 </p>
 </header>
 <div class="mc-main">
@@ -993,8 +993,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -1331,9 +1334,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -1355,7 +1362,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -1370,9 +1378,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -1385,13 +1411,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1411,6 +1440,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -1418,12 +1453,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1524,6 +1565,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1543,6 +1604,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1798,19 +1894,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1924,6 +2102,123 @@ manual</a>.</p>
 </details>
 </div>
 <p>:::</p>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Objective. Patients often describe menstrual-cycle worsening of attention-deficit/hyperactivity disorder (ADHD). We prospectively evaluated sample-and person-level cycle effects on ADHD symptoms and their independence from cyclical negative affect and pain.</p>
+<p>In an intensive longitudinal cohort (2019-2024), 106 naturally cycling adults meeting DSM-5 ADHD criteria on integrated assessment rated daily inattention and hyperactivityimpulsivity (Barkley Adult ADHD Rating Scale-IV), negative affect, and pain (median, 41 days) and provided daily salivary estradiol and progesterone for ovulation coding and phase-aligned cycle time (PACTS). Generalized additive models estimated sample-level and person-specific cycle curves; robust cyclicity was tested against each participant&#x27;s own time-shuffle null. Lab cognitive testing at four counterbalanced phases provided post hoc validation.</p>
+<p>Results. Sample-average cycle effects were significant yet small (&lt;1% of daily variance), but 54% of 87 participants tested individually were robustly cyclical in ADHD symptoms (95% CI, 44%-64%; inattention 43%, hyperactivity-impulsivity 26%), more often with informant-confirmed ADHD (69% vs 36%). Among them, the cycle explained median 52% and 51% of symptom variance, a mean swing of 2.6 and 2.1 DSM-5 criteria. Most remained cyclical after adjustment for affect (68%) or pain (81%). Worsening most often peaked at and after menses rather than premenstrually; no cycle met prospective criteria for premenstrual dysphoric disorder (PMDD).</p>
+<p>Conclusions. About half of these adults with ADHD showed robust cyclical symptom change, mostly not reducible to cyclical affect or pain and usually outside the premenstrual window.</p>
+<p>Future work should test its stability and whether a DSM-5 cyclical specifier is warranted.</p>
+<p>.</p>
+<h3>Introduction</h3>
+<p>Attention-deficit/hyperactivity disorder (ADHD) is a serious and debilitating neurodevelopmental disorder carrying functional, emotional, and reproductive risk (1). Clinical reports in female patients with ADHD often describe menstrual cycle-related worsening of inattention, hyperactivity-impulsivity, and emotion dysregulation (2, 3). However, such reports require prospective confirmation in daily symptom ratings, given the high false-positive rate of interview-based diagnoses in other cyclical disorders, including premenstrual dysphoric disorder (PMDD) (4, 5). If cyclical exacerbation of ADHD is prevalent, it could have important implications for ADHD conceptualizations, diagnostic methods, and treatment needs.</p>
+<p>A further challenge is that cyclical pain and affect can mimic cyclical ADHD. Although most menstrual pain is mild and does not impair functioning, roughly one-third experience moderate-to-severe pain, often due to gynecologic disorders such as endometriosis or adenomyosis, that impairs concentration (6, 7). Cyclical affective symptoms vary similarly across individuals (8). On the severe end of the spectrum, 5.5% demonstrate premenstrual affective symptoms consistent with DSM-5 PMDD (9), whose criteria include difficulty concentrating (10), and premenstrual exacerbation occurs in up to 58% of patients with depressive disorders (8, 11). Because ADHD is highly comorbid with affective disorders, especially in female patients (12), apparent cyclical ADHD worsening could reflect cyclical pain or affect rather than ADHD itself.</p>
+<p>The monthly menstrual cycle is characterized by recurrent fluctuations in estradiol (E2) and progesterone (P4), with pleiotropic effects across dopaminergic, noradrenergic, serotonergic, neuroimmune, and neurotrophic systems, making hormonal effects on any neuropsychiatric disorder highly plausible (13, 14). Individuals differ in neurobehavioral sensitivity to normal hormone change (15, 16). The Dimensional Affective Sensitivity to Hormones across the Menstrual Cycle (DASH-MC) framework (17) posits 3 transdiagnostic sensitivities timed to specific hormone triggers, each with a distinct prediction with respect to ADHD. Perimenstrual sensitivity to low or falling E2 is expected to impair executive function and worsen inattention. Our prior work supports this prediction: a crossover randomized controlled trial of perimenstrual E2 stabilization found that low and falling E2 around menses (under placebo) impaired working memory in transdiagnostic psychiatric outpatients, reversible with E2 administration (18), and in a daily-diary study of a high-impulsivity community sample, E2 correlated negatively with daily ADHD symptoms (19). Ovulatory sensitivity to the surge in E2 is expected to promote impulsive reward-seeking and worsen hyperactivity-impulsivity. Luteal sensitivity to the post-ovulatory rise in P4 metabolites produces primarily affective symptoms, as in PMDD, so ADHD worsening in this window may be difficult to distinguish from cyclical irritability or depression. Yet most clinical accounts of cyclical ADHD, like those of PMDD, have focused primarily on the premenstrual weeks (20, 21), rather than the menstrual and ovulatory windows where DASH-MC predicts worsening of executive function and impulsivity.</p>
+<p>One prospective study of stimulant-treated adults found ADHD symptoms peaked during menstruation (22), but no study has estimated how many patients show clinically meaningful person-level cyclicity, when it occurs, or whether it is separable from day-to-day noise, cyclical affect, pain, or PMDD. Because retrospective reports of cyclical change are unreliable (4, 5), prospective studies are critical. We tested (1) whether, among patients with ADHD, self-reported symptoms or objective cognitive performance (inhibition, working memory) change across the cycle; (2) how much individuals differ, and whether differences correspond to specific windows or hormones; and (3) whether cyclical ADHD change is distinguishable from changes in affect or pain. We expected small sample-level changes but larger, clinically meaningful cyclic change in a subset of patients, aligned with dimensional sensitivity to varied hormonal triggers, and that cyclical ADHD change would persist after adjustment for same-day affect and pain.</p>
+<h3>Methods</h3>
+<h3>Design and participants.</h3>
+<p>This intensive longitudinal cohort study (approved by the University of Kentucky Institutional Review Board; written informed consent) was conducted 2019-2024 at the University of Kentucky (Lexington). Participants provided evening symptom ratings (ADHD, affect, pain) and morning saliva (E2, P4, and luteinizing hormone) at home for up to about 70 days (unselected start phase; about 2 cycles). Cohort size was fixed by the parent grant; power was quantified via simulation. Eligible participants were 18-35 years, naturally cycling monthly, not pregnant, breastfeeding, or using hormones, and endorsed clinically significant ADHD symptoms on the Barkley Adult ADHD Rating Scale (BAARS-IV).</p>
+<p>Participants self-reported race and ethnicity (sample descriptives). Diagnostic characterization combined the Structured Clinical Interview for DSM-5 (SCID-5), self-and informant-report on the BAARS-IV (23), and daily BAARS-IV ratings (eMethods 1). The analytic sample comprised participants meeting DSM-5 ADHD criteria (≥5 symptoms in a domain) (eFigure 1; eTables 1 and 2).</p>
+<h3>Procedures and exposures.</h3>
+<p>Ovulation was double-coded from menses onset dates and person-standardized hormone trajectories, defining ovulation as the day before a detectable P4 rise over follicular baseline (24). Using menses and ovulation as anchors, cycle time was computed using phase-aligned cycle time scaling (PACTS) (25), a method validated to align cyclical hormonal trajectories across people and cycles. Unobserved ovulations, missing closing onsets, and (in population models) onsets following each participant&#x27;s last observed onset were imputed by fixed rules (eMethods 1).</p>
+<p>Outcomes. Primary outcomes were daily inattention and hyperactivity-impulsivity severity (BAARS-IV item means, 0-3; within-person ω, 0.84 and 0.81; eTable 3). Secondary outcomes, negative affect (11-item Daily Record of Severity of Problems [DRSP] composite; ω, 0.91) (26) and joint/muscle pain (DRSP item), served as secondary outcomes and covariates. A daily DSM-5 count of symptoms endorsed at a clinically significant level (&quot;often&quot; or &quot;very often,&quot; 0-9) was reported as an effect size. Working memory (n-back, symmetry span, letter-number sequencing) and inhibition (Stroop, antisaccade) were measured at 4 counterbalanced in-lab visits (mid-follicular, peri-ovulatory, mid-luteal, and premenstrual phases); each visit was analyzed at its actual PACTS position (tasks and references, eMethods 6).</p>
+<h3>Analysis.</h3>
+<p>Analyses used R 4.5 with per-outcome distributional families; we report both uncorrected P and Benjamini-Hochberg (27) q values (eMethods 2). Person-level analyses used only days anchored by observed menses onset (≥10 days, ≥1 per cycle quarter; 1 exception, eMethods 1); population models used every day with PACTS cycle time. Population effects were estimated with generalized additive mixed models on PACTS cycle time, with a personlevel random cyclic factor-smooth (eMethods 2). Person-specific generalized additive models (cyclic cubic spline) estimated each patient&#x27;s cycle curve; cyclic R² was defined as the share of a participant&#x27;s day-to-day variance explained by the cycle, and amplitude was the curve&#x27;s peakto-trough difference. A participant was classified as robustly cyclical if cyclic R² or amplitude exceeded the 95th percentile of a within-person permutation null distribution (5,000 time shuffles of the participant&#x27;s own days; eMethods 3), with P values computed per Phipson and Smyth (28). The simulated false-positive rate of the cyclic R² criterion was 4.7%; power to detect a true cyclic R² of 0.3 was 59% overall and 91% with at least 30 rated days, so prevalence estimates are likely conservative (eMethods 3). Smoothing mixture models identified latent curve-shape classes matching the DASH-MC hypothesized risk windows (eMethods 4). Phase-elevation scores were calculated as the mean elevation of a participant&#x27;s own curve, relative to their cycle mean and in units of person-SD, within 3 a priori DASH-MC hormone-timed windows over PACTS time (luteal; menstrual, from menses to early follicular phase; peri-ovulatory). Mixed models related each outcome to daily E2 and P4 levels and the interaction (eMethods 5; eTable 4). Working-memory models are described in eMethods 6. Cycle-level PMDD diagnosis used the standardized Carolina Premenstrual Assessment Scoring System (4) (C-PASS; eMethods 7). Medication was examined as a moderator of cyclic change (eMethods 8).</p>
+<h3>Results</h3>
+<h3>Sample.</h3>
+<p>Of 125 participants providing daily ratings, 10 were excluded (9 under the symptom rules, 1 with too few PACTS anchors; eFigure 1; eMethods 1). Of the remaining 115, 106 had outcome days with cycle time (analytic sample), and 87 of these had adequate cycle coverage of their daily ADHD ratings for person-level analyses (Table 1; 2,494 rated days); 79 of the 87 contributed hormones (eFigure 1; eTable 1). Median daily-survey completion was 67% (interquartile range, 52%-83%); nonresponse peaked around menses but did not follow highersymptom days (eMethods 9).</p>
+<h3>Sample-average cycle effects.</h3>
+<p>In the analytic sample (n = 106), PACTS cycle time was associated with slight menstrual elevations of all 4 outcomes (all P and q &lt; .001; Table 2). All population effects were small (&lt;1% of day-to-day variance; trough-to-peak 12% to 18% of the outcome mean).</p>
+<p>Person-level cyclicity. Individual trajectories varied widely (Figure 1A), and smoothing mixture models (75 participants; eMethods 4) recovered menstrual, luteal, and peri-ovulatory classes beside a flat class (inattention: flat 37, menstrual 22, luteal 16; hyperactivity-impulsivity: flat 40, peri-ovulatory 15, luteal 11, menstrual 9). Symptoms cycled robustly on at least 1 ADHD domain in 47 of 87 participants (54%; 95% CI, 44%-64%): 37 for inattention (43%; 33%-53%) and 23 for hyperactivity-impulsivity (26%; 18%-37%), 13 on both (Figure 2; Table 2; eTable 5).</p>
+<h3>Correlates of robust cyclicity.</h3>
+<p>Robust ADHD cyclicity was more common in patients with informant-confirmed ADHD (exploratory; 69% vs 36%; odds ratio [OR], 3.9; 95% CI, 1.4-11.2; P = .004; q = .11 across 30 characteristics; eTable 6). Inattention cyclic R² was higher with informant-confirmed ADHD (d = 0.54; 95% CI, 0.10-0.98; P = .02; Table 2). No other demographic, comorbidity, or medication characteristic differed by either categorical or continuous cyclicity (Table 1; eTable 7). Restricting the sample to the 79 participants who met DSM-5 criteria by interview or informant report changed no prevalence by more than 1 percentage point (eTable 2).</p>
+<h3>Menstrual-cycle risk windows.</h3>
+<p>Among robustly cyclical participants, symptom elevation peaked most often in the menstrual window (inattention 16 of 37; hyperactivityimpulsivity 10 of 23), and otherwise in the luteal (13; 7) or peri-ovulatory (8; 6) windows (Figure 1B). The menstrual window ran from menses into the early follicular phase, not premenstrually.</p>
+<p>Where statistically robust, patient-level cycle effects were clinically relevant. In these participants, the cycle explained a median 52% (inattention) and 51% (hyperactivityimpulsivity) of daily symptom variance. In DSM-5 terms, the model-implied cycle swing in symptom criterion count (symptoms rated &quot;often&quot; or &quot;very often&quot; that day, 0-9 per domain) averaged 2.6 criteria for inattention (95% CI, 1.9-3.3) and 2.1 for hyperactivity-impulsivity (1.4-3.0; Figure 2; eMethods 3). Across both domains combined, the 47 participants cyclical on either domain swung by a mean of 3.5 criteria (95% CI, 2.6-4.5), and 12 (26%) by 5 or more.</p>
+<h3>Working memory, but not inhibition, dipped where a patient&#x27;s own inattention</h3>
+<p>cycle peaked (exploratory). In 85 participants (321 in-lab visits), the working-memory deficit (higher = worse) was greater at the cycle positions where the participant&#x27;s own inattention cycle was high (within-person β = 0.27 per own-SD; 95% CI, 0.02-0.52; P = .03; q = .13; eFigure 2; eTable 8). Working memory did not track hyperactivity-impulsivity, and inhibitory-task performance tracked neither domain (eTable 8). Participants with greater menstrual worsening of inattention had poorer working memory just after menses (P = .06; Figure 1D) and, more strongly, at cycle positions where normative E2 is low (elevation × normative E2, β = -0.11; 95% CI, -0.17 to -0.04; P = .001), a pattern specific to E2 (joint P4 term, P = .95; eMethods 6).</p>
+<p>ADHD cyclicity frequently co-occurred with, yet was largely distinct from, cyclical affect and pain. At the patient level, many patients also showed robust cyclicity of negative affect (33%) and pain (33%). Cyclical worsening frequently co-occurred across domains (25 of 87 cycled in no domain, and 11 in all 3; Figure 3A). Next-day cross-lagged associations of ADHD and negative affect were similar in both directions (eTable 9). Most robustly cyclical participants remained so after within-person adjustment for same-day negative affect (inattention 22 of 37, median 79% of cyclic R² retained; hyperactivity-impulsivity 15 of 23, 76%; either domain, 32 of 47 [68%]; similar for previous-day, eTable 10; Figure 3B) or same-day pain (inattention 31 of 37; hyperactivity-impulsivity 16 of 23; either domain, 38 of 47 [81%]).</p>
+<h3>Cyclical ADHD was not explained by PMDD.</h3>
+<p>Although 39 of 78 (50%) endorsed retrospective PMDD criteria on the SCID-5 interview, no cycle met prospective C-PASS PMDD criteria (77 participants, 80 cycles; eTable 11), and retrospective PMDD report did not distinguish those with robust ADHD cyclicity (Table 1; eTable 12); retrospective and prospective PMDD status agreed poorly (κ = 0.05). Medication did not account for cyclicity: stimulant users had a flatter sample-average ADHD cycle (P ≤ .004; q = .02; eFigure 3) but were robustly cyclical on either ADHD domain at least as often as non-users (either domain, 63% vs 50%; P = .41), and the cycle did not differ by selective serotonin reuptake inhibitor use (eTable 13).</p>
+<p>Hormonal correlates of daily ADHD symptoms. Among robustly cyclical participants, lower within-person E2 and P4 accompanied worse hyperactivity-impulsivity (P = .004 and P &lt; .001; q ≤ .03; inattention with E2, P = .07; eTable 4), and hormone slopes varied significantly across all participants (random-slope tests, P &lt; .001 for inattention with E2 and P4 and hyperactivity-impulsivity with P4; eMethods 5). In the sample as a whole, neither E2, P4, nor their interaction predicted either ADHD symptom (eTable 4). E2 and P4 cycles did not differ detectably between those with and without robust ADHD cyclicity, in shape or level (all P ≥ .39; Figure 1C).</p>
+<h3>Discussion</h3>
+<p>In this intensive longitudinal cohort, the sample-average cycle effect on ADHD symptoms was small and obscured clinically significant cyclicity in half of participants: in 46% of participants, symptoms were not robustly cyclical, while 54% showed robust cycle change in inattention or hyperactivity-impulsivity (a mean swing of 3.5 DSM-5 symptoms across both domains). Cyclicity was more common and larger with informant-confirmed ADHD (69% vs 36%), a finding not explained by greater symptom severity, which was similar with and without confirmation (eTable 2). A change of this size is highly significant for diagnostic assessment, because it could move a patient across the DSM-5 threshold of 5 symptoms (10). These effects emerged in naturally cycling individuals, were accompanied for inattention by parallel cyclical changes in objective working-memory performance, and were mostly not reducible to affective or pain changes.</p>
+<p>Cyclical exacerbations fell into 3 patterns, each aligned with a DASH-MC hormone event (17). The most common ADHD pattern, worsening at and after menses when E2 is at its nadir, matches the framework&#x27;s hypothesized low or falling E2 risk window, grounded in experimental studies in which perimenstrual E2 administration (vs placebo) prevented menstrual declines in working memory (18) and steroid stabilization prevented mood worsening (29). Consistent with this window, working memory dipped at normatively low-E2 cycle positions in those with menstrual inattention worsening. A luteal worsening pattern was also common, potentially consistent with the luteal neurosteroid-surge sensitivity implicated in PMDD (30). A periovulatory pattern, more common for hyperactivity-impulsivity, matched the E2-surge window the framework links to dysregulated reward-seeking (31) and substance use (32). Because the data are observational and mostly cover 1 cycle per person, these results establish within-person temporal association, not causal mechanism.</p>
+<p>The most common worsening window was menstrual and postmenstrual. This is inconsistent with the concepts of PMDD and premenstrual exacerbation, because the postmenstrual window is when DSM-5 criteria require symptoms of PMDD, the only established cyclical psychiatric disorder, to be minimal or absent (10). A patient with robustly cyclical inattention can therefore screen negative on a premenstrual (luteal) mood assessment yet have clinically significant cycle-linked ADHD. Detecting this pattern required prospective daily ratings across the whole cycle, analyzed with flexible nonlinear curves and without assuming a window, rather than the premenstrual-versus-postmenstrual comparison required for DSM-5 PMDD or the research construct of premenstrual exacerbation (4). Notably, participants whose affect or inattention peaked at menses often endorsed PMDD retrospectively (8 of 10 and 11 of 15) but rarely showed the premenstrual elevation C-PASS requires (1 of 10 and 1 of 15; eTable 12), suggesting that they are aware of their cyclical pattern but may misplace its timing, perhaps mistaking menstrual for premenstrual worsening (33). Similarly, in a survey of 600 females with ADHD, most who reported cyclical change described luteal worsening (21), and surveys find provisional PMDD in 31% to 41% of females with ADHD (34); yet in our sample, half met retrospective SCID-5 PMDD criteria and no cycle met prospective criteria, suggesting that single-timepoint reports overstate PMDD in ADHD. Cyclical ADHD is therefore not PMDD misdiagnosed as ADHD; its worsening fell largely outside the premenstrual window. This supports the DASH-MC framework&#x27;s argument that cyclical vulnerability is a transdiagnostic (35) and multidimensional phenomenon, including separable luteal and menstrual sensitivities.</p>
+<p>As most commonly observed in PMDD and other reproductive mood disorders (16, 36), the absence of hormone differences is consistent with differential sensitivity to normal hormone change rather than with endocrine or gynecologic abnormality, although salivary E2 immunoassays are limited by relatively high measurement error (37). Because measured hormones and cycle position move together, observational data cannot dissociate hormonal from other cycle-linked influences. Isolating hormonal mechanisms will require experimental manipulation, such as perimenstrual E2 stabilization (18), or ovarian suppression with a gonadotropin-releasing hormone agonist plus hormone add-back for luteal surge sensitivity (16), in patients with cyclical ADHD.</p>
+<p>A central alternative explanation is that cyclical ADHD simply reflects undiagnosed comorbid PMDD. Two findings suggest that cyclical ADHD is not simply a consequence of cyclical mood. First, self-reported inattention cycles were accompanied by an objective workingmemory signal at the same cycle positions, suggesting genuine cycle-linked cognitive change, and most patients remained robustly cyclical after within-person adjustment for same-day affect.</p>
+<p>Second, cross-lagged associations of similar size in both directions (eTable 9) argue against a one-way path from mood to attention; shared causes such as low menstrual E2 seem most plausible but require further confirmation (18).</p>
+<p>The study has several clinical implications. First, in those with cyclical ADHD, a single diagnostic visit could fall on a cycle day when symptoms are unusually low or high, and it is unclear which should be regarded as ground truth (38). Second, screening only for cyclical mood change or PMDD would miss the 49% of those with cyclical ADHD symptoms whose affect did not cycle (Figure 3A); repeated assessment across the cycle appears to be needed (39). Third, whether cycle-timed treatment improves outcomes should be tested. Because stimulant effects appear sensitive to E2 and P4 (32), titrating dose to each patient&#x27;s worsening window, which was reported to be helpful and well tolerated in a small clinical series (20), is one candidate.</p>
+<p>This study has limitations. The sample was predominantly White, young, and regularly cycling, limiting generalizability. Diagnostic criteria were based on a combination of methods (eMethods 1; eTable 2). Participants contributed a median of 1 cycle (mean 1.2), so personlevel prevalence and peak-window estimates include substantial error, and cross-cycle stability remains to be tested. Medication was recorded once at baseline. The hyperactivity-impulsivity scale pools hyperactivity and impulsivity items, which may cycle differently. Missed diary days were probably lower-symptom days; assuming them 1 SD lower reduced cycle amplitudes by 11% to 44% but did not eliminate them (eTable 14). The median cyclic R² and DSM-5 swing are upper bounds, because each was estimated on the same days used to classify participants as robustly cyclical; when each half of a participant&#x27;s days was predicted from the other half, the median cyclic R² was 17% (inattention) and 12% (hyperactivity-impulsivity; eMethods 3).</p>
+<p>This study also has strengths. Cycle position was anchored to observed menses onsets and to ovulation coded from daily hormone patterns, then standardized with PACTS; cyclicity was tested within each person against that person&#x27;s own permutation null rather than inferred from group averages; PMDD was assessed prospectively with the standard C-PASS rather than by recall; and objective cognition was measured. The sample is also larger than that underlying the only community-based estimate of premenstrual exacerbation of depression, which rested on 58 participants with depressive disorders (11).</p>
+<p>Priorities for future work include prospective multi-cycle studies of within-person stability and trials of cycle-timed treatment; if replicated, menstrual-cycle sensitivity should be considered as a potential specifier or modifier of symptoms in ADHD.</p>
+<h3>Keywords: menstrual cycle; ovarian hormones; estradiol; progesterone; ADHD; executive function.</h3>
+<p>Tables Table 1. Participant Characteristics by Robust ADHD-Symptom Cyclicity Characteristic Total (N=87) Robustly cyclical ADHD (n=47) Not robustly cyclical (n=40) Test statistic; P value Demographic Age, mean (SD), y 21.5 (2.2) 21.5 (2.4) 21.4 (1.9) t(80.9) = -0.21; .83 Missing, No. 4 2 2 Sex, No. (%) Female 87 (100) 47 (100) 40 (100) Race and ethnicity, No. (%) χ²(4) = 6.97; .14 Asian 2 (2) 0 (0) 2 (5) Black or African American 9 (11) 4 (9) 5 (13) Hispanic or Latino 5 (6) 5 (11) 0 (0) Multiracial or other 4 (5) 2 (4) 2 (5) White 63 (76) 34 (76) 29 (76) Missing 4 Educational attainment, No. (%) χ²(3) = 3.03; .39 Graduated 4-year college 12 (15) 5 (13) 7 (18) Graduated high school/high school equivalent 2 (3) 0 (0) 2 (5) Some college/trade school 48 (62) 27 (68) 21 (55) Some or completed graduate/professional school 16 (21) 8 (20) 8 (21) Missing 9 Marital status, No. (%) χ²(2) = 4.92; .09 Never married 66 (85) 37 (93) 29 (76) Married/partnered 9 (12) 3 (8) 6 (16) Previously married 3 (4) 0 (0) 3 (8) Missing 9 Body mass index, mean (SD) 26.2 (7.0) 26.3 (6.4) 26.1 (7.6) t(72.7) = -0.15; .88 Missing, No. 5 3 2 Body mass index, range 15.3-60.6 15.3-40.9 18.1-60.6 ADHD diagnostic characterization Met informant-confirmed ADHD criteria, No. (%) 42 (52) 29 (67) 13 (34) OR 3.91 (1.44-11.17); .004 ADHD presentation (SCID), No. (%) χ²(2) = 0.22; .90 Combined 54 (72) 28 (70) 26 (74) Hyperactive-impulsive 2 (3) 1 (3) 1 (3) Inattentive 19 (25) 11 (28) 8 (23) Missing 12 SCID inattention symptom count, mean (SD) 7.4 (1.8) 7.5 (1.7) 7.3 (2.0) t(77.4) = -0.31; .76 Missing, No. 3 3 0 SCID hyperactivity-impulsivity count, mean (SD) 5.4 (2.1) 5.5 (2.2) 5.3 (2.2) t(81.3) = -0.22; .83 Missing, No. 3 3 0 SCID total symptom count, mean (SD) 12.8 (3.4) 12.9 (3.4) 12.7 (3.5) t(80.7) = -0.31; .76 Missing, No. 3 3 0 Psychiatric comorbidity (SCID-5), No. (%) Provisional SCID PMDDᵃ 39 (50) 22 (55) 17 (45) OR 1.50 (0.56-4.05); .50 Any depressive disorder 17 (22) 7 (18) 10 (26) OR 0.60 (0.17-2.01); .42 Any anxiety disorder 41 (53) 21 (53) 20 (53) OR 0.99 (0.37-2.65); &gt;.99 Generalized anxiety disorder 21 (27) 13 (33) 8 (21) OR 1.79 (0.58-5.82); .31 Social anxiety disorder 21 (27) 13 (33) 8 (21) OR 1.79 (0.58-5.82); .31 Other anxiety disorderᵇ 9 (12) 3 (8) 6 (16) OR 0.44 (0.07-2.25); .30 Posttraumatic stress disorder 23 (29) 13 (33) 10 (26) OR 1.34 (0.45-4.06); .62 Substance use disorder 13 (17) 7 (18) 6 (16) OR 1.13 (0.29-4.55); &gt;.99 Psychotropic medication, No. (%) Stimulant 16 (20) 10 (24) 6 (16) OR 1.66 (0.48-6.25); .41 Antidepressant (any) 21 (27) 14 (35) 7 (18) OR 2.36 (0.75-8.01); .13 SSRI 15 (19) 11 (28) 4 (11) OR 3.18 (0.83-15.18); .08 Anxiolytic 4 (5) 1 (3) 3 (8) OR 0.30 (0.01-3.98); .35 Mood stabilizer 2 (3) 1 (3) 1 (3) OR 0.95 (0.01-76.42); &gt;.99 Intensive-longitudinal data Daily-survey completion, median (IQR), % 66.7 (51.9-83.1) 66.7 (53.1-84.1) 66.6 (50.0-80.3) W = 874; .58 Cycle-positioned days, median (IQR) 40.0 (34.0-51.5) 38.0 (33.5-50.0) 42.5 (35.0-53.3) W = 1,031; .44 Days with hormone sample, median (IQR) 30.0 (25.0-35.0) 30.0 (23.5-34.0) 32.5 (25.8-36.3) W = 1,083; .22 Cyclicity diagnostics Characteristic Total (N=87) Robustly cyclical ADHD (n=47) Not robustly cyclical (n=40) Test statistic; P value Robustly cyclical: inattention, No. (%) 37 (43) 37 (79) 0 (0) NAᶜ Robustly cyclical: hyperactivityimpulsivity 23 (26) 23 (49) 0 (0) NAᶜ Robustly cyclical: negative affect 29 (33) 24 (51) 5 (13) OR 7.13 (2.24-27.46); &lt;.001 Robustly cyclical: joint/muscle pain 29 (33) 18 (38) 11 (28) OR 1.63 (0.60-4.54); .36 Cyclic R², negative affect, median (IQR), % 15.4 (0.0-35.5) 30.5 (3.0-44.4) 2.9 (0.0-18.1) W = 536; &lt;.001 Premenstrual elevation, maximum, median (IQR), % 17.9 (7.9-25.7) 15.9 (6.8-25.4) 18.8 (8.3-29.2) W = 800; .45 Missing, No. 10 3 7 Premenstrual elevation ≥30%, No. (%) 15 (19) 7 (16) 8 (24) OR 0.60 (0.16-2.15); .40 Abbreviations: ADHD, attention-deficit/hyperactivity disorder; DSM-5, Diagnostic and Statistical Manual of Mental Disorders, Fifth Edition; IQR, interquartile range; OR, odds ratio; PMDD, premenstrual dysphoric disorder; SCID, Structured Clinical Interview for DSM-5; SSRI, selective serotonin reuptake inhibitor.</p>
+<p>Participants in the person-level analyses (87 of the 106 in the analytic sample). The analytic sample of 106 had a mean (SD) age of 21.5 (2.2) years and a median 41-day diary window; all were female; all met DSM-5 ADHD criteria on integrated SCID-5, informant, and daily-report assessment, and 50 of the 93 with informant data (54%) had informant-confirmed ADHD. Robustly cyclical: inattention or hyperactivity-impulsivity beyond the participant&#x27;s own within-person permutation null on cyclic R² or amplitude (n = 47); not robustly cyclical, n = 40. Percentages use nonmissing denominators (informant-confirmed ADHD, n = 81; stimulant use, n = 80; SCID-5 comorbidity and other medication rows, n = 78); pain cyclicity uses all 87 (the 4 who never reported pain are non-cyclical by definition). Test statistics: Welch t, χ², Fisher odds ratio (95% CI), or Wilcoxon W. Informant-confirmed percentages are within cyclicity groups (67% vs 34%); the text gives them within confirmation groups (69% vs 36%).</p>
+<p>ᵃ Retrospective SCID-5 PMDD criteria endorsed at intake; not prospectively confirmed (see Results).</p>
+<p>ᵇ Any SCID-5 anxiety disorder other than generalized or social anxiety disorder (panic disorder, agoraphobia, specific phobia); generalized and social anxiety disorder overlap, so &#x27;any anxiety disorder&#x27; is fewer than their sum.</p>
+<p>ᶜ Not tested: these rows define the groups (NA, not applicable). Abbreviations: ADHD, attention-deficit/hyperactivity disorder; BH, Benjamini-Hochberg correction across the four outcomes; d, Cohen d for the difference in cyclic R² between participants with and without an informant-confirmed ADHD diagnosis; edf, effective degrees of freedom of the population cycle smooth; FDR, false discovery rate (participants whose within-person permutation P value survives FDR q &lt; .05); GAMM, generalized additive mixed model. Robustly cyclical = cyclic R² or amplitude above the 95th percentile of a within-person permutation null (5,000 time shuffles). Cyclic R² = the cycle&#x27;s share of a participant&#x27;s within-person variance. Peak window = among robustly cyclical participants, the window (menstrual, luteal, or peri-ovulatory) with the participant&#x27;s highest phase-elevation score, as in Figure 1B. Sample sizes differ by analysis: the population columns (participants, daily reports, edf, P, variance explained) use every rated day with cycle time from the 106 participants who had any (the analytic sample); the person-level columns (robustly cyclical, cyclic R², peak window, diagnosis contrast) use the 87 with adequate coverage of observed-onset cycle time on the ADHD scales. Sample sizes for every analysis are in eTable 1.</p>
+<p>The two primary ADHD outcomes (inattention, hyperactivity-impulsivity) are listed first and the two secondary outcomes (negative affect, joint/muscle pain) below. Columns give the population GAMM (edf, P value, % of day-to-day variance); % robustly cyclical; cyclic R², the cycle&#x27;s share of within-person variance (per-person, average and among those whose symptoms robustly cycled) as a measure of effect size; and the peak window (the percentage of robustly cyclical participants whose own curve peaked in each window; Figure 1B shows the same counts as shares of all 87 participants). Within-person associations of ovarian steroids with the four daily outcomes are reported in eTable 4. inattention trajectories (N = 87; thin lines; dark = robustly cyclical [43%], light = not [57%]) around the near-flat sample average (black; population model, 106 participants); hyperactivityimpulsivity (not shown) was similar. Person-specific curves are not bounded by the 0-3 scale; one exceeds 3. (B) Where robustly cyclical participants&#x27; own curves peaked: each was assigned the window (luteal, menstrual, or peri-ovulatory) with their highest phase-elevation score; curves are the mean deviation from own cycle mean (item-score units) of the participants peaking in each window, labels give each window&#x27;s share of all 87 participants (the remainder were not robustly cyclical; no curve shown), and line thickness increases with that share. Normative serum E2 (dashed) and P4 (dotted) from the BioCycle Study (40), modeled on the same cycle axis and rescaled to the panel, are overlaid for timing reference (also in D). (C) Model-fitted salivary E2 and P4 across the cycle in participants with (solid) and without (dashed) robust ADHD cyclicity (cyclic mixed models on the raw hormone values with a person random intercept, adjusted for age and BMI; bands = 95% CI); neither cycle shape nor level differed detectably (P values in the panels). (D) Exploratory: model-implied working-memory deficit (composite z score; higher = worse) across the cycle for a participant 1 SD above the sample mean on menstrual inattention elevation (red) and for one with no menstrual inattention change (elevation score of 0; gray; 85 participants, 321 visits). Curves are from a cyclic generalized additive mixed model in which the shape of the working-memory cycle could vary with the standardized elevation score (computed on a menstrual window taken from the inattention mixture classes [eMethods 4]; P = .06). A model constraining working memory to the shape of the normative E2 curve gave a stronger test (elevation × normative E2, P = .001; eMethods 6). Tick marks give visit positions. In all panels, cycle time is standardized (PACTS; menses onset  one participant, colored by the window in which that participant&#x27;s own curve peaked (Figure 1B; gray = not robustly cyclical); boxes give the median and IQR and whiskers the range. (B) For robustly cyclical participants only, the mean model-implied swing (95% CI) in the number of DSM-5 criteria met between the cycle&#x27;s trough and peak (out of 9 per domain), with the median marked (dashed line). Robustly cyclical = cyclic R² or amplitude above the 95th percentile of a within-person permutation null (5,000 shuffles); because that null depends on each participant&#x27;s number of rated days, some participants who were not robustly cyclical have higher cyclic R² than some who were. Values for robustly cyclical participants are in-sample estimates in participants selected for exceeding their own null, so they are upper bounds; in 2-fold crossvalidation, median cyclic R² among robustly cyclical participants whose two halves could both be evaluated was 17% (inattention) and 12% (hyperactivity-impulsivity; eMethods 3). N = 87 naturally cycling adults with ADHD symptoms. ADHD indicates attention-deficit/hyperactivity disorder; DSM-5, Diagnostic and Statistical Manual of Mental Disorders, Fifth Edition; IQR, interquartile range. participants cyclical in ≥1 domain (ADHD = IA or HI); bubble size and shade are proportional to the number of participants in each region; 25 of 87 (29%) were cyclical in no domain. (B) For each participant with robust ADHD cyclicity, cyclic R² on the same days before (small open gray circle) and after (colored circle) same-day negative affect was removed within person; color = the window in which the participant&#x27;s own curve peaked (Figure 1B); filled = cyclicity still significant after adjustment (P &lt; .05 against the participant&#x27;s own permutation null), shown</p>
+<h3>Conflict of Interest Disclosures:</h3>
+<p>None reported. Funding/Support: This study was supported by grants R01MH119119 (Dr Martel), R01MH126940 (Dr Peters), and R01MH140472 (Dr Eisenlohr-Moul) from the National Institute of Mental Health. Role of the Funder/Sponsor: The funder had no role in the design and conduct of the study; collection, management, analysis, and interpretation of the data; preparation, review, or approval of the manuscript; or decision to submit the manuscript for publication. Data Sharing Statement: Deidentified daily-diary, hormone, and lab-visit data have been deposited in the NIMH Data Archive (collection for R01MH119119) and will be available to qualified investigators under NDA data-use terms on publication; analysis code is available from the corresponding author on reasonable request.</p>
+<p>Author Contributions: Dr Eisenlohr-Moul had full access to all of the data in the study and takes responsibility for the integrity of the data and the accuracy of the data analysis. Concept and design: Eisenlohr-Moul, Peters, Schmalenberger, Martel. Acquisition, analysis, or interpretation of data: All authors. Drafting of the manuscript: Eisenlohr-Moul. Critical review of the manuscript for important intellectual content: All authors. Statistical analysis: Eisenlohr-Moul, Ross, Nagpal. Obtained funding: Martel, Eisenlohr-Moul. Administrative, technical, or material support: Knapp, Nagpal, Patterson, Schmalenberger. Supervision: Eisenlohr-Moul, Martel.</p>
+<h3>Article Information</h3>
+<p>Additional Information: Claude Code (Anthropic; Claude 4 and 5 family models; May-November 2026) was used under the authors&#x27; direction to generate R code that converts our raw model outputs into tables and figures, creating replicable code for these outputs. The same AI tools identified redundant or low-priority text for removal or relocation to the supplement and reviewed and updated labels for figures, tables, and e-content in the manuscript to ensure proper ordering and accuracy across the text. A double-human-review process checked all AIformatted content against raw outputs; no errors were found. In sum, the authors verified all content and take full responsibility for it.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Timing of Menstrual Cycle Worsening in Adults With ADHD Symptoms, Hormone Cycles by Cyclicity Status, and Working Memory. (A) Person-specific model-implied daily</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Size of the Cycle Effect in Participants With and Without Robust ADHD Cyclicity. (A) Per-person cyclic R² (the cycle&#x27;s share of each participant&#x27;s day-to-day symptom variance) for inattention and hyperactivity-impulsivity, in participants robustly cyclical versus not; each dot is</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Co-occurrence of Robust Cyclicity Across Domains, and ADHD Cyclicity Before and After Adjustment for Same-Day Negative Affect. (A) Overlap of robust cyclicity among the 62</p>
+<h3>Table 2.</h3>
+<p>Per-Outcome Cyclicity Summary</p>
+<h3>References</h3>
+<p>Faraone SV, Banaschewski T, Coghill D, et al.: The World Federation of ADHD International Consensus Statement: 208 evidence-based conclusions about the disorder. Neurosci Biobehav Rev 2021; 128:789-818</p>
+<p>Eng AG, Nirjar U, Elkins AR, et al.: Attention-deficit/hyperactivity disorder and the menstrual cycle: theory and evidence. Horm Behav 2024; 158:105466</p>
+<p>Kooij JJS, de Jong M, Agnew-Blais J, et al.: Research advances and future directions in female ADHD: the lifelong interplay of hormonal fluctuations with mood, cognition, and disease. Front Glob Womens Health 2025; 6:1613628</p>
+<p>Eisenlohr-Moul TA, Girdler SS, Schmalenberger KM, et al.: Toward the reliable diagnosis of DSM-5 premenstrual dysphoric disorder: the Carolina Premenstrual Assessment Scoring System (C-PASS). Am J Psychiatry 2017; 174:51-59</p>
+<p>Reilly TJ, Patel S, Unachukwu IC, et al.: The prevalence of premenstrual dysphoric disorder: systematic review and meta-analysis. J Affect Disord 2024; 349:534-540</p>
+<p>Armour M, Parry K, Manohar N, et al.: The Prevalence and Academic Impact of Dysmenorrhea in 21,573 Young Women: A Systematic Review and Meta-Analysis. J Womens Health 2019; 28:1161-1171</p>
+<p>Wang L, Yan Y, Qiu H, et al.: Prevalence and Risk Factors of Primary Dysmenorrhea in Students: A Meta-Analysis. Value Health 2022; 25:1678-1684</p>
+<p>Kuehner C, Nayman S: Premenstrual exacerbations of mood disorders: findings and knowledge gaps. Curr Psychiatry Rep 2021; 23:78</p>
+<p>Gehlert S, Song IH, Chang C-H, et al.: The prevalence of premenstrual dysphoric disorder in a randomly selected group of urban and rural women. Psychol Med 2009; 39:129-136</p>
+<p>American Psychiatric Association: Diagnostic and Statistical Manual of Mental Disorders. DSM-5-TR. American Psychiatric Association Publishing, 2022</p>
+<p>Hartlage SA, Brandenburg DL, Kravitz HM: Premenstrual exacerbation of depressive disorders in a community-based sample in the United States. Psychosom Med 2004; 66:698-706</p>
+<p>Solberg BS, Halmøy A, Engeland A, et al.: Gender differences in psychiatric comorbidity: a population-based study of 40 000 adults with attention deficit hyperactivity disorder. Acta Psychiatr Scand 2018; 137:176-186</p>
+<p>Schiller CE, Johnson SL, Abate AC, et al.: Reproductive steroid regulation of mood and behavior. Compr Physiol 2016; 6:1135-1160</p>
+<p>Hampson E: Estrogens, aging, and working memory. Curr Psychiatry Rep 2018; 20:109</p>
+<p>Schmidt PJ, Martinez PE, Nieman LK, et al.: Premenstrual dysphoric disorder symptoms following ovarian suppression: triggered by change in ovarian steroid levels but not continuous stable levels. Am J Psychiatry 2017; 174:980-989</p>
+<p>Wei SM, Wakim P, Martinez PE, et al.: Differential effects of ovarian steroids in women with and without premenstrual dysphoric disorder. Am J Psychiatry 2025; 182:922-934</p>
+<p>Peters JR, Schmalenberger KM, Eng AG, et al.: Dimensional Affective Sensitivity to Hormones across the Menstrual Cycle (DASH-MC): a transdiagnostic framework for ovarian steroid influences on psychopathology. Mol Psychiatry 2025; 30:251-262</p>
+<p>Schmalenberger KM, Mulligan EM, Barone JC, et al.: Effects of acute estradiol administration on perimenstrual worsening of working memory, verbal fluency, and inhibition in patients with suicidal ideation: a randomized, crossover clinical trial. Psychiatry Res 2024; 342:116188</p>
+<p>Roberts B, Eisenlohr-Moul T, Martel MM: Reproductive steroids and ADHD symptoms across the menstrual cycle. Psychoneuroendocrinology 2018; 88:105-114</p>
+<p>de Jong M, Wynchank DSMR, van Andel E, et al.: Female-specific pharmacotherapy in ADHD: premenstrual adjustment of psychostimulant dosage. Front Psychiatry 2023; 14:1306194</p>
+<p>Osianlis E, Thomas EHX, Li Q, et al.: ADHD in females: survey findings on symptoms across hormonal life stages. J Psychiatr Res 2026; 193:208-215</p>
+<p>Zaritsky R, Reed SC, Evans SM: Changes in ADHD symptoms and mood across the menstrual cycle in females treated with stimulants: a pilot study. J Atten Disord 2026; 30:329-341</p>
+<p>Barkley RA: Barkley Adult ADHD Rating Scale-IV (BAARS-IV). Guilford Press, 2011</p>
+<p>Schmalenberger KM, Tauseef HA, Barone JC, et al.: How to study the menstrual cycle: practical tools and recommendations. Psychoneuroendocrinology 2021; 123:104895</p>
+<p>Nagpal A, Schmalenberger KM, Barone JC, et al.: How to study the menstrual cycle as a continuous variable: implementing phase-aligned cycle time scaling (PACTS) with the menstrualcycleR package. Psychoneuroendocrinology 2025; 181:107584</p>
+<p>Endicott J, Nee J, Harrison W: Daily Record of Severity of Problems (DRSP): reliability and validity. Arch Womens Ment Health 2006; 9:41-49</p>
+<p>Benjamini Y, Hochberg Y: Controlling the false discovery rate: a practical and powerful approach to multiple testing. J R Stat Soc Series B 1995; 57:289-300</p>
+<p>Phipson B, Smyth GK: Permutation P-values should never be zero: calculating exact P- values when permutations are randomly drawn. Stat Appl Genet Mol Biol 2010; 9:Article39</p>
+<p>Eisenlohr-Moul TA, Bowers SM, Prinstein MJ, et al.: Effects of acute estradiol and progesterone on perimenstrual exacerbation of suicidal ideation and related symptoms: a crossover randomized controlled trial. Transl Psychiatry 2022; 12:528</p>
+<p>Martinez PE, Rubinow DR, Nieman LK, et al.: 5α-Reductase inhibition prevents the luteal phase increase in plasma allopregnanolone levels and mitigates symptoms in women with premenstrual dysphoric disorder. Neuropsychopharmacology 2016; 41:1093-1102</p>
+<p>Jacobs E, D&#x27;Esposito M: Estrogen shapes dopamine-dependent cognitive processes: implications for women&#x27;s health. J Neurosci 2011; 31:5286-5293</p>
+<p>Justice AJ, de Wit H: Acute effects of d-amphetamine during the follicular and luteal phases of the menstrual cycle in women. Psychopharmacology (Berl) 1999; 145:67-75</p>
+<p>McFarland C, Ross M, DeCourville N: Women&#x27;s theories of menstruation and biases in recall of menstrual symptoms. J Pers Soc Psychol 1989; 57:522-531</p>
+<p>Broughton T, Lambert E, Wertz J, et al.: Increased risk of provisional premenstrual dysphoric disorder (PMDD) among females with attention-deficit hyperactivity disorder (ADHD): cross-sectional survey study. Br J Psychiatry 2025; 226:410-417</p>
+<p>Zhou J, Muse Z, Bränn E, et al.: Bidirectional association between premenstrual disorders and psychiatric disorders. JAMA Netw Open 2026; 9:e2611765</p>
+<p>Schmidt PJ, Nieman LK, Danaceau MA, et al.: Differential behavioral effects of gonadal steroids in women with and in those without premenstrual syndrome. N Engl J Med 1998; 338:209-216</p>
+<p>Arslan RC, Blake K, Botzet LJ, et al.: Not within spitting distance: salivary immunoassays of estradiol have subpar validity for predicting cycle phase. Psychoneuroendocrinology 2023; 149:105994</p>
+<p>Sibley MH, Arnold LE, Swanson JM, et al.: Variable patterns of remission from ADHD in the Multimodal Treatment Study of ADHD. Am J Psychiatry 2022; 179:142-151</p>
+<p>Eisenlohr-Moul TA: Toward precision reproductive psychiatry: a call for targeted, transdiagnostic approaches to premenstrual disorders. Am J Psychiatry 2025; 182:894- 897</p>
+<p>Wactawski-Wende J, Schisterman EF, Hovey KM, et al.: BioCycle study: design of the longitudinal study of the oxidative stress and hormone variation during the menstrual cycle. Paediatr Perinat Epidemiol 2009; 23:171-184</p>
+</div>
+</details>
 <footer>
 <p>
 If there are things we can improve, please email us at
