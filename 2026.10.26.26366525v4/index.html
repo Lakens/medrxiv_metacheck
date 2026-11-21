@@ -198,7 +198,7 @@ Amyotrophic Lateral Sclerosis: Real-World Associations with Disease
 Status, Cognition and Tofersen Response
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.3 · DOI 10.64898/2026.10.26.26366525
+2026-11-21 · Metacheck 0.4.4.29 · DOI 10.64898/2026.10.26.26366525
 </p>
 </header>
 <div class="mc-main">
@@ -217,8 +217,8 @@ applicable</span></a>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 14 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 14 detected.</p>
 </div>
 </div>
 </div>
@@ -326,8 +326,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -678,9 +679,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -702,7 +707,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -725,6 +731,19 @@ test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
 significant (“genes with padj &lt; 0.05 were selected”); such a p-value
 is “named” in <code>not_a_test</code>. Notes in other forms, such as a
 marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -891,6 +910,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -930,6 +969,21 @@ text (93 of 95) and 90% in reference lists (74 of 82); the labels were
 made by Claude agents from each link’s evidence, and disputed ones
 checked against the deposits. Telling this paper’s own deposit from the
 authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1185,19 +1239,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1307,6 +1443,118 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Amyotrophic lateral sclerosis (ALS) is a neurodegenerative disease primarily affecting motor neurons but also frequently involving cognitive impairment. Cerebrospinal fluid (CSF) measurements of β-amyloid peptides (Aβ 40 , Aβ 42 ), tau proteins, and neurofilaments are clinically established biomarkers in Alzheimer&#x27;s disease (AD). Emerging evidence suggests that AD-related pathological changes and AD-related biomarkers may appear in ALS, yet their diagnostic and prognostic significance remains incompletely understood.</p>
+<p>In this retrospective study, we analyzed clinical and CSF biomarker data from patients with ALS, AD, Huntington&#x27;s disease (HD), and other disease controls from real-world clinical settings. The dataset comprised Aβ 40 , Aβ 42 , total tau (t-Tau), phosphorylated tau181 (pTau181), phosphorylated neurofilament heavy chain (pNfH), and relevant serum markers as well as clinical and cognitive status measurements. Additionally, longitudinal CSF sampling over one year was evaluated in three ALS patients receiving tofersen treatment.</p>
+<p>In this real-world cohort, AD-related CSF biomarkers demonstrated no diagnostic value for distinguishing ALS from other neurodegenerative conditions. However, Aβ 40 , Aβ 42 , and pTau181 levels correlated positively with ALS Functional Rating Scale (ALSFRS-R) global score and serum Creatine Kinase MB (CK-MB) concentrations. At the same time, a higher Aβ 42 /Aβ 40 ratio was associated with better memory performance on the Edinburgh Cognitive and Behavioural ALS Screen (ECAS). In tofersen-treated cases, AD-related biomarkers gradually declined during follow-up.</p>
+<p>These findings suggest that elevated CSF AD-associated biomarkers in ALS may reflect preserved functional and cognitive status and exhibited parallel declines during follow-up in three tofersen-treated patients, supporting their further prospective evaluation as exploratory markers of therapeutic responsiveness.</p>
+<h3>Graphical Abstract Introduction</h3>
+<p>Amyotrophic lateral sclerosis (ALS) manifests as a rapid, progressive, fatal neurodegeneration marked by degeneration of motor neurons within the motor cortex, brainstem, and spinal cord [1, 2]. Despite major advances in understanding its molecular and genetic mechanisms, early and reliable diagnosis remains challenging. This is largely due to clinical heterogeneity of ALS and the absence of specific biomarkers that can distinguish ALS from other neurodegenerative conditions, guide therapeutic decision-making, and facilitate patient stratification and follow-up in clinical trials [1]. Currently, diagnosis of ALS primarily depends on clinical evaluation aligned with established criteria and complemented by electromyography to confirm lower motor neuron involvement [3] [4] [5]. To characterize disease severity and cognitive involvement, standardized instruments including the ALS Functional Rating Scale-Revised (ALSFRS-R) [6] and the Edinburgh Cognitive and Behavioral ALS Screen (ECAS) are widely applied [7]. The measurement of Neurofilament light chain (NfL) [8, 9] and phosphorylated neurofilament heavy chain (pNfH) [10, 11] in blood and cerebrospinal fluid (CSF) serve as indicators of neuroaxonal damage, with levels substantially raised in ALS relative to healthy individuals. However, neurofilament elevations lack specificity for ALS, appearing likewise elevated in other neurological disorders such as frontotemporal dementia (FTD), multiple sclerosis, Creutzfeldt-Jakob disease, and Alzheimer&#x27;s disease (AD) [12]. Regarding the latter, evidence from imaging and postmortem analyses reveals concomitant amyloid-β and tau aggregates in ALS neural tissue, hinting at overlapping Alzheimer-type pathologies [13, 14]. Investigations of CSF amyloid-β isoforms (Aβ 40 , Aβ 42 ), total tau (t-Tau), and phosphorylated tau at serine 181 (pTau181) in ALS remain incomplete, though these may also nsignal synaptic loss and axonal harm [15]. Moreover, a recent report using target proteomics suggested that CSF AD-related biomarkers may respond to Disease-Modifying Therapies (DMT) such as tofersen [16]. Tofersen, an antisense oligonucleotide delivered intrathecally, targets Superoxide Dismutase 1 (SOD1) mRNA to curb protein production in ALS patients with SOD1 mutations, yielding reductions in CSF SOD1 and neurofilaments in trial cohorts [17]. This intervention offers a lens to assess if SOD1 lowering alters trajectories of CSF and blood biomarkers, and it is the first model for DMT in ALS.</p>
+<p>In this study, we conducted a systematic analysis of CSF concentrations of Aβ 40 , Aβ 42 , t-Tau, and pTau 181 in patients with ALS and compared them with concentrations in disease controls and patients with other neurodegenerative disorders, including AD and Huntington&#x27;s disease (HD), in a real-world clinical setting. Our first objective was to evaluate the diagnostic discriminatory capacity of these biomarkers across the disease groups. Our second objective was to determine, within the ALS collective, whether CSF biomarker concentrations were associated with clinical functional status, muscle-derived markers including creatine kinase myocardial band (CK-MB), neurofilament concentrations, and cognitive performance. Finally, as an exploratory analysis, we assessed longitudinal changes in these biomarkers during tofersen treatment in patients with genetically confirmed SOD1-associated ALS and examined their relationship with neurofilament dynamics.</p>
+<h3>Materials and methods</h3>
+<h3>Study participants</h3>
+<p>Clinical data were retrospectively retrieved from the electronic medical records of the Center for Neurology and the former Clinic for Neurodegenerative Diseases at University Hospital Bonn, Germany. The study included individuals diagnosed with Alzheimer&#x27;s disease (AD), Amyotrophic Lateral Sclerosis (ALS) or Huntington&#x27;s disease (HD), as well as individuals with conditions considered clinically non-neurodegenerative, including depression, polyneuropathy, lumbar pain and normal pressure hydrocephalus. We refer to the latter group as non-neurodegenerative disease (non-NND) controls to distinguish them from neurodegenerative disease (NND) groups. All participants underwent neurological evaluations between October 2019 and August 2021. Data were obtained from routine diagnostic and follow-up assessments; no additional procedures or interventions were performed for this study.</p>
+<p>A total of 52 individuals met the Revised El Escorial criteria for ALS, based on comprehensive clinical evaluation, medical history, and supporting diagnostic investigations [18]. None of the patients with ALS in this collective fulfilled the clinical criteria for frontotemporal dementia (FTD). The other NND groups comprised 17 patients with genetically confirmed HD, defined by an abnormally expanded CAG repeat in the HTT gene (&gt;39 repeats), and 55 patients with AD, characterized by typical clinical features and a CSF biomarker profile consistent with AD (amnestic mild cognitive impairment or dementia, a reduced Aβ 42 /Aβ 40 ratio and increased pTau181). In addition, 48 individuals with clinically non-neurodegenerative conditions were included as disease controls, as previously described. The date of lumbar puncture was used as the reference time point for data collection and clinical and functional assessment. Measurements were included only if obtained within a prespecified time window (±15 days) around this time point. Accordingly, data were not available for all participants for selected assessments and biomarkers: ALSFRS-R scores were available for 40 patients (76.9%), pNfH measurements for all 52 patients (100%), CK-MB levels for 48 patients (92.3%), and ECAS-Memory Score assessments for 33 patients (63.5%) (Supplementary Table 1. Availability Table).</p>
+<p>Among the patients with ALS, three had a confirmed SOD1 mutation and received tofersen treatment between January 2025 and January 2026. These patients continued to attend regular follow-up visits. Laboratory measurements were part of routine clinical care and were analyzed retrospectively. The study was approved by the Ethics Review Board of the University of Bonn, Germany (file no. 2026-540-BO).</p>
+<h3>Data collection and samples measurements</h3>
+<p>The data used in this study comprised clinical information and biomarker values obtained from biological samples (CSF and serum) collected as part of routine medical care. The general clinical dataset for ALS patients included gender, diagnosis, age at onset, first clinical presentation, and the site and time of initial manifestation.</p>
+<p>ALSFRS-R [19] and ECAS [20] assessments were performed within a few days before or after lumbar puncture (maximum ±15 days). In addition, standard laboratory biomarkers routinely analyzed in our routine practice and initial evaluation, such as pNfH in CSF, creatinine, reactive protein C (RPC), cystatin C, creatine kinase (CK), CK-MB, N-terminal prohormone of brain natriuretic peptide (NT-proBNP), and cardiac troponin T (cTnT)were included. While the above was primarily carried out for ALS patients, the results for AD-related biomarkers (Aβ 40 , Aβ 42 , t-Tau, pTau181 as well as the Aβ 42 /Aβ 40 and the Aβ 42 /p-Tau ratios) were compiled for the entire patient cohort. A pseudonymized and anonymized database was created from the collected data to perform statistical analysis in compliance with the current applicable European and German data protection laws.</p>
+<p>Routine serum and plasma chemistry was performed in the certified central diagnostic laboratory at the Institute of Clinical Chemistry and Clinical Pharmacology, University Hospital Bonn, Germany, using commercially available assay kits. Quantification of pNfH in CSF was carried out at the University Medical Center Ulm, Germany, with the ELLA microfluidic system (Bio-Techne, Minneapolis, USA) [21]. Measurement of ADrelated biomarkers was performed using the LUMIPULSE G600II automated platform (Fujirebio, Japan) at the German Centre for Neurodegenerative Diseases as part of the routine paraclinical evaluation [22].</p>
+<h3>Statistical analysis</h3>
+<p>Statistical analyses were performed using GraphPad Prism version 9.5 (GraphPad Software, San Diego, CA, USA), and figures were prepared using Affinity by Canva (Sydney, Australia). Distributions were assessed using the Shapiro-Wilk test and quantile-quantile (Q-Q) plots. Because most variables were not normally distributed, unadjusted between-group comparisons were performed using the Kruskal-Walli&#x27;s test, followed by Dunn&#x27;s multiple comparisons test. Associations between AD-related biomarkers and ALS-related laboratories and clinical measures were initially evaluated using Spearman&#x27;s rank correlation. Specifically, Aβ 40 , Aβ 42 , t-Tau, pTau 181 , the Aβ 42 /Aβ 40 ratio, and the Aβ 42 /p-Tau ratio were correlated with relevant laboratory parameters and clinical progression measures, including the ALSFRS-R and ECAS.</p>
+<p>In the three patients with SOD1-associated ALS receiving tofersen, longitudinal CSF concentrations of ADrelated biomarkers (Aβ 40 , Aβ 42 , t-Tau, pTau181) and neurofilaments were examined descriptively. Biomarker observations are not interpreted as evidence of a treatment effect and were intended to generate hypotheses for 154 future prospective studies in larger cohorts. All tests were two-sided, with a nominal significance threshold of p 155 &lt; 0.05. Effect estimates are reported with 95% confidence intervals (CIs), where applicable. 156  1 as medians (ranges). Aβ 40 concentrations were normally 167 distributed across groups; all other variables showed lognormal or non-normal distributions. The AD group was 168 significantly older than the other groups (P &lt; 0.0001) and included a higher proportion of women, whereas 169 patients with HD were younger than controls (p = 0.0008). 170 171</p>
+<p>Table 1 AD biomarker in the real-world cohort-University Hospital Bonn 172 173 ALS vs Control Control (n = 48) AD (n = 55) HD (n = 17) ALS (n = 52) P-value Effect r P post hoc Age 66 (27 -80) 81 (45 -95) 54 (29 -77) 67 (44 -84) &lt;0.0001 a 0.64 &gt;0.9999 Sex (f:m) 20:28 39:16 8:9 21:31 0.0050 b Cramers V = 0.27 0.7400 Aβ40 (pg/ml) 13714.00 (4480.00 -21023.00) 13453.00 (6315.00 -23428.00) 14151.00 (7470.00 -22876.00) 12.148 (4358.00 -22337.00) 0.4277 c 0.14 &gt;0.9999 Aβ42 (pg/ml) 1066.00 (396.00 -2208.00) 598.00 (231.00 -2049.00) 1487.00 (712.00 -2335.00) 1150.00 (439.00 -2335.00) &lt;0.0001 a 0.66 &gt; 0.9999 t-Tau (pg/ml) 235.50 (74.00 -818.00) 651.00 (228.00 -1589.00) 291.00 (142.00 -441.00) 239.00 (94.00 -866.00) &lt;0.0001 a 0.66 &gt; 0.9999 pTau181 (pg/ml) 39.25 (15.80 -144.30) 102.60 (34.00 -283.10) 39.70 (21.80 -75.80) 33.95 (12.40 -145.10) &lt;0.0001 a 0.71 &gt; 0.9999 Aβ42/Aβ40 0.10 (0.03 -0.12) 0.05 (0.02 -0.11) 0.10 (0.09 -0.11) 0.10 (0.03 -0.12) &lt;0.0001 a 0.72 0.5263 Aβ 42 / 35.19 5.50 38.58 35.50 &lt;0.0001 a 0.75 &gt; 0.9999 onset subgroup had a significantly lower body mass index (P = 0.025) and ALS Functional Rating Scale-182 Revised (ALSFRS-R) total score (P = 0.013), consistent with greater clinical impairment (Table 2). Patients 183 with concomitant frontotemporal dementia (ALS-FTD) were not represented in this cohort. 184 185 Table 2 Characterization of ALS patient real-world cohort 186 187 ALS subgroups ALS Total (n = 52) Bulbar onset (n = 13) Spinal onset (n = 39) P-value Sex, (female: male) 21:31 5:8 16:23 &gt;0.999 Age, years 67 (42 -84) 68.50 (59.00 -82.00) 63.00 (42.00 -84.00) 0.1639 BMI (kg/m 2 ) 24.01 (15.60 -62.50) 21.60 (17.36 -26.72) 25.74 (15.60 -62.50) 0.025 a Duration, years 6.00 (0.00 -16.00) 5.50 (1.00 -11.00) 6.00 (0.00 -16.00) 0.306 Aβ40 (pg/ml) 12.148 (4358.00 -22337.00) 10480 (7406 -21317) 12148 (4358 -22337) 0.5881 Aβ 42 (pg/ml) 1150.00 (439.00 -2335.00) 1006 (509 -2258) 1181 (421 -2335) 0.7026 t-Tau (pg/ml) 239.00 (94.00 -866.00) 271.00 (174.00 -534.00) 232.50 (94.00 -866.00) 0.3538 pTau181 (pg/ml) 33.95 (12.40 -145.10) 30.30 (22.20 -99.50) 34.70 (12.40 -145.10) 0.7553 Aβ 42 /Aβ 40 0.10 (0.03 -0.12) 0.10 (0.04 -0.10) 0.10 (0.03 -0.12) 0.8462 Aβ42/pTau181 35.50 (4.71 -57.80) 36.04 (5.12 -46.18) 34.97 (4.71 -57.80) 0.9430 CSF pNfH (pg/ml) 2263.00 (188 -11327) 3362(702 -11327) 2015 (241 -10667) 0.067 NfL (pg/ml) 132.00 (21 -699) 152.00 (54 -699) 91.00 (21 -224) 0.168 Cystatin C 0.96 (0.62 -1.55) 1.07 (0.62 -1.38) 0.94 (0.74 -1.55) 0.636 CK (U/L) 152.00 (34 -1848) 128.00 (43 -605) 161.5 (34 -1848) 0.349 CK-MB (ng/ml) 5.65 (1.00 -19.20) 6.20 (1.00 -19.20) 5.50 (1.30 -18.60) 0.868 cTnT (ng/l) 15.70 (3.70 -98.30) 15.70 (4.60 -66.20) 15.55 (3.70 -98.30) 0.761 D50 16.00 (0.39 -81.60) 16.80 (8.00 -34.00) 15.50 (0.39 -81.60) 0.895 ALSFRS-R global 37.00 (0 -48) 31.50 (21 -41) 38.50 (10 -48) 0.013 a ALSFRS-R bulbar 11.00 (2 -12) 7.50 (2 -12) 12.00 (3 -12) 0.002 a ALSFRS-R motorik 9.00 (0 -12) 6.5 (3 -12) 9.00 (0 -12) 0.239 ALSFRS-R mobility 8.00 (0-12) 6.00 (4 -12) 8.00(0 -12) 0.227 ALSFRS-R breathing 12.00 (2 -12) 10.00 (7 -12) 12.00 (2 -12) 0.025 a ECAS Global 108.00 (34 -125) 102.00 (34 -110) 108.00 (45 -125) 0.154 ECAS ALS-S 79.00 (24 -93) 76.00 (24 -84) 80.00 (34 -93) 0.199 ECAS ALS-NS 28.00 (10 -33) 25.00 (10 -31) 28.00 (11 -33) 0.132 ECAS Language 26.00 (14 -28) 26.00 (14 -27) 26.00 (15 -28) 0.288 ECAS Speech 20.00 (0 -24) 19.00 (4 -20) 20.00 (0 -24) 0.564 ECAS Executive 35.00 (10 -42) 30.00 (10 -37) 35.50 (14 -42) 0.138 ECAS Memory 16.50 (1 -21) 14.00 (1 -19) 17.00 (4 -21) 0.169 ECAS Spatial 12.00 (4 -12) 11.00 (9 -12) 12.00 (4 -12) 0.075 a Mann-Whitney test Aβ, Amyloid β; ALS; Amyotrophic Lateral Sclerosis; ALSFRS-R, ALS Functional Rating Scale-Revised; BMI, Body Mass Index; ECAS, Edinburgh Cognitive and Behavioral ALS Screen; ECAS ALS-S, ECAS ALS-Specific, ECAS ALS-NS, ECAS ALS non-specific; t-Tau, total Tau, pTau181, phosphorylated Tau in Serine 181;</p>
+<p>CSF AD biomarkers (Aβ 40 , Aβ 42 , t-Tau, pTau181, Aβ 42 /Aβ 40 ratio, Aβ 42 /pTau181 ratio) were compared across diagnostic groups using Kruskal-Wallis tests. As expected, compared with non-NND, patients with AD had significantly lower Aβ 42 (P = 0.0062, Fig), higher pTau181 (p &lt; 0.0001), and lower Aβ 42 /Aβ 40 and Aβ 42 /pTau181 ratios (both p &lt; 0.0001). By contrast, biomarker levels in the ALS and HD groups were comparable to those in controls. These findings support the specificity of CSF AD biomarkers for distinguishing AD from the other diagnostic groups and do not suggest diagnostic value for ALS or HD.</p>
+<h3>Correlations with pNfH and Cognitive Assessments</h3>
+<p>We next examined the relationship between canonical CSF AD biomarkers, markers of axonal degeneration, and cognitive performance in ALS. Using CSF phosphorylated neurofilament heavy chain (pNfH, n = 52) as an indicator of neuroaxonal injury (Figure 4 A-F) and the ECAS (n = 33), according to availability, as the principal measure of cognitive function (Figure 5 A-F). CSF pNfH concentrations showed significant negative correlations with both Aβ 42 (ρ = -0.32, P = 0.021; Figure 4B) and the Aβ 42 /Aβ 40 ratio (ρ = -0.29. P = 0.038; ; Figure 4C). In a subset of participants with available ECAS data (n = 33), the Aβ 42 /Aβ 40 ratio correlated positively with the non-ALS-specific memory sub-score (ρ = 0.35, P = 0.048; Figure 5C), whereas no significant associations were observed for other cognitive domains (Supplementary Table 2). Collectively, these findings suggest that higher CSF Aβ 42 levels may be linked to lower axonal degeneration and relatively preserved memory performance, potentially indicating a more favorable functional and cognitive phenotype within the ALS collective.</p>
+<h3>Longitudinal CSF AD-related biomarker in Tofersen-Treated Patients</h3>
+<p>Having identified positive correlations between CSF AD biomarkers and functional and memory-related performance in ALS, we next conducted an exploratory, descriptive longitudinal analysis of these biomarkers in three patients with SOD1-associated ALS receiving the SOD1 antisense oligonucleotide tofersen at our department. All three patients had initiated treatment before analysis; therefore, pretreatment biomarker measurements were unavailable. Biomarker measurements were obtained at intrathecal dosing visits, approximately every 30 days, over up to 12 months. For longitudinal visualization, each biomarker value was natural-logarithmically transformed; no additional normalization to baseline or to group mean was performed.</p>
+<p>The total number of measurements per patient is shown in Figure 6A. The log-transformed longitudinal trajectories showed a consistent downward trend in CSF Aβ 40 , Aβ 42 , t-Tau, and pTau181 (Figure 6A), with initial-to-final measurements showing a concordant pattern (Figure 6B-F). By contrast, CSF pNfH and plasma NfL levels appeared relatively stable (Figure 6G-H).</p>
+<p>These exploratory observations provide a preliminary longitudinal description of biomarker profiles during tofersen treatment. Although the absence of pretreatment measurements and the small sample size preclude attribution of these changes to treatment, the patterns may help inform future studies of disease-related biomarker trajectories and potential treatment-associated changes. Discussion 280 281</p>
+<p>The identification of robust diagnostic and prognostic biomarkers in ALS remains an important unmet need. In 282 this study, we evaluated the relevance of AD-associated CSF biomarkers in ALS by examining their diagnostic 283 performance, associations with disease-related measures in a real-world cohort, and longitudinal profiles during 284 tofersen treatment in three patients with SOD1-associated ALS. In this retrospective comparative study, CSF 285 concentrations of Aβ 40 , Aβ 42 , t-Tau and pTau181 in patients with ALS were broadly comparable to those in individuals with non-neurodegenerative disorders, whereas the AD cohort showed the expected differences.</p>
+<p>These findings indicate that, within this cohort and assay framework, canonical AD biomarkers in CSF did not provide disease-specific diagnostic discrimination for ALS. Importantly, we identified biologically plausible associations with clinical severity, neurofilament concentrations, markers of muscle injury, and mnemonic performance. In the three patients with SOD1-mutant ALS receiving tofersen, the biomarkers showed directional changes over time, suggesting a potentially treatment-responsive effect.</p>
+<p>The broadly similar CSF Aβ and Tau concentrations in the ALS and control cohorts are consistent with reports of minimal or absent AD biomarker signatures in sporadic and familial ALS 25.26 . Although amyloid and Tau pathologies may co-occur in ALS, particularly in older individuals [25] the CSF findings in this study cannot establish their presence or extent at the neuropathological level. Overall, our results suggest that canonical amyloid-and Tau-related CSF profiles were not prominent biochemical features of ALS in this cohort. At the same time, the observed associations between Aβ species, neurofilament concentrations, and clinical measures reveal potentially informative relationships that merit further investigation and may help refine biomarker-based phenotyping in ALS.</p>
+<p>Higher Aβ 40 and Aβ 42 concentrations were positively associated with better functional performance, as measured by the ALSFRS-R. This observation is compatible with the possibility that higher Aβ concentrations reflect preserved neuronal or synaptic integrity, a hypothesis also raised by experimental work in human neurons [26]. Because this association was cross-sectional, it cannot distinguish among potential explanations, including differences in disease stage, age, BMI or CSF protein concentration, as well as variation in Aβ production or clearance. The association between Aβ peptides and CK-MB may similarly reflect shared disease burden or systemic stress [27]. However, CK-MB is not specific to ALS, and non-neurological influences cannot be excluded. Amyloid Precursor Protein (APP) processing represents a particularly compelling avenue for future investigation, given evidence that APP and its cleavage products participate in axonal regeneration and neuromuscular maintenance 30.31 . A recent study reported elevated serum pTau 181 and pTau 217 concentrations in ALS, comparable to those observed in AD, and suggested a potential muscular origin [30, 31]. In this context, the positive association between CSF pTau 181 and serum CK-MB in our cohort may reflect parallel responses to disease-related stress in lower motor neurons and muscle, providing a testable hypothesis for future studies.</p>
+<p>The inverse correlation between Aβ 42 and pNfH further highlights a potentially meaningful relationship between these biomarkers in our cohort. Neurofilament elevation is an established indicator of axonal injury and motor neuron loss in ALS and other neurodegenerative diseases [32]. Although the cross-sectional association does not establish the underlying process or its direction, it is consistent with a link between Aβ 42 -related biology and axonal integrity. Exploratory analyses also identified a modest association between higher CSF Aβ 42 /Aβ 40 ratios and better ECAS memory performance. This domain-specific finding, observed in a subset of patients, provides an encouraging signal that warrants replication in larger cohorts. Previous fluid biomarkers, imaging, and neuropathological studies of ALS-FTD have primarily linked cortical degeneration and frontotemporal atrophy to Tau and TDP-43 pathology [33, 34] rather than to Aβ species. Our findings add to the growing interest in whether synaptic and AD-related fluid biomarkers, when interpreted alongside cognitive measures, may contribute to phenotypic and prognostic stratification in ALS. The positive association is consistent with a recent report in which lower Aβ 42 /Aβ 40 ratios were associated with poorer memory performance in ALS [24]. It is further supported by observations in cognitively impaired ALS and ALS-FTD, where significantly lower CSF Aβ 42 /Aβ 40 and Aβ 42 /pTau181 ratios were found relative to healthy controls [34]. In line with this possibility, a lower CSF Aβ 42 /Aβ 40 ratio has also been associated with shorter survival in ALS, indicating that amyloidrelated measures may reflect aspects of clinical heterogeneity beyond motor decline [35]. Intriguingly, we did not observe significant associations between CSF T-tau or pTau181 and ECAS performance. This divergence may reflect several factors, including inter-assay variability, differences in pre-analytical handling, and the relatively restricted cognitive spectrum of our cohort, which did not include patients with overt ALS-FTD.</p>
+<p>In three SOD1-mutant ALS patients treated with tofersen, longitudinal CSF measurements showed directional decreases in Aβ 40 , Aβ 42 , t-Tau and pTau 181 without apparent changes in CSF pNfH or serum NfL. Previous clinical studies have reported sustained reductions in neurofilament levels following SOD1 silencing with tofersen [36]. Differences between those findings and our observations may reflect the small sample, sampling timing, assay variability, regression to the mean or instability in individual longitudinal trajectories.</p>
+<p>Nevertheless, the parallel directional changes in Aβ and Tau biomarkers raise the intriguing possibility that SOD1 lowering may influence non-canonical pathways, including APP processing, Tau phosphorylation or broader proteostatic mechanisms. Similar decreases in Aβ 40 and Aβ 42 for up to six months after tofersen initiation have been reported using NULISA™-based targeted proteomics and LUMIPULSE™ immunoassays [16]. Our single-center real-world observations, obtained using commercially available assays, are directionally consistent with these reports and provide independent support for the possibility that diseasemodifying treatment may alter the CSF biomarker milieu beyond its primary molecular targets. Together, these observations generate a clear rationale for prospective studies of biomarker dynamics during SOD1-targeted therapy.</p>
+<p>Several limitations should be considered. The retrospective design, small number of patients in the treatment analysis and clinical heterogeneity limit the strength of mechanistic conclusions. The control cohort was heterogeneous and included individuals with non-neurodegenerative conditions, such as depression and normalpressure hydrocephalus, which may affect comparability. The AD cohort was clinically selected and defined from the clinic rather than recruited as a population-based reference group; this should be considered when interpreting between-group differences. Correlations were not adjusted for age or disease duration, and p-values were not adjusted for multiple testing, consistent with the exploratory nature of the analyses. The absence of complementary neuroimaging or post-mortem data also limits anatomical and neuropathological interpretation of the CSF findings. Despite these limitations, assessing canonical AD biomarkers alongside ALS-related measures, including pNfH, ALSFRS-R and ECAS, provides a multidimensional view of biomarker relationships in this real-world cohort. Prospective longitudinal studies in larger, well-characterized cohorts-with comparator groups, standardized pre-analytical procedures and sensitive single-and multi-analyte assays-are needed to assess the reproducibility and clinical relevance of these findings. Such studies could determine</p>
+<h3>Global ALS-S ALS-NS Language</h3>
+<p>Speech Executive Memory Spatial Marker ρ P-value ρ P-value ρ P-value ρ P-value ρ P-value ρ P-value ρ P-value ρ P-value Aβ 40 0.08 0.6803 0.09 0.6148 0.01 0.9689 0.09 0.6025 0.07 0.7175 -0.04 0.8141 -0.17 0.3547 0.19 0.2714 Aβ 42 0.24 0.172 0.21 0.2608 0.25 0.159 0.03 0.8501 0.09 0.6407 0.14 0.454 0.13 0.4648 0.15 0.3953 t-Tau -0.07 0.7218 -0.08 0.6682 -0.06 0.7626 0.06 0.7147 -0.08 0.6569 -0.2 0.2574 -0.13 0.4766 -0.04 0.8301 pTau181 0.02 0.9333 0.02 0.9296 0.02 0.9158 0.09 0.6071 0.05 0.7892 -0.135 0.4617 -0.085 0.6577 0.04 0.8127 Aβ 42 / Aβ40 0.34 0.0507 0.28 0.1187 0.33 0.0544 0.11 0.5179 0.2 0.2635 0.22 0.2137 0.38 *0.0293 0.14 0.401 Aβ42/ pTau181 0.26 0.1528 0.29 0.1029 0.2 0.2587 0.05 0.7702 0.22 0.2289 0.27 0.2057 0.12 0.4997 0.31 0.0778 545</p>
+<p>Acknowledgements We thank the current and former directors of the Departments of Neurodegenerative Diseases, Cognitive Disorders, Gerontopsychiatry, Neuromuscular and Neuroimmunological Diseases at the University Hospital Bonn -Prof. Michael T. Heneka, Prof. Anja Schneider, Prof. Ulrich Wüllner, Prof. Cornelia Kornblum and Prof. Anne-Kathrin Pröbstel-for their support of this work.</p>
+<p>Funding ⋅ Alzheimer Forschung Initiative e.V (Grant 21060 to SCG) ⋅ Hertie Network of Excellence in Clinical Neuroscience (Grant 2021-1A-12 to SCG) ⋅ Deutsche Forschungsgemeinschaft (DFG) -Neuro-aCSis -Bonn Neuroscience Clinician Scientist 603 Programm (Project 493623632 to SCG) ⋅ DFG -ImmunoSensation 2 (EXC2151-390873048 to SCG). ⋅ National Strategy for Translational Projects for Gene and Cell Therapy Products and Associated 606 Diagnostics from the Federal Ministry of Education and Research Germany (BMBF. Grant 01_BIH_TP_2410 607 to SCG).</p>
+<h3>Data availability</h3>
+<p>All details regarding the presented datasets are available from the corresponding authors upon request.</p>
+<h3>Competing interests</h3>
+<p>The authors report no competing interests.</p>
+<h3>Author contributions</h3>
+<p>S.C-G., and P.W. conceived the study. F.E. und S.C-G. analysed data, interpreted results and performed statistical analyses. S.B., R.F., P.W., C.W. and S.C-G. acquired data and contributed to clinical expertise, F.E., S.C-G., S.B., C.W. critically revised the manuscript. S.C-G. and F.E. drafted the manuscript. All authors read and approved the manuscript.</p>
+<p>To assess whether CSF AD biomarkers were associated with disease severity or functional impairment in ALS, 215 we performed Spearman correlation analyses with ALSFRS-R (Figure 2A-F) scores and other muscle markers 216 such as CK-MB levels (Figure 3A-F). For ALSFRS-R, we included the assessment closest to CSF collection 217 when available (n = 40; Figure 2A-F); the number of observations for CK-MB varied according to availability 218 (n = 48; Figure 3A-F). Higher ALSFRS-R global scores correlated positively with Aβ 40 (ρ = 0.391, P = 219 0.01578; Figure 2A), Aβ 42 (ρ = 0.369, P = 0.02833; Figure 2B), and mildly with pTau181 (ρ = 0.319, P = 220 0.03960; Figure 2E). CK-MB levels correlated positively with Aβ 40 (ρ = 0.438, P = 0.001636; Figure 3A), Aβ 42 221 (ρ = 0.478, P = 0.0006; Figure 3B), t-Tau (ρ = 0.297, P = 0.0405, ; Figure 3D), and pTau181 (ρ = 0.355, P = 222 0.0134; Figure 3E). No significant associations were observed between CK-MB and the biomarker ratios 223 (Figure 2A-F). These findings suggest that CSF AD-related proteins are associated with measures of functional 224 status and peripheral disease involvement in ALS.</p>
+<p>whether changes in Aβ and Tau track with neurofilament dynamics, cognition or treatment exposure, and may ultimately support the development of more comprehensive biomarker panels for ALS. Table 2. Correlations CSF AD Biomarkers and ECAS 542 543 study, we reviewed medical records from the former Clinic of Neurodegenerative Diseases 162 and the Centre for Neurology at University Hospital Bonn, Germany.</p>
+<p>The cohort comprised 172 patients with 163 neurodegenerative or non-neurodegenerative disorders (51% female), classified into four diagnostic groups: 164 non-neurodegenerative controls (non-NND, Control; n = 48), Alzheimer&#x27;s disease (AD; n = 55), Huntington&#x27;s 165 disease (HD; n = 17), and amyotrophic lateral sclerosis (ALS; n = 52). Demographic characteristics and 166 biomarker concentrations are summarized in Table</p>
+<h3>Figure 1 CSF</h3>
+<p>Figure 1 CSF AD Biomarkers levers in ALS and other disorders. CSF levels of (A) Aβ40, (B) Aβ42, (C) Aβ42/Aβ40 ratio, (D) t-Tau, (E) pTau181, and (F) Aβ42/pTau181 ratio in ALS, non-NND, and NDD (AD and HF) groups. Each dot represents an individual patient. Box plots show median values, with whiskers indicating minimum and maximum values. Reported P is from Kruskal-Wallis tests.</p>
+<h3>Figure 2 CSF</h3>
+<p>Figure 2 CSF AD Biomarkers Correlations with ALS Functional Scores. Correlation analyses were performed using nonparametric Spearman correlations (ρ). Curves were drawn by a linear regression model with an interaction term for ALSFRS-R Global Scores by CSF levels of (A) Aβ 40 , (B) Aβ 42 , (C) Aβ 42 /Aβ 40 ratio, (D) t-Tau, (E) pTau181, and (F) Aβ42/pTau181. Shaded areas represent 95% CIs.</p>
+<h3>Figure 3 CSF</h3>
+<p>Figure 3 CSF AD Biomarkers Correlations with CK-MB. Correlation analyses were performed using nonparametric Spearman correlations (ρ). Curves were drawn by a linear regression model with an interaction term for serumCK-MB by CSF levels of (A) Aβ 40 , (B) Aβ 42 , (C) Aβ 42 /Aβ 40 ratio, (D) t-Tau, (E) pTau181, and (F) Aβ42/pTau181. Shaded areas represent 95% CIs.</p>
+<h3>Figure 4 CSF</h3>
+<p>Figure 4 CSF AD Biomarkers Correlations with pNfH. Correlation analyses were performed using nonparametric Spearman correlations (ρ). Curves were drawn by a linear regression model with an interaction term for CSF pNfH by CSF levels of (A) Aβ 40 , (B) Aβ 42 , (C) Aβ 42 /Aβ 40 ratio, (D) t-Tau, (E) pTau181, and (F) Aβ42/pTau181. Shaded areas represent 95% CIs.</p>
+<h3>Figure 5 CSF</h3>
+<p>Figure 5 CSF AD Biomarkers Correlations with ECAS Memory score. Correlation analyses were performed using nonparametric Spearman correlations (ρ). Curves were drawn by a linear regression model with an interaction term for ECAS Memory score by CSF levels of (A) Aβ 40 , (B) Aβ 42 , (C) Aβ 42 /Aβ 40 ratio, (D) t-Tau, (E) pTau 181 , and (F) Aβ42/pTau 181 . Shaded areas represent 95% CIs.</p>
+<h3>Figure 6</h3>
+<p>Figure 6 Longitudinal CSF AD-related biomarker in Tofersen-Treated Patients. (A) Longitudinal trajectories of natural log-transformed, normalized levels of AD-related biomarkers-CSF pNfH and plasma NfL-in three SOD1 mutation carriers treated with tofersen. Each dot represents an individual measurement taken on the day of intrathecal tofersen administration. Paired comparisons between the first and last measurements of mean CSF concentrations are shown fo (B) Aβ 40 , (C) Aβ 42 , (D) Aβ 42 /Aβ 40 ratio, (E) t-Tau, (F) pTau181, (G) pNfH and serum values of (H) NfL. Individual patient changes are represented by semi-transparent connecting lines. Reported P values are from paired t-tests.</p>
+<h3>Table 1.</h3>
+<p>Data AvailabilitySupplementary Table 2. CSF AD-related biomarkers and ECAS correlations available follow-up values were summarized for each patient.</p>
+<p>Given the small sample size, analyses focused on the direction and magnitude of within-patient changes rather than formal hypothesis testing.</p>
+<p>These exploratory b Chi-square c One-Way ANOVA</p>
+<p>Aβ, Amyloid β; AD, Alzheimer`s Disease; ALS; Amyotrophic Lateral Sclerosis; HD, Huntington&#x27;s Disease; t-Tau, total Tau, pTau181, phosphorylated Tau in Serine 181</p>
+<p>ALS patients were stratified by site of onset into bulbar-onset (n = 13) and spinal-onset (n = 39) subgroups.</p>
+<p>Clinical, biomarker, and cognitive data are presented as medians (ranges) in Table2. As expected, the bulbar-</p>
+<h3>References</h3>
+<p>Vidovic M, Müschen LH, Brakemeier S, Machetanz G, Naumann M, Castro-Gomez S. Current State and Future Directions in the Diagnosis of Amyotrophic Lateral Sclerosis. Cells. 2023;12:736. https://doi.org/10.3390/cells12050736.</p>
+<p>Ravits J, Ferrey D, Gundogdu B, Qayoumi W, Zale C. Amyotrophic Lateral Sclerosis: A Review. JAMA. 2026;335:1970. https://doi.org/10.1001/jama.2026.6385.</p>
+<p>Masrori P, Van Damme P. Amyotrophic lateral sclerosis: a clinical review. Eur J Neurol. 2020;27:1918-29. https://doi.org/10.1111/ene.14393.</p>
+<p>de Carvalho M, Dengler R, Eisen A, England JD, Kaji R, Kimura J, et al. Electrodiagnostic criteria for diagnosis of ALS. Clin Neurophysiol. 2008;119:497-503. https://doi.org/10.1016/j.clinph.2007.09.143.</p>
+<p>Shefner JM, Al-Chalabi A, Baker MR, Cui L-Y, De Carvalho M, Eisen A, et al. A proposal for new diagnostic criteria for ALS. Clinical Neurophysiology. 2020;131:1975-8. https://doi.org/10.1016/j.clinph.2020.04.005.</p>
+<p>Cedarbaum JM, Stambler N, Malta E, Fuller C, Hilt D, Thurmond B, et al. The ALSFRS-R: a revised ALS functional rating scale that incorporates assessments of respiratory function. BDNF ALS Study Group (Phase III). J Neurol Sci. 1999;169:13-21. https://doi.org/10.1016/s0022-510x(99)00210-5.</p>
+<p>Pinto-Grau M, Burke T, Lonergan K, McHugh C, Mays I, Madden C, et al. Screening for cognitive dysfunction in ALS: validation of the Edinburgh Cognitive and Behavioural ALS Screen (ECAS) using age and education adjusted normative data. Amyotroph Lateral Scler Frontotemporal Degener. 2017;18:99-106. https://doi.org/10.1080/21678421.2016.1249887.</p>
+<p>Gaiani A, Martinelli I, Bello L, Querin G, Puthenparampil M, Ruggero S, et al. Diagnostic and Prognostic Biomarkers in Amyotrophic Lateral Sclerosis: Neurofilament Light Chain Levels in Definite Subtypes of Disease. JAMA Neurol. 2017;74:525. https://doi.org/10.1001/jamaneurol.2016.5398.</p>
+<p>Verde F, Steinacker P, Weishaupt JH, Kassubek J, Oeckl P, Halbgebauer S, et al. Neurofilament light chain in serum for the diagnosis of amyotrophic lateral sclerosis. J Neurol Neurosurg Psychiatry. 2019;90:157-64. https://doi.org/10.1136/jnnp-2018-318704.</p>
+<p>De Schaepdryver M, Jeromin A, Gille B, Claeys KG, Herbst V, Brix B, et al. Comparison of elevated phosphorylated neurofilament heavy chains in serum and cerebrospinal fluid of patients with amyotrophic lateral sclerosis. J Neurol Neurosurg Psychiatry. 2018;89:367-73. https://doi.org/10.1136/jnnp-2017-316605.</p>
+<p>Verde F, Zaina G, Bodio C, Borghi MO, Soranna D, Peverelli S, et al. Cerebrospinal fluid phosphorylated neurofilament heavy chain and chitotriosidase in primary lateral sclerosis. J Neurol Neurosurg Psychiatry. 2021;92:221-3. https://doi.org/10.1136/jnnp-2020-324059.</p>
+<p>Khalil M, Teunissen CE, Lehmann S, Otto M, Piehl F, Ziemssen T, et al. Neurofilaments as biomarkers in neurological disorders -towards clinical application. Nat Rev Neurol. 2024;20:269-87. https://doi.org/10.1038/s41582-024-00955-x.</p>
+<p>Hamilton RL, Bowser R. Alzheimer disease pathology in amyotrophic lateral sclerosis. Acta Neuropathol. 2004;107:515-22. https://doi.org/10.1007/s00401-004-0843-1.</p>
+<p>Matías-Guiu JA, Pytel V, Cabrera-Martín MN, Galán L, Valles-Salgado M, Guerrero A, et al. Amyloid-and FDG-PET imaging in amyotrophic lateral sclerosis. Eur J Nucl Med Mol Imaging. 2016;43:2050-60. https://doi.org/10.1007/s00259-016-3434-1.</p>
+<p>Chen Y, Sun S, Bai Z, Gao N, Yu W, Sun X, et al. CSF Aβ, Tau, Axonal, Synaptic, Glial, Neural, and Inflammatory Biomarkers in Patients With Sporadic Amyotrophic Lateral Sclerosis. Neurology. 2025;105:e213914. https://doi.org/10.1212/WNL.0000000000213914.</p>
+<p>Steffke C, Baskar K, Bachhuber F, Wiesenfarth M, Dorst J, Schuster J, et al. Targeted Proteomics upon Treatment with Tofersen Identifies Novel Response Markers for Superoxide Dismutase 1-Linked Amyotrophic Lateral Sclerosis. Ann Neurol. 2025;98:1318-34. https://doi.org/10.1002/ana.70025.</p>
+<p>Weishaupt JH, Körtvélyessy P, Schumann P, Valkadinov I, Weyen U, Hesebeck-Brinckmann J, et al. Tofersen decreases neurofilament levels supporting the pathogenesis of the SOD1 p.D91A variant in amyotrophic lateral sclerosis patients. Commun Med (Lond). 2024;4:150. https://doi.org/10.1038/s43856-024-00573-0.</p>
+<p>Ludolph A, Drory V, Hardiman O, Nakano I, Ravits J, Robberecht W, et al. A revision of the El Escorial criteria -2015. Amyotrophic Lateral Sclerosis and Frontotemporal Degeneration. 2015;16:291-2. https://doi.org/10.3109/21678421.2015.1049183.</p>
+<p>Abdulla S, Vielhaber S, Körner S, Machts J, Heinze H-J, Dengler R, et al. Validation of the German version of the extended ALS functional rating scale as a patient-reported outcome measure. J Neurol. 2013;260:2242- 55. https://doi.org/10.1007/s00415-013-6955-6.</p>
+<p>Abrahams S, Newton J, Niven E, Foley J, Bak TH. Screening for cognition and behaviour changes in ALS. Amyotroph Lateral Scler Frontotemporal Degener. 2014;15:9-14. https://doi.org/10.3109/21678421.2013.805784.</p>
+<p>Halbgebauer S, Steinacker P, Verde F, Weishaupt J, Oeckl P, Von Arnim C, et al. Comparison of CSF and serum neurofilament light and heavy chain as differential diagnostic biomarkers for ALS. J Neurol Neurosurg Psychiatry. 2022;93:68-74. https://doi.org/10.1136/jnnp-2021-327129.</p>
+<p>Gobom J, Parnetti L, Rosa-Neto P, Vyhnalek M, Gauthier S, Cataldi S, et al. Validation of the LUMIPULSE automated immunoassay for the measurement of core AD biomarkers in cerebrospinal fluid. Clin Chem Lab Med. 2022;60:207-19. https://doi.org/10.1515/cclm-2021-0651.</p>
+<p>Agah E, Mojtabavi H, Behkar A, Heidari A, Ajdari A, Shaka Z, et al. CSF and blood levels of Neurofilaments, T-Tau, P-Tau, and Abeta-42 in amyotrophic lateral sclerosis: a systematic review and meta- analysis. J Transl Med. 2024;22:953. https://doi.org/10.1186/s12967-024-05767-7.</p>
+<p>Maranzano A, Verde F, Dubini A, Torre S, Colombo E, Doretti A, et al. Association of APOE genotype and cerebrospinal fluid Aβ and tau biomarkers with cognitive and motor phenotype in amyotrophic lateral sclerosis. Eur J Neurol. 2024;31:e16374. https://doi.org/10.1111/ene.16374.</p>
+<p>Moriyoshi H, Akagi A, Riku Y, Sone J, Miyahara H, Yoshida M, et al. Contribution of comorbid pathologies to amyotrophic lateral sclerosis with cognitive or behavioral abnormalities. BMC Neurol. 2025;26:19. https://doi.org/10.1186/s12883-025-04556-z.</p>
+<p>Siddu A, Natale S, Wong CH, Shaye H, Südhof TC. Aggregation shifts amyloid-β peptides from synaptogenic to synaptotoxic. J Clin Invest. 2025;135:e193407. https://doi.org/10.1172/JCI193407.</p>
+<p>Kittipeerapat N, Fabian R, Bernsen S, Weydt P, Castro-Gomez S. Creatine Kinase MB Isoenzyme Is a Complementary Biomarker in Amyotrophic Lateral Sclerosis. Int J Mol Sci. 2023;24:11682. https://doi.org/10.3390/ijms241411682.</p>
+<p>Vohra BPS, Sasaki Y, Miller BR, Chang J, DiAntonio A, Milbrandt J. Amyloid precursor protein cleavage- dependent and -independent axonal degeneration programs share a common nicotinamide mononucleotide adenylyltransferase 1-sensitive pathway. J Neurosci. 2010;30:13729-38. https://doi.org/10.1523/JNEUROSCI.2939-10.2010.</p>
+<p>Wang P, Yang G, Mosier DR, Chang P, Zaidi T, Gong Y-D, et al. Defective neuromuscular synapses in mice lacking amyloid precursor protein (APP) and APP-Like protein 2. J Neurosci. 2005;25:1219-25. https://doi.org/10.1523/JNEUROSCI.4660-04.2005.</p>
+<p>Abu-Rumeileh S, Scholle L, Mensch A, Großkopf H, Ratti A, Kölsch A, et al. Phosphorylated tau 181 and 217 are elevated in serum and muscle of patients with amyotrophic lateral sclerosis. Nat Commun. 2025;16:2019. https://doi.org/10.1038/s41467-025-57144-7.</p>
+<p>Abu-Rumeileh S, Großkopf H, Guthknecht A, Mensch A, Osterloh D, Ratti A, et al. Tau isoform mapping across tissues and biofluids reveals a signature distinguishing Alzheimer&#x27;s disease from amyotrophic lateral sclerosis. Nat Commun. 2026;17:10745. https://doi.org/10.1038/s41467-026-78390-3.</p>
+<p>Poesen K, Van Damme P. Diagnostic and Prognostic Performance of Neurofilaments in ALS. Front Neurol. 2018;9:1167. https://doi.org/10.3389/fneur.2018.01167.</p>
+<p>Chatterjee M, Özdemir S, Fritz C, Möbius W, Kleineidam L, Mandelkow E, et al. Plasma extracellular vesicle tau and TDP-43 as diagnostic biomarkers in FTD and ALS. Nat Med. 2024;30:1771-83. https://doi.org/10.1038/s41591-024-02937-4.</p>
+<p>Kasper E, Lehto A, Jürs A, Nordmann N, Peters O, Hellmann J, et al. Alzheimer&#x27;s Disease CoPathology and Cognitive Impairment in Amyotrophic Lateral Sclerosis. Annals of Neurology. 2026;100:123-38. https://doi.org/10.1002/ana.78227.</p>
+<p>Colletti T, Agnello L, Spataro R, Guccione L, Notaro A, Lo Sasso B, et al. Prognostic Role of CSF β- amyloid 1-42/1-40 Ratio in Patients Affected by Amyotrophic Lateral Sclerosis. Brain Sci. 2021;11:302. https://doi.org/10.3390/brainsci11030302.</p>
+<p>Miller T, Cudkowicz M, Shaw PJ, Andersen PM, Atassi N, Bucelli RC, et al. Phase 1-2 Trial of Antisense Oligonucleotide Tofersen for SOD1 ALS. N Engl J Med. 2020;383:109-19. https://doi.org/10.1056/NEJMoa2003715.</p>
 </div>
 </details>
 </div>
