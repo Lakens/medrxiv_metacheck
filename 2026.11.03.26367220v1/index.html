@@ -198,7 +198,7 @@ mortality in sepsis: a prospective cohort study in the emergency
 department
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.03.26367220
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.03.26367220
 </p>
 </header>
 <div class="mc-main">
@@ -688,8 +688,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -1057,9 +1058,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -1081,7 +1086,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -1096,9 +1102,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -1111,13 +1135,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1137,6 +1164,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -1144,12 +1177,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1250,6 +1289,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1269,6 +1328,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1524,19 +1618,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1646,6 +1822,140 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Sepsis is a dynamic process with evolving host responses, biomarker changes, and organ dysfunction. Sphingosine-1-phosphate (S1P) is a bioactive lipid involved in endothelial and immune regulation. However, the clinical relevance of dynamic S1P changes in sepsis remains unclear. This study aimed to assess their association with mortality.</p>
+<p>We conducted a prospective cohort study of adults recruited from the emergency department of Wan Fang Hospital between April 2022 and October 2024. Plasma S1P was measured by ELISA on days 1, 3, and before discharge or death. The primary outcome was 60-day mortality. S1P trajectories were defined by baseline concentrations and longitudinal slopes estimated using linear mixed-effects models. Low-decreasing, low-stable, and high-decreasing trajectories were grouped as descending; the others as ascending. Cox proportional hazards models assessed mortality associations with baseline S1P, trajectory groups, and time-varying S1P.</p>
+<p>Among 278 participants, 156 had sepsis. Baseline S1P concentrations were lower in patients with sepsis (82.2 [IQR, 47.8-141.1] ng/mL) than in those with non-septic infection (129.2 [IQR, 68.1-306.9] ng/mL) and non-infected controls (132.8 [IQR, 74.1-300.2] ng/mL). In the sepsis cohort, group. The descending group had a higher hazard of 60-day mortality (adjusted hazard ratio [aHR]    3.43; 95% confidence interval [CI], 1.11-10.58; p = 0.032). Baseline S1P was not significantly associated with 60-day mortality (aHR 1.004 per 10 ng/mL decrease; 95% CI, 0.977-1.032; p = 0.803). Each 10 ng/mL decrease in time-varying S1P was associated with a 3.5% higher mortality hazard (aHR 1.035; 95% CI, 1.002-1.076; p = 0.041).</p>
+<p>Declining plasma S1P over time was associated with higher mortality in sepsis. Dynamic changes in S1P may be clinically relevant beyond baseline levels.</p>
+<h3>Background</h3>
+<p>Sepsis remains a major global health burden, with an estimated 21.4 million deaths (31.5% of all deaths worldwide) in 2021 [1]. Sepsis is a dynamic process involving interactions between pathogens and the host immune system, with evolving pro-and anti-inflammatory responses [2].</p>
+<p>Septic shock, a severe form of sepsis, is characterized by acute circulatory failure and profound cellular and metabolic abnormalities resulting from a dysregulated host response to infection [3].</p>
+<p>Endothelial dysfunction contributes to impaired tissue perfusion, inadequate oxygen delivery, and subsequent multiple organ dysfunction [3]. Therefore, reliable indicators are essential for early identification, prognostic assessment, and management of sepsis [4, 5].</p>
+<p>The Sequential Organ Failure Assessment (SOFA) score is widely used to assess organ dysfunction and evaluate prognosis in sepsis [6]. However, its calculation requires multiple clinical and laboratory parameters, potentially limiting its utility for real-time monitoring. Several circulating biomarkers, including C-reactive protein (CRP), procalcitonin (PCT), lactate, and interleukin-6 (IL-6), have been extensively investigated for their diagnostic and prognostic value [7]. Nevertheless, given the complex and dynamic nature of sepsis, no single biomarker can fully capture its pathophysiological processes. Consequently, the discovery of novel biomarkers remains a research priority in sepsis.</p>
+<p>Sphingosine-1-phosphate (S1P) is a bioactive sphingolipid mediator constitutively produced and released by endothelial cells and erythrocytes [8] [9] [10]. S1P is involved in various biological processes, including vascular homeostasis, endothelial barrier integrity, immune cell trafficking, and inflammatory responses [11]. In circulation, approximately 60% of S1P is carried by apolipoprotein M (ApoM)-containing high-density lipoprotein (HDL) and 30% by albumin, its two major plasma carriers [12, 13]. Extracellular S1P mediates its biological effects through five G protein-coupled receptors (S1PR1-5), with S1PR1 highly expressed on endothelial cells [14].</p>
+<p>Given its role in sepsis pathophysiology, S1P may serve as a promising prognostic biomarker.</p>
+<p>Despite consistent evidence that circulating S1P concentrations are reduced in patients with sepsis, its prognostic value for mortality remains uncertain [15] [16] [17]. In addition, most studies have focused on baseline S1P, which may not capture the evolving pathophysiology of sepsis [16, 18, 19]. Furthermore, changes in S1P sources and carrier proteins during sepsis may affect its circulating concentrations [17, 20, 21]. These fluctuations may reflect changes in sepsis severity and progression. We therefore hypothesized that longitudinal S1P measurements may provide additional prognostic information beyond baseline levels. Accordingly, this study aimed to investigate the association between changes in plasma S1P concentrations over time and 60-day mortality in patients with sepsis.</p>
+<h3>Methods</h3>
+<h3>Participants</h3>
+<p>This observational, single-center, prospective cohort study was conducted at Taipei Municipal Wanfang Hospital (Taipei, Taiwan) between April 2022 and October 2024. Adults (≥ 18 years) presenting to the emergency department (ED) with suspected sepsis (qSOFA ≥ 2) and non-infected controls were consecutively enrolled. Patients with infection were classified as sepsis or non-septic infection according to the sepsis-3 criteria [6]. Exclusion criteria included severe immunosuppression, active malignancy, pregnancy, and breastfeeding. These conditions were excluded because they may independently influence S1P metabolism and signaling, immune responses, and clinical outcomes [22, 23]. The clinical study was approved by the Taipei Medical University Institutional Review Board (TMU-JIRB No. N202202022). Written informed consent was obtained from all participants or from their legally authorized representatives (Fig. 1).</p>
+<h3>S1P measurement</h3>
+<p>Trained research nurses collected peripheral venous blood samples (10 mL) at predefined time points. Baseline samples (T0) were collected from all participants upon ED presentation. In patients with sepsis, additional samples were obtained on day 3 of hospitalization (T1) and one day before hospital discharge or death (T2). The collected blood samples were stored in EDTAcontaining tubes and immediately centrifuged at 2,500 × g for 10 minutes. The resulting plasma was stored at -80°C until analysis. Plasma S1P and IL-6 concentrations were measured using commercially available enzyme-linked immunosorbent assay (ELISA) kits from MyBioSource and BioLegend, respectively.</p>
+<h3>Data collection</h3>
+<p>Demographic data including age, sex, body weight, body mass index (BMI), and comorbidities were collected for all participants. Detailed clinical and laboratory data were obtained only in patients with suspected infection (non-septic infection and sepsis groups). Clinical parameters recorded at ED presentation included Glasgow Coma Scale (GCS) score, heart rate, mean arterial pressure (MAP), respiratory rate, peripheral oxygen saturation (SpO2), body temperature, and urine output. The primary infection source was categorized as respiratory tract, intra-abdominal, urinary tract, soft tissue, or other. Laboratory data included hematological parameters (red blood cell count, hemoglobin, white blood cell count, neutrophil count, and platelet count), biochemical parameters (creatinine, lactate, bilirubin, glucose, albumin, and HDL), inflammatory markers (CRP and PCT), and blood culture results. Patients with suspected infection were managed according to the Surviving Sepsis Campaign (SSC) 2021 guidelines [24].</p>
+<h3>Outcome assessment</h3>
+<p>The primary outcome was 60-day all-cause mortality, defined as death from any cause within 60 days of ED admission. Time-to-event was defined as the interval from ED admission to death or censoring. Patients alive at 60 days were administratively censored at 60 days, whereas those lost to follow-up were censored at their last known alive date. Secondary outcomes included intensive care unit (ICU) admission, and hospital length of stay.</p>
+<h3>Statistical analysis</h3>
+<p>Before formal analysis, normality of continuous variables was assessed using the Shapiro-Wilk test. Normally distributed variables were presented as mean with standard deviation (SD) and compared using the independent-samples t-test or one-way ANOVA, as appropriate. Otherwise, variables were presented as medians with interquartile ranges (IQRs) and compared using the Mann-Whitney U test or the Kruskal-Wallis test, as appropriate. Categorical variables were expressed as counts with percentages and compared using the Chi-square or Fisher&#x27;s exact test.</p>
+<p>Patients with sepsis were stratified into high-and low-baseline S1P groups using the median S1P concentration of non-infected controls as the cutoff. A linear mixed-effects model with random intercepts and slopes was used to model the longitudinal change in S1P and estimate individual slopes. Patients were then classified into decreasing, stable, or increasing groups according to the 25th and 75th percentiles of the estimated slope distribution. Six S1P trajectory categories were defined: high-decreasing, high-stable, high-increasing, low-decreasing, low-stable, and lowincreasing. Based on a prespecified hypothesis that low baseline S1P and decreasing trajectories would be associated with higher mortality risk, low-decreasing, low-stable, and high-decreasing categories were grouped as descending. In contrast, the remaining three categories were grouped as ascending. Kaplan-Meier survival curves were constructed to illustrate survival probabilities in the ascending and descending S1P trajectory groups, with comparisons performed using the log-rank test. Univariable Cox regression analyses were used to estimate hazard ratios (HRs) and 95% confidence intervals (CIs) for variables associated with mortality in previous studies. Covariates with missing data less than 20% and p values &lt; 0.20 in univariable Cox regression were included in the multivariable Cox regression model. To minimize baseline imbalance between the ascending and descending S1P trajectory groups, propensity score matching was performed using 1:1 nearest-neighbor matching. Covariate balance was assessed using standardized mean differences (SMDs), with an SMD &lt; 0.1 indicating adequate balance. Multivariable Cox regression was subsequently performed in the matched cohort. A time-varying Cox proportional hazards model was additionally performed to account for temporal changes in S1P exposure. To ensure model validity, the proportional hazards assumption, autocorrelation, and homoscedasticity were assessed, with the linearity of quantitative variables previously verified.</p>
+<p>Statistical analyses were conducted using R statistical software (version 4.4.2, https://www.r-project.org/). Linear mixed-effects models, survival analyses, and propensity score matching were performed using the &quot;lme4&quot;, &quot;survival&quot;, and &quot;MatchIt&quot; packages, respectively. A two-sided pvalue &lt; 0.05 was considered statistically significant.</p>
+<h3>Results</h3>
+<h3>Baseline characteristics of the study population</h3>
+<p>The study included 278 participants: 86 non-infected controls, 36 patients with non-septic infections, and 156 patients with sepsis. Non-infected controls were younger (48.2 ± 20.5 years) and had a lower proportion of males (36.0%) than the other groups (both p &lt; 0.05). Age, sex, and BMI were comparable between the non-septic infection and sepsis groups (all p &gt; 0.05). However, the Charlson Comorbidity Index (CCI) was significantly higher in patients with sepsis than in those with non-septic infections (2.6 ± 1.8 versus 1.8 ± 1.6; p &lt; 0.05) (Table 1). Compared with patients with non-septic infections, those with sepsis had significantly higher CRP levels (11.4 [IQR, 5.0-18.3] versus 2.5 [IQR, 0.5-7.2] mg/L; p &lt; 0.001) and SOFA scores (3.40 ± 2.03 versus 1.27 ± 1.55; p &lt; 0.001) (Supplementary Table S1).</p>
+<p>Baseline plasma S1P concentrations were significantly lower in patients with sepsis (82.2 [IQR, 47.8-141.1] ng/mL) than in non-infected controls (132.8 [IQR, 74.1-300.2] ng/mL; p &lt; 0.001) and patients with non-septic infection (129.2 [IQR, 68.1-306.9] ng/mL; p &lt; 0.05) (Fig. 2). Within the sepsis cohort, those with septic shock had significantly higher SOFA scores (5.46 ± 2.77 versus 2.99 ± 1.57; p &lt; 0.001) and baseline IL-6 concentrations (237.0 [IQR, 126.5-653.9] versus 83.6 [IQR, 21.1-261.3] pg/mL; p &lt; 0.001) than those without shock. However, baseline S1P concentrations did not differ significantly between the two groups (79.0 [IQR, 38.4-128.4] versus 82.5 [IQR, 51.8-144.5] ng/mL; p &gt; 0.05) (Supplementary Table S2). Correlation analysis showed a weak positive association between S1P and IL-6 (r = 0.250; p &lt; 0.01) and a weak negative association with SOFA scores (r = -0.166; p &lt; 0.05) (Supplementary Table S3).</p>
+<h3>S1P trajectory classification</h3>
+<p>Six S1P trajectory categories were identified based on the baseline cutoff of 132.8 ng/mL derived from non-infected controls and individual S1P slopes. The low-stable category was the most common (65 patients; 41.7%), whereas the high-decreasing category was the least frequent (6 patients; 3.8%). Compared with the high-increasing category, the low-decreasing, low-stable, and high-decreasing categories had adjusted HRs greater than 1, with the highest estimate observed in the high-decreasing (adjusted HR 10.48; 95% CI, 1.90-57.89) (Fig. 3). For further analysis, the six categories were divided into two predefined trajectory groups: descending (n = 101) and ascending (n = 55).</p>
+<h3>Baseline characteristics by S1P trajectory groups</h3>
+<p>The ascending and descending groups showed no significant differences in age, sex, BMI, comorbidities, CCI, other clinical and laboratory parameters, or SOFA scores (all p &gt; 0.05).</p>
+<p>Baseline S1P concentrations were 161.0 [IQR, 71.0-295.7] ng/mL in the ascending group and 70.5 [IQR, 44.2-97.0] ng/mL in the descending group (p &lt; 0.05). ICU admission rates (9.1% versus 12.9%) and hospital length of stay (11.0 [IQR, 8.0-17.0] versus 10.0 [IQR, 8.0-13.0] days) did not differ significantly between groups (both p &gt; 0.05). The 60-day mortality rate was 9.1% (5/55) in the ascending group versus 16.8% (17/101) in the descending group (p &gt; 0.05) (Table 2).</p>
+<h3>S1P trajectory groups and mortality</h3>
+<p>In univariable Cox regression, the descending group had an HR of 1.94 (95% CI, 0.72-5.26) compared with the ascending group. Kaplan-Meier analysis showed no significant difference in survival between groups (log-rank p &gt; 0.05). After adjustment for age, sex, CCI, SOFA score, and baseline IL-6, the descending group had an adjusted HR of 3.43 (95% CI, 1.11-10.58; p = 0.032).</p>
+<p>Following propensity score matching, baseline covariates were generally balanced between groups (Supplementary Table S4), and the adjusted HR was 3.61 (95% CI, 1.16-11.25; p = 0.027) (Fig. 4).</p>
+<h3>Time-varying S1P concentrations and mortality</h3>
+<p>Baseline S1P was not independently associated with 60-day mortality (adjusted HR 1.004 per 10 ng/mL decrease; 95% CI, 0.977-1.032; p &gt; 0.05). Similarly, univariable time-varying Cox regression showed no significant association (HR 1.010 per 10 ng/mL decrease; 95% CI, 0.980-1.030; p &gt; 0.05). However, after adjustment for age, sex, CCI, SOFA score, and time-varying IL-6, each 10 ng/mL decrease in S1P was associated with a 3.5% higher hazard of 60-day mortality (adjusted HR 1.035; 95% CI, 1.002-1.076; p = 0.041). Older age, higher SOFA scores, and higher IL-6 concentrations were also associated with increased mortality hazards in both baseline and time-varying Cox models (Table 3).</p>
+<h3>Discussion</h3>
+<p>This single-center prospective cohort study investigated dynamic changes in plasma S1P concentrations in patients with sepsis presenting to the ED. Baseline S1P concentrations were lower in sepsis and weakly inversely correlated with organ dysfunction severity. However, baseline levels alone were not independently associated with mortality. In contrast, longitudinal analyses suggested a relationship between S1P changes over time and mortality. Specifically, the descending trajectory group and lower time-varying S1P concentrations were associated with an increased hazard of 60-day mortality.</p>
+<p>Our study found significantly reduced baseline plasma S1P concentrations in patients with sepsis, consistent with previous findings [16, 18, 25]. Notably, S1P levels did not differ significantly between patients with non-septic infection and non-infected controls. Furthermore, baseline S1P concentrations were inversely correlated with sepsis severity, as assessed by SOFA scores [16]. A previous study reported relatively preserved S1P concentrations at lower SOFA scores (≤ 3), with marked reductions at scores ≥ 8 [17]. These findings suggest that S1P concentrations may be maintained in infections not meeting the sepsis-3 criteria [6]. Although age and sex distributions differed significantly between groups, neither significantly influenced S1P levels [16, 26, 27]. Similarly, S1P levels showed no significant correlation with CCI in our cohort.</p>
+<p>Available evidence suggests that reduced S1P levels may not be fully attributable to underlying comorbidities [28].</p>
+<p>Baseline S1P levels were not associated with mortality in our cohort. This finding was supported by both univariable and multivariable Cox regression analyses. Consistent with our results, a substudy of the ALBIOS trial reported no significant differences in 90-day mortality across S1P tertiles [15]. Similarly, another clinical study found no significant difference in S1P levels between 28-day survivors and non-survivors [29]. Growing evidence nevertheless highlights the clinical relevance of S1P in sepsis-related complications. S1P has been identified as a strong indicator of septic shock [16]. In addition, baseline S1P has been shown to independently predict coagulation failure [15]. Furthermore, sphingolipid metabolism has been implicated in endothelial injury and sepsis-induced ARDS [19, 25]. Altered S1P-HDL interactions have also been linked to the need for mechanical ventilation [30]. In contrast, dynamic changes in S1P may provide prognostic insights into mortality in patients with sepsis. In particular, declining S1P levels over time were associated with higher mortality risk. Trajectory and time-varying analyses incorporate updated levels, potentially capturing the relationship between S1P and mortality more effectively [31]. This approach may be more appropriate given the dynamic nature of sepsis, characterized by continuous interactions among multiple mediators, including S1P [2, 32].</p>
+<p>Several biological mechanisms may explain the association between declining S1P levels and mortality in our study. S1P has been shown to preserve the endothelial glycocalyx by reducing syndecan-1 shedding [33, 34]. S1P also regulates immune cell trafficking and inflammatory responses, contributing to host defense and disease tolerance during infection [32]. In sepsis, loss of S1P sources and decreased levels of its carrier molecules may contribute to lower circulating concentrations [10, 17]. Excessive fluid resuscitation may further reduce S1P levels through hemodilution [35]. Declining S1P concentrations may contribute to vascular leakage, impaired tissue perfusion, and multiple organ dysfunction [34, 36]. In addition, the biological effects of S1P depend on receptor subtype, cellular context, and interactions with inflammatory pathways [32, 37, 38]. These mechanisms further support the potential value of longitudinal S1P monitoring beyond a single baseline measurement.</p>
+<p>Dynamic changes in several biomarkers, including lactate, CRP, PCT, and cytokines, have also been investigated in sepsis [7, 39]. In our cohort, IL-6 concentrations were also independently associated with mortality. However, individual biomarkers may reflect distinct aspects of sepsis pathophysiology. Therefore, combining biomarkers, including longitudinal S1P, may provide complementary prognostic information [34]. Importantly, research on S1P in sepsis remains in its infancy, with existing cohorts limited by small sample sizes and substantial heterogeneity. Future studies should validate these findings in larger, multicenter cohorts with standardized serial S1P measurements.</p>
+<p>Several limitations should be acknowledged. First, this was a single-center study with a limited number of mortality events, which may have affected the precision and stability of the estimates.</p>
+<p>Second, recruitment was restricted to the ED, where patients may have less severe illness and lower mortality rates than those admitted to the ICU, limiting the generalizability of our findings to other clinical settings [40]. Third, residual confounding related to S1P carriers and treatments, including fluid resuscitation and albumin administration, cannot be excluded. Finally, the findings were not validated in an independent cohort, limiting their reproducibility and broader applicability.</p>
+<h3>Conclusions</h3>
+<p>Baseline plasma S1P concentrations were lower in patients with sepsis. More importantly, declining S1P concentrations over time were associated with higher mortality, whereas baseline levels alone were not. These findings suggest that dynamic changes in S1P may provide clinically relevant information beyond a single baseline measurement. Fig 1 STROBE flow diagram of participant enrollment and study procedures. Abbreviations: ED, emergency department; HIV, human immunodeficiency virus; S1P, sphingosine-1-phosphate; qSOFA, quick Sequential Organ Failure Assessment; SOFA, Sequential Organ Failure Assessment. infection, and sepsis groups.</p>
+<h3>List of abbreviations</h3>
+<p>Abbreviations: S1P, sphingosine-1-phosphate; ns, non-significant; * p &lt; 0.05; *** p &lt; 0.001. Footnotes: Baseline S1P concentrations were stratified as high or low using the median value of the non-infected control group (132.8 ng/mL). S1P trajectories were characterized using slopes derived from longitudinal S1P measurements. Based on the slope distribution, patients were categorized into decreasing (&lt;25th percentile), stable (25th-75th percentile), and increasing (&gt;75th percentile) trajectories. (A) Unadjusted Kaplan-Meier survival curves for 60-day mortality. (B) Adjusted survival curves Table 1. Baseline characteristics of study groups Group Non-infected control (n = 86) Non-septic infection (n = 36) Sepsis (n = 156) p* Age, years 48.2 ± 20.5 63.8 ± 17.6 70.5 ± 16.6 &lt;0.001 Male, n (%) 31 (36.0) 23 (63.9) 90 (57.7) 0.003 Body weight, kg 61.5 ± 13.5 67.9 ± 13.8 62.3 ± 17.5 0.120 BMI, kg/m 2 23.5 ± 3.8 25.2 ± 5.2 23.9 ± 5.9 0.338 Comorbidity, n (%) Heart failure 9 (10.5) 3 (8.3) 21 (13.5) 0.775 CKD 11 (12.8) 6 (16.7) 39 (25.0) 0.184 Diabetes 6 (7.0) 7 (19.4) 48 (30.8) 0.001 Hypertension 22 (25.6) 18 (50.0) 89 (57.1) 0.001 Hyperlipidemia 0 (0.0) 1 (2.8) 11 (7.1) 0.048 CCI 0.9 ± 0.7 1.8 ± 1.6 2.6 ± 1.8 &lt;0.001 Footnotes: BMI, body mass index; CKD, chronic kidney disease; CCI, Charlson Comorbidity Index, * p-values for comparisons among the three groups (Chi-square test for categorical variables and ANOVA or Kruskal-Wallis test for continuous variables).</p>
+<h3>Acknowledgements</h3>
+<p>The authors thank all participants who took part in this study and the clinical staff of the emergency department, Taipei Municipal Wanfang Hospital, for their support in patient recruitment and sample collection.</p>
+<h3>Funding</h3>
+<p>This work was supported by the National Science and Technology Council, Taiwan (grant numbers: MOST 111-2314-B-038-022-MY3 and NSTC 114-2314-B-038-034), and the Taipei Medical University (grant numbers: 111-wf-eva-29 and 115-wf-eva-14).</p>
+<h3>Availability of data and materials</h3>
+<p>The datasets used during the current study are available from the corresponding author upon reasonable request.</p>
+<h3>Competing interests</h3>
+<p>The authors declare that they have no competing interests.</p>
+<p>Authors&#x27; contributions B.V.T., C.L.C., and T.N.N. contributed to study conception, data curation, formal analysis, investigation, and drafting of the manuscript. Y.C.L. and K.C.H. contributed to investigation and data curation. C.W.H. contributed to methodology and manuscript review and editing. S.C.H. supervised the study, contributed to methodology, and reviewed and edited the manuscript. All authors reviewed and approved the final manuscript.</p>
+<h3>Ethics approval and consent to participate 286</h3>
+<p>The clinical study was approved by the Taipei Medical University Institutional Review Board 287 (TMU-JIRB No. N202202022), and was conducted in accordance with the Declaration of Helsinki. 288</p>
+<p>Written informed consent was obtained from all participants or from their legally authorized 289 representatives.</p>
+<h3>Consent for publication</h3>
+<p>Not applicable.</p>
+<h3>5 Figure legend Fig 1</h3>
+<p>Figure legend</p>
+<h3>Fig 2</h3>
+<p>Fig 2 Distribution of baseline plasma S1P concentrations in the non-infected control, non-septic</p>
+<h3>Fig 3</h3>
+<p>Fig.3Distribution of S1P trajectory categories and their associations with 60-day mortality.</p>
+<h3>Fig 4</h3>
+<p>Fig 4 Kaplan-Meier survival curves by S1P trajectory group.</p>
+<h3>Table 2 . Baseline characteristics stratified by S1P trajectory groups</h3>
+<p>CKD, chronic kidney disease; CCI, Charlson Comorbidity Index; MAP, mean arterial pressure; SpO 2 , peripheral oxygen saturation; SOFA, Sequential Organ Failure Assessment; CRP, C-reactive protein; IL-6, interleukin-6; S1P, sphingosine-1-phosphate; ICU, intensive care unit.</p>
+<h3>Table 3 . Comparison of baseline and time-varying Cox regression analyses for factors associated with 60-day mortality Variable Univariate Cox regression Baseline Cox regression a Time-varying Cox regression b</h3>
+<p>S1P was analyzed as a continuous variable, with hazard ratios expressed per 10 ng/mL increase in all models. a Baseline multivariate Cox regression model including variables with p &lt; 0.20 in the univariate analysis. b Time-varying Cox regression model adjusted for age, sex, CCI, SOFA score, and time-varying IL-6. HR, hazard ratio; aHR, adjusted hazard ratio; CI, confident interval; CCI, Charlson Comorbidity Index; SOFA, Sequential Organ Failure Assessment; CRP, C-reactive protein; IL-6, interleukin-6; S1P, sphingosine-1-phosphate.</p>
+<h3>References</h3>
+<p>Gray AP, Chung E, Hsu RL, Araki DT, Gershberg Hayoon A, Davis Weaver N, et al. (2025)</p>
+<p>Global, regional, and national sepsis incidence and mortality, 1990-2021: a systematic analysis. Lancet Glob Health 13(12):e2013-e26. http://doi.org/10.1016/S2214-109X(25)00356-0</p>
+<p>Meyer NJ, Prescott HC (2024) Sepsis and septic shock. N Engl J Med 391(22):2133-46. http://doi.org/doi:10.1056/NEJMra2403213</p>
+<p>Singer M, Angus DC, Annane D, Bauer M, Kalil AC, Klompas M, et al. (2026) Sepsis. Lancet 407(10535):1276-88. http://doi.org/10.1016/S0140-6736(25)02422-5</p>
+<p>Kumar A, Roberts D, Wood KE, Light B, Parrillo JE, Sharma S, et al. (2006) Duration of hypotension before initiation of effective antimicrobial therapy is the critical determinant of survival in human septic shock. Crit Care Med 34(6):1589-96.</p>
+<p>http://doi.org/10.1097/01.Ccm.0000217961.75225.E9</p>
+<p>Seymour CW, Gesten F, Prescott HC, Friedrich ME, Iwashyna TJ, Phillips GS, et al. (2017) Time to treatment and mortality during mandated emergency care for sepsis. N Engl J Med 376(23):2235-44. http://doi.org/doi:10.1056/NEJMoa1703058</p>
+<p>Singer M, Deutschman CS, Seymour CW, Shankar-Hari M, Annane D, Bauer M, et al. (2016) The third international consensus definitions for sepsis and septic shock (sepsis-3). Jama 315(8):801-10. http://doi.org/10.1001/jama.2016.0287</p>
+<p>Pierrakos C, Velissaris D, Bisdorff M, Marshall JC, Vincent JL (2020) Biomarkers of sepsis: time for a reappraisal. Crit Care 24(1):287. http://doi.org/10.1186/s13054-020-02993-5</p>
+<p>Venkataraman K, Lee YM, Michaud J, Thangada S, Ai Y, Bonkovsky HL, et al. (2008) Vascular endothelium as a contributor of plasma sphingosine 1-phosphate. Circ Res 102(6):669- 76. http://doi.org/10.1161/circresaha.107.165845</p>
+<p>Venkataraman K, Lee YM, Michaud J, Thangada S, Ai Y, Bonkovsky HL, et al. (2008) Vascular endothelium as a contributor of plasma sphingosine 1-phosphate. Circ Res 102(6):669- 76. http://doi.org/10.1161/CIRCRESAHA.107.165845</p>
+<p>Ksiazek M, Chacinska M, Chabowski A, Baranowski M (2015) Sources, metabolism, and regulation of circulating sphingosine-1-phosphate. J Lipid Res 56(7):1271-81. http://doi.org/10.1194/jlr.R059543</p>
+<p>Cartier A, Hla T (2019) Sphingosine 1-phosphate: Lipid signaling in pathology and therapy. Science 366(6463). http://doi.org/10.1126/science.aar5551</p>
+<p>Christoffersen C, Nielsen LB (2013) Apolipoprotein M: bridging HDL and endothelial function. Curr Opin Lipidol 24(4):295-300. http://doi.org/10.1097/MOL.0b013e328361f6ad</p>
+<p>Li Y, Zhou J, Qiu J, Huang Z, Wang W, Wu P, et al. (2020) Berberine reduces gut-vascular barrier permeability via modulation of ApoM/S1P pathway in a model of polymicrobial sepsis. Life Sci 261:118460. http://doi.org/10.1016/j.lfs.2020.118460</p>
+<p>Proia RL, Hla T (2015) Emerging biology of sphingosine-1-phosphate: its role in pathogenesis and therapy. J Clin Invest 125(4):1379-87. http://doi.org/10.1172/jci76369</p>
+<p>Piotti A, Novelli D, Meessen JMTA, Ferlicca D, Coppolecchia S, Marino A, et al. (2021) Endothelial damage in septic shock patients as evidenced by circulating syndecan-1, sphingosine- 1-phosphate and soluble VE-cadherin: a substudy of ALBIOS. Crit Care 25(1). http://doi.org/10.1186/s13054-021-03545-1</p>
+<p>Winkler MS, Nierhaus A, Holzmann M, Mudersbach E, Bauer A, Robbe L, et al. (2015) Decreased serum concentrations of sphingosine-1-phosphate in sepsis. Crit Care 19:372. http://doi.org/10.1186/s13054-015-1089-0</p>
+<p>Winkler MS, Märtz KB, Nierhaus A, Daum G, Schwedhelm E, Kluge S, et al. (2019) Loss of sphingosine 1-phosphate (S1P) in septic shock is predominantly caused by decreased levels of</p>
+<p>Wu XL, Hou JC, Li H, Xie GH, Zhang XL, Zheng JG, et al. (2019) Inverse correlation between plasma sphingosine-1-phosphate and ceramide concentrations in septic patients and their utility in predicting mortality. Shock 51(6):718-24.</p>
+<p>http://doi.org/10.1097/SHK.0000000000001229</p>
+<p>Chang YJ, Yoo HJ, Kim SJ, Lee KH, Lim CM, Hong SB, et al. (2023) A targeted metabolomics approach for sepsis-induced ARDS and its subphenotypes. Crit Care 27(1):263. http://doi.org/10.1186/s13054-023-04552-0</p>
+<p>Frej C, Linder A, Happonen KE, Taylor FB, Lupu F, Dahlbäck B (2016) Sphingosine 1- phosphate and its carrier apolipoprotein M in human sepsis and in Escherichia coli sepsis in baboons. J Cell Mol Med 20(6):1170-81. http://doi.org/10.1111/jcmm.12831</p>
+<p>Kurano M, Tsuneyama K, Morimoto Y, Shimizu T, Jona M, Kassai H, et al. (2018)</p>
+<p>Apolipoprotein M protects lipopolysaccharide-treated mice from death and organ injury. Thromb Haemost 118(6):1021-35. http://doi.org/10.1055/s-0038-1641750</p>
+<p>Pyne NJ, Pyne S (2010) Sphingosine 1-phosphate and cancer. Nat Rev Cancer 10(7):489- 503. http://doi.org/10.1038/nrc2875</p>
+<p>Fakhr Y, Brindley DN, Hemmings DG (2021) Physiological and pathological functions of sphingolipids in pregnancy. Cell Signal 85:110041. http://doi.org/10.1016/j.cellsig.2021.110041</p>
+<p>Evans L, Rhodes A, Alhazzani W, Antonelli M, Coopersmith CM, French C, et al. (2021) Surviving sepsis campaign: international guidelines for management of sepsis and septic shock 2021. Intensive Care Med 47(11):1181-247. http://doi.org/10.1007/s00134-021-06506-y</p>
+<p>Coldewey SM, Benetti E, Collino M, Pfeilschifter J, Sponholz C, Bauer M, et al. (2016) Elevation of serum sphingosine-1-phosphate attenuates impaired cardiac function in experimental sepsis. Sci Rep 6:27594. http://doi.org/10.1038/srep27594</p>
+<p>Moritz E, Wegner D, Groß S, Bahls M, Dörr M, Felix SB, et al. (2017) Data on subgroup specific baseline characteristics and serum sphingosine-1-phosphate concentrations in the Study of Health in Pomerania. Data Brief 12:46-50.</p>
+<p>http://doi.org/https://doi.org/10.1016/j.dib.2017.03.019</p>
+<p>Daum G, Winkler M, Moritz E, Müller T, Geffken M, von Lucadou M, et al. (2020) Determinants of serum-and plasma sphingosine-1-phosphate concentrations in a healthy study group. TH Open 4(1):e12-e9. http://doi.org/10.1055/s-0040-1701205</p>
+<p>Soltau I, Mudersbach E, Geissen M, Schwedhelm E, Winkler MS, Geffken M, et al. (2016)</p>
+<p>Serum-sphingosine-1-phosphate concentrations are inversely associated with atherosclerotic diseases in humans. PLoS One 11(12):e0168302. http://doi.org/10.1371/journal.pone.0168302</p>
+<p>Johansson PI, Henriksen HH, Karvelsson ST, Rolfsson Ó, Schønemann-Lund M, Bestle MH, et al. (2024) LASSO regression shows histidine and sphingosine 1 phosphate are linked to both sepsis mortality and endothelial damage. Eur J Med Res 29(1):71. http://doi.org/10.1186/s40001-023-01612-7</p>
+<p>Seidita I, Ziegler A, Qalaj A, Winkler MS, Nierhaus A, Kluge S, et al. (2024) Rapid determination of sphingosine 1-phosphate association with carrier molecules by flow-induced dispersion analysis to predict sepsis outcome. iScience 27(11):111168. http://doi.org/10.1016/j.isci.2024.111168</p>
+<p>Zhang Z, Reinikainen J, Adeleke KA, Pieterse ME, Groothuis-Oudshoorn CGM (2018)</p>
+<p>Time-varying covariates and coefficients in Cox regression models. Ann Transl Med 6(7):121. http://doi.org/10.21037/atm.2018.02.12</p>
+<p>Ziegler AC, Müller T, Gräler MH (2021) Sphingosine 1-phosphate in sepsis and beyond: Its role in disease tolerance and host defense and the impact of carrier molecules. Cell Signal 78:109849. http://doi.org/10.1016/j.cellsig.2020.109849</p>
+<p>Zeng Y, Adamson RH, Curry FR, Tarbell JM (2014) Sphingosine-1-phosphate protects endothelial glycocalyx by inhibiting syndecan-1 shedding. Am J Physiol Heart Circ Physiol 306(3):H363-72. http://doi.org/10.1152/ajpheart.00687.2013</p>
+<p>Ziegler AC, Gräler MH (2021) Barrier maintenance by S1P during inflammation and sepsis. Tissue Barriers 9(4):1940069. http://doi.org/10.1080/21688370.2021.1940069</p>
+<p>Juffermans NP, Radermacher P, Joffre J (2026) Vascular permeability and loss of glycocalix in sepsis: the role of fluid resuscitation. Intensive Care Med 52(3):558-61. http://doi.org/10.1007/s00134-026-08293-w</p>
+<p>Winkler MS, Nierhaus A, Poppe A, Greiwe G, Gräler MH, Daum G (2017) Sphingosine- 1-phosphate: a potential biomarker and therapeutic target for endothelial dysfunction and sepsis? Shock 47(6):666-72. http://doi.org/10.1097/shk.0000000000000814</p>
+<p>Salminen AT, McCloskey MC, Ahmad SD, Romanick SS, Chen KH, Houlihan W, et al. (2022) Molecular mechanisms underlying the heterogeneous barrier responses of two primary endothelial cell types to sphingosine-1-phosphate. Eur J Cell Biol 101(3). http://doi.org/10.1016/j.ejcb.2022.151233</p>
+<p>Mohammed S, Bindu A, Viswanathan A, Harikumar KB (2023) Sphingosine 1-phosphate signaling during infection and immunity. Prog Lipid Res 92:101251. http://doi.org/10.1016/j.plipres.2023.101251</p>
+<p>Yende S, Kellum JA, Talisa VB, Peck Palmer OM, Chang CH, Filbin MR, et al. (2019)</p>
+<p>Long-term host immune response trajectories among hospitalized patients with sepsis. JAMA Netw Open 2(8):e198686. http://doi.org/10.1001/jamanetworkopen.2019.8686</p>
 </div>
 </details>
 </div>
