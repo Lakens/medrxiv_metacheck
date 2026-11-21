@@ -196,7 +196,7 @@ Physiological Waveform Features Based Aging Clocks Associate with
 Cardiovascular Disease
 </p>
 <p class="meta">
-2026-11-16 · Metacheck 0.4.4.3 · DOI 10.64898/2026.11.03.26367198
+2026-11-21 · Metacheck 0.4.4.29 · DOI 10.64898/2026.11.03.26367198
 </p>
 </header>
 <div class="mc-main">
@@ -361,8 +361,8 @@ Your Statistical Inferences</a>.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 26 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 26 detected.</p>
 </div>
 </div>
 </div>
@@ -459,8 +459,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -847,9 +848,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -871,7 +876,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -894,6 +900,19 @@ test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
 significant (“genes with padj &lt; 0.05 were selected”); such a p-value
 is “named” in <code>not_a_test</code>. Notes in other forms, such as a
 marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -1060,6 +1079,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1099,6 +1138,21 @@ text (93 of 95) and 90% in reference lists (74 of 82); the labels were
 made by Claude agents from each link’s evidence, and disputed ones
 checked against the deposits. Telling this paper’s own deposit from the
 authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1354,19 +1408,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1476,6 +1612,220 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Aging affects the morphology of photoplethysmography (PPG) and arterial blood pressure (ABP) waveforms. Here, we demonstrate that machine learning (ML) models trained on features derived from PPG or ABP waveforms can predict an individual&#x27;s age. We further investigated whether the discrepancy between predicted and chronological age (Age-Gap) could serve as a measure of cardiovascular health by testing its association with cardiovascular disease (CVD). From a large perioperative dataset of 17,327 surgical patients, high-fidelity PPG and ABP waveforms were analyzed, and over 840 time-, frequency-, and statistical-domain features per cardiac cycle were extracted using a signal-processing-based tool. These features were then used to develop ML-based aging clocks, PPGAge and ABPAge, trained on PPG and ABP features, respectively. For each aging clock, we evaluated five ML models: Light Gradient Boosting Machine (LightGBM), eXtreme Gradient Boosting (XGBoost), Random Forest, Lasso, and Elastic Net. Individuals were classified as having accelerated, normal, or delayed aging based on their Age-Gap relative to the model-specific mean absolute error (MAE, rounded up to the nearest whole year): accelerated aging was defined as Age-Gap ≥ +MAE, normal aging as -MAE ≤ Age-Gap &lt; +MAE, and delayed aging as Age-Gap &lt; -MAE. LightGBM provided the best age predictions for both aging clocks, with Pearson correlation coefficients (r) of 0.92 and 0.92 and R² values of 0.81 and 0.82 for PPGAge and ABPAge, respectively. Moreover, we found that accelerated aging was significantly associated with higher odds of CVD for both aging clocks, PPGAge (odds ratio, 1.87 [95% CI, 1.59-2.21], p&lt;0.001) and ABPAge (odds ratio, 2.28 [95% CI, 1.51-3.43], p&lt;0.001). Additionally, delayed aging was significantly associated with lower odds of CVD for PPGAge (odds ratio, 0.68 [95% CI, 0.58-0.80], p&lt;0.001). Our findings suggest that aging clocks based on high-fidelity PPG or ABP waveform features may serve as novel biomarkers for identifying individuals with higher odds of CVD.</p>
+<h3>Introduction</h3>
+<p>In this study, we investigated the potential of photoplethysmography (PPG) and separately of arterial blood pressure (ABP) waveform features for predicting an individual&#x27;s age using machine learning (ML). The scientific basis of our hypothesis is that aging alters arterial compliance, which in turn changes the shape of these waveforms [1] [2] [3] [4] [5] [6] [7] [8] [9] . Previous studies have shown that the difference between predicted and chronological age, referred to as the Age-Gap, reflects biological aging. We therefore investigated whether the Age-Gap is associated with cardiovascular disease (CVD).</p>
+<p>Aging is a universal biological process associated with gradual physical decline, which increases the risk of disease and death [10] [11] [12] . It also guides a broad spectrum of clinical and policy decisions, from disease screening and management to the determination of insurance and retirement benefits 13 . Although all individuals age chronologically, the rate of biological aging, also referred to as physiological aging, differs widely among individuals 14, 15 . While chronological age indicates how long an organism has lived, biological age reflects the gradual decline in functional capacity of a person or organ and captures the cumulative effects of time, genetics, environmental, lifestyle, and other unknow variables that affect aging 16, 17 . Although chronological age is a major risk factor for chronic diseases and mortality 18 , it is an imperfect measure of the aging process 19 , as individuals of the same chronological age may experience aging very differently 15, 18, 20, 21 . Some experience physiological decline and require assistance with daily activities relatively young, whereas many remain independent and show little deterioration until a very advanced chronological age 18 , reflecting the heterogeneous nature of aging 21, 22 . Biological aging better captures this heterogeneity 23, 24 ; however, measuring the aging process beyond chronological age remains challenging 13, 25 . In recent years, several aging biomarkers have been proposed using machine learning (ML) methods [26] [27] [28] , including groundbreaking studies that have shown that DNA methylation patterns serve as powerful epigenetic biomarkers of aging 29, 30 . However, one major issue with epigenetic clocks is their generalizability across different tissues, populations, and ethnicities 31 . Moreover, they are limited in interpretability, as they provide averaged estimates that do not indicate which cell types in a tissue drive aging 32 . More recently, aging clocks based on physiological waveforms, including wearable photoplethysmography (PPG) 13 , electrocardiograms (ECGs) 16, 17, [33] [34] [35] [36] , electroencephalograms (EEGs) [37] [38] [39] [40] , and polysomnograms (PSGs) 41 , have also been introduced. However, these approaches are often validated on small or less diverse datasets, which may limit their ability to generalize to broader populations 35, 36 . In addition, it is often unclear which specific waveform parameters drive the predictions 13, 17, 34 , which limits interpretability and explainability.</p>
+<p>High-fidelity physiological waveforms, such as PPG and ABP, provide valuable insights into cardiovascular health 42,43- 46 . ABP is a fundamental hemodynamic parameter, frequently used to guide therapeutic interventions, particularly in critically ill patients [47] [48] [49] . Continuous ABP is measured using an invasive arterial line, which involves inserting a small catheter into an artery 48 . It can be monitored at various anatomical sites, including the radial, brachial, or femoral arteries 48 . PPG is a non-invasive optical technique that closely mirrors the ABP waveform morphology 44 . However, it measures blood volume changes within the microvascular tissue bed and is frequently used in anesthesia monitoring to assess blood oxygenation levels (SpO₂) 50 . It is obtained using a light source and a photo-  detector placed on the skin 44, 51 , typically at sites such as the fingers, ears, wrists, or toes 50, 52 . Studies have shown that aging alters the morphology of both PPG and ABP waveforms 42,53,54- 65 . For instance, the dicrotic notch, a key marker of systolic and diastolic events, gradually weakens or disappears with age (see Fig. 1) [5] [6] [7] 56, 57, [60] [61] [62] . Therefore, features extracted from these waveforms could play a crucial role in estimating an individual&#x27;s age.</p>
+<p>In this study, we developed ML-based aging clocks using features extracted from large real-world high-fidelity clinical physiological waveforms. We developed two aging clocks: PPGAge, based on PPG waveform features, and ABPAge, based on ABP waveform features (see Fig. 2). Using our recently developed feature extraction tool, we derived more than 840 features per cardiac cycle from these waveforms including time-domain, frequency-domain, and statistical features 50 . For each aging clock, we evaluated five ML models: Light Gradient-Boosting Machine (LGBM) 66 , eXtreme Gradient Boosting (XGBoost) 67 , Random Forest 68 , Lasso 69 , and Elastic Net 70 . Additionally, to improve model interpretability, we employed SHapley Additive exPlanations (SHAP) to explain the output of the best performing ML model 71 . SHAP analysis provides information about how much each input feature (in our study, a PPG feature or an ABP feature) contributes to the model output 72 . Furthermore, we assessed the clinical relevance of the aging clocks using the Age-Gap, defined as the difference between predicted and actual chronological age. The Age-Gap provides information on an individual&#x27;s physiology and has been shown to be associated with overall health status 13, 16, 34 . We therefore investigated, for both aging clocks (PPGAge and ABPAge), whether the Age-Gap (PPGAge Gap or ABPAge Gap) was associated with CVD.</p>
+<p>The contributions of this study are as follows: • Development of PPGAge and ABPAge aging clocks, derived from PPG features and ABP features, respectively, to predict individual&#x27;s age.</p>
+<p>• The aging clocks were evaluated using a large clinical dataset, the perioperative Machine Learning of Physiological Waveforms and Electronic Health Record Data (MLORD) dataset, which comprises data from 17,327 patients 73.</p>
+<p>• Application of an explainable ML approach (SHAP) to evaluate the contribution of PPG features to the PPGAge aging clock and ABP features to the ABPAge aging clock.</p>
+<p>• We demonstrate that accelerated aging, defined as an Age-Gap ≥ the model-specific mean absolute error (MAE; LightGBM), is significantly associated with higher odds of CVD for both the PPGAge and ABPAge aging clocks. Moreover, delayed aging, defined as an Age-Gap &lt; -MAE, is significantly associated with lower odds of CVD, for PPGAge aging clock.</p>
+<h3>Results</h3>
+<h3>PPGAge and ABPAge aging clocks to predict person&#x27;s age</h3>
+<p>The performance of the aging clocks in predicting person&#x27;s age is summarized in Table 1. The table reports the Pearson correlation coefficient (r), coefficient of determination (R²), mean absolute error (MAE), and root mean square error (RMSE) [74] [75] [76] . Across both aging clocks, LightGBM demonstrated slightly better predictive performance than the other four evaluated ML models (see Table 1). The LightGBMbased PPGAge aging clock achieved an r of 0.92, R² of 0.81, MAE of 5.90, and RMSE of 7.53, and the LightGBM-based ABPAge aging clock achieved an r of 0.92, R² of 0.82, MAE of 5.83, and RMSE of 7.31. Figure 3a and Figure 3b show the actual chronological age-versus-predicted age scatter plots for the PPGAge and ABPAge aging clocks, respectively. Moreover, Bland-Altman plots comparing chronological and predicted age for the PPGAge and ABPAge aging clocks are shown in Fig. 4(a) and (b), respectively. Both aging clocks demonstrate a mean bias close to zero, with limits of agreement of ± 14.77 years for PPGAge and ± 14.33 years for ABPAge. Data points in the scatter plots (Fig. 3a, b) and Bland-Altman plots (Fig. 4a, b) are color-coded according to Age-Gap (predicted aging-clock age -chronological age), classifying individuals as having accelerated (red, Age-Gap ≥ +6 years), normal (blue, -6 ≤ Age-Gap &lt; +6 years), or delayed (green, Age-Gap &lt; -6 years) aging. The ±6-year threshold was derived    from the respective LightGBM model&#x27;s MAE (PPGAge MAE = 5.90 years; ABPAge MAE = 5.83 years), rounded up to the nearest year. For the PPGAge and ABPAge clocks, Age-Gap is referred to as the PPGAge Gap and ABPAge Gap, respectively.</p>
+<h3>SHAP method to explain the prediction of PPGAge and ABPAge aging clocks</h3>
+<p>SHAP was used to evaluate the contributions of individual PPG and ABP features to age prediction using the PPGAge and ABPAge aging clocks, respectively. Figure 5 (a) and (b) presents the SHAP summary plots for PPGAge and ABPAge aging clocks, respectively. Each plot displays the top 10 most important features in descending order of importance, where features positioned higher on the y-axis have a greater influence on the model&#x27;s predictions of individual&#x27;s age. The complete description of these features is provided in Table 2. In addition to ranking feature importance, the plots also show the distribution of SHAP values for each feature across all samples, thereby highlighting both the magnitude and direction of their effects. A positive SHAP value indicates that the feature increases the predicted value, whereas a negative SHAP value indicates that the feature decreases it. The distance from zero reflects the magnitude of this contribution, with points farther from zero indicating a stronger influence on the prediction. Each point represents an individual sample, and its colour reflects the corresponding feature value, with high values shown in red and low values in blue. This visualization provides insight into how variations in feature values influence the model&#x27;s predictions.</p>
+<p>In the PPGAge clock, the most influential feature contributing to age prediction was the PPG cardiac cycle second derivative Bpeak amplitude with respect to the Dpeak (Figure 5a). In the ABPAge clock, the feature with the greatest impact was the amplitude of the first peak in the Fast Fourier Transform (FFT) of the ABP cardiac cycle (Figure 5b). Figure 6 provides a visual representation of these two features. To examine how PPG and ABP features vary across Age-Gap groups (delayed, normal, and accelerated aging), Fig. 7 displays box plots of the features ranked 1st, 5th, and 10th by SHAP importance for PPGAge (Fig. 7a-c) and ABPAge (Fig. 7d-f). Pairwise comparisons between Age-Gap groups were significant for each of the features shown in Fig. 7 (p &lt; 0.001, two-sided t-test), indicating differences across the three Age-Gap groups.</p>
+<h3>Age-Gap associates with cardiovascular disease</h3>
+<p>A clear association between Age-Gap and CVD was observed for both the PPGAge and ABPAge aging clocks, as illustrated by the spline curves in Fig. 8a and b, respectively. Moreover, Table 3 shows the associations of accelerated and delayed aging (Age-Gap groups, see Methods for the further details) with CVD for the PPGAge and ABPAge aging clocks, with normal aging serving as the reference category. The analyses were adjusted for chronological age and sex.   5a), respectively. d-f, ABP waveform features ranked 1st, 5th, and 10th by SHAP importance for the ABPAge clock (Fig. 5b), respectively. Boxplots display significant differences between Age-Gap groups, denoted by asterisks (***), indicating a highly significant statistical difference (p &lt; 0.001) based on a two-sided t-test. Table 3 | Odds ratios for the association of accelerated and delayed aging defined by the PPGAge and ABPAge aging clocks with cardiovascular disease. Aging clock Event Accelerated aging Delayed aging OR (95% CI) p-value OR (95% CI) p-value PPGAge CVD 1.87 (1.59-2.21) p&lt;0.001 0.68 (0.58-0.80) p&lt;0.001 ABPAge CVD 2.28 (1.51-3.43) p&lt;0.001 0.82 (0.59-1.14) p=0.234 Odds ratios (ORs) and 95% confidence intervals (CIs) were estimated using logistic regression models. Results are adjusted for chronological age and sex. Normal aging was used as the reference category. CVD cardiovascular disease. When separated by sex (Table 4), accelerated aging based on the PPGAge clock was associated with higher odds of CVD in both females (OR, 1.76 We also observed a strong association between Age-Gapdefined aging groups (accelerated and delayed aging) and CVD diagnostic rates for both the PPGAge and ABPAge aging clocks, with the strongest associations observed in the 18-50year-old age group among both female and male patients (Fig. 9). For PPGAge, the baseline rate of CVD diagnosis among 18-50-year-old women was 31.50% (95% CI 28.60-34.60). However, among women with accelerated aging in this age group, that rate increased to 49.01% (95% CI 43.08-54.94), or 1.56 (95% CI 1.37-1.75) times the average rate; we refer to this ratio as the relative rate of diagnosis (see Methods for further details). Among women with delayed aging, that rate drops to 21.53% (95% CI 16.27-27.27), or a 0.68 (95% CI 0.52-0.87) relative rate of diagnosis (Fig. 9 (a, b)). A similar pattern was observed among 18-50-year-old men: the baseline rate was 39.10% (95% CI 35.40-42.60), rising to 61.07% (95% CI 53.02-69.13), or 1.56 (95% CI 1.36-1.77) times the average rate with accelerated aging and falling to 21.88% (95% CI 16.96-27.23) or a 0.56 (95% CI 0.43-0.70) times the average rate with delayed aging (Fig. 9 (c, d)).</p>
+<p>This association held for ABPAge as well. Among 18-50 year old women the baseline rate of CVD diagnosis was 57.70% (95% CI 50.00-65.40), increasing to 78.95% (95% CI 65.79-92.11) or 1.37 (95% CI 1.14-1.60) times the average rate with accelerated aging and decreasing to 51.22% (95% CI 36.59-65.85) or a 0.89 (95% CI 0.63-1.14) times the average rate with delayed aging (Fig. 9 (e, f). Among 18-50-year-old men, the baseline rate was 70.20% (95% CI 63.90-76.60), jumps to 82.50% (95% CI 70.00-92.50), or 1.17 (95% CI 1.00-1.32) times the average rate with accelerated aging and drops to 55.56% (95% CI 40.74-68.52) or a 0.79 (95% CI 0.58-0.98) times the average rate with delayed aging Fig. 9 (g, h).</p>
+<h3>Discussion</h3>
+<p>In this study, we showed that ML-based aging clocks, PPGAge, and ABPAge developed using PPG features and ABP features, respectively, are highly predictive of individual&#x27;s age across a broad age range (18 to 90 years). Furthermore, we demonstrated physiological waveform (PPG-or ABP)-based aging clocks capture important information about cardiovascular health by showing an association between the difference between aging clock-predicted age and chronological age (referred to as the PPGAge Gap for the PPGAge clock and the ABPAge Gap for the ABPAge clock) and CVD.</p>
+<p>We found that, both aging clocks achieved similar age prediction performance, with mean absolute errors (MAEs) of 5.90 and 5.83 years, respectively. Compared with existing physiological waveform-based aging clocks derived from ECG signals (MAE: 6.89-8 years 17, [33] [34] [35] ), EEG signals (MAE: 5.96-7.6 years 39, 40, 37 ), and PSGs signals (MAE: 5.96 years 41 ), their performance compares favourably. Recently, wearable devicebased PPG aging clock was introduced by Miller et al. 13 which achieved the MAE of 2.4 for healthy and 3.2 years for general groups. However, direct comparison with our study is not feasible, as their model was trained on wearable-derived PPG data from healthy participants and has yet to be evaluated on clinical PPG waveforms. Nie et al. 77 presented a deep learningbased model to estimate AI-PPG age using clinical PPG waveforms for cardiovascular health assessment; however, they reported a moderate correlation between predicted AI-PPG age and chronological age (r &lt; 0.55). In comparison, our study achieved a higher Pearson correlation (r=0.92 for both PPGAge and ABPAge aging clocks) between aging clock predicted age and chronological age. As noted by Nie et al. 77 , closer alignment between predicted and chronological age may improve the interpretability in practical applications.</p>
+<p>Moreover, our analysis shows that, for both PPGAge and ABPAge aging clocks, accelerated aging is associated with significantly higher odds of CVD (PPGAge: odds ratio (OR), 1.87 [95% CI, 1.59-2.21], p&lt;0.001 and ABPAge: OR, 2.28 [95% CI, 1.51-3.43], p&lt;0.001) in chronological age and sex adjusted models. We also show that delayed aging is significantly associated with lower odds of CVD for PPGAge aging clock (OR, 0.68 [95% CI, 0.58-0.80], p&lt;0.001). The strong association between Age-Gap groups (accelerated aging and delayed aging) and CVD suggests that physiological waveform-based aging clocks may provide information on cardiovascular health beyond what can be inferred from chronological age alone.</p>
+<p>Feature extraction is a critical step in the analysis of physiological waveforms, as it enables the identification of clinically significant features and improves model interpretability and explainability 78 , key factors that support clinician trust 79 . The feature extraction method must capture relevant information even when waveform morphology changes due to disease, normal physiological variation, or aging. For example, a key feature of the cardiac cycle in these waveforms, the dicrotic notch, becomes less pronounced with aging [5] [6] [7] 56, 57, [60] [61] [62] 80, 81.</p>
+<p>Therefore, we used a signal processing-based feature extraction tool that not only provides a comprehensive set of more than 840 features per cardiac cycle, including timedomain, frequency-domain, and statistical characteristics from PPG and ABP waveforms, but also captures key features even when they are subtle or not clearly visible in the waveform, such as the dicrotic notch 50 . We applied the explainability method SHAP 71 to identify the important features driving the age prediction. Previous studies have shown that features extracted from the second derivative of the PPG waveform are associated with aging [82] [83] [84] [85] [86] [87] [88] [89] . Aligned with this, we found that the most important feature contributing to the PPGAge aging clock was derived from the second derivative of the PPG (see Fig. 5a). In Table 5. Hyperparameter settings for ML models for PPGAge and ABPAge aging clocks. Aging clock ML model Parameter PPGAge LightGBM colsample_bytree=0.9294; learning_rate=0.0075; max_depth=5; min_child_samples=11; n_estimators= 319; subsample=0.8931 XGBoost colsample_bytree=0.6721; learning_rate=0.0059; max_depth=4; min_child_weight=8; n_estimators= 632; subsample=0.7680 Random Forest max_depth=4; max_features=0.5811; min_samples_leaf=7; n_estimators=893 Lasso alpha=0.9428 Elastic Net alpha=0.7599 l1_ratio=0.7864 ABPAge LightGBM colsample_bytree=0.9294; learning_rate=0.0075; max_depth=5; min_child_samples=11; n_estimators= 319; subsample=0.8931 XGBoost colsample_bytree=0.6721; learning_rate=0.0059; max_depth=4; min_child_weight=8; n_estimators= 632; subsample=0.7680 Random Forest max_depth=4; max_features=0.5811; min_samples_leaf=7; n_estimators=893 Lasso alpha=0.9428 Elastic Net alpha=0.9428 l1_ratio=0.8157 the ABPAge aging clock, a frequency-domain feature contributed most to the model output (see Fig. 5b).</p>
+<p>Overall, these results demonstrate that physiological waveforms contain valuable information not only in raw signals but also in their derivatives and frequency-domain characteristics, providing important insights into individual&#x27;s age prediction.</p>
+<p>In recent years, advancements in non-invasive PPG-based wearable technology and the development of continuous, noninvasive ABP monitoring devices have enabled the continuous acquisition of PPG and ABP waveforms, respectively, both in clinical settings and in daily life [90] [91] [92] [93] [94] [95] [96] [97] [98] [99] . Our developed aging clocks could potentially be integrated into such devices as biomarkers of aging. This integration could contribute to improved patient outcomes and personalized healthcare monitoring, and help enhance the transparency and comprehensibility of these devices for medical professionals and end users by providing information on which physiological features contributed to the output.</p>
+<p>Our study has several limitations. First, the aging clock models were developed and evaluated using a single centre clinical dataset, which may limit their generalizability. Future work will focus on validating the performance of these models on diverse, multicentre datasets. Additionally, we plan to assess their sensitivity over time through validation on a longitudinal dataset. Second, due to the unavailability of healthy subjects in our dataset, we trained the aging clocks using perioperative data. However, an ideal approach would involve developing the aging clocks on a healthy control group and then evaluating their performance on perioperative patients. This approach would allow us to better examine the Age-Gap between predicted and chronological age, which could provide a more accurate estimate of biological age and serve as a more reliable aging biomarker. Third, we did not evaluate the associations between Age-Gap (PPGAge Gap or ABPAge Gap) and individual types of CVD. In future work, we will focus on examining these associations across specific CVD subtypes to determine whether the relationships with Age-Gap differ by CVD type. Such analyses may help identify CVD subtypes that may be more strongly associated with accelerated aging. Fourth, while we identified the physiological waveform (PPG and ABP) features that most contributed to the aging clock&#x27;s output, our understanding of the underlying physiological mechanisms remains limited, particularly regarding why these features have a greater influence than others. A better understanding of the physiological insights behind these features, from a clinical perspective, could lead to more robust and interpretable aging clocks.</p>
+<p>In conclusion, despite these limitations, our results demonstrate that physiological waveform-based aging clocks can predict an individual&#x27;s age and that the Age-Gap, defined as the difference between predicted and chronological age, is associated with CVD and may play a crucial role in the assessment of individual&#x27;s cardiovascular health. This study represents a significant step toward understanding human healthy aging through physiological waveforms.</p>
+<p>be found in Kim at el. 73 . In this study, out of 17,327 patients, 16,663 with available PPG waveforms and 4,521 with available ABP waveforms were used for the analysis. Both PPG and ABP waveforms were sampled at 256 Hz.</p>
+<p>Among 16,663 patients with PPG waveforms, 9,964 had CVD and 6,699 were non-CVD. Of 4,521 patients with ABP waveforms, 3,637 had CVD and 884 were non-CVD. The American Heart Association (AHA) definition was used as the ground truth for CVD classification. Patients were labelled as having CVD if they had ischemic heart disease, cerebrovascular disease, arrhythmia, valvular disease, or heart failure.</p>
+<h3>PPG and ABP waveform feature extraction</h3>
+<p>To extract features from PPG and ABP waveforms, we used our recently developed feature extraction tool 50 , which operates in two stages. In the first stage, the tool identifies the temporal locations of key landmarks within each cardiac cycle, including the systolic phase onset, systolic phase peak, dicrotic notch, diastolic phase peak, and diastolic phase endpoint (see Fig. 1), using the Iterative Envelope Mean (IEM) method. The IEM method decomposes the waveform into stationary and nonstationary components, and the non-stationary component is subsequently used for landmark identification. In the second stage, it extracts more than 840 features per cardiac cycle based on these identified landmarks, including time-domain, frequency-domain, and statistical features.</p>
+<p>We selected this tool for feature extraction from PPG and ABP waveforms for three main reasons: (1) Its ability to detect key landmarks within a cardiac cycle not only when they are clearly visible but also when they become less distinct.</p>
+<p>As discussed earlier, with aging, these landmarks, particularly the dicrotic notch, gradually diminish or disappear 7, 56, 80, 81 . Accurate identification of these features is therefore essential, especially for reliable downstream feature extraction. (2) Its capability to extract a comprehensive set of more than 840 features per cardiac cycle from both PPG and ABP waveforms, encompassing time-domain, frequency-domain, and statistical characteristics. (3) To investigate the clinical applicability of the features extracted by our tool in the development of aging clocks. In this study, the tool extracted 843 features per cardiac cycle from PPG waveforms and 846 features per cardiac cycle from ABP waveforms. These cardiac cycle features were then summarized at the patient level by calculating the mean and standard deviation of each feature across all cardiac cycles. This resulted in 843 averaged PPG features and 843 PPG standard deviation features, giving a total of 1,686 PPG features per patient. Similarly, 846 averaged ABP features and 846 ABP standard deviation features were obtained, resulting in a total of 1,692 ABP features per patient. Moreover, we refer readers to our previous article for the complete working process of the feature extraction tool and a detailed description of each extracted PPG and ABP feature 50.</p>
+<h3>Aging clocks development</h3>
+<p>We developed two aging clocks: PPGAge and ABPAge based on PPG features and ABP features, respectively. For each clock, five ML models, LightGBM 66 , XGBoost 67 , Random Forest 68 , Lasso 69 , and Elastic net 70 , were trained on 70% of data and tested on the remaining held out 30% of data. The training and testing sets were as follows: for PPGAge, 11,664 patients were used for training, and the test set included 4,999 patients; for ABPAge, 3,164 patients were used for training, and the test set included 1,357 patients. Feature selection was performed on the training set using mutual information (MI) 100, 101 followed by an elbow detection method 102 , selecting 387 of 1,686 PPG features and 217 of 1,692 ABP features for model development (Fig. 10 (a), PPG features; Fig. 10 (b), ABP features). MI between each feature and chronological age was computed on the training set, and features were ranked by descending MI; to prevent overfitting, control computational complexity, and improve generalizability, we then retained only the top-ranked features (K) using geometric elbow detection, defined as the point of maximum perpendicular distance from the line connecting the first and last points of the sorted MI curve. Detailed descriptions of the selected 387 PPG features and 217 ABP features are provided in Supplementary Table 1. For each model, hyperparameters were tuned using randomized search with 5-fold cross-validation, performed within the training set (70% of the data) only; the held-out test set (30%) was reserved exclusively for final model evaluation and was not used during hyperparameter selection. The best-performing hyperparameter combination for each model, was fixed and used to refit the model on the full training set prior to evaluation on the test set. The selected hyperparameters for each model are presented in Table 5. All models were developed using the Python programming language (version 3.12.2). LightGBM and XGBoost were implemented using their respective standalone Python libraries, whereas the remaining models (Random Forest, Lasso, and Elastic Net) were implemented using the scikit-learn library.</p>
+<p>Predicted ages from the ML models using PPG features and ABP features are denoted as PPGAge and ABPAge, respectively, with the corresponding differences from chronological age referred to as the PPGAge Gap and ABPAge Gap. Many studies have observed that model predicted age is affected by age-related bias, with ages of younger individuals generally overestimated and ages of older individuals generally underestimated 13, [103] [104] [105] [106] [107] . To account for this age dependence, we follow Miller et al. 13 , Tian et al. 104 , and Smith et al. 105 , by applying a second-step correction to the PPGAge Gap and ABPAge Gap. Specifically, as suggested by Miller et al. 13 we regress the raw PPGAge Gap and ABPAge Gap on chronological age using a spline model, and use the residuals from this regression as the age-adjusted PPGAge Gap and ABPAge Gap, respectively.</p>
+<h3>Quantitative evaluators</h3>
+<p>The performance of the both aging clocks PPGAge and ABPAge was evaluated using: Pearson correlation coefficient (r), coefficient of determination (R²), mean absolute error (MAE), root mean square error (RMSE) [74] [75] [76] , and Bland-Altman plots 108 . A Pearson correlation coefficient provides the linear association between chronological age and predicted age. Its value ranges from -1 to +1, where -1 represents a perfect negative correlation, 0 indicates no linear correlation, and +1 represents a perfect positive correlation 74 . The coefficient of determination measures how well the predicted ages match the chronological ages 75 . It quantifies the proportion of variance in the dependent variable (i.e., chronological age) that is explained by the model and provides an overall measure of model fit 76 . Its value ranges from 0 to 1, where 1 represents a perfect fit 75 . MAE provides the average magnitude of errors made by the model during age predictions. On the other hand, RMSE, by squaring the differences, penalizes larger errors more than MAE, making it more sensitive to outliers. The values of MAE and RMSE closer to 0 indicate more accurate predictions by the model 75, 76 . The detailed equations for all four metrics are shown in Eqs. (1)-(4).</p>
+<p>where 𝑦 denotes chronological age, 𝑦 ) denotes predicted age, 𝑦 &#x27; represents the mean chronological age, 𝑦 ) &#x27; represents the mean predicted age, and 𝑛 denotes the overall sample size.</p>
+<p>The Bland-Altman plots were used to evaluate the agreement between chronological age and predicted age.</p>
+<h3>Interpretability analyses</h3>
+<p>We employed the SHapley Additive exPlanations (SHAP) method 71, 72 to the best-performing ML model for each aging clock to assess the contributions of individual PPG and ABP features to the PPGAge and ABPAge clocks, respectively. SHAP is a feature-based interpretability method that can be applied to ML models to better understand their predictions. The basic idea of SHAP is to assign a Shapley value to each feature, reflecting its contribution to the model&#x27;s output for a given data point 71, 72 . We performed SHAP analysis using the Python SHAP package. The overall workflow for the development of aging clocks is illustrated in Fig. 11, where (ae) and (a-b, f-h) show the pipelines for PPGAge aging clock and ABPAge aging clock, respectively.</p>
+<h3>Definitions of Accelerated, Normal, and Delayed Aging Groups</h3>
+<p>For each aging clock, individuals were classified into three Age-Gap groups: accelerated aging, normal aging, and delayed aging, based on the Age-Gap (PPGAge Gap or ABPAge Gap), defined as the difference between the age predicted by the aging clock and the individual&#x27;s chronological age. A positive Age-Gap indicates that an individual is identified as older by the aging clock compared to their chronological age, whereas a negative Age-Gap reflects that an individual is recognized as younger by the aging clock compared to their chronological age. To define the Age-Gap groups, we followed the approach described in Ref. 10 and Ref. 109, using the model&#x27;s mean absolute error (MAE, rounded up to the nearest whole year) as the classification threshold. For the PPGAge and ABPAge aging clocks, the best-performing ML model (LightGBM) achieved held-out test-set MAEs of 5.90 and 5.83 years, respectively. Both MAEs rounded up to 6 years; therefore, a threshold of 6 years was applied to both aging clocks. Individuals with an Age-Gap ≥ +6 years were classified as having accelerated aging, whereas those with an Age-Gap &lt; -6 years were classified as having delayed aging. Individuals with an Age-Gap within the threshold range were classified as having normal aging (-6 years ≤ Age-Gap &lt; +6 years).</p>
+<h3>Cardiovascular disease diagnosis rate</h3>
+<p>For each aging clock 𝑐, individuals were grouped by sex, 𝑠 ∈ {male, female} , and within each sex, by chronological age group, 𝑎 ∈ { [18, 50), [50, 90]}. The average CVD diagnosis rate 13 was then calculated for each aging clock 𝑐, age group 𝑎, and sex 𝑠 as (Eq. ( 5)): 𝑛 &amp;,( where is the number of individuals diagnosed with CVD within the (𝑎, 𝑠) group of clock 𝑐′𝑠 analysis cohort, and )) is the total number of individuals in that group.</p>
+<p>Within each (𝑎, 𝑠) group, individuals were further divided by their clock-specific Age-Gap group 𝑞 (accelerated aging, normal aging, and delayed aging), and the CVD diagnosis rate was computed as (Eq. ( 6)): 𝑛 &amp;,(,/</p>
+<p>We then also computed the relative diagnosis rate (risk relative to average) 13 within each group (a, s, q) using Eq. ( 7).</p>
+<h3>Statistical analyses</h3>
+<p>To graphically illustrate the association between Age-Gap and CVD, polynomial smoothing splines curves were used 16 . To assess the association between aging groups and CVD, odds ratios (ORs) were calculated using logistic regression models, with predictors being the defined aging groups (&quot;accelerated aging&quot; or &quot;delayed aging,&quot; with &quot;normal aging&quot; as the reference category) 10 . The primary model was adjusted for chronological age and sex; sex-stratified models were adjusted for chronological age only. To assess the distribution of the PPG and ABP features for the PPGAge and ABPAge clocks, respectively, across aging groups, box plots were used, and pairwise comparisons between aging groups were assessed by Welch&#x27;s two-sided t-test. Statistical significance was defined as p &lt; 0.05 for all analyses. All 95% confidence intervals reported in this study were estimated using a 1,000-iteration bootstrap procedure 110 . All statistical analyses were performed using the Python programming language (version 3.12.2).</p>
+<h3>Acknowledgements</h3>
+<p>This work was supported by the National Institutes of Health (NIH): R01EB029751 and R01HL144692.</p>
+<h3>Data availability</h3>
+<p>The interested parties may reach out to the first author at (rpal@mednet.ucla.edu) or the corresponding author at (mcannesson@mednet.ucla.edu) to request access to the MLORD dataset.</p>
+<h3>Code availability</h3>
+<p>The code used in this study is not publicly available but may be provided to qualified researchers upon reasonable request to the first or corresponding author.</p>
+<h3>Competing interests</h3>
+<p>Dr. Cannesson is a consultant for Edwards Lifesciences and Masimo Corp, and has funded research from Edwards Lifesciences and Masimo Corp. He is also the founder of Sironis and Perceptive Medical and he owns patents and receives royalties for closed loop hemodynamic management technologies that have been licensed to Edwards Lifesciences. All the remaining authors declare no conflict of interest.</p>
+<h3>Author contributions</h3>
+<p>R.P. contributed to study design, data analysis, conceptualization, and manuscript preparation. A.B. contributed to study design, supervision of the study, review &amp; editing of the manuscript, and conceptualization. M.C. contributed to study design, supervision of the study, review &amp; editing of the manuscript, funding acquisition, and conceptualization. All authors have read and approved the final version of the manuscript.</p>
+<h3>Description of dataset</h3>
+<p>Our study uses a large perioperative dataset (MLORD) containing physiological waveforms from 17,327 patients who underwent surgeries at the David Geffen School of Medicine, University of California, Los Angeles (UCLA) between 2019 and 2022 73 . The MLORD dataset collection protocol was approved by the UCLA Institutional Review Board (IRB# 19-000354; NIH research funding: R01HL14469). The dataset comprises both clinical and physiological waveform data. Clinical data were extracted from the electronic health record (EHR) platforms Epic (Verona, WI, USA) and Surgical Information Systems (Alpharetta, GA, USA), while the physiological waveform data were collected directly in the operating rooms using the Bernoulli data acquisition system (Cardiopulmonary, New Haven, CT, USA). The physiological waveform data includes more than 72,264 hours of recordings, approximately 7.6 TB in size, and contains digital waveforms such as ECG, ABP, PPG, and central venous pressure waveforms. A detailed description of the MLORD dataset can</p>
+<h3>Fig 1 |</h3>
+<p>Fig 1 | Typical shapes of photoplethysmography (PPG) waveform cardiac cycles in different age groups. (a-d), PPG waveform cardiac cycles from individuals aged 20, 40, 60, and 90 years.</p>
+<h3>Fig 2 |</h3>
+<p>Fig 2 | Study overview. a-c, Development of machine learning (ML)-based PPGAge and ABPAge aging clocks using photoplethysmography (PPG) waveform features and arterial blood pressure (ABP) waveform features, respectively. a, MLORD (machine learning of physiological waveforms and electronic health record data) dataset used in this study. b, Feature extraction from PPG and ABP waveforms using a signal processing-based tool that computes &gt;840 features per cardiac cycle, including time-domain, frequency-domain, and statistical characteristics. c, Development of aging clocks.</p>
+<h3>Fig 3 |</h3>
+<p>Fig 3 | Scatter plots showing the age predictions of the PPGAge and ABPAge aging clocks. a Scatter plot of predicted PPG age (PPGAge) against chronological age for the LightGBM model in the held-out test set (n = 4,999). b Scatter plot of predicted ABP age (ABPAge) against chronological age for the LightGBM model in the held-out test set (n = 1,357). For both aging clocks, points are colored by Age-Gap (predicted minus chronological age) relative to the model&#x27;s mean absolute error (MAE): red, accelerated aging (Age-Gap ≥ MAE); blue, normal aging (-MAE ≤ Age-Gap &lt; +MAE); green, delayed aging (Age-Gap&lt; -MAE). The Age-Gap is referred to as the PPGAge Gap for the PPGAge aging clock and as the ABPAge Gap for the ABPAge aging clock. In our analysis, the model&#x27;s MAE was rounded up to the next whole number. Black line represents the identity line (predicted age = chronological age). Top and right marginal histograms show the distributions of chronological age and predicted age, respectively.</p>
+<h3>Fig 4 |</h3>
+<p>Fig 4 | Bland Altman plots. Agreement between chronological and predicted age for (a) PPGAge (n = 4,999) and (b) ABPAge (n = 1,357) aging clocks. Points are coloured by Age-Gap group (red = accelerated aging, blue = normal aging, green = delayed aging).</p>
+<h3>Fig 5 |</h3>
+<p>Fig 5 | Shapley Additive exPlanation (SHAP) summary plots showing feature contributions to the PPGAge and ABPAge aging clocks. a, Contributions of PPG features to the PPGAge clock. b, Contributions of ABP features to the ABPAge clock.</p>
+<h3>Fig 6 |</h3>
+<p>Fig 6 | PPG feature contributing most to the PPGAge aging clock and ABP feature contributing most to the ABPAge aging clock. a, Second derivative of the PPG cardiac cycle with key peaks (a-peak, b-peak, c-peak, d-peak, and e-peak), highlighting the feature PPG_AM_SD_Bpeak_wrtDpeak (the amplitude of the b-peak relative to the d-peak in the second derivative), which contributed most to the PPGAge aging clock. b, Fast Fourier transform (FFT) of the ABP cardiac cycle, showing the feature ABP_pkamp (the amplitude of the first peak in the FFT of the ABP cardiac cycle), which contributed most to the ABPAge aging clock.</p>
+<p>Accelerated aging was significantly associated with higher odds of CVD for PPGAge (odds ratio (OR), 1.87 [95% CI, 1.59-2.21], p&lt;0.001) and ABPAge (OR, 2.28 [95% CI, 1.51-3.43], p&lt;0.001). Delayed aging was linked to reduced odds of having CVD for PPGAge (OR, 0.68 [95% CI, 0.58-0.80], p&lt;0.001). For ABPAge, delayed aging did not show a significant association with CVD (OR, 0.82 [95% CI, 0.59-1.14], p=0.234).</p>
+<h3>Fig 7 |</h3>
+<p>Fig 7 | Box plots illustrating PPG and ABP waveform features across three Age-Gap groups: delayed, normal, and accelerated aging. a-c, PPG waveform features ranked 1st, 5th, and 10th by SHAP importance for the PPGAge clock (Fig.5a), respectively. d-f, ABP waveform features ranked 1st, 5th, and 10th by SHAP importance for the ABPAge clock (Fig.5b), respectively. Boxplots display significant differences between Age-Gap groups, denoted by asterisks (***), indicating a highly significant statistical difference (p &lt; 0.001) based on a two-sided t-test.</p>
+<h3>Fig 8 |</h3>
+<p>Fig 8 | Spline curves showing the relationship between Age-Gap and Odds ratio for CVD. a, PPGAge Gap vs. odds ratio for CVD. b, ABPAge Gap vs. odds ratio for CVD.</p>
+<p>[95% CI, 1.43-2.16], p&lt;0.001) and males (OR, 2.08 [95% CI, 1.57-2.77], p&lt;0.001). Delayed aging was associated with lower odds of CVD in both females (OR, 0.68 [95% CI, 0.53-0.87], p=0.002) and males (OR, 0.69 [95% CI, 0.56-0.85], p&lt;0.001). For the ABPAge clock, accelerated aging was significantly associated with elevated odds of CVD in both females (OR, 2.50 [95% CI, 1.45-4.30], p&lt;0.001) and males (OR, 2.03 [95% CI, 1.09-3.80], p=0.027), although, we did not find significant association between delayed aging and CVD in either females (OR, 0.96 [95% CI, 0.59-1.59], p=0.887) or males (OR, 0.71 [95% CI, 0.46-1.09], p=0.121) for ABPAge clock.</p>
+<h3>Fig 9 |</h3>
+<p>Fig 9 | PPGAge Gap and ABPAge Gap groups and CVD diagnosis rates across chronological age brackets. CVD diagnosis rate (left panel of each pair) and relative diagnostic rate (right panel), stratified by Age-Gap group (delayed, normal and accelerated aging) across chronological age brackets ([18,50) and [50,90]). (a, b) PPGAge Gap: diagnosis rate and relative diagnostic rate for female (n = 2,462) and (c, d) male (n = 2,537) participants. (e, f) ABPAge Gap: diagnosis rate and relative diagnostic rate for female (n = 559) and (g, h) male (n = 798) participants. Age-Gap is predicted minus chronological age. The grey line (left panels) shows the overall diagnosis rate in each age bracket; the black line (right panels) marks a relative rate of 1. All intervals are 95% confidence intervals computed with 1000 bootstrap samples.</p>
+<h3>Fig 10 |</h3>
+<p>Fig 10 | Feature selection by mutual information with elbow-based cutoff for PPG and ABP waveform features. a Photoplethysmography (PPG)-derived features were ranked from most to least informative based on their mutual information with chronological age (blue curve). An elbow detection method was used to select the optimal number of features (K = 387), identified as the point of maximum perpendicular distance from the line connecting the first and last points of the relevance curve (green dashed line), representing the point beyond which additional features contributed minimal relevance. b The same ranking and cutoff procedure was applied to arterial blood pressure (ABP)-derived features, selecting the top K = 217 features.</p>
+<h3>Fig 11 |</h3>
+<p>Fig 11 | Overall workflow. (a-h), Technical roadmap for the development of Machine leaning (ML) based aging clocks (PPGAge and ABPAge). Workflow includes: a, dataset, b, feature extraction, (c, f) feature selection for aging clocks, (d, g) development of aging clocks, (f, i), SHAP interpretability.</p>
+<h3>Table 1 | Performance of the PPGAge and ABPAge aging clocks on held out test sets. Aging clock Number of patients ML model Performance evaluators</h3>
+<p>ABP arterial blood pressure, ML machine learning, LightGBM Light Gradient-Boosting Machine, XGBoost eXtreme Gradient Boosting, Pearson correlation coefficient (r), coefficient of determination (R²), mean absolute error (MAE), and root mean square error (RMSE).</p>
+<h3>Table 2 | Descriptions of the features shown in Fig 5 (a-b) that contributed most to the PPGAge and ABPAge aging clocks.</h3>
+<p>second derivative Bpeak amplitude with respect to Dpeak, averaged across cardiac cycles PPG_D_RT_NAre_wsDIAPE_SYSPO_wrtDIAN_PPG_D_NAre _wsDIAPE_SYSPO_wrtSYSPP_meanThe ratio of the area under the normalized PPG cardiac cycle systolic phase onset with respect to dicrotic notch, with subtracted diastolic phase end point to the area under the normalized PPG cardiac cycle systolic phase onset with respect to systolic phase peak, with subtracted diastolic phase end point, averaged across cardiac cycles PPG_D_RT_NAre_SYSPP_wrtDIAN_PPG_D_NAre_SYSPO _wrtDIAPP_meanThe ratio of the area under the normalized PPG cardiac cycle systolic phase peak with respect to dicrotic notch to the area under the normalized PPG cardiac cycle systolic phase onset with respect to diastolic phase peak, averaged across cardiac cycles PPG_D_NMed_SYSPO_wrtDIAPE_std Standard deviation across cardiac cycles of the median duration of the normalized PPG cardiac cycle systolic phase onset with respect to diastolic phase end point PPG_D_Are_SYSPO_wrtSYSPP_mean Area under the PPG cardiac cycle systolic phase onset with respect to systolic phase peak, averaged across cardiac cycles PPG_AM_SD_Bpeak_wrtzero_mean PPG cardiac cycle second derivative Bpeak amplitude with respect to zero, averaged across cardiac cycles PPG_D_RT_NAre_wsDIAPE_SYSPP_wrtDIAN_PPG_D_NAre _wsDIAPE_SYSPO_wrtDIAPP_meanThe ratio of the area under the normalized PPG cardiac cycle systolic phase peak with respect to dicrotic notch, with subtracted diastolic phase end point to the area under the normalized PPG cardiac cycle systolic phase onset with respect to diastolic phase peak, with subtracted diastolic phase end point, averaged across cardiac cycles PPG_AM_RT_DIAPE_wrtSYSPO_PPG_DIAPE_wrtZero_std Standard deviation across cardiac cycles of the ratio of the PPG cardiac cycle diastolic phase end point amplitude with respect to systolic phase onset to the PPG cardiac cycle diastolic phase endpoint amplitude with respect to zero PPG_D_NRMS_SYSPO_wrtDIAPE_mean Root mean square duration of the normalized PPG cardiac cycle systolic phase onset with respect to diastolic phase end point, averaged across cardiac cycles PPG_D_RT_Are_wsDIAPE_SYSPP_wrtDIAN_ PPG_D_Are_wsDIAPE_SYSPO_wrtDIAPP_meanThe ratio of the area under the PPG cardiac cycle systolic phase peak with respect to dicrotic notch, with subtracted diastolic phase end point to the area under the PPG cardiac cycle systolic phase onset with respect to diastolic phase peak, with subtracted diastolic phase end point, averaged across cardiac cycles ABP_pkamp_std Standard deviation across cardiac cycles of the amplitude of the first peak observed in the FFT of the ABP cardiac cycle ABP_pkamp_mean Mean across cardiac cycles of the amplitude of the first peak observed in the FFT of the ABP cardiac cycle ABP_AM_RT_SD_Dpeak_wrtEpeak_ABP_AM_SD_Cpeak _wrtEpeak_std Standard deviation across cardiac cycles of the ratio of the ABP cardiac cycle second derivative Dpeak amplitude with respect to Epeak to the ABP cardiac cycle second derivative Cpeak amplitude with respect to Epeak</p>
+<h3>Table 4 | Odds ratios for the association of accelerated and delayed aging defined by the PPGAge and ABPAge aging clocks with cardiovascular disease, separated by sex.</h3>
+<p>Odds ratios (ORs) and 95% confidence intervals (CIs) were estimated using logistic regression models. Results are presented separately for males and females, with adjustments made for chronological age. Normal aging was used as the reference category. CVD cardiovascular disease.</p>
+<p>NOTE: This preprint reports new research that has not been certified by peer review and should not be used to guide clinical practice.</p>
+<h3>References</h3>
+<p>Van Bortel, LM, Spek, JJ. Influence of aging on arterial compliance. J Hum Hypertens. 12, 583-586 (1998).</p>
+<p>Gates, PE, Seals, DR. Decline in large elastic artery compliance with age: a therapeutic target for habitual exercise. Br J Sports Med. 40, 897-899 (2006).</p>
+<p>Joyner, M. J. Effect of exercise on arterial compliance. Circulation 102, 1214-1215 (2000).</p>
+<p>Alastruey, J. et al. Arterial pulse wave modeling and analysis for vascular-age studies: a review from VascAgeNet. Am J Physiol Heart Circ Physiol 325, H1- H29 (2023).</p>
+<p>Allen, J. Photoplethysmography and its application in clinical physiological measurement. Physiol Meas 28, R1- 39 (2007).</p>
+<p>Lin, W. H., Zheng, D., Li, G. &amp; Chen, F. Age-Related Changes in Blood Volume Pulse Wave at Fingers and Ears. IEEE J Biomed Health Inform 28, 5070-5080 (2024).</p>
+<p>Allen, J. &amp; Murray, A. Age-related changes in the characteristics of the photoplethysmographic pulse shape at various body sites. Physiological measurement 24, 297- 307 (2003).</p>
+<p>Gardner, A. W. &amp; Parker, D. E. Association between arterial compliance and age in participants 9 to 77 years old. Angiology 61, 37-41 (2010).</p>
+<p>Mcveigh, G. E. et al. Age-related abnormalities in arterial compliance identified by pressure pulse contour analysis. Hypertension 33, 1392-1398 (1999).</p>
+<p>Hempel, P. et al. Explainable AI associates ECG aging effects with increased cardiovascular risk in a longitudinal population study. NPJ Digit Med 8, 25 (2025).</p>
+<p>Azam, S., Haque, M. E., Balakrishnan, R., Kim, I. S. &amp; Choi, D. K. The Ageing Brain: Molecular and Cellular Basis of Neurodegeneration. Front Cell Dev Biol 9, 683459 (2021).</p>
+<p>Hou, Y. et al. Ageing as a risk factor for neurodegenerative disease. Nat Rev Neurol 15, 565-581 (2019).</p>
+<p>Miller, A. C. et al. A wearable-based aging clock associates with disease and behavior. Nat Commun 16, 9264 (2025).</p>
+<p>Subramanian, V. et al. Cardiovascular Aging and Exercise: Implications for Heart Failure Prevention and Management. Circ Res 137, 205-230 (2025).</p>
+<p>Raisi-Estabragh, Z, Szabo, L, Schuermans, A. et al. Noninvasive Techniques for Tracking Biological Aging of the Cardiovascular System: JACC Family Series. J Am Coll Cardiol Img. 17, 533-551 (2024).</p>
+<p>Ladejobi, A. O. et al. The 12-lead electrocardiogram as a biomarker of biological age. Eur Heart J Digit Health 2, 379-389 (2021).</p>
+<p>Chang, C. H., Lin, C. S., Luo, Y. S., Lee, Y. T. &amp; Lin, C. Electrocardiogram-Based Heart Age Estimation by a Deep Learning Model Provides More Information on the Incidence of Cardiovascular Disorders. Front Cardiovasc Med 9, 754909 (2022).</p>
+<p>Jylhava, J., Pedersen, N. L. &amp; Hagg, S. Biological Age Predictors. EBioMedicine 21, 29-36 (2017).</p>
+<p>Horvath, S. &amp; Raj, K. DNA methylation-based biomarkers and the epigenetic clock theory of ageing. Nat Rev Genet 19, 371-384 (2018).</p>
+<p>Bontempi, D. et al. FaceAge, a deep learning system to estimate biological age from face photographs to improve prognostication: a model development and validation study. Lancet Digit Health 7, 100870 (2025).</p>
+<p>Xia, X. et al. Three-dimensional facial-image analysis to predict heterogeneity of the human ageing rate and the impact of lifestyle. Nat Metab 2, 946-957 (2020).</p>
+<p>Diez-Villanueva, P. et al. Risk Factors and Cardiovascular Disease in the Elderly. Rev Cardiovasc Med 23, 188 (2022).</p>
+<p>Xu, X. et al. Relationships among dietary patterns and heterogeneous biological aging at system and organ- specific levels and mortality risks. NPJ Sci Food 9, 267 (2025).</p>
+<p>Diebel, L. W. M. &amp; Rockwood, K. Determination of Biological Age: Geriatric Assessment vs Biological Biomarkers. Curr Oncol Rep 23, 104 (2021).</p>
+<p>Wang, Z. et al. Predicting age by mining electronic medical records with deep learning characterizes differences between chronological and physiological age. J Biomed Inform 76, 59-68 (2017).</p>
+<p>Rymaszewski, T. &amp; Jurek, J. M. Machine Learning Approaches for Biological Age Estimation: Narrative Review of Non-Invasive and Cost-Effective Methodologies. Ageing and Longevity 6, 246-259 (2025).</p>
+<p>Gialluisi, A. et al. Machine Learning Approaches for the Estimation of Biological Aging: The Road Ahead for Population Studies. Front Med (Lausanne) 6, 146 (2019).</p>
+<p>Min, M., Egli, C., Dulai, A. S. &amp; Sivamani, R. K. Critical review of aging clocks and factors that may influence the pace of aging. Front Aging 5, 1487260 (2024).</p>
+<p>Horvath, S. DNA methylation age of human tissues and cell types. Genome biology 14, 3156 (2013).</p>
+<p>Hannum, G. et al. Genome-wide methylation profiles reveal quantitative views of human aging rates. Mol Cell 49, 359-367 (2013).</p>
+<p>Chen, Y., Cheng, X. &amp; Ji, S. DNA methylation and prediction of biological age. Front Mol Biosci 12, 1734464 (2025).</p>
+<p>Teschendorff, A. E. &amp; Horvath, S. Epigenetic ageing clocks: statistical methods and emerging computational challenges. Nat Rev Genet 26, 350-368 (2025).</p>
+<p>Lima, E. M. et al. Deep neural network-estimated electrocardiographic age as a mortality predictor. Nat Commun 12, 5117 (2021).</p>
+<p>Attia, Z. I., et al. Age and Sex Estimation Using Artificial Intelligence From Standard 12-Lead ECGs. Circ Arrhythm Electrophysiol 12, e007284 (2019).</p>
+<p>Barthels, M. et al. Artificial intelligence-predicted ECG age gap as a biomarker: bias-adjusted correlation with mortality and cardiovascular risk factors. Eur Heart J Digit Health 7, ztaf137 (2026).</p>
+<p>Adib, A., Zhu, W. P. &amp; Ahmad, M. O. Age estimation via electrocardiogram from smartwatches. NPJ Biomed Innov 2, 35 (2025).</p>
+<p>Sun, H. et al. Brain age from the electroencephalogram of sleep. Neurobiol Aging 74, 112-120 (2019).</p>
+<p>Kounios, J., Fleck, J. I., Zhang, F. &amp; Oh, Y. Brain-age estimation with a low-cost EEG-headset: effectiveness and implications for large-scale screening and brain optimization. Front Neuroergon 5, 1340732 (2024).</p>
+<p>Al Zoubi, O. et al. Predicting Age From Brain EEG Signals-A Machine Learning Approach. Front Aging Neurosci 10, 184 (2018).</p>
+<p>Khayretdinova, M. et al. Predicting age from resting-state scalp EEG signals with deep convolutional neural networks on TD-brain dataset. Front Aging Neurosci 14, 1019869 (2022).</p>
+<p>Brink-Kjaer, A. et al. Age estimation from sleep studies using deep learning predicts life expectancy. NPJ Digit Med 5, 103 (2022).</p>
+<p>Cheng, J. et al. Prediction of arterial blood pressure waveforms from photoplethysmogram signals via fully convolutional neural networks. Comput Biol Med 138, 104877 (2021).</p>
+<p>Miller, D. R., Dhillon, G. S., Bambos, N., Shin, A. Y. &amp; Scheinker, D. WAVES -The Lucile Packard Children&#x27;s Hospital Pediatric Physiological Waveforms Dataset. Sci Data 10, 124 (2023).</p>
+<p>Pan, J. et al. Robust modelling of arterial blood pressure reconstruction from photoplethysmography. Sci Rep 14, 30333 (2024).</p>
+<p>Hartmann, V. et al. Quantitative Comparison of Photoplethysmographic Waveform Characteristics: Effect of Measurement Site. Front Physiol 10, 198 (2019).</p>
+<p>Mathieu, A. J. W. et al. Advanced waveform analysis of the photoplethysmogram signal using complementary signal processing techniques for the extraction of biomarkers of cardiovascular function. JRSM Cardiovasc Dis 13, (2024).</p>
+<p>Magder, S. The meaning of blood pressure. Crit Care 22, 257 (2018).</p>
+<p>Saugel, B., Kouz, K., Meidert, A. S., Schulte-Uentrop, L. &amp; Romagnoli, S. How to measure blood pressure using an arterial catheter: a systematic 5-step approach. Crit Care 24, 172 (2020).</p>
+<p>Nirmalan, M. &amp; Dark, P. M. Broader applications of arterial pressure wave form analysis. Continuing Education in Anaesthesia Critical Care &amp; Pain 14, 285- 290 (2014).</p>
+<p>Pal, R. et al. Feature extraction tool using temporal landmarks in arterial blood pressure and photoplethysmography waveforms. NPJ Cardiovasc Health 2, 57 (2025).</p>
+<p>Loh, H. W. et al. Application of photoplethysmography signals for healthcare systems: An in-depth review. Comput Methods Programs Biomed 216, 106677 (2022).</p>
+<p>Suboh, M. Z., Jaafar, R., Nayan, N. A., Harun, N. H. &amp; Mohamad, M. S. F. Analysis on Four Derivative Waveforms of Photoplethysmogram (PPG) for Fiducial Point Detection. Front Public Health 10, 920946 (2022).</p>
+<p>Charlton, P. H. et al. Wearable Photoplethysmography for Cardiovascular Monitoring. Proc IEEE Inst Electr Electron Eng 110, 355-381 (2022).</p>
+<p>Yousef, Q., Reaz, M. B. I. &amp; Ali, M. A. M. The analysis of PPG morphology: investigating the effects of aging on arterial compliance. Measurement Science Review 12, 266- 271 (2012).</p>
+<p>Li, J. et al. Thin, soft, wearable system for continuous wireless monitoring of artery blood pressure. Nat Commun 14, 5009 (2023).</p>
+<p>Charlton, P. H. et al. Assessing hemodynamics from the photoplethysmogram to gain insights into vascular age: a review from VascAgeNet. Am J Physiol Heart Circ Physiol 322, H493-H522 (2022).</p>
+<p>Qawqzeh, Y. K., Reaz, M., Maskon, O., Chellappan, K. &amp; Ali, M. In International Conference on Graphic and Image Processing (ICGIP 2011). 672-677 (SPIE).</p>
+<p>Zanelli, S. et al. Developing technologies to assess vascular ageing: a roadmap from VascAgeNet. Physiological Measurement 45, 121001 (2024).</p>
+<p>Li, Y. et al. Prediction of Cardiovascular Disease Events From the Photoplethysmograph Waveform. Journal of the American Heart Association 14, e040237 (2025).</p>
+<p>Pal, R. et al. An algorithm to detect dicrotic notch in arterial blood pressure and photoplethysmography waveforms using the iterative envelope mean method. Comput Methods Programs Biomed 254, 108283 (2024).</p>
+<p>Balmer, J. et al. Accurate end systole detection in dicrotic notch-less arterial pressure waveforms. J Clin Monit Comput 35, 79-88 (2021).</p>
+<p>Dawber, T. R., Thomas Jr, H. E. &amp; McNamara, P. M. Characteristics of the dicrotic notch of the arterial pulse wave in coronary heart disease. Angiology 24, 244-255 (1973).</p>
+<p>Bae, J. H. &amp; Jeon, Y. J. Pulse sharpness as a quantitative index of vascular aging. Sci Rep 11, 19895 (2021).</p>
+<p>Basza, M. et al. Photoplethysmography wave morphology in patients with atrial fibrillation. Physiological Measurement 44, 045001 (2023).</p>
+<p>Kelly, R., Hayward, C., Avolio, A. &amp; O&#x27;rourke, M. Noninvasive determination of age-related changes in the human arterial pulse. Circulation 80, 1652-1659 (1989).</p>
+<p>Ke, G. et al. LightGBM: A Highly Efficient Gradient Boosting Decision Tree. In Advances in Neural Information Processing Systems 30 (NeurIPS, 2017).</p>
+<p>Chen, T. &amp; Guestrin, C. XGBoost: a scalable tree boosting system. In Proc. 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining 785-794 (ACM, 2016).</p>
+<p>Breimann, L. Random forests. Mach. Learn. 45, 5-32 (2001).</p>
+<p>Tibshirani, R. Regression shrinkage and selection via the lasso. J. R. Stat. Soc. Ser. B. 58, 267-288 (1996).</p>
+<p>Zou, H. &amp; Hastie, T. Regularization and variable selection via the elastic net. J. R. Stat. Soc. Ser. B. 67, 301-320 (2005).</p>
+<p>Lundberg, S.M., Lee, S.I. A unified approach to interpreting model predictions. In 31st Conference on Neural Information Processing Systems (NIPS, 2017).</p>
+<p>Santos, M. R., Guedes, A. &amp; Sanchez-Gendriz, I. SHapley Additive exPlanations (SHAP) for Efficient Feature Selection in Rolling Bearing Fault Diagnosis. Machine Learning and Knowledge Extraction 6, 316-341 (2024).</p>
+<p>Kim, S. et al. Machine Learning of Physiologic Waveforms and Electronic Health Record Data: A Large Perioperative Data Set of High-Fidelity Physiologic Waveforms. Crit Care Clin 39, 675-687 (2023).</p>
+<p>Schober, P., Boer, C. &amp; Schwarte, L. A. Correlation Coefficients: Appropriate Use and Interpretation. Anesth Analg 126, 1763-1768 (2018).</p>
+<p>Li, X. et al. Evaluation of supervised machine learning regression models for CFD-based surrogate modelling in indoor airflow field reconstruction. Building and Environment 267, 112173 (2025).</p>
+<p>Khoshvaght, H., Permala, R. R., Razmjou, A. &amp; Khiadani, M. A critical review on selecting performance evaluation metrics for supervised machine learning models in wastewater quality prediction. Journal of Environmental Chemical Engineering 13 119675 (2025).</p>
+<p>Nie, G., Zhao, Q., Tang, G., Li, Y. &amp; Hong, S. Artificial intelligence-derived photoplethysmography age as a digital biomarker for cardiovascular health. Commun Med (Lond) 5, 481 (2025).</p>
+<p>Ahmad, R. U. S., Khan, W. U., Khan, M. S. &amp; Cheung, P. Emerging rapid detection methods for the monitoring of cardiovascular diseases: Current trends and future perspectives. Mater Today Bio 32, 101663 (2025).</p>
+<p>Mathew, G., Barbosa, D., Prince, J. &amp; Venkatraman, S. Foundation models for cardiovascular disease detection via biosignals from digital stethoscopes. NPJ Cardiovasc Health 1 (2024).</p>
+<p>Saffarpour, M. et al. Physiowise: A Physics-aware Approach to Dicrotic Notch Identification. ACM Trans Comput Healthc 4 (2023).</p>
+<p>Cunningham, J. W. et al. Machine Learning to Understand Genetic and Clinical Factors Associated With the Pulse Waveform Dicrotic Notch. Circ Genom Precis Med 16, e003676 (2023).</p>
+<p>Park, J., Seok, H. S., Kim, S. S. &amp; Shin, H. Photoplethysmogram Analysis and Applications: An Integrative Review. Front Physiol 12, 808451 (2021).</p>
+<p>Shin, H., Noh, G. &amp; Choi, B. M. Photoplethysmogram based vascular aging assessment using the deep convolutional neural network. Sci Rep 12, 11377 (2022).</p>
+<p>Takazawa, K. et al. Assessment of vasoactive agents and vascular aging by the second derivative of photoplethysmogram waveform. Hypertension 32, 365- 370 (1998).</p>
+<p>Choi, J. &amp; Park, M. G. Variations in the Second Derivative of a Photoplethysmogram with Age in Healthy Korean Adults. Int J Environ Res Public Health 20 (2022).</p>
+<p>Ahn, J. M. New Aging Index Using Signal Features of Both Photoplethysmograms and Acceleration Plethysmograms. Healthc Inform Res 23, 53-59 (2017).</p>
+<p>Park, Y. J., Lee, J. M. &amp; Kwon, S. H. Association of the second derivative of photoplethysmogram with age, hemodynamic, autonomic, adiposity, and emotional factors. Medicine (Baltimore) 98, e18091 (2019).</p>
+<p>Bortolotto, L. A., Blacher, J., Kondo, T., Takazawa, K. &amp; Safar, M. E. Assessment of vascular aging and atherosclerosis in hypertensive subjects: second derivative of photoplethysmogram versus pulse wave velocity. American journal of hypertension 13, 165-171 (2000).</p>
+<p>Goda, M. Á., Charlton, P. H. &amp; Behar, J. A. pyPPG: a Python toolbox for comprehensive photoplethysmography signal analysis. Physiological measurement 45, 045001 (2024).</p>
+<p>Scholte, N. T. B. et al. A scoping review on advancements in noninvasive wearable technology for heart failure management. npj Digital Medicine 7 (2024).</p>
+<p>Xie, H., Yang, L., Jiang, B., Huang, Z. &amp; Lin, Y. State-of- the-art wearable sensors for cardiovascular health: a review. NPJ Cardiovasc Health 2 (2025).</p>
+<p>Jamieson, A. et al. A guide to consumer-grade wearables in cardiovascular clinical care and population health for non-experts. NPJ Cardiovasc Health 2, 44 (2025).</p>
+<p>Chou, E. F. et al. Clinical Validation of a Soft Wireless Continuous Blood Pressure Sensor During Surgery. Front Digit Health 3, 696606 (2021).</p>
+<p>Tanioku, T., Yoshida, A., Aratani, Y., Fujii, K. &amp; Kawamata, T. Validation of noninvasive continuous arterial pressure measurement by ClearSight System during induction of anesthesia for cardiovascular surgery. BMC Anesthesiol 20, 176 (2020).</p>
+<p>Castaneda, D., Esparza, A., Ghamari, M., Soltanpur, C. &amp; Nazeran, H. A review on wearable photoplethysmography sensors and their potential future applications in health care. Int J Biosens Bioelectron 4, 195-202 (2018).</p>
+<p>Charlton, P. H. et al. The 2023 wearable photoplethysmography roadmap. Physiological measurement 44, 111001 (2023).</p>
+<p>Lee, E. &amp; Lee, C.-Y. PPG-Based Smart Wearable Device With Energy-Efficient Computing for Mobile Health-Care Applications. IEEE Sensors Journal 21, 13564-13573 (2021).</p>
+<p>Li, J. et al. Thin, soft, wearable system for continuous wireless monitoring of artery blood pressure. Nat Commun 14, 5009 (2023).</p>
+<p>Wang, L., Tian, S. &amp; Zhu, R. A new method of continuous blood pressure monitoring using multichannel sensing signals on the wrist. Microsyst Nanoeng 9, 117 (2023).</p>
+<p>Vergara, J. R. &amp; Estévez, P. A. A review of feature selection methods based on mutual information. Neural Comput. Appl. 24, 175-186 (2014).</p>
+<p>Kraskov, A., Stögbauer, H. &amp; Grassberger, P. Estimating mutual information. Phys. Rev. E Stat. Phys. Plasmas Fluids Relat. Interdiscip. Top. 69, 16 (2004).</p>
+<p>Morgado, E., Martino, L., San Millan-Castillo, R. Universal and automatic elbow detection for learning the effective number of components in model selection problems. Digit Signal Proces 140:104103 (2023).</p>
+<p>de Lange, A. G. &amp; Cole, J. H. Commentary: Correction procedures in brain-age prediction. Neuroimage Clin 26, 102229 (2020).</p>
+<p>Tian, Y. E. et al. Heterogeneous aging across multiple organ systems and prediction of chronic disease and mortality. Nat Med 29, 1221-1231 (2023).</p>
+<p>Smith, S. M., Vidaurre, D., Alfaro-Almagro, F., Nichols, T. E. &amp; Miller, K. L. Estimation of brain age delta from brain imaging. Neuroimage 200, 528-539 (2019).</p>
+<p>Liang, H., Zhang, F. &amp; Niu, X. Investigating systematic bias in brain age estimation with application to post- traumatic stress disorders. Hum Brain Mapp 40, 3143- 3152 (2019).</p>
+<p>Zhang, B., Zhang, S., Feng, J. &amp; Zhang, S. Age-level bias correction in brain age prediction. Neuroimage Clin 37, 103319 (2023).</p>
+<p>Giavarina, D. Understanding Bland Altman analysis. Biochem Med (Zagreb) 25, 141-151 (2015).</p>
+<p>Brant, L. C. et al. Association between electrocardiographic age and cardiovascular events in community settings: the Framingham heart study. Circ. Cardiovasc. Qual. Outcomes 16, e009821 (2023).</p>
+<p>Efron, B. &amp; Tibshirani, R. J. An Introduction to the Bootstrap (Springer, 1993).</p>
 </div>
 </details>
 </div>
