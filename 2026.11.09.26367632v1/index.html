@@ -196,7 +196,7 @@ Exploring Data Augmentation for Stroke Severity Prediction: How
 Generative AI Enhances EEG Signal Classification
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.09.26367632
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367632
 </p>
 </header>
 <div class="mc-main">
@@ -318,8 +318,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -669,9 +672,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -693,7 +700,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -708,9 +716,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -723,13 +749,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -749,6 +778,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -756,12 +791,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -862,6 +903,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -881,6 +942,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1136,19 +1232,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1258,6 +1436,107 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>In clinical datasets, data augmentation is often avoided because it can remove important unusual values, known as outliers, which are important for understanding diseases accurately. However, clinical EEG datasets often suffer from two key limitations: small sample sizes and class imbalance, which significantly reduce classification performance. To overcome these challenges, this study applies generative AI-based data augmentation techniques with a carefully designed hybrid pipeline that effectively enhances performance even on limited EEG data. Using EEG signals from 50 brain stroke patients [1], we investigate both traditional oversampling methods (SMOTE and ADASYN [2]) and advanced generative models, including WGAN and WGAN-GP. Our proposed pipeline involves preprocessing EEG recordings, extracting comprehensive statistical and frequency-domain features, applying feature reduction, and evaluating multiple machine learning classifiers. Experimental results show that the combination of SelectKBest feature selection, SVM classifier, and WGAN-GP augmentation achieves the highest classification accuracy of 72%, outperforming other methods. This work introduces a novel hybrid approach for EEGbased stroke severity classification, demonstrating that generative augmentation, when integrated properly, can significantly improve performance on small clinical datasets. To the best of our knowledge, this combination of techniques has not been explored before on any dataset, providing a solid foundation for future research in automated EEG-based stroke diagnosis.</p>
+<h3>I. INTRODUCTION</h3>
+<p>Stroke remains one of the leading causes of long-term disability and death worldwide, posing a significant burden to healthcare systems [3]. Accurate classification of stroke severity is crucial for timely treatment decisions and improved recovery outcomes. Electroencephalography (EEG) is a widely used tool for assessing brain activity and diagnosing neurological conditions, including stroke. However, EEG-based automated stroke severity classification faces two primary challenges: limited data availability and severe class imbalance, which can negatively impact machine learning model performance. Imbalanced datasets, where certain classes (such as mild or severe) are underrepresented, often lead to biased predictions and reduced model reliability. While data augmen-tation is a common strategy to address class imbalance, in clinical datasets it is typically approached cautiously because it may eliminate critical outliers or distort rare but diagnostically significant patterns, particularly in disease analysis where such extremes are vital. Nonetheless, in scenarios like stroke EEG analysis, where patient samples are limited, data augmentation becomes a practical necessity to enhance classification performance.</p>
+<p>To tackle these challenges, this study proposes a novel hybrid pipeline integrating feature selection with generative augmentation to improve stroke severity classification. Recent research shows that Generative Adversarial Networks (GANs) can generate realistic synthetic EEG signals [5], with advanced variants like WGAN-GP achieving superior performance in tasks such as seizure detection [6]. Inspired by these advancements, this work applies four augmentation techniques-SMOTE, ADASYN, WGAN, and WGAN-GP-on EEG data from 50 stroke patients [1], combining preprocessing, statistical and frequency feature extraction, dimensionality reduction via SelectKBest, and SVM classification. Experiments demonstrate that this hybrid approach, especially the combination of WGAN-GP, SelectKBest, and SVM, achieves a classification accuracy of 0.72, outperforming traditional oversampling methods and baseline models. This research highlights the potential of generative AI to address class imbalance and improve classification accuracy in EEG-based stroke severity assessment, offering a framework to aid stroke diagnosis and treatment. II. LITERATURE REVIEW Generative Adversarial Networks (GANs) have shown great promise in addressing EEG data scarcity and class imbalance, improving classification outcomes in various domains.Hortal and Bhat [7] used WGAN-GP on the DEAP dataset for emotion recognition, achieving classification gains of up to 17.5% through GAN-based data augmentation. Similarly, a TGAN model enhanced seizure detection using thalamic SEEG data, improving accuracy and sensitivity significantly [8]. Condi-tional WGAN was explored in [9] to augment EEG data, enhancing DNN classification by 6.5% (arousal) and 3.0% (valence). ESC-GAN [10] further improved performance in class-imbalanced emotion recognition tasks by generating diverse and boundary-aware samples across DEAP, AMIGOS, and SEED datasets.</p>
+<p>Augmentation has also aided clinical classification tasks. Ullah et al. [11] combined a pyramidal CNN with augmentation techniques, achieving 99.1% accuracy in epilepsy detection. LS-GAN improved small medical dataset classification in [12], especially for SVM. Differential privacy in synthetic EEG data generation was explored in PATE-GAN [13], balancing data utility and confidentiality. A broader survey of augmentation methods [14] highlighted GANs&#x27; strengths in small, imbalanced datasets, particularly in medical imaging.Hartmann et al. [15] introduced EEG-GAN using WGAN-GP to synthesize realistic EEG signals for BCI applications. Studies on motor imagery (MI) classification [16], [17] emphasized CNN-based architectures&#x27; efficiency, with data augmentation boosting real-time neuroprosthetic control.WGAN-GP&#x27;s superiority in seizure detection was again shown by Abou-Abbas et al. [6], with accuracy rising from 86% to 91.73% after augmentation. Similarly, L-C-WGAN-GP [18] and DCGAN-GP [20] models significantly improved MI EEG classification by generating high-fidelity synthetic signals.Several studies [19], [21] reinforce the effectiveness of deep learning for EEG signal classification, and highlight augmentation&#x27;s role in increasing BCI accessibility. Finally, GANs have also been effective in denoising EEG signals for real-world applications [22], enhancing signal quality and system robustness. These studies collectively demonstrate the growing impact of generative models in EEG research, particularly in handling limited, imbalanced data-central to our work on brain stroke severity classification.</p>
+<h3>III. METHODOLOGY</h3>
+<p>This section outlines the methodology for EEG-based stroke severity classification, integrating feature engineering, dimensionality reduction, classification, and data augmentation to address class imbalance. The workflow, depicted in Figure 1, encompasses raw data preprocessing, feature extraction, reduction, model training, and evaluation within a 5-fold crossvalidation framework.</p>
+<h3>A. Dataset and Preprocessing</h3>
+<p>The study utilizes an open-access EEG dataset from Liu et al. [1], comprising signals from 50 acute ischemic stroke patients, recorded in European Data Format (EDF) with approximately 160,000 samples per subject across 32 channels based on the 10-20 international standard. The National Institutes of Health Stroke Scale (NIHSS) scores categorize stroke severity into mild,moderate, and severe.</p>
+<p>Preprocessing involved converting EDF files to CSV format for compatibility with Python-based tools. A variance-based channel selection retained the top 20 channels with the highest average variance across all subjects, calculated as: where S c represents the signal for channel c, s c,i is the i-th sample, sc is the channel mean, N = 160, 000 is the number of samples per file, and M = 50 is the number of subjects.</p>
+<h3>V (S</h3>
+<p>Channels with standard deviation below 10 -6 were excluded to eliminate low-variance signals.</p>
+<p>The selected channels were normalized using the Standard-Scaler from scikit-learn, transforming signals to zero mean and unit variance: where m c and d c are the mean and standard deviation of channel c, respectively.</p>
+<p>This normalization ensured consistent feature scales, preserving the time column when present.</p>
+<h3>B. Feature Extraction and Reduction</h3>
+<p>From each of the 20 selected EEG channels, 18 features were extracted, yielding 18 ×20 = 360 features per subject. These features, listed in Table I, include statistical, Hjorth, band power, entropy, and wavelet metrics, capturing EEG signal characteristics for National Institutes of Health Stroke Scale (NIHSS) classification.</p>
+<p>TABLE I EXTRACTED EEG FEATURES Category Features Statistical Mean, Std, Variance, Skewness, Kurtosis, Median Hjorth Activity, Mobility, Complexity Band Power Delta, Theta, Alpha, Beta, Gamma Entropy Shannon Entropy Wavelet Wavelet Energy Percent (db4)</p>
+<p>Two techniques reduced the 360 features to 50: SelectKBest Method: SelectKBest used ANOVA F-scores to select the top 50 discriminative features: where V between is variance between NIHSS classes, and V within is variance within classes.</p>
+<p>Principal Component Analysis (PCA): PCA projected the standardized feature matrix onto 50 components: where F m = standardized feature matrix, E m = eigenvector matrix, and P is the projected matrix.</p>
+<h3>C. Classification and Validation</h3>
+<p>Four classifiers-SVM, Random Forest, XGBoost, and KNN-were evaluated on both SelectKBest and PCA feature sets within a 5-fold cross-validation framework to ensure robust performance estimates. Stratified sampling preserved the NIHSS class distribution in each fold. The SVM with SelectKBest features demonstrated superior performance (as detailed in the results) and was selected for augmentation experiments.</p>
+<h3>D. Data Augmentation Methods</h3>
+<p>To address class imbalance, particularly the underrepresentation of severe stroke cases, four augmentation techniques-SMOTE, ADASYN, WGAN, and WGAN-GP-were applied to the training folds during cross-validation. These methods generated synthetic samples for minority classes (moderate and severe), while test folds remained unaugmented to ensure unbiased evaluation.</p>
+<h3>E. Generative Adversarial Networks</h3>
+<p>Generative Adversarial Networks (GANs) generated synthetic EEG features to balance minority classes (moderate and severe strokes). The GAN framework comprises a Generator (G n ) and Discriminator (D s ), trained adversarially to produce realistic samples from noise. WGAN and WGAN-GP were applied to training data in a 5-fold cross-validation to improve Support Vector Machine (SVM) performance for classes. Figure 2 shows the GAN architecture. ADASYN: Adaptive Synthetic Sampling (ADASYN) prioritizes minority samples near the decision boundary. Used in each fold, ADASYN improved SVM sensitivity to severe stroke cases, enhancing performance for underrepresented classes.</p>
+<p>WGAN: Wasserstein Generative Adversarial Network (WGAN) uses a Critic (C), where C = Critic, with Wasserstein distance for stable training via weight clipping. WGAN generated synthetic EEG features, improving SVM performance for minority classes.</p>
+<p>WGAN-GP: WGAN with Gradient Penalty (WGAN-GP) uses a gradient penalty for enhanced sample quality. Applied in each fold, WGAN-GP produced realistic EEG features, significantly improving SVM performance across classes.</p>
+<h3>F. Evaluation Metrics</h3>
+<p>Model performance was evaluated using macro-averaged metrics to address class imbalance in the categories (mild, moderate, severe). Macro-averaging ensures equal weighting of each class, enhancing fairness for underrepresented severe cases. Metrics were averaged across 5-fold cross-validation for robust estimates.</p>
+<p>Accuracy: Measures the ratio of correct predictions across all classes: where T P = true positives, T N = true negatives, F P = false positives, and F N = false negatives.</p>
+<p>Precision: Quantifies the proportion of correct positive predictions, macro-averaged for balanced class evaluation: where K is the number of classes.</p>
+<p>Recall: Assesses the proportion of actual positives identified, macro-averaged to prioritize minority classes:</p>
+<p>F1-Score: Computes the harmonic mean of precision and recall, macro-averaged for balanced performance:</p>
+<p>ROC-AUC: Evaluates the area under the receiver operating characteristic curve, measuring discriminative ability: where T P R = true positive rate and F P R = false positive rate.</p>
+<h3>G. Application to EEG Dataset</h3>
+<p>In each fold, training data was standardized, augmented using one technique (SMOTE, ADASYN, WGAN, or WGAN-GP), and used to train an SVM with an RBF kernel. A baseline SVM was trained on unaugmented data. Test sets remained unaugmented, and performance was evaluated using the above metrics, with confusion matrices and ROC curves generated per fold to assess classification robustness for class categories.</p>
+<h3>IV. RESULTS AND DISCUSSION</h3>
+<p>This section presents the experimental outcomes of the proposed EEG-based stroke severity classification framework. We first compare feature reduction techniques and classifiers, followed by an evaluation of data augmentation methods to address class imbalance.</p>
+<h3>A. Feature Selection and Classifier Evaluation</h3>
+<p>Two feature reduction techniques-SelectKBest and Principal Component Analysis (PCA)-reduced the 360 EEG features to 50. Their performance was assessed using four classifiers: Support Vector Machine (SVM), Random Forest, XGBoost, and K-Nearest Neighbors (KNN) in a 5-fold crossvalidation framework.</p>
+<p>Table II shows the performance of classifiers on SelectKBest features. SVM achieved the highest accuracy (0.64), precision (0.434), recall (0.489), F1-score (0.429), and ROC-AUC (0.803), indicating superior discriminative ability for classes.</p>
+<p>Figure 3 illustrates the 5-fold cross-validated accuracies for SelectKBest, with SVM showing the highest bar (0.64), confirming its effectiveness.</p>
+<p>TABLE II MODEL PERFORMANCE ON SELECTKBEST FEATURES Model Acc. Prec. Rec. F1 AUC SVM 0.64 0.434 0.489 0.429 0.803 Random Forest 0.56 0.287 0.367 0.298 0.737 XGBoost 0.60 0.502 0.476 0.452 0.719 KNN 0.58 0.298 0.378 0.321 0.752 Fig 3. Accuracy Comparison on SelectKBest Features Table III presents the performance on PCA features. Random Forest achieved the highest accuracy (0.56), but all models performed worse than with SelectKBest, with SVM at 0.54 and lower ROC-AUC (0.573), indicating reduced discriminative power.</p>
+<p>TABLE III MODEL PERFORMANCE ON PCA FEATURES Model Acc. Prec. Rec. F1 AUC SVM 0.54 0.184 0.322 0.233 0.573 Random Forest 0.56 0.278 0.367 0.300 0.631 XGBoost 0.44 0.276 0.327 0.296 0.616 KNN 0.50 0.182 0.298 0.225 0.594</p>
+<p>Figure 4 shows the accuracies for PCA features, with Random Forest&#x27;s bar slightly higher (0.56) but overall lower than SelectKBest, highlighting PCA&#x27;s limitations. Table IV compares SelectKBest and PCA accuracies, showing SelectKBest&#x27;s superiority in three of four models, with SVM on SelectKBest achieving the highest accuracy (0.64). Thus, SelectKBest with SVM was selected for augmentation experiments.</p>
+<h3>B. Augmentation Technique Results</h3>
+<p>To address class imbalance in severity labels (mild, moderate, severe), four augmentation techniques-SMOTE, ADASYN, WGAN, WGAN-GP-were applied to training folds in a 5-fold cross-validation setup using the selected SelectKBest feature selection followed by SVM configuration.</p>
+<p>TABLE IV ACCURACY COMPARISON: SELECTKBEST VS PCA Model SelectKBest Acc. PCA Acc. SVM 0.64 0.54 Random Forest 0.56 0.56 XGBoost 0.60 0.44 KNN 0.58 0.50 Test folds remained unaugmented to ensure unbiased evaluation, focusing on improving classification performance for minority classes. Table V presents SVM performance with and without SMOTE. SMOTE significantly enhanced all metrics, achieving a precision of 0.72 and recall of 0.67, reflecting its ability to generate synthetic samples that improve detection of moderate and severe classes.</p>
+<p>TABLE V PERFORMANCE: WITH VS WITHOUT SMOTE Metric Without SMOTE With SMOTE Acc. 0.64 0.70 Prec. 0.42 0.72 Rec. 0.47 0.67 F1 0.42 0.67 AUC 0.84 0.87 Table VI shows ADASYN&#x27;s performance, with moderate improvements over the baseline, particularly in precision (0.58) and recall (0.55), indicating effective augmentation for challenging minority class samples near decision boundaries.</p>
+<p>TABLE VI PERFORMANCE: WITH VS WITHOUT ADASYN Metric Without ADASYN With ADASYN Acc. 0.64 0.66 Prec. 0.42 0.58 Rec. 0.47 0.55 F1 0.42 0.54 AUC 0.84 0.86 Table VII displays WGAN&#x27;s results, with improved accuracy (0.68) but a lower AUC (0.82) compared to SMOTE and ADASYN, suggesting moderate success in generating realistic synthetic EEG features for minority classes.</p>
+<p>TABLE VII PERFORMANCE: WITH VS WITHOUT WGAN Metric Without WGAN With WGAN Acc. 0.64 0.68 Prec. 0.42 0.51 Rec. 0.47 0.50 F1 0.42 0.47 AUC 0.84 0.82 Table VIII illustrates WGAN-GP&#x27;s performance, achieving the highest accuracy (0.72) and balanced metrics, including recall (0.58) and AUC (0.85), highlighting its ability to produce high-quality synthetic samples for improved classification.</p>
+<p>TABLE VIII PERFORMANCE: WITH VS WITHOUT WGAN-GP Metric Without WGAN-GP With WGAN-GP Acc. 0.64 0.72 Prec. 0.42 0.51 Rec. 0.47 0.58 F1 0.42 0.52 AUC 0.84 0.85</p>
+<h3>C. Performance Comparison</h3>
+<p>Table IX summarizes the performance across augmentation methods. SMOTE exhibited strong performance in precision (0.72), recall (0.67), and F1-score (0.67), reflecting its robustness in addressing class imbalance. WGAN-GP achieved the highest accuracy (0.72) and balanced overall metrics (recall 0.58, AUC 0.85), making it the most effective for classification due to its stable generation of synthetic EEG features.</p>
+<p>TABLE IX COMPARISON OF AUGMENTATION METHODS Method Acc. Prec. Rec. F1 AUC Without Aug. 0.64 0.42 0.47 0.42 0.84 SMOTE 0.70 0.72 0.67 0.67 0.87 ADASYN 0.66 0.58 0.55 0.54 0.86 WGAN 0.68 0.51 0.50 0.47 0.82 WGAN-GP 0.72 0.51 0.58 0.52 0.85  Figure 6 compares accuracies across methods, with WGAN-GP&#x27;s bar peaking at 0.72, followed by SMOTE at 0.70, visually confirming WGAN-GP&#x27;s superior accuracy for EEG-based stroke severity classification.</p>
+<h3>D. Key Insights</h3>
+<p>Our experiments highlight that combining SelectKBest feature selection with SVM yields strong baseline performance. Incorporating data augmentation further boosts accuracy, with WGAN-GP showing the best overall improvement. This suggests that a hybrid approach of feature selection, SVM classification, and generative augmentation offers a practical solution for improving EEG-based stroke severity classification.</p>
+<p>V. CONCLUSION This study tackled stroke severity classification using EEG data, addressing challenges of limited samples and class imbalance, with feature selection using SelectKBest followed by evaluation of multiple classifiers identifying SVM as the most effective, and four data augmentation techniques-SMOTE, ADASYN, WGAN, WGAN-GP-applied to enhance model robustness, where WGAN-GP followed by SVM followed by SelectKBest achieved the highest accuracy (0.72), marking this approach among the first to apply generative augmentation for EEG-based stroke classification, demonstrating WGAN-GP&#x27;s superior performance over traditional methods, with the pipeline of SelectKBest feature selection followed by SVM followed by WGAN-GP providing a robust baseline for future EEG-based diagnostic research, while future work will validate these results on larger, more diverse datasets, explore deep learning models for raw EEG data, investigate hybrid augmentation techniques, and incorporate temporal modeling with recurrent neural networks or Transformers to further improve stroke severity assessment and clinical decision-making.</p>
+<h3>Fig 1.</h3>
+<p>Fig 1. Flowchart of the proposed EEG-based stroke severity classification pipeline.</p>
+<h3>Fig 2.</h3>
+<p>Fig 2. Architecture of a standard GAN. SMOTE: Synthetic Minority Oversampling Technique (SMOTE) interpolates between minority class samples and their k-nearest neighbors to create synthetic samples. Applied to training data, SMOTE balanced classes, reducing bias toward mild strokes and boosting SVM accuracy for severe cases.ADASYN: Adaptive Synthetic Sampling (ADASYN) prioritizes minority samples near the decision boundary. Used in each fold, ADASYN improved SVM sensitivity to severe stroke cases, enhancing performance for underrepresented classes.WGAN: Wasserstein Generative Adversarial Network (WGAN) uses a Critic (C), where C = Critic, with Wasserstein distance for stable training via weight clipping. WGAN generated synthetic EEG features, improving SVM performance for minority classes.WGAN-GP: WGAN with Gradient Penalty (WGAN-GP) uses a gradient penalty for enhanced sample quality. Applied in each fold, WGAN-GP produced realistic EEG features, significantly improving SVM performance across classes.</p>
+<h3>Fig 4.</h3>
+<p>Fig 4. Accuracy Comparison on PCA Features</p>
+<h3>Figure 5</h3>
+<p>Figure 5 illustrates ROC-AUC curves for SMOTE, ADASYN, WGAN, and WGAN-GP, with SMOTE&#x27;s curve reaching the highest AUC (0.87), followed closely by WGAN-GP (0.85), demonstrating their strong discriminative ability for NIHSS classes.</p>
+<h3>Fig 5.</h3>
+<p>Fig 5. ROC-AUC Curves for Augmentation Methods</p>
+<h3>Fig 6.</h3>
+<p>Fig 6. Accuracy: Baseline vs Augmentation Methods</p>
+<h3>References</h3>
+<p>H. Liu and X. Lv, &quot;EEG datasets of stroke patients,&quot; figshare, Dataset, Version 5, 2022. [Online]. Available: https://doi.org/10.6084/m9.figshare.21679035.v5</p>
+<p>J. M. Johnson and T. M. Khoshgoftaar, &quot;Survey on deep learning with class imbalance,&quot; J. Big Data, vol. 6, no. 1, p. 27, 2019. [Online]. Available: https://doi.org/10.1186/s40537-019-0192-5</p>
+<p>World Health Organization, &quot;World stroke day 2022,&quot; 2022. [On- line]. Available: https://www.who.int/srilanka/news/detail/29-10-2022- world-stroke-day-2022 [Accessed: Jan. 13, 2025]</p>
+<p>L. Murri, S. Gori, R. Massetani, E. Bonanni, F. Marcella, and S. Milani, &quot;Evaluation of acute ischemic stroke using quantitative EEG: A comparison with conventional EEG and CT scan,&quot; Neurophys- iol. Clin., vol. 28, no. 3, pp. 249-257, 1998. [Online]. Available: https://doi.org/10.1016/S0987-7053(98)80115-9</p>
+<p>I. J. Goodfellow, J. Pouget-Abadie, M. Mirza, B. Xu, D. Warde- Farley, S. Ozair, A. Courville, and Y. Bengio, &quot;Generative adversarial networks,&quot; arXiv preprint arXiv:1406.2661, 2014. [Online]. Available: https://doi.org/10.48550/arXiv.1406.2661</p>
+<p>L. Abou-Abbas, K. Henni, I. Jemal, and N. Mezghani, &quot;Genera- tive AI with WGAN-GP for boosting seizure detection accuracy,&quot; Front. Artif. Intell., vol. 7, p. 1437315, 2024. [Online]. Available: https://doi.org/10.3389/frai.2024.1437315</p>
+<p>S. Bhat and E. Hortal, &quot;GAN-based data augmentation for improving the classification of EEG signals,&quot; in Proc. 14th Pervasive Technol. Related Assistive Environ. Conf. (PETRA), 2021, pp. 453-458. [Online]. Available: https://doi.org/10.1145/3453892.3461338</p>
+<p>B. Ganti, G. Chaitanya, R. S. Balamurugan, N. Nagaraj, K. Bala- subramanian, and S. Pati, &quot;Time-series generative adversarial network approach of deep learning improves seizure detection from the human thalamic SEEG,&quot; Front. Neurol., vol. 13, 2022. [Online]. Available: https://doi.org/10.3389/fneur.2022.755094</p>
+<p>M. P. Kalashami, M. M. Pedram, and H. Sadr, &quot;EEG feature extrac- tion and data augmentation in emotion recognition,&quot; Comput. Intell. Neurosci., vol. 2022, no. 1, p. 7028517, 2022. [Online]. Available: https://doi.org/10.1155/2022/7028517</p>
+<p>Z. Zhang, S. Zhong, and Y. Liu, &quot;Beyond mimicking under-represented emotions: Deep data augmentation with emotional subspace constraints for EEG-based emotion recognition,&quot; in Proc. AAAI Conf. Artif. Intell., vol. 38, no. 9, pp. 10252-10260, Mar. 2024. [Online]. Available: https://doi.org/10.1609/aaai.v38i9.28891</p>
+<p>I. Ullah, M. Hussain, E.-u.-H. Qazi, and H. Aboalsamh, &quot;An automated system for epilepsy detection using EEG brain signals based on deep learning approach,&quot; arXiv preprint arXiv:1801.05412, 2018. [Online]. Available: https://doi.org/10.48550/arXiv.1801.05412</p>
+<p>M. Alauthman, A. Al-Qerem, B. Sowan, A. Alsarhan, M. Eshtay, A. Aldweesh, and N. Aslam, &quot;Enhancing small medical dataset classifica- tion performance using GAN,&quot; Informatics, vol. 10, no. 1, p. 28, 2023. [Online]. Available: https://doi.org/10.3390/informatics10010028</p>
+<p>J. Yoon, J. Jordon, and M. van der Schaar, &quot;PATE-GAN: Gener- ating synthetic data with differential privacy guarantees,&quot; in Proc. Int. Conf. Learn. Representations (ICLR), 2019. [Online]. Available: https://openreview.net/forum?id=S1zk9iRqF7</p>
+<p>A. Mumuni and F. Mumuni, &quot;Data augmentation: A comprehensive survey of modern approaches,&quot; Array, vol. 16, p. 100258, 2022. [Online]. Available: https://doi.org/10.1016/j.array.2022.100258</p>
+<p>K. G. Hartmann, R. T. Schirrmeister, and T. Ball, &quot;EEG-GAN: Gen- erative adversarial networks for electroencephalographic brain sig- nals,&quot; arXiv preprint arXiv:1806.01875, 2018. [Online]. Available: https://doi.org/10.48550/arXiv.1806.01875</p>
+<p>Z. Tayeb, J. Fedjaev, N. Ghaboosi, C. Richter, L. Everding, X. Qu, Y. Wu, G. Cheng, and J. Conradt, &quot;Validating deep neural networks for online decoding of motor imagery movements from EEG sig- nals,&quot; Sensors, vol. 19, no. 1, p. 210, 2019. [Online]. Available: https://doi.org/10.3390/s19010210</p>
+<p>Y. R. Tabar and U. Halici, &quot;A novel deep learning approach for classi- fication of EEG motor imagery signals,&quot; J. Neural Eng., vol. 14, no. 1, p. 016003, Nov. 2016. [Online]. Available: https://doi.org/10.1088/1741-2560/14/1/016003</p>
+<p>X. Du, X. Wang, L. Zhu, X. Ding, Y. Lv, S. Qiu, and Q. Liu, &quot;Electroencephalographic signal data augmentation based on improved generative adversarial network,&quot; Brain Sci., vol. 14, no. 4, p. 367, 2024. [Online]. Available: https://doi.org/10.3390/brainsci14040367</p>
+<p>N. Tibrewal, N. Leeuwis, and M. Alimardani, &quot;Classification of motor imagery EEG using deep learning increases performance in inefficient BCI users,&quot; PLOS ONE, vol. 17, no. 7, p. e0268880, Jul. 2022. [Online]. Available: https://doi.org/10.1371/journal.pone.0268880</p>
+<p>X. Du, X. Ding, M. Xi, Y. Lv, S. Qiu, and Q. Liu, &quot;A data augmen- tation method for motor imagery EEG signals based on DCGAN-GP network,&quot; Brain Sci., vol. 14, no. 4, p. 375, 2024. [Online]. Available: https://doi.org/10.3390/brainsci14040375</p>
+<p>A. Chaddad, Y. Wu, R. Kateb, and A. Bouridane, &quot;Electroencephalogra- phy signal processing: A comprehensive review and analysis of methods and techniques,&quot; Sensors, vol. 23, no. 14, p. 6434, 2023. [Online]. Available: https://doi.org/10.3390/s23146434</p>
+<p>E. Brophy, P. Redmond, A. Fleury, M. De Vos, G. Boylan, and T. Ward, &quot;Denoising EEG signals for real-world BCI applications using GANs,&quot; Front. Neuroergonomics, vol. 2, 2022. [Online]. Available: https://doi.org/10.3389/fnrgo.2021.805573</p>
 </div>
 </details>
 </div>
