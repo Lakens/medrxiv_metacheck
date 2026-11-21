@@ -196,7 +196,7 @@ LungAI: An AI Biomarker that Refines Lung-RADS v2022 Triage of
 Screen-Detected Pulmonary Nodules
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.09.26367662
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367662
 </p>
 </header>
 <div class="mc-main">
@@ -525,8 +525,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -879,9 +882,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -903,7 +910,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -918,9 +926,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -933,13 +959,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -959,6 +988,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -966,12 +1001,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1072,6 +1113,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1091,6 +1152,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1346,19 +1442,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1468,6 +1646,121 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>develops LungAI; JG (Chief Executive Officer) and YA (Chief Technology Officer) are officers of the company. BM, the radiologist who assigned Lung-RADS categories, serves as a paid advisor to Oatmeal Health. DM is an advisor to Oatmeal Health. LL was previously a contractor for Oatmeal Health. LungAI is an investigational device; a 510(k) premarket notification is pending with the US Food and Drug Administration, and LungAI is not available for sale in the United States.</p>
+<h3>[div-01]</h3>
+<p>Results: LungAI achieved AUROC 0.92 (95% CI 0.88-0.95) and AUPRC 0.47 (0.35-0.61), outperforming Sybil (ΔAUROC 0.07; ΔAUPRC 0.18), diameter (ΔAUROC 0.14; ΔAUPRC 0.34), and volume (ΔAUROC 0.14; ΔAUPRC 0.38; all P&lt;0.001). Against Lung-RADS v2022 scored ordinally on the weighted annotated subset, LungAI improved AUPRC (ΔAUPRC 0.31, P=0.003) but not AUROC (ΔAUROC 0.03, P=0.20). LungAI added discriminative information independent of diameter (likelihood-ratio χ²=161, P&lt;10⁻³⁶; ΔAUROC 0.10) and, on follow-up examinations, independent of delta diameter, volume doubling time, and new-nodule status (χ²=79, P&lt;10⁻¹⁸). Integrated with Lung-RADS, LungAI reduced cancers on the slowest (12-month rescan) pathway by 46% (3.1→1.6 per 1,000 examinations) and benign biopsy referrals by 20% (32.7→26.2 per 1,000 examinations) at approximately unchanged total biopsy volume (51.0→50.1 per 1,000). Assuming full adherence to recommended follow-up, the combined approach yielded 25 months of net diagnostic lead time, an estimated net cost saving of ~$2,200, and 6.5 fewer benign biopsies per 1,000 examinations; accounting for published adherence rates, it yielded 1.6 additional cancer diagnoses within 1 year per 1,000 examinations.</p>
+<p>Conclusions: LungAI contributes malignancy-risk information orthogonal to the size-and growth-based features underlying Lung-RADS and improves the allocation of screening patients across the existing management spectrum while potentially decreasing invasive procedures for benign lesions. Multi-site, multi-geography validation is required to demonstrate practical generalizability.</p>
+<h3>Introduction</h3>
+<p>Lung cancer remains the leading cause of cancer mortality worldwide, responsible for an estimated 1.8 million deaths in 2022 [1]. Prognosis is strongly stage-dependent: five-year survival is 68-92% for stage I disease but falls below 10% at stage IV [2]. Because a substantial fraction of tumors are still diagnosed after regional or distant spread, strategies that shift detection to earlier stages have considerable potential to reduce population mortality.</p>
+<p>Randomized trials have established that annual low-dose computed tomography (LDCT) meaningfully reduces lung cancer mortality, by 20% in the National Lung Screening Trial (NLST) and by 24-33% in the NELSON trial [3, 4]. In 2021, the US Preventive Services Task Force broadened its recommendation to adults aged 50-80 years with a ≥20 pack-year history, expanding eligibility by approximately 6.4 million people [5]. As the screened population grows, the discriminative accuracy of nodule risk assessment becomes increasingly important to contain false positives without sacrificing sensitivity.</p>
+<p>The American College of Radiology&#x27;s Lung-RADS system, introduced in 2014 and refined in version 2022 [6], standardized nodule reporting and management. However, its risk assessment relies mainly on nodule diameter and attenuation; secondary features such as margins and spiculation are assessed subjectively, with inter-reader disagreement in 29% of reading pairs [7]. The consequences run in both directions. The positive predictive value of Lung-RADS 4B is only 22-37% [8], and transthoracic needle biopsy carries meaningful complication risk, including pneumothorax in approximately 15% of procedures (6.6% requiring chest-tube placement) and hemorrhage in 1% [9]. Conversely, malignant nodules assigned to low categories wait up to a year for their next evaluation, risking meaningful disease progression and prognostic consequence. Clinical risk calculators, including the Mayo [10] and Brock [11] models, and NELSON&#x27;s volumetric approach, add structured probability estimation but rely largely on the same morphological inputs. AI-based nodule classification has emerged along two lines. Per-nodule characterization tools, including Optellum&#x27;s LCP-CNN [12] and RevealDx&#x27;s RevealAI-Lung [13], hold clearance for incidentally detected nodules. Scan-level forecasting models such as Sybil [14] predict future cancer risk but are not FDA cleared. To our knowledge, Median Technologies&#x27; eyonis LCS holds the only FDA clearance with a screening-specific indication [15]. We propose that the value of any such tool is best understood through the concept of an AI biomarker: an algorithmic measurement whose worth lies precisely in the information it contributes orthogonal to the variables already driving existing estimators.</p>
+<p>Here we validate LungAI, a deep learning malignancy classifier producing per-nodule and per-examination risk scores, on a held-out NLST partition identical to the published test split of Sybil and Ardila et al. [14, 16]. We deliberately position LungAI as an adjunct to, not a replacement for, Lung-RADS v2022. The reclassification algorithm we propose preserves the familiar management ladder (12-month, 6-month, 3-month, biopsy) and shifts patients within it, requiring no change to radiology workflow or reporting infrastructure. We test four propositions: (i) LungAI outperforms Sybil and size-based measures on discrimination; (ii) it retains discriminative value after adjustment for diameter -and, on follow-up examinations, after adjustment for interval growth -enabling stratification within Lung-RADS categories; (iii) its score strata map monotonically onto clinically meaningful risk tiers; and (iv) performance is stable across patient and technical subgroups.</p>
+<h3>Methods</h3>
+<h3>Study design and oversight</h3>
+<p>This retrospective diagnostic-accuracy study used de-identified NLST data and is reported per STARD 2015 [17] (flow in Supplementary Figure S1). We locked the LungAI model weights, follow-up risk adjustment configuration, and all reclassification rules before evaluating the held-out test partition. This secondary analysis used de-identified NLST data obtained from the NCI Cancer Data Access System under an approved data-use agreement; no investigator had access to identifiable information, and institutional review board review was therefore not required.</p>
+<h3>Cohort</h3>
+<p>The evaluation cohort was the NLST held-out test partition defined by Ardila et al. [16] and used as the published test split of Sybil [14]; it was never used in either LungAI or Sybil development. NLST enrolled high-risk current and former smokers aged 55-74 between 2002 and 2004 with annual LDCT screening and pathologically confirmed outcomes [3].</p>
+<p>Within this partition, all LDCT examinations with ≥1 nodule detected by Coreline Soft&#x27;s FDA-cleared aView LCS nodule-detection software [18] were considered (4,872 examinations, 1,817 patients, 128 cancers). Examinations were excluded if the cancerassociated nodule was not visible on the index LDCT (164 examinations), slice thickness exceeded 2.5 mm (257 examinations, 7 cancers), or no solid or part-solid nodule measured 4-30 mm (1,704 examinations, 32 cancers). We excluded ground-glass nodules a priori because ground-glass malignancies are often indolent and managed with surveillance rather than resection, making a malignancy score less decision-relevant. The analysis set comprised 2,747 examinations from 1,244 patients (89 cancers, 3.2%). Notably, only 7 examinations (0.3%) included part-solid nodules and none were malignant; the analyzed cohort is therefore de facto solid-nodule-only.</p>
+<h3>Index test</h3>
+<p>LungAI is a locked, commercial-grade, deep learning computer-aided diagnosis (CADx) model that analyzes LDCT volumes and returns a malignancy score (0.0 -10.0, in increments of 0.1) for each detected nodule and an aggregate examination-level score defined as the maximum across nodule scores. The examination-level maximum reflects the clinical decision unit: triage is determined by the most suspicious nodule while pernodule scores preserve interpretability and localization. LungAI scores are not probabilities; they are unitless scores with absolute-risk interpretation provided empirically through observed malignant fractions per score stratum (Table S1). This nonprobability score convention is common among cleared CADx devices [12]. The displayed scale is anchored to fixed operating points estimated on the NLST validation partition: integer scores 1.0 through 9.0 correspond, respectively, to thresholds operating at 95%, 90%, and 85% sensitivity and at 90%, 95%, 97%, 98%, 99%, and 99.5% specificity. A threshold at a given score therefore carries a locked operating interpretation; for example, a rule flagging examinations with scores at or above 2.0 operates at approximately 90% sensitivity in the validation population. This anchor mapping was frozen with the model before any evaluation of the held-out test partition. LungAI is investigational: a 510(k) premarket notification is pending with the US Food and Drug Administration, and the device is not cleared or available for sale in the United States.</p>
+<p>Two locked configurations were evaluated. The standalone configuration, hereafter referenced as LungAI, operates on a single examination. The follow-up configuration, hereafter referenced as LungAI-FU, is a logistic regression on three inputs per nodule: the standalone-model raw output on the current examination, the nodule&#x27;s inverse volume doubling time relative to the matched prior nodule, and an indicator for tracked versus new nodules. Inverse volume doubling time was expressed as log₂(Vcurrent/Vprior) / Δt (doublings per year). Untracked nodules carry no growth term, and tracked nodules whose prior detection has no measurement receive the tracking indicator with growth term set to zero (458 nodules, all benign). LungAI-FU is applicable when a prior examination exists, mirroring standard clinical practice in which screening studies are interpreted against priors. Nodule measurement on both examinations and inter-examination nodule matching were performed using Coreline&#x27;s aView LCS. We fit and cross-validated fusion coefficients on the NLST validation partition, leaving the test partition untouched before evaluation; we report locked coefficients as odds ratios in Table S2. The follow-up analysis set comprised all post-baseline examinations (n=1,899; 45 cancers), coinciding with the screening-round stratification of Supplementary Figure S2.</p>
+<h3>Comparators</h3>
+<p>Lung-RADS v2022. NLST pre-dates Lung-RADS. Lung-RADS categories were therefore assigned retrospectively by a board-certified radiologist according to ACR v2022 rules, blinded to LungAI outputs and to outcomes, and without prior-scan information. Annotation covered a positive-enriched random subset of 256 examinations, of which 226 met analysis-set eligibility (78 cancers, 148 benign; sampling fractions 87.6% of cancers, 5.6% of benign examinations). All Lung-RADS-dependent quantities were projected to the full analysis set by contingency weighting (w⁺ = 89/78 ≈ 1.14; w⁻ = 2,658/148 ≈ 18.0; Table S3). We evaluated Lung-RADS&#x27;s discriminative performance on the annotated subset with contingency weighting and performed inference on ΔAUROC and ΔAUPRC by patientclustered bootstrap. At the 3/4A decision boundary, we measured weighted sensitivity at 81.2% and specificity at 85.1%.</p>
+<h3>Sybil.</h3>
+<p>The publicly released Sybil model [14] was applied to identical examinations using its one-year risk score, with no nodule-coordinate input as designed. Comparison between LungAI and Sybil was only performed at the examination level, where both produce a score. We selected the one-year horizon as the most favorable to Sybil.</p>
+<h3>Size measures.</h3>
+<p>We studied mean nodule diameter and nodule volume as standalone discriminators. On follow-up examinations, interval change in diameter (Δdiameter) and volume (Δvolume) were used as comparators. These measures are defined only for tracked nodules with a measured prior and were evaluated on the 963 follow-up examinations with at least one such nodule (27 cancers).</p>
+<h3>Reference standard</h3>
+<p>An examination was labeled as malignant if a pathologically confirmed primary lung cancer was recorded for the corresponding nodule at any time within the NLST follow-up window. An examination was labeled as benign if the trial read was negative with no cancer diagnosis during follow-up.</p>
+<h3>Reclassification algorithm</h3>
+<p>The combined algorithm preserves the Lung-RADS management ladder and shifts patients within it by thresholding the displayed LungAI score: up-triage advances management by one rung (12-month LDCT → 6-month LDCT → 3-month LDCT/PET-CT → biopsy referral) and down-triage retreats by one. We evaluated two reclassification schemata, both were specified before evaluation, and we tested no other cutpoint configurations.</p>
+<h3>Schema A (primary): per-category cutpoints matched to Lung-RADS&#x27;s own sensitivity profile.</h3>
+<p>Round cutpoints were fixed a priori within each Lung-RADS category. Up-triage cutpoints were fixed at 2.0 (empiric sensitivity ~90%) within Lung-RADS 2, 4.0 (empiric specificity ~90%) within Lung-RADS 3, and 6.0 (empiric specificity ~97%) within Lung-RADS 4A, roughly corresponding to published metrics for Lung-RADS 3, 4A, and 4B respectively. We chose these cutpoints to match our empiric estimate of Lung-RADS v2022&#x27;s own performance at the 2/3, 3/4A, and 4A/4B decision boundaries on the annotated NLST subset, and consistent with published estimates for Lung-RADS version 1.0 (84.9% baseline sensitivity at the category-≥3 positivity threshold) [19]. Down-triage cutpoints were fixed at 1.0 in Lung-RADS 3 (empiric sensitivity ~95%), 1.5 in Lung-RADS 4A (arithmetic midpoint of 1.0 and 2.0), and 2.0 in Lung-RADS 4B/4X (empiric sensitivity ~90%). We chose these cutpoints to be highly conservative in down-triaging, reflecting the logic that an erroneous down-triage decision is significantly more costly than an erroneous up-triage one. The cutpoints were pre-selected and applied once without modification. Achieved within-category sensitivities and specificities are reported in Results and were not used to revise the cutpoints post-hoc.</p>
+<h3>Schema B (sensitivity analysis): a single operating point.</h3>
+<p>Up-triage at a single displayed score of 4.0 across all categories, with down-triage cutpoints unchanged. The cutpoint 4.0 (empiric specificity ~90%) was chosen as a round clinical operating point approximating the maximum-Youden threshold derived on the NLST validation partition. Results are in Supplementary Figure S3.</p>
+<h3>Robustness.</h3>
+<p>A threshold-perturbation analysis jointly scaled the operating thresholds of all six Schema A cutpoints across a four-fold range (×0.50 to ×2.00) and recomputed the principal reclassification metrics (Table S4).</p>
+<h3>Statistical analysis</h3>
+<p>Our primary endpoint was examination-level AUROC, which we compared against each comparator risk score with the paired DeLong test [20]. AUPRC differences were tested by paired patient-clustered bootstrap (2,000 replicates). All confidence intervals were obtained by the same patient-clustered bootstrap. We additionally assessed model discrimination at the nodule level, wherein each cancer examination contributed one nodule (the diagnosed target nodule) and each benign examination contributed all nodules meeting inclusion criteria. Since including multiple nodules per examination violates the independence assumption of the DeLong test, we used patient-clustered bootstrap for nodule-level inference. Sybil, which produces no nodule-level output, was omitted from nodule-level analysis (Table S5; Supplementary Figure S4).</p>
+<p>Orthogonality was tested with nested logistic models and likelihood-ratio tests: at baseline, malignancy ~ restricted cubic spline of diameter (3 df) ± LungAI; on follow-up examinations, M0 = spline(diameter) + volume doubling time + new-nodule indicator versus M1 = M0 + LungAI standalone (6.4 events per parameter). Reclassification was tested by McNemar&#x27;s exact test separately among cancers and benign examinations on the annotated subset, with weighted projection for cohort-level counts, and summarized by weighted categorical NRI [21]. Stage at diagnosis was taken from the NLST cancer data and assigned to every examination of the patient. Among annotated cancers we tabulated stage by direction of the LungAI-based management change (Table S6). Subgroup heterogeneity used Cochran&#x27;s Q with I². Decision curve analysis [22] compared net benefit of Lung-RADS alone versus the combined algorithm over threshold probabilities of 1-20%, with stratumlevel observed malignant fractions from the weighted cross-tabulation as probability inputs. Since Lung-RADS categories exist only on the annotated evaluation subset, these risk estimates are necessarily in-sample, and the decision-curve comparison should be read as descriptive rather than out-of-sample (Supplementary Figure S5). The clinical-economic analysis is described in Figure 5. We use Medicare-anchored unit costs (LDCT $300; CT-guided biopsy $4,000; Table S7) [23], lead-time accounting netting delayed down-triaged cancers, and a real-world scenario applying published &quot;defined adherence&quot; rates per Lung-RADS v2022 category (Table S8). Adherence rates were taken as the unweighted mean of four studies [24] [25] [26] [27] identified in the meta-analysis of Lin et al. [28], under the assumption that patients on a 12-month pathway have, by definition, no opportunity for diagnosis within 1 year. All hypothesis tests were two-sided with alpha set to 0.05. Analyses were performed in Python 3.9.2 (numpy 1.26.4, pandas 2.3.2, scipy 1.13.1, scikit-learn 1.5.2, statsmodels 0.14.6).</p>
+<h3>Results</h3>
+<h3>Cohort</h3>
+<p>The analysis set comprised 2,747 examinations (1,244 patients; 89 cancers, 3.2%); characteristics are in Table S9. Median age was 61 years (IQR 58-66), 62% were male, and median smoking exposure was 49.5 pack-years. Median maximal nodule diameter was 6.3 mm overall and 12.8 mm among cancers. The cohort was 93.2% White, reflecting NLST enrollment.</p>
+<h3>Discrimination (standalone configuration)</h3>
+<p>LungAI achieved an AUROC of 0.92 (95% CI 0.88-0.95) and an AUPRC of 0.47 (0.35-0.61) (Figure 1; Table S10). It outperformed Sybil (AUROC 0.85, ΔAUROC 0.07, 95% CI 0.04-0.09, AUPRC 0.25, ΔAUPRC 0.18, 95% CI 0.11-0.25), mean diameter (AUROC 0.78, ΔAUROC 0.14, 95% CI 0.08-0.19, AUPRC 0.13, ΔAUPRC 0.34, 95% CI 0.22-0.47), and volume (AUROC 0.79, ΔAUROC 0.14, 95% CI 0.09-0.20, AUPRC 0.12, ΔAUPRC 0.38, 95% CI 0.25-0.50) on this cohort. The AUPRC separation -nearly doubling precision-recall performance relative to the best comparator at 3.2% prevalence -is the most clinically salient difference. Lung-RADS v2022 itself, scored ordinally on the weighted annotated subset, achieved AUROC 0.89 (95% CI 0.82-0.94) and AUPRC 0.25 (95% CI 0.15-0.47). LungAI&#x27;s AUROC advantage over Lung-RADS was not significant (ΔAUROC 0.03, 95% CI -0.04-0.10, P=0.20), while its AUPRC advantage was significant (ΔAUPRC 0.31, 95% CI 0.10-0.50, P=0.003). Nodule-level discrimination was concordant: the per-nodule score achieved AUROC 0.93 (0.89-0.96) and AUPRC 0.37 (0.23-0.57) at 1.5% nodule-level prevalence, exceeding diameter and volume on both metrics (all P≤0.001; Table S5; Supplementary Figure S4).</p>
+<h3>Orthogonality to nodule size</h3>
+<p>Adding LungAI to a flexible diameter model increased AUROC by 0.10 (0.06-0.18; likelihood-ratio χ²=161, P&lt;10⁻³⁶). This suggests that LungAI is not simply recapitulating nodule size.</p>
+<h3>Follow-up configuration</h3>
+<p>Among 1,899 follow-up examinations (45 cancers), the follow-up configuration achieved AUROC 0.91 (0.83-0.97) and AUPRC 0.60 (0.45-0.74) (Figure 2), exceeding Sybil (ΔAUROC 0.06, P&lt;0.001), Δdiameter (ΔAUROC 0.11, P=0.009), and Δvolume (ΔAUROC 0.09, P=0.021). Its advantage over the baseline configuration on the same examinations was confined to the precision-recall tradeoff (AUPRC 0.60 vs 0.41, ΔAUPRC 0.18, P&lt;0.001); the AUROC gain was not significant (ΔAUROC 0.01, DeLong P=0.13, bootstrap P=0.078). This suggests that incorporating interval growth primarily sharpens the ranking of true cancers among highscoring nodules. Notably, against a model of size, interval growth, and nodule novelty, LungAI remained decisively informative (χ²=79.4, P&lt;10⁻¹⁸, model AUROC 0.81→0.87). This suggests that the morphological signal it captures is independently predictive even where growth information is available.</p>
+<h3>Within-category stratification and reclassification</h3>
+<p>Across every Lung-RADS category, LungAI strata separated observed cancer cases substantially (Table S1; Figure 3). Within Lung-RADS 2, 0.2% of cases below a LungAI score of 2.0 were malignant versus 1.3% at or above; within Lung-RADS 3, 0.9% below a score of 1.0 were malignant versus 16.7% at or above 4.0; within 4A, 1.0% below 1.5 were malignant versus 46.2% at or above 6.0; within 4B/4X, 0% below 2.0 were malignant versus 48.3% at or above it. Achieved within-category up-triage sensitivities were 78%, 50%, and 68%, capturing a meaningful proportion of cases under-triaged by Lung-RADS v2022.</p>
+<p>Figure 3: Schema A reclassification threshold tree using pre-defined per-category LungAI score strata. Includes contingency-weighted counts, observed malignant fractions, arm-level weighted sensitivity and false-negative rates, assigned management, and resulting effective Lung-RADS categories. The Schema B tree -a single up-triage operating point at a displayed score of 4.0, approximating the validation-partition maximum-Youden threshold -is shown in Supplementary Figure S3.</p>
+<p>Applying the combined algorithm (Figure 4), cancers on the slowest, 12-month pathway fell by 46% (3.1→1.6 per 1,000 examinations) and cancers referred directly for tissue diagnosis rose 31% (18.3→23.9 per 1,000). On the other hand, benign biopsy referrals fell 20% (32.7→26.2 per 1,000) without meaningfully affecting total biopsy volume (51.0→50.1 per 1,000). Among cancers, up-triage dominated down-triage 20 to 3 (McNemar P&lt;0.001). Among benign examinations, reclassification was approximately balanced (28 up-triaged versus 22 down-triaged, P=0.480), while invasive workup of benign patients nonetheless declined. The event NRI was +0.25 (95% CI 0.13-0.37) and the non-event NRI was -0.04 (95% CI -0.13-0.05), yielding an overall NRI of +0.20 (95% CI 0.04-0.36) (Table S11). The net reclassification benefit is positive even on the blunt overall metric, which weights a shift from 12-to 6-month imaging the same as a biopsy referral. These findings were robust to choice of clinical operating point. Across joint scaling of all six of the above decision thresholds over a four-fold range, the event NRI remained positive throughout (+0.16 to +0.27), cancers remaining on the 12-month pathway stayed at 1.6 per 1,000 examinations (versus 3.1 under Lung-RADS alone), and net lead time remained strongly positive (18-28 months). The direction of effect is stable across the threshold range, with magnitude varying as expected (Table S4). Stage at diagnosis, tabulated by direction of reclassification among annotated cancers (Table S6), was distributed similarly across groups: 80.0% of up-triaged cancers with known stage were stage I, versus 75.9% of unchanged cancers (exploratory Fisher exact for stage II+ versus stage I, up-triaged versus all others: OR 0.70, P=0.77). Two of the three down-triaged cancers were stage II+. Because stage reflects the care delivered in NLST, which predates modern nodule management, these analyses are purely descriptive.</p>
+<h3>Clinical and economic trade-off</h3>
+<p>Per 1,000 nodule-positive examinations, assuming 100% adherence to LDCT rescan recommendations, the algorithm resulted in 31.7 months of gross diagnostic lead time among accelerated cancer diagnoses, less 6.4 months of delayed diagnosis, for a net lead time of 25.2 months. This comes at a net saving of approximately $2,200, with 6.5 fewer net benign biopsies (Figure 5). Applying published transthoracic-biopsy complication rates [9] to the avoided benign biopsies, this corresponds to approximately 1.0 fewer pneumothoraces, 0.4 fewer chest-tube placements, and 0.07 fewer biopsy-related hemorrhages per 1,000 nodule-positive examinations. Assuming published follow-up adherence rates (Figure 5B) [24] [25] [26] [27] [28], 24.9 of 32.4 cancers per 1,000 nodule-positive examinations would be diagnosed within 1 year using Lung-RADS alone versus 26.5 of 32.4 using LungAI, netting 1.6 additional timely diagnoses while at a net cost saving. Against the stage gradient of lung cancer survival [2], months of lead time at the stage I/II boundary are a plausible mechanism by which triage reallocation could translate into mortality benefit.</p>
+<h3>Subgroup stability</h3>
+<p>AUROC was consistent across sex, age, scanner manufacturer, screening round, slice thickness, pack-year smoking history, and diameter bands (all Cochran&#x27;s Q P≥0.058; Supplementary Figure S2; Table S12). Cancer stage showed nominal heterogeneity (stage I versus benign AUROC 0.95, 95% CI 0.92-0.98; stage II+ versus benign 0.83, 0.69-0.94; Q P=0.047), reflecting higher discrimination for stage I disease. Heterogeneity flagged for race is attributable to a degenerate small stratum with only 4 non-White cancers and is not interpretable as differential performance.</p>
+<h3>Discrimination by time to diagnosis</h3>
+<p>To assess whether LungAI&#x27;s advantage is confined to cancers a radiologist would likely diagnose promptly unaided, we stratified discrimination by the interval from examination to cancer diagnosis (&lt;1 year versus ≥1 year; Supplementary Figures S6-S7; Table S13). At baseline, LungAI retained useful discrimination among cancers diagnosed ≥1 year after the examination (AUROC 0.86, 95% CI 0.78-0.93), where mean diameter was close to chance (AUROC 0.63, 0.49-0.76; ΔAUROC 0.23, P&lt;0.001). The follow-up configuration showed the same direction of effect (ΔAUROC 0.23, P=0.044), although with only 11 cancers in the ≥1year stratum its estimates are wide (AUROC 0.78, 0.59-0.96). AUPRC is not comparable across strata because prevalence differs and benign controls are shared.</p>
+<h3>Discussion</h3>
+<p>In a held-out NLST partition identical to the published test splits of the Sybil and Ardila et al. papers, LungAI discriminated screen-detected cancers significantly more accurately than Sybil, mean diameter, and estimated volume. Most significantly, LungAI contributed risk information orthogonal to the size and growth features on which Lung-RADS and clinical calculators principally rest. The practical expression of that orthogonality is the management redistribution of Figure 4. Integrated into the existing Lung-RADS algorithm without altering its structure, LungAI decreased the proportion of cancers on the slowest surveillance pathway from 9% to 5%, increased the proportion of cancers triaged directly to tissue sampling from 56% to 73%, reduced the rate of benign nodules triaged directly to tissue sampling by 20%, and increased the positivity rate of the Lung-RADS 4B/4X designation from 36% to 48%. An algorithm that merely re-ranked by size could not plausibly achieve both, as diameter&#x27;s standalone AUROC (0.78) and the diameter-adjusted likelihood-ratio test make clear.</p>
+<p>Our positioning is deliberately conservative: LungAI is intended to augment Lung-RADS rather than replace it. Radiologists first assign a Lung-RADS category and then use the LungAI score to determine whether to up-or down-triage the examination, requiring no new reporting infrastructure. Because the overwhelming majority of screen-detected nodules are benign and reside in lower Lung-RADS categories, a tool that confidently rules out such nodules can reduce interval imaging and invasive workup, while reliable up-triage of the minority of low-category malignancies shortens time to diagnosis. We believe that this is the realistic adoption path for screening CADx technology, and it frames the appropriate comparison set: not AI versus radiologist, but workflow-with versus workflowwithout the AI biomarker.</p>
+<p>Two findings deserve emphasis beyond the headline discrimination. First, the follow-up configuration -a transparent, three-variable logistic regression using the standalone model&#x27;s output, volume doubling time, and nodule tracking status -shows that where growth information exists, it should be used, and that the imaging biomarker remains independently informative after growth is accounted for (χ²=79.4). This fusion layer is interpretable, and the proprietary component is confined to the nodule-level score.</p>
+<p>Second, our adherence-adjusted analysis quantifies a mechanism usually discussed qualitatively: patients told that their scan looks benign and to &quot;return in 12 months&quot; frequently do not [24] [25] [26] [27] [28], and up-triaging elevated-risk Lung-RADS 2 patients to a 6month pathway both shortens the interval and concretizes follow-up. Accounting for published re-scan adherence rates, we estimate that LungAI would yield 1.6 additional early diagnoses per 1,000 examinations while generating a modest net cost saving, a favorable profile relative to accepted costs of screening-based early cancer detection [29]. The avoided benign biopsies also carry a direct harm benefit independent of cost: at published complication rates [9], roughly one pneumothorax and 0.4 chest-tube placements are averted per 1,000 nodule-positive examinations. A formal costeffectiveness analysis with staged treatment costs and quality-adjusted outcomes is warranted, and the figures here should be read as bounding estimates under stated assumptions (Table S7). Future screening will not rest on imaging alone. Blood-based assays -ctDNA, protein panels, methylation signatures -capture molecular shedding, a biological axis orthogonal to both radiologist reads and imaging AI. The natural evolution of lung cancer screening is Lung-RADS alone → Lung-RADS plus imaging AI (this work) → a unified risk model integrating Lung-RADS, imaging AI and circulating biomarkers, each contributing orthogonal signals. The AI-biomarker framing introduced here generalizes directly: each modality earns its place by the information it adds conditional on previous modalities.</p>
+<h3>Limitations</h3>
+<p>First, this is a single-cohort held-out validation; no external cohort is included, and NLST scanners date to 2002-2004. Multi-site external validation on contemporary data is underway at several institutions. Second, although part-solid nodules were eligible, only 7 (0.3%, no cancers) entered the cohort; conclusions apply to solid nodules, and groundglass disease is out of scope. Third, stage at diagnosis reflects care delivered in NLST, which precedes modern lung cancer screening, not the hypothetical reclassified pathway. Thus, the stage breakdown by reclassification direction (Table S6) is purely descriptive and cannot establish the effect of reclassification on stage at diagnosis.</p>
+<h3>Conclusion</h3>
+<p>LungAI supplies malignancy-risk information orthogonal to the features underlying Lung-RADS. Deployed as a within-category stratifier on the existing management ladder, LungAI reallocates screening patients so that cancers move toward earlier evaluation and benign patients away from invasive workup, all at unchanged biopsy volume and an estimated net cost saving. External validation will determine whether these operating characteristics transport to other settings.</p>
+<p>This study was funded by Oatmeal Health. Officers and employees of Oatmeal Health designed the analysis, interpreted the results, and made the decision to submit the manuscript for publication.</p>
+<p>NLST data are available through the NCI Cancer Data Access System (CDAS). Sybil is publicly available. The LungAI model is proprietary. Analysis code is available upon reasonable request.</p>
+<h3>Supplementary materials</h3>
+<p>Supplementary Tables : S1 Lung-RADS × LungAI stratum cross-tabulation; S2 nested-model and locked fusion coefficients; S3 sampling design and weights; S4 threshold-perturbation robustness; S5 nodule-level discrimination; S6 stage at diagnosis by reclassification direction; S7 cost assumptions; S8 adherence inputs; S9 cohort characteristics; S10 examination-level discrimination, standalone and follow-up configurations; S11 reclassification performance; S12 subgroup discrimination; S13 discrimination by time from examination to diagnosis. Supplementary Figures: S1 STARD flow diagram; S2 subgroup forest plot; S3 Schema B reclassification tree; S4 nodule-level ROC and precisionrecall curves; S5 decision-curve analysis; S6 examination-level discrimination by time to diagnosis; S7 nodule-level discrimination by time to diagnosis.</p>
+<h3>Figure 1 :</h3>
+<p>Figure 1: Standalone model discrimination without prior scan information. Examinationlevel (A) receiver operating curves and (B) precision-recall curves for LungAI, Sybil (1-year), mean diameter, and estimated volume, with weighted Lung-RADS category operating points overlaid; ΔAUROC and DeLong P in legend.</p>
+<h3>Figure 2 :</h3>
+<p>Figure 2: Follow-up scan discrimination (n=1,899; 45 cancers). (A) ROC and (B) PRC curves for the follow-up versus standalone configuration, Sybil (1-yr), Δdiameter, Δvolume; DeLong P in legend. Δdiameter and Δvolume are evaluated on the 963 examinations with a tracked prior nodule (27 cancers).</p>
+<h3>Figure 4 :</h3>
+<p>Figure 4: Management redistribution under per-category thresholds (Schema A) and a single max Youden operating point (Schema B). (A1, B1) Flow from Lung-RADS-assigned to combined-algorithm management under Schema A and Schema B, respectively. (A2, B2) Management distribution before versus after, separately for malignant and benign examinations, under each schema.</p>
+<h3>Figure 5 :</h3>
+<p>Figure 5: Clinical-economic trade-off per 1,000 nodule-positive examinations. (A) Reclassification transitions with lead-time and cost deltas. Net lead time was 25 months at a net saving of ~$2,200 (approximately $87 saved per month of net lead time). (B) Real-world scenario under published adherence rates; 1.6 additional diagnoses were made within 1 year, achieved at a net cost saving. Patients on a 12-month pathway are assumed to have no opportunity for diagnosis within 1 year.</p>
+<h3>References</h3>
+<p>Bray F, et al. Global cancer statistics 2022: GLOBOCAN. CA Cancer J Clin. 2024.</p>
+<p>SEER Cancer Statistics, lung and bronchus, 2014-2020. National Cancer Institute.</p>
+<p>National Lung Screening Trial Research Team. Reduced lung-cancer mortality with low-dose computed tomographic screening. N Engl J Med. 2011;365:395-409.</p>
+<p>de Koning HJ, et al. Reduced lung-cancer mortality with volume CT screening (NELSON). N Engl J Med. 2020;382:503-513.</p>
+<p>US Preventive Services Task Force. Screening for lung cancer: USPSTF recommendation statement. JAMA. 2021;325:962-970.</p>
+<p>American College of Radiology. Lung-RADS v2022.</p>
+<p>van Riel SJ, Jacobs C, Scholten ET, et al. Observer variability for Lung-RADS categorization of lung cancer screening CTs: impact on patient management. Eur Radiol. 2019;29(2):924-931.</p>
+<p>Gu JZ, Baird GL, Ge C, Fletcher LM, Agarwal S, Eltorai AEM, Healey TT. ACR Lung CT Screening Reporting and Data System, a systematic review and meta-analysis before change in US Preventive Services Task Force eligibility criteria: 2014 to 2021. J Am Coll Radiol. 2023;20(8):769-780.</p>
+<p>Wiener RS, et al. Population-based risk for complications after transthoracic needle lung biopsy. Ann Intern Med. 2011;155:137-144.</p>
+<p>Swensen SJ, et al. The probability of malignancy in solitary pulmonary nodules. Arch Intern Med. 1997;157:849-855.</p>
+<p>McWilliams A, et al. Probability of cancer in pulmonary nodules detected on first screening CT. N Engl J Med. 2013;369:910-919.</p>
+<p>Massion PP, et al. Assessing the accuracy of a deep learning method to risk stratify indeterminate pulmonary nodules. Am J Respir Crit Care Med. 2020;202:241-249.</p>
+<p>RevealDx. FDA 510(k) clearance of RevealAI-Lung (K251769). January 30, 2026.</p>
+<p>Mikhael PG, et al. Sybil: a validated deep learning model to predict future lung cancer risk from a single low-dose chest CT. J Clin Oncol. 2023;41:2191-2200.</p>
+<p>Median Technologies. FDA 510(k) clearance of eyonis LCS (K251474). February 6, 2026.</p>
+<p>Ardila D, et al. End-to-end lung cancer screening with three-dimensional deep learning on low-dose chest CT. Nat Med. 2019;25:954-961.</p>
+<p>Bossuyt PM, et al. STARD 2015: an updated list of essential items for reporting diagnostic accuracy studies. BMJ. 2015;351:h5527.</p>
+<p>US Food and Drug Administration. 510(k) premarket notification K201710: AVIEW LCS (Coreline Soft Co., Ltd.). Silver Spring, MD: FDA; 2020.</p>
+<p>Pinsky PF, et al. Performance of Lung-RADS in the NLST: a retrospective assessment. Ann Intern Med. 2015;162:485-491.</p>
+<p>Sun X, Xu W. Fast implementation of DeLong&#x27;s algorithm for comparing correlated ROC curves. IEEE Signal Process Lett. 2014;21:1389-1393.</p>
+<p>Pencina MJ, et al. Evaluating the added predictive ability of a new marker. Stat Med. 2008;27:157-172.</p>
+<p>Vickers AJ, Elkin EB. Decision curve analysis. Med Decis Making. 2006;26:565-574.</p>
+<p>Lokhandwala T, Bittoni MA, Dann RA, et al. Costs of diagnostic assessment for lung cancer: a Medicare claims analysis. Clin Lung Cancer. 2017;18(1):e27-e34.</p>
+<p>Barbosa EJM Jr, Yang R, Hershman M, et al. Real-world lung cancer CT screening performance, smoking behavior, and adherence to recommendations. AJR Am J Roentgenol. 2021;216(4):919-926.</p>
+<p>Bernstein MA, Gold S, Ronk M, et al. The challenge of achieving appropriate follow- up in a community lung cancer screening program. Am J Respir Crit Care Med. 2019;199(Suppl):A4482 (conference abstract).</p>
+<p>Lake M, Shusted CS, Juon HS, et al. Association of a lung screening program coordinator with adherence to annual CT lung screening. J Am Coll Radiol. 2020;17(2):208-215.</p>
+<p>Triplette M, Thayer JH, Kross EK, et al. The impact of smoking and screening results on adherence to follow-up. Ann Am Thorac Soc. 2021;18(3):541-544.</p>
+<p>Lin Y, Fu M, Ding R, et al. Patient adherence to Lung CT Screening Reporting &amp; Data System-recommended screening intervals in the United States: a systematic review and meta-analysis. J Thorac Oncol. 2022;17(1):38-55.</p>
+<p>Black WC, Gareen IF, Soneji SS, et al. Cost-effectiveness of CT screening in the National Lung Screening Trial. N Engl J Med. 2014;371:1793-1802.</p>
 </div>
 </details>
 </div>
