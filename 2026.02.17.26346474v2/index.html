@@ -196,7 +196,7 @@ Repeated histological diagnoses and kidney graft failure: an
 observational cohort study
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.02.17.26346474
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.02.17.26346474
 </p>
 </header>
 <div class="mc-main">
@@ -297,8 +297,8 @@ Your Statistical Inferences</a>.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 2 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 2 detected.</p>
 </div>
 </div>
 </div>
@@ -395,8 +395,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -747,9 +748,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -771,7 +776,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -786,9 +792,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -801,13 +825,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -827,6 +854,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -834,12 +867,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -940,6 +979,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -959,6 +1018,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1214,19 +1308,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1336,6 +1512,125 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Banff histological diagnoses do not capture how a graft&#x27;s injury has evolved over time. Repeated injury is common, but the consequences of repeated histological injury are currently not known, especially when observed in the absence of clinical signs.</p>
+<p>Methods: In a single-center observational cohort of 1818 kidney transplantations performed between 2004 and 2021, with 5218 post-transplant biopsies of which 82% were pre-planned protocol biopsies, transitions between six Banff histological diagnoses were described as recurrent events, with landmark Aalen-Johansen estimates and unadjusted Andersen-Gill rate ratios. A multistate model, with states for a first and a second diagnosis of rejectionrelated injury (RRI, comprising TCMR, AMR and MVI DSA-/C4d-), estimated cause-specific hazards of death-censored graft failure, in all biopsies and in protocol biopsies only. Followup ran from day 90 to five years after transplantation.</p>
+<p>Results: Each diagnosis was more frequent after an earlier episode of the same diagnosis, and several diagnoses also made a different diagnosis more or less frequent: TCMR was more frequent after AMR, MVI DSA-/C4d-and BKPyVAN, and AMR less frequent after MVI DSA- /C4d-. The hazard of graft failure was increased after a first RRI diagnosis (HR 2.18, 95% CI 1.35-3.51) and substantially further after a second (HR 9.31, 95% CI 5.84-14.85). The association persisted when both diagnoses were made on protocol biopsy, in the absence of clinical signs (HR 1.76, 95% CI 1.09-2.84 and HR 2.58, 95% CI 1.31-5.08), although the difference between a second and a first diagnosis was not statistically significant.</p>
+<p>Conclusions: A prior Banff diagnosis strongly predicts that same diagnosis recurring, and in several cases also changes the expected incidence of a different diagnosis. A second diagnosis of rejection-related injury identifies a markedly higher-risk graft than a first, independently of baseline risk factors, and subclinical episodes detected on protocol biopsy also mark increased risk. This defines both an unmet therapeutic need and a high-risk population for trial enrichment.</p>
+<h3>INTRODUCTION</h3>
+<p>Kidney transplantation is the preferred treatment for end-stage kidney disease, and immunosuppressive therapy has substantially reduced the incidence of early allograft rejection. Nonetheless, active and chronic injury remains prevalent and continues to drive premature return to dialysis. 1, 2 Such injury is most often detected histologically and categorized according to the Banff classification. 3 A Banff diagnosis, however, is rendered from a single biopsy at a single moment. It is by construction mostly blind to the graft&#x27;s diagnostic history. Yet alloimmune injury is rarely a single event: it persists, is suppressed, recurs, and sometimes changes phenotype, and the same histological picture may mean something quite different in a graft seeing it for the first time than in one seeing it again. 4, 5 Evidence that this longitudinal context matters is accumulating but narrow. One study of repeated T-cell mediated rejection (TCMR) found that approximately half of patients with an initial TCMR experienced persistent or recurrent rejection, often within months, and that a second TCMR diagnosis carried a significant additional hazard of graft failure on top of the first. 6 A recent multicenter study of early TCMR reported that, despite treatment, approximately one third of patients had rejection again on the first subsequent biopsy, and that these patients carried a substantially higher hazard of graft loss than those in whom rejection had resolved. 7 Meanwhile the natural history of other phenotypes is contested: DSA-negative C4d-negative microvascular inflammation (MVI DSA-/C4d-) has been reported to be less often repeated, 8 and BK polyomavirus nephropathy (BKPyVAN) is often regarded as manageable through reduction of immunosuppression without lasting consequence for the graft. 9, 10 Several questions therefore remain open. First, and most consequentially, the available evidence on repeated rejection rests on biopsies obtained because of graft dysfunction.</p>
+<p>Whether repeated injury detected before dysfunction, in a patient who appears entirely well, carries comparable prognostic weight has been examined only in small early cohorts, 11 and has not been established in a contemporary adult population, because it requires a cohort with systematic sequential protocol biopsies. Second, existing work is largely confined to TCMR, leaving the recurrence behavior of antibody-mediated rejection (AMR), MVI DSA-/C4d- and BKPyVAN, and the transitions between phenotypes, largely unexplored.</p>
+<p>We therefore addressed two questions in an observational cohort with a systematic protocol biopsy program, in which the majority of biopsies were obtained irrespective of graft function.</p>
+<p>First, do prior Banff diagnoses predict which diagnosis follows, that is, do phenotypes persist or cluster, and at what rate? Second, does accumulating diagnoses of rejection-related injury carry risk beyond a first episode, and does that hold when the injury is detected on protocol biopsy in the absence of graft dysfunction?</p>
+<h3>METHODS</h3>
+<h3>Study population and clinical data</h3>
+<p>The cohort included all adult kidney transplant recipients transplanted at University Hospitals</p>
+<h3>Kidney transplant biopsy evaluation</h3>
+<p>Post-transplantation indication biopsies were performed at the time of graft dysfunction, and pre-planned protocol biopsies were performed at 3, 12 and 24 months. The following, potentially co-existing, diagnoses were considered: TCMR, AMR, MVI DSA-/C4d-, BKPyVAN, Borderline changes (bTCMR) and Probable AMR (pAMR). 12 Diagnoses were defined according to the Banff 2022 criteria, 3 except for TCMR, from which isolated v cases were excluded. 13 For the graft failure analyses, we defined a composite exposure, rejection-related injury (RRI), comprising TCMR, AMR and MVI DSA-/C4d-, phenotypes of established or suspected alloimmune origin that are each managed by escalating immunosuppression. bTCMR, pAMR and BKPyVAN were excluded from the composite and analyzed separately. The rationale for the composite boundaries is given in the Supplementary Methods. Whether the composite behaves consistently across its three components is examined directly (Supplementary Figure S2). &quot;No Rejection/No BKPyVAN&quot; refers to a biopsy in which none of the above diagnoses was present.</p>
+<p>We used the term &quot;repeated diagnosis&quot; to refer to a repeated observation of the same diagnosis in two separate biopsies. We did not distinguish persistence from recurrence, since no systematic post-treatment biopsies were available. This distinction is likewise unresolved in the largest available cohort. 7</p>
+<h3>Statistics</h3>
+<p>Characteristics of transplants and follow-up intervals were summarized as medians and IQRs or counts and proportions. In all analyses, follow-up ran from day 90 to five years after transplantation, the period of biopsy collection, and the diagnostic history covered all biopsies of the first five years. Among recipients with multiple biopsies, all chronologically ordered within-patient biopsy pairs with the later biopsy after day 90 were classified by diagnostic sequence. Biopsies with concomitant diagnoses contributed to each applicable sequence: a pair of biopsies both showing concomitant TCMR and AMR (Mixed Rejection) contributed to the sequences TCMR-TCMR, TCMR-AMR, AMR-TCMR and AMR-AMR. These sequences were visualized in Sankey plots. This gives a general, time-agnostic description of transitions between diagnoses.</p>
+<p>Transitions between diagnoses were further analyzed as recurrent events, since each diagnosis can be observed repeatedly and together with other diagnoses. Landmark Aalen-Johansen estimates gave the cumulative incidence of transitions into each later diagnosis from day 90, among transplants with a given diagnosis by day 90, with graft failure and death as competing events. These groups overlap and should not be interpreted as stratified cumulative incidences. Andersen-Gill 14 models summarized each pair of earlier and later diagnosis in one number: the rate ratio of transitions into the later diagnosis, with the earlier diagnosis as the only time-dependent covariate. In a sensitivity analysis, steroid-treated and untreated earlier diagnoses were separated. All of these analyses are unadjusted for potential confounders and hence only describe the observed transitions.</p>
+<p>A multistate model linked rejection-related injury to graft failure, 15 with states 1) no RRI, 2) first RRI, 3) second RRI, 4) graft failure and 5) death with functioning graft (Figure 1).</p>
+<h3>Landmark</h3>
+<h3>RESULTS</h3>
+<h3>Study population and follow-up information</h3>
+<p>The complete cohort consisted of 1891 transplants. Characteristics are described in Table 1.</p>
+<p>Seventy-seven transplants had no biopsies, while the remaining 1814 transplants had 6272 biopsies in total, of which 4565 (73%) were protocol biopsies. After excluding cases with missing values or 90 days or less of follow-up (N = 73) from the complete cohort, 1818 transplants were included in all analyses. During follow-up (median 4.75 years, IQR 3.26-4.75), 120 grafts failed and 160 patients died with a functioning graft.</p>
+<p>The analysis cohort contributed 5218 biopsies and 5900 time intervals: 682 (12%) intervals preceding the first post-transplantation biopsy, 4277 (72%) following a protocol biopsy and 941 (16%) following an indication biopsy (Figure 2). Their distribution over time, and of the time-dependent covariates within them, is summarized in Supplementary Table S2.</p>
+<h3>Sequences of histological diagnoses</h3>
+<p>Of the 1818 analyzed transplants, 1562 (85.9%) had a biopsy after day 90 preceded by an earlier biopsy within five years, 309 (17.0%) had a diagnosis of rejection or of BKPyVAN in such a biopsy and in an earlier one, and 158 (8.7%) had such diagnoses in protocol biopsies specifically. Among these 1562 transplants, all sequences of diagnoses were counted and visualized (Figure 3, Supplementary Table S3). Among sequences between two diagnoses, repeated observation of the same diagnosis was more common than transition between different diagnoses. Heterogeneous transitions were still relatively common between TCMR and AMR and between TCMR and MVI DSA-/C4d-, while the sequence from MVI DSA-/C4d-to AMR was very rare (Figure 3).</p>
+<p>Cumulative incidence curves from day 90 revealed heterogeneity in the timing of repeated diagnoses. Repeated BKPyVAN occurred mostly within weeks after day 90, whereas repeated AMR and MVI DSA-/C4d-also accrued around the one-year protocol biopsy, after which the curves flattened (Figure 4).</p>
+<p>Andersen-Gill rate ratios, which summarize each pair of diagnoses in one number, confirmed the visual impressions from the Sankey plots and the cumulative incidences. The rate of transitions into every diagnosis was significantly increased after an earlier diagnosis of the same type (RR 1.49 for bTCMR to 23.67 for AMR). For every diagnosis except bTCMR, this was the largest rate ratio of any earlier diagnosis. Several transitions between different diagnoses were also more frequent: TCMR after AMR, MVI DSA-/C4d-and BKPyVAN, AMR after TCMR, bTCMR and pAMR, and bTCMR and pAMR after AMR. AMR was less frequent after MVI DSA-/C4d-(RR 0.20) and BKPyVAN after bTCMR (RR 0.42) (Figure 5, Supplementary Table S4). In the sensitivity analysis of steroid-treated earlier diagnoses, TCMR, AMR, pAMR and MVI DSA-/C4d-still occurred significantly more often after a prior diagnosis of the same type, though not to the same degree as in the main analysis, especially for AMR, pAMR and MVI DSA-/C4d-(Supplementary Figure S1, Supplementary Table S5).</p>
+<h3>Associations with graft failure</h3>
+<h3>Repeated rejection-related injury and graft failure</h3>
+<p>From the one-year landmark to five years after transplantation, the cumulative incidence of graft failure was 4.3% without RRI, 7.1% after a first RRI diagnosis and 32.4% after a second (Figure 6). The hazard of graft failure was significantly increased after a first RRI diagnosis (HR 2.18, 95% CI 1.35-3.51) and markedly further after a second (HR 9.31, 95% CI 5.84-14.85). The effect of the second was significantly larger than that of the first (Figure 6, Table 2, Supplementary Tables S6 and S9). The proportional hazards test was borderline nonsignificant (P = .061). In a model allowing time-varying effects, the hazard ratio of a first RRI declined from 3.35 (95% CI 1.83-6.11) at one year to 0.70 (95% CI 0.21-2.28) at five years, whereas that of a second remained high, from 9.65 (95% CI 4.66-19.95) to 7.94 (95% CI 3.55-17.78) (Supplementary Figure S3).</p>
+<h3>Rejection-related injury detected on protocol biopsy</h3>
+<p>Restricting the exposure to diagnoses made in protocol biopsies, that is, to injury detected in the absence of graft dysfunction, the hazard of graft failure remained significantly increased after a first RRI diagnosis (HR 1.76, 95% CI 1.09-2.84) and after a second (HR 2.58, 95% CI 1.31-5.08), although the difference between first and second was not statistically significant (HR for second versus first 1.47, 95% CI 0.72-2.98) (Figure 6, Table 2, Supplementary Tables S6 and S9).</p>
+<p>In the sensitivity analysis restricted to steroid-treated episodes, the conclusions were unchanged: both a first (HR 2.02, 95% CI 1.10-3.72) and a second RRI (HR 12.13, 95% CI 5.55-26.49) were associated with graft failure, the second with the larger hazard ratio (Supplementary Table S7).</p>
+<h3>Specific diagnoses</h3>
+<p>Examining diagnoses individually, the hazard of graft failure was significantly increased after each diagnosis except pAMR (HR 1.32, 95% CI 0.60-2.93). Each of the three components of the RRI composite was individually associated with an increased hazard of graft failure, indicating that the composite result is not attributable to a single constituent phenotype. The hazard of graft failure was also significantly increased by the majority of sequences of two diagnoses, and often more so than after a single diagnosis (Supplementary Figure S2, Supplementary Table S8).</p>
+<h3>DISCUSSION</h3>
+<p>In this cohort, a prior diagnosis was associated with a higher incidence of the same diagnosis later, and in some cases with a higher or lower incidence of a different phenotype, for instance more TCMR after AMR, MVI DSA-/C4d-or BKPyVAN and less AMR after MVI DSA-/C4d-.</p>
+<p>The hazard of graft failure rose after a first episode of rejection-related injury and steeply after a second. Both episodes also carried risk when detected on protocol biopsy in patients without graft dysfunction, although the difference between them was not significant there.</p>
+<p>While the Banff classification mostly does not take previous biopsies into account, these findings indicate that the diagnostic history of a graft carries prognostic information that a single biopsy cannot convey.</p>
+<p>Diagnoses that caused graft dysfunction are likely more severe, and so more consequential for graft survival, than those detected on protocol biopsy. This fits the attenuation of the hazard ratio of a second episode from 9.31 to 2.58 when only protocol biopsies were counted, and may explain part of the excess of a second over a first episode. Detection bias is the alternative: transplants that accumulate diagnoses are those biopsied most often, and indication biopsies are prompted by graft dysfunction. However, graft dysfunction can often be explained by histological injury diagnosed in the subsequent biopsy, so we believe detection bias to have limited impact. The protocol-biopsy model also addresses this concern by construction, since ascertainment then does not depend on clinical presentation. Both associations persisted there (HR 1.76 and 2.58), although the excess of a second over a first episode was no longer significant.</p>
+<p>TCMR was often followed by a biopsy without rejection. Despite this, its association with graft failure was similar to that of AMR and MVI DSA-/C4d-. Established therapies for TCMR therefore appear effective at halting visible activity without fully curbing the effect on graft survival. This effect was especially pronounced when TCMR followed a prior diagnosis, confirming earlier findings. 6, 7 AMR recurred more strongly than any other diagnosis (RR 23.67) and was also frequent after pAMR (RR 6.51), plausibly reflecting persistent sensitization and the absence of adequate options to eliminate HLA-DSA. 17, 18 External evidence points the same way: after AMR treatment, persistence or progression of humoral lesions on a follow-up biopsy identified grafts at markedly higher risk of loss, whereas their disappearance was associated with more favorable long-term survival. 19 A recent report likewise found an increased risk of AMR after pAMR, but also after MVI DSA-/C4d-, whereas in our study AMR was less frequent after MVI DSA-/C4d-(RR 0.20). 20 In our cohort we observed very little de novo occurrence of HLA-DSA after MVI DSA-/C4d-, which is the step that would be required for progression to AMR. MVI DSA-/C4d-has been described as more transient than AMR. 8 Here it nevertheless recurred strongly (RR 8.13), and its association with graft failure was similar to that of AMR. This agrees with studies comparing the two in survival models using time of biopsy as time zero 20, 21 and in joint longitudinal-survival models. 22 It differs from the weaker association reported by the same study that described the more transient course, 8 which used a landmarked survival model and would therefore be expected to yield smaller effect sizes with reduced power. 23 For MVI persisting across repeated biopsies, graft survival did not differ according to whether inflammation was still present on a third biopsy, 24 although that design conditions on two prior episodes and so does not speak to the contrast between a first and a second diagnosis.</p>
+<p>While BKPyVAN is held responsible for 5% to 10% of graft failures, previous studies have not found an effect on the hazard of graft failure, 25 and BK polyomavirus can often be cleared by lowering immunosuppression. 10 We nonetheless found that the incidence of BKPyVAN was increased after prior BKPyVAN, and that BKPyVAN was associated with an increased hazard of graft failure, especially after prior TCMR, pAMR or BKPyVAN. An increased incidence of TCMR after BK polyomavirus has also been reported in an independent cohort, plausibly reflecting the reduction of immunosuppression used to control viral replication. 26 Repeated observation of BKPyVAN may mark more severe viral infection: earlier work associated repeated BKPyVAN with worsening eGFR trajectory 27 and higher plasma viral load and histological pvl score with slower viral clearance. 25 The principal strength of this study is the ability to analyze repeated diagnoses in protocol biopsies specifically, which allows the association to be assessed in the absence of a clinical indication. A second strength is the use of time-dependent covariates in recurrent-event and multistate models, which avoids immortal time bias arising from subgroups defined by timedependent variables, 28 handles correlated observations without discarding biopsies, and avoids the loss of power associated with landmarking. 23 The Aalen-Johansen curves add the absolute-risk view relevant to stratification and trial enrichment. Established prognostic tools for kidney allograft failure derive their histological input from a single biopsy at a single time point, 29 which is precisely the information that a diagnostic history extends. Several limitations apply. First, treatment was neither randomized nor recorded in detail. We could therefore not establish whether the excess risk of graft failure after a repeated diagnosis arises mainly from suboptimal drug exposure, through inadequate regimens, nonadherence or rapid metabolism, or from the absence of adequate therapeutic options. Either way, current standard practice did not fully eliminate that excess risk. Second, despite adjustment of the graft failure models for pre-transplant HLA-DSA and baseline recipient, donor and transplant characteristics, residual confounding by unmeasured heterogeneity in baseline and time-dependent alloimmune risk between patients may remain. Third, disease may have occurred without being captured in a biopsy, which would bias the estimated effects toward the null. Fourth, the recurrent-event estimates for diagnoses are unadjusted and purely descriptive: associations between different diagnoses partly reflect shared risk and biopsy intensity. Follow-up was also limited to the five-year biopsy period. Fifth, missing values were not imputed, but the small number of transplants excluded for missing data or insufficient follow-up (N=73) had baseline characteristics closely matching the analysis cohort (Table 1). Our center also contributed to a recent multicenter study of early TCMR, 7 so the two cohorts partly overlap for transplants performed between 2013 and 2019. Finally, this is a single-center study, and the protocol biopsy density that makes the central analysis possible is also the principal constraint on its generalizability: the diagnostic trajectories reconstructed here are more complete than those available in most transplant programs, and findings should be extrapolated to centers without systematic protocol biopsies with corresponding caution.</p>
+<p>Transition rates into diagnoses were associated with earlier diagnoses, especially but not exclusively those of the same type. A second diagnosis of rejection-related injury was strongly associated with graft failure, and substantially more so than a first, and both remained associated with graft failure when identified on protocol biopsy in patients without graft dysfunction. Even when treated, an episode leaves the graft at a higher risk than before it.</p>
+<p>More broadly, these observations indicate that alloimmune injury often unfolds along trajectories, and that longitudinal context is essential for its interpretation and for risk stratification.</p>
+<p>TABLES Table 1. Kidney transplant characteristics. Cohort characteristics Complete cohort (N=1891) Analysis cohort (N=1818) a Data at time of first biopsy after transplantation Recipient demographics Female recipient sex, no. (%) 693 (36.6) 667 (36.7) Recipient age, median (IQR) 56.7 (46.5 -64.4) 56.6 (46.3 -64.2) Recipient BMI, median (IQR) 25.1 (22.4 -28.3) 25.1 (22.4 -28.3) European recipient ethnicity, no. (%) 1820 (96.2) 1747 (96.1) Repeated transplantation, no. (%) 285 (15.1) 273 (15.0) Pre-transplant HLA-DSA, no. (%) 155 (8.2) 149 (8.2) Donor demographics Female donor sex, no. (%) 867 (45.8) 835 (45.9) Donor age, median (IQR) 51.7 (40.4 -59.8) 51.6 (40.4 -59.6) Deceased donor (brain death), no. (%) 1371 (72.5) 1307 (71.9) Deceased donor (cardiac death), no. (%) 372 (19.7) 364 (20.0) Living donor, no. (%) 148 (7.8) 147 (8.1) Transplant characteristics CIT in hours, median (IQR) 13.5 (9.8 -16.8) 13.5 (9.7 -16.8) Post-transplant data Follow-up time in years, median (IQR) 7.17 (3.9 -11.2) 4.75 (3.26 -4.75) Graft failures, no. (%) 286 (15.1) 120 (6.6) Deaths with functioning graft, no. (%) 463 (24.5) 160 (8.8) TCMR at any time during follow-up, no. (%) 346 (18.3) 323 (17.8) AMR at any time during follow-up, no. (%) 172 (9.1) 157 (8.6) MVI DSA-/C4d-at any time during follow-up, no. (%) 192 (10.2) 181 (10.0) BKPyVAN at any time during follow-up, no. (%) 141 (7.5) 134 (7.4) Borderline changes at any time during follow-up, no. (%) 363 (19.2) 329 (18.1) Probable AMR at any time during follow-up, no. (%) 69 (3.6) 60 (3.3) De novo HLA-DSA during follow-up, no. (%) 62 (3.3) 50 (2.8) Abbreviations: no. 1.31 -5.08 0.0060 *Models adjusted for repeat transplantation, donor status (living, brain death, cardiac death), male recipient sex, donor sex, recipient age, donor age, recipient ethnicity, recipient BMI, cold ischemia time, calendar year of transplantation and pre-transplant donor-specific anti-human leukocyte antigen antibodies (HLA-DSA). Follow-up was censored at five years after transplantation. Figure 1. State space of the multistate model of rejection-related injury and graft failure. Diagram representing progression paths following kidney transplantation with regard to rejection-related injury, graft survival and patient survival.  26 day 90 iagnoses ejection) excluding No ction or avirus 27 overlap, 10 rejection; athy Figure 6. Cumulative incidences and cause-specific hazard ratios for kidney graft failure by history of rejection-related injury (RRI) (N=1818). (A) Cumulative incidences are landmark Aalen-Johansen estimates from one year after transplantation, in the transplants with no rejection-related injury (n=1383), one episode (n=309) or two or more episodes (n=73) at one year, with death with a functioning graft as a competing event. Follow-up was censored at five years after transplantation. (B) Each pair of cause-specific hazard ratios belongs to a separate model and is adjusted for clinical characteristics at time of transplantation and pre-transplant HLA-DSA status.</p>
+<p>1: No rejectionrelated injury 2: First rejectionrelated injury 3: Second rejectionrelated injury 4: Graft failure 5: Death with functioning graft 0.00 0.25 0.50 0.75 1.00 0.0 0.5 1.0 1.5 2.0 Cumulative incidence Cumulative incidence of TCMR 0.00 0.25 0.50 0.75 1.00 0.0 0.5 1.0 1.5 2.0 Cumulative incidence of bTCMR 0.00 0.25 0.50 0.75 1.00 0.0 0.5 1.0 1.5 2.0 Cumulative incidence of MVI DSA-C4d-0.00 0.25 0.50 0.75 1.00 0.0 0.5 1.0 1.5 2.0 Years since day 90 post-transplant Cumulative incidence Cumulative incidence of AMR 0.00 0.25 0.50 0.75 1.00 0.0 0.5 1.0 1.5 2.0 Years since day 90 post-transplant Cumulative incidence of pAMR 0.00 0.25 0.50 0.75 1.00 0.0 0.5 1.0 1.5 2.0 Years since day 90 post-transplant Cumulative incidence of BKPyVAN Diagnosed by day 90: TCMR (n = 186) bTCMR (n = 122) AMR (n = 90) pAMR (n = 18) MVI DSA-C4d-(n = 87) BKPyVAN (n = 32) 4.16* 1.33 2.37* 1.94 2.30* 2.20* 1.28 1.49* 1.65* 0.77 1.45 1.05 2.43* 1.75* 23.67* 6.51* 0.20* 0.89 1.98 0.46 9.81* 18.53* NA 1.04 1.46 1.51 1.06 NA 8.13* 1.60 1.15 0.42* 1.32 1.07 0.89 7.71* TCMR bTCMR AMR pAMR MVI DSA-C4d-</p>
+<p>BKPyVAN T C M R b T C M R A M R p A M R M V I D S A -C 4 d -B K P y V A N Incidence of later diagnosis Earlier diagnosis RR 0.2 0.5 1.0 2.0 4.0 8.0 0% 25% 50% 75% 100% 1 2 3 4 5 Years since transplantation Cumulative Incidence A RRI in protocol RRI 0.3 1.0 3.0 10.0 30.0 Hazard Ratio</p>
+<h3>B Starting state</h3>
+<p>No RRI First RRI Second RRI</p>
+<h3>MN is a senior clinical investigator of the Research Foundation Flanders (FWO) (1844024N).</h3>
+<p>This study is supported by the FWO with a project grant (G038024N) and by a grant from the KU Leuven Research Council (C2M/24/057).</p>
+<h3>DATA SHARING STATEMENT</h3>
+<p>The data needed to reproduce the findings of this study are not openly available due to reasons of privacy sensitivity and are available from the corresponding author, MN, on reasonable request. Data are located in controlled access data storage at KU Leuven.</p>
+<p>Analysis code and simulated data will be made available upon publication of the manuscript for the purpose of reproducibility.</p>
+<h3>AUTHOR CONTRIBUTIONS</h3>
+<p>AV, MC and MN designed the study. TD, PK, AP, ThoV, KW, ThiV were involved in data collection and curation. AV performed all analyses with input from MC and MN. AV and MN wrote the manuscript. All co-authors revised the manuscript.</p>
+<h3>DISCLOSURES</h3>
+<p>The authors declare no competing interests with regard to the content of this study.</p>
+<h3>Supplementary methods</h3>
+<p>Supplementary Table S1. STROBE checklist Supplementary Table S2. Characteristics of analysis cohort time intervals. S3. Sequences of diagnoses (N=1562 transplants). S4. Results of Andersen-Gill models for associations of prior diagnoses with transition rates into later diagnoses (N=1818 transplants). S5. Sensitivity analysis: results of Andersen-Gill models for associations of prior steroid-treated diagnoses with transition rates into later diagnoses (N=1818 transplants). S6. Associations of rejection-related injury with the cause-specific hazard of graft failure (N=1818 transplants). S7. Associations of steroid-treated rejection-related injury with the cause-specific hazard of graft failure (sensitivity analysis, N=1746 transplants). S8. Associations of specific diagnoses with the cause-specific hazard of graft failure (N=1818 transplants). S9. Contrast tests to compare second versus first diagnosis of rejection-related injury in terms of their association with the hazard of graft failure. S1. Rate ratios of transitions into later diagnoses after steroidtreated earlier diagnoses (sensitivity analysis, N=1818 transplants). S2. Associations of sequences of diagnoses with the cause-specific hazard of graft failure (N=1818 transplants). Supplementary Figure S3. Time-dependent cause-specific hazard ratios for graft failure after a first and a second rejection-related injury (N=1818 transplants). Earlier Biopsy Later Biopsy</p>
+<p>Leuven between 2004 and 2021 (clinicaltrials.gov ID NCT06505200). This is a single center operating a systematic protocol biopsy program, in which protocol biopsies are obtained at pre-specified time points in the absence of graft dysfunction and indication biopsies are obtained at times of graft dysfunction. Patients who underwent another solid organ transplantation before kidney transplantation, and patients with a combined transplantation, were not included. Pre-and peri-operative clinical information is summarized in Table 1, and the complete adjustment set is given in the Supplementary Methods. Post-transplant clinical information consisted of anti-human leukocyte antigen donor-specific antibodies (HLA-DSA) and histological biopsy evaluation. Maintenance immunosuppression was mostly tacrolimus, mycophenolate and corticosteroids, with induction, usually basiliximab, reserved for recipients at increased immunological risk. From 2005, BK polyomavirus DNAemia led to mycophenolate reduction, and BKPyVAN to mycophenolate cessation, lower tacrolimus targets and cidofovir. Rejection treatment was at physician discretion, with steroid initiation recorded after each biopsy. Data collection and analysis were approved by the Ethics Committee of the University Hospitals Leuven (registration S64006). This paper adheres to the Declaration of Istanbul.</p>
+<p>Aalen-Johansen estimates gave the cumulative incidence of graft failure from one year post-transplantation, by state at one year. A cause-specific Cox model for the transitions into graft failure, with the current RRI state as a time-dependent covariate, estimated the hazard ratios of a first and a second RRI. It was adjusted for baseline transplant characteristics and pre-transplant HLA-DSA, but not for potential mediators: time-dependent HLA-DSA (which also enters several diagnostic definitions), chronic lesion scores and the number of indication biopsies. Deviations from proportional hazards were assessed with the cox.zph function of the survival R package,16 and time-varying effects were modeled by an interaction with time since transplantation. A pre-specified secondary model counted only diagnoses made in protocol biopsies, thereby estimating the association in the absence of graft dysfunction and removing the dependence of exposure ascertainment on clinical presentation. In a sensitivity analysis, the exposure was restricted to steroid-treated episodes, with follow-up censored at the first RRI episode that was not steroid-treated. Exploratory cause-specific Cox models, with the same adjustment set and follow-up, evaluated each individual diagnosis and each ordered pair of diagnoses as time-dependent covariates. All analyses were conducted in R version 4.4.1. Full model specification, the counting-process construction, censoring rules and the complete adjustment set are given in the Supplementary Methods.</p>
+<p>, number; IQR, interquartile range; BMI, body mass index; HLA-DSA, anti-human leukocyte antigen donor-specific antibodies; CIT, cold ischemia time; TCMR, T-cell mediated rejection; AMR, antibody-mediated rejection; MVI DSA-/C4d-, DSA negative C4d negative microvascular inflammation; BKPyVAN, BK polyomavirus nephropathy. De novo HLA-DSA: HLA-DSA in a posttransplant biopsy of a recipient without pre-transplant HLA-DSA. a Follow-up, graft failures and deaths from day 90 to 5 years after transplantation, the window of all analyses. Diagnoses and HLA-DSA: transplants with at least one occurrence in the first 5 years after transplantation, the first 90 days included. The first column covers the whole follow-up from transplantation.</p>
+<h3>a</h3>
+<p>Start-stop counting process format was reformulated on protocol biopsies only. Note: complete model results are shown in Supplementary Table</p>
+<p>S6. Abbreviations: HR, hazard ratio; CI, confidence interval.</p>
+<h3>FIGURESFigure 1.</h3>
+<p>FIGURES</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Flowchart for inclusion and exclusion of transplants and follow-up time intervals for survival analyses.</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Sequences of diagnoses in pairs of biopsies within the first five years after transplantation, the later biopsy after d (N=1562 transplants). All possible within-patient pairs of diagnoses were allocated to one of the Sankey flows, including pairs of diag with other diagnoses in between. Biopsies with multiple simultaneous diagnoses (e.g. TCMR and AMR, also referred to as Mixed Rej contributed to the Sankey flows for each of those diagnoses. (A) Sequences including No Rejection/No BKPyVAN. (B) Sequences ex Rejection/No BKPyVAN. Abbreviations: (b)TCMR, T-cell mediated rejection or Borderline changes; (p)AMR, antibody-mediated reject probable antibody-mediated rejection; MVI DSA-/C4d-, DSA-negative C4d-negative microvascular inflammation; BKPyVAN, BK polyomav nephropathy.</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Cumulative incidence of transitions into each later diagnosis after day 90, by diagnosis made by day 90 (N=1818 transplants, with group sizes shown in the figure legend). Curves are landmark Aalen-Johansen estimates from day 90 after transplantation, with graft failure and death as competing events and follow-up censored at five years after transplantation. Groups ov since a transplant can have several diagnoses by day 90. Curves are shown up to two years after day 90 and stop once fewer than 10 transplants remain at risk. Abbreviations: TCMR, T-cell mediated rejection; bTCMR, Borderline changes; AMR, antibody-mediated rej pAMR, Probable AMR; MVI DSA-/C4d-, DSA-negative C4d-negative microvascular inflammation; BKPyVAN, BK polyomavirus nephropath</p>
+<h3>Figure 5 .Figure 6.</h3>
+<p>Figure 5. Rate ratios of transitions into later diagnoses after earlier diagnoses (N=1818 transplants). Each rate ratio is obtained from a separate unadjusted Andersen-Gill model for transitions into the later diagnosis, with the earlier diagnosis as its only covariate, with followup from day 90 and censored at five years after transplantation. Abbreviations: RR, rate ratio; NA, not applicable due to lack of diagnoses; TCMR, T-cell mediated rejection; bTCMR, Borderline changes; AMR, antibody-mediated rejection; pAMR, Probable AMR; MVI DSA-/C4d-, DSA-negative C4d-negative microvascular inflammation; BKPyVAN, BK polyomavirus nephropathy. *P &lt; .05</p>
+<h3>Table 2.</h3>
+<p>Associations of a first and second diagnosis of rejection-related injury with the cause-specific hazard of graft failure.</p>
+<p>days of follow-up or less • 1 due to missing cold ischemia time • 7550 Time intervals included for constructing cumulative time-dependent covariates for kidney graft survival analyses: 51 time intervals from 51 transplants without biopsies in first 5 years • 7499 time intervals from 1767 transplants with 5732 biopsies in first 5 years • 1650 Time intervals ending before the landmark at 90 days post-transplantation, used only for the cumulative diagnosis history 1818 Transplantations with 5900 time intervals and 5218 biopsies included in the survival analyses, followed from day 90 to 5 years after transplantation 682</p>
+<h3>References</h3>
+<p>Kasiske BL, Zeier MG, Chapman JR, et al. KDIGO clinical practice guideline for the care of kidney transplant recipients: A summary. Kidney International. 2010;77(4):299- 311. doi:10.1038/ki.2009.377</p>
+<p>Mayrdorfer M, Liefeldt L, Wu K, et al. Exploring the complexity of death-censored kidney allograft failure. Journal of the American Society of Nephrology. 2021;32(6):1513-1526. doi:10.1681/ASN.2020081215</p>
+<p>Naesens M, Roufosse C, Haas M, et al. The Banff 2022 Kidney Meeting Report: Reappraisal of microvascular inflammation and the role of biopsy-based transcript diagnostics. American Journal of Transplantation. 2024;24(3):338-349. doi:10.1016/j.ajt.2023.10.016</p>
+<p>Nankivell BJ, Kuypers DR. Diagnosis and prevention of chronic kidney allograft loss. The Lancet. 2011;378(9800):1428-1437. doi:10.1016/S0140-6736(11)60699-5</p>
+<p>Nankivell BJ, Borrows RJ, Fung CL, et al. Natural history, risk factors, and impact of subclinical rejection in kidney transplantation. Transplantation. 2004;78(2):242-249. doi:10.1097/01.tp.0000128167.60172.cc</p>
+<p>Rampersad C, Balshaw R, Gibson IW, et al. The negative impact of T cell-mediated rejection on renal allograft survival in the modern era. American Journal of Transplantation. 2022;22(3):761-771. doi:10.1111/ajt.16883</p>
+<p>Chen C, Elias C, Keyser M, et al. Early acute T cell-mediated rejection and kidney allograft outcomes. Kidney International. Published online 2026. doi:10.1016/j.kint.2026.06.042</p>
+<p>Senev A, Coemans M, Lerut E, et al. Histological picture of antibody-mediated rejection without donor-specific anti-HLA antibodies: Clinical presentation and implications for outcome. American Journal of Transplantation. 2019;19(3):763-780. doi:10.1111/ajt.15074</p>
+<p>Cleenders E, Coemans M, Mineeva-Sangwo O, et al. An observational cohort study of kidney function evolution following increased BK viral replication. Kidney International. 2025;107(1):180-187. doi:10.1016/j.kint.2024.10.013</p>
+<p>Schaub S, Hirsch HH, Dickenmann M, et al. Reducing immunosuppression preserves allograft function in presumptive and definitive polyomavirus-associated nephropathy. American Journal of Transplantation. 2010;10(12):2615-2623. doi:10.1111/j.1600-6143.2010.03310.x</p>
+<p>Shishido S, Asanuma H, Nakai H, et al. The impact of repeated subclinical acute rejection on the progression of chronic allograft nephropathy. Journal of the American Society of Nephrology. 2003;14(4):1046-1052. doi:10.1097/01.ASN.0000056189.02819.32</p>
+<p>Roufosse C, Simmonds N, Clahsen-Van Groningen M, et al. A 2018 Reference Guide to the Banff Classification of Renal Allograft Pathology. Transplantation. 2018;102(11):1795-1814. doi:10.1097/TP.0000000000002366</p>
+<p>Wellekens K, Coemans M, Koshy P, et al. The impact of the Banff v-lesion on rejection classification and outcomes: Insights from a multicenter study. American Journal of Transplantation. Published online 2025. doi:10.1016/j.ajt.2025.04.023</p>
+<p>Andersen PK, Gill RD. Cox&#x27;s Regression Model for Counting Processes: A Large Sample Study. The Annals of Statistics. 1982;10(4):1100-1120. doi:10.1214/aos/1176345976</p>
+<p>De Wreede LC, Fiocco M, Putter H. mstate: An R Package for the Analysis of Competing Risks and Multi-State Models. Journal of Statistical Software. 2011;38(7):1-30. doi:10.18637/jss.v038.i07</p>
+<p>Grambsch PM, Therneau TM. Proportional hazards tests and diagnostics based on weighted residuals. Biometrika. 1994;81(3):515-526. doi:10.1093/biomet/81.3.515</p>
+<p>Diebold M, Gauthier PT, Mayer KA, et al. Effect of felzartamab on the molecular phenotype of antibody-mediated rejection in kidney transplant biopsies. Nature Medicine. 2025;31(5):1668-1676. doi:10.1038/s41591-025-03653-3</p>
+<p>Mayer KA, Schrezenmeier E, Diebold M, et al. A Randomized Phase 2 Trial of Felzartamab in Antibody-Mediated Rejection. New England Journal of Medicine. 2024;391(2):122-132. doi:10.1056/nejmoa2400763</p>
+<p>Bouchet A, Muller B, Olagne J, et al. Evolution of humoral lesions on follow-up biopsy stratifies the risk for renal graft loss after antibody-mediated rejection treatment. Nephrology Dialysis Transplantation. 2022;37(12):2555-2568. doi:10.1093/ndt/gfac192</p>
+<p>Sablik M, Sannier A, Raynaud M, et al. Microvascular Inflammation of Kidney Allografts and Clinical Outcomes. New England Journal of Medicine. 2025;392(8):763- 776. doi:10.1056/nejmoa2408835</p>
+<p>Vaulet T, Koshy P, Wellekens K, et al. Continuous indices to assess the phenotypic spectrum of kidney transplant rejection. Nature Communications. 2025;16(1):10417. doi:10.1038/s41467-025-65153-9</p>
+<p>Coemans M, Senev A, Van Loon E, et al. The evolution of histological changes suggestive of antibody-mediated injury, in the presence and absence of donor-specific anti-HLA antibodies. Transplant International. 2021;34(10):1824-1836. doi:10.1111/tri.13964</p>
+<p>Putter H, van Houwelingen HC. Understanding Landmarking and Its Relation with Time-Dependent Cox Regression. Statistics in Biosciences. 2017;9(2):489-503. doi:10.1007/s12561-016-9157-9</p>
+<p>Parajuli S, Bregman A, Zona EE, et al. Outcomes of persistent microvascular inflammation in repeated kidney allograft biopsies. Clinical Transplantation. 2025;39(12):e70419. doi:10.1111/ctr.70419</p>
+<p>Cleenders E, Koshy P, Van Loon E, et al. An observational cohort study of histological screening for BK polyomavirus nephropathy following viral replication in plasma. Kidney International. 2023;104(5):1018-1034. doi:10.1016/j.kint.2023.07.025</p>
+<p>Rampersad C, Wiebe C, Balshaw R, et al. Association of BKV viremia and nephropathy with adverse alloimmune outcomes in kidney transplant recipients. Clinical Transplantation. 2024;38(5):e15329. doi:10.1111/ctr.15329</p>
+<p>Bouatou Y, Nguyen TQ, Roelofs JJTH, et al. A Multicenter Application of the 2018 Banff Classification for BK Polyomavirus-associated Nephropathy in Renal Transplantation. Transplantation. 2019;103(12):2692-2700. doi:10.1097/TP.0000000000002712</p>
+<p>Gleiss A, Oberbauer R, Heinze G. An unjustified benefit: immortal time bias in the analysis of time-dependent events. Transplant International. 2018;31(2):125-130. doi:10.1111/tri.13081</p>
+<p>Loupy A, Aubert O, Orandi BJ, et al. Prediction system for risk of allograft loss in patients receiving kidney transplants: international derivation and validation study. The BMJ. 2019;366:l4923. doi:10.1136/bmj.l4923</p>
 </div>
 </details>
 </div>
