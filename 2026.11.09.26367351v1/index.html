@@ -199,7 +199,7 @@ frozen brain tumor samples by EpiDirect MGMT Methylation qPCR Assay
 compared to pyrosequencing: correlation and corresponding cutoffs
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.09.26367351
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367351
 </p>
 </header>
 <div class="mc-main">
@@ -335,8 +335,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -709,9 +712,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -733,7 +740,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -748,9 +756,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -763,13 +789,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -789,6 +818,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -796,12 +831,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -902,6 +943,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -921,6 +982,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1176,19 +1272,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1298,6 +1476,118 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>MGMT promoter (MGMTp) methylation is a clinically important epigenetic biomarker that guides therapeutic decision-making in patients with glioblastoma and related brain malignancies. Pyrosequencing is a widely used method for analysis of MGMTp methylation in molecular pathology laboratories which relies on chemical conversion of DNA prior to amplification by polymerase chain reaction (PCR) and subsequent sequencing. The EpiDirect ® technology represents a novel analytical approach that enables direct, quantitative assessment of DNA methylation by qPCR using native, unmodified DNA. Here we compared the EpiDirect ® MGMT Methylation qPCR Assay to MGMTp pyrosequencing using brain tumor samples to evaluate the correlation between the two methods. We show that there is a clear correlation across two different clinical cohorts involving both formalin-fixed paraffin-embedded (FFPE) and fresh frozen samples and show that the EpiDirect ® MGMT Methylation qPCR Assay is a valid alternative to pyrosequencing for quantitative assessment of MGMTp methylation in brain cancer samples.</p>
+<h3>Introduction</h3>
+<p>Epigenetic modifications are increasingly used as biomarkers in precision medicine. In cancer, gene silencing by promoter DNA methylation is not only implicated in initiation of disease but also used to assist treatment selection [1] [2] [3] . In glioblastoma and related gliomas, DNA methylation of the promoter region of the MGMT gene (MGMTp) encoding the DNA repair enzyme O-6-methylguanine-DNA methyltransferase is a prognostic biomarker and a predicter of alkylating agent treatment efficiency [4] [5] [6] [7] [8] [9] [10] [11] . Thus, overall survival of patients with methylated MGMTp is significantly higher when treated with radiotherapy plus the alkylating agent temozolomide compared to radiotherapy alone 9, 12, 13 . Furthermore, there is a direct positive correlation between the extent of MGMTp methylation and the overall survival of patients treated with temozolomide 14, 15 . Evaluation of MGMTp methylation is therefore recommended as part of the molecular characterization of high-grade gliomas 16, 17.</p>
+<p>The human MGMT gene is located on chromosome 10 and contains a CpG island within its promoter consisting of 98 CpG sites between (GRCh38) positions 129,466,685 and 129,467,446 (Figure 1) 15, 18, 19 . In glioblastoma patients, the MGMTp contains differently methylated regions with different clinical significance 15, [19] [20] [21] [22] . Especially one differentially methylated region (CpG 73-90, DMR-2 19 ) shows high correlation to the general methylation status of the MGMTp as well as to the overall survival of patients treated with temozolomide 15, 22.</p>
+<p>. Figure 1. The human MGMT promoter contains a CpG island at chromosome 10 position 129,466,685 to 129,467,446 (GRCh38) consisting of 98 CpG sites and two differentially regulated regions (DMR1 and DMR2) 19 near the transcription start site (TSS).</p>
+<p>Current methods for evaluating MGMTp methylation mainly involve chemical or enzymatic conversion of the purified DNA prior to selective amplification by PCR of the target region of interest. In most cases, chemical conversion of DNA is performed using sodium bisulfite, which converts unmethylated cytosine nucleobases to uracils while not affecting methylated cytosines 23 . The converted uracils are subsequently replaced by thymine nucleobases in the replicated DNA strands during the PCR step, and this change in sequence can be assessed by either pyrosequencing or methyl-specific PCR methods 23, 24 . Other methods for evaluation of MGMTp methylation not relying on chemical conversion of DNA include methylation-sensitive digestion by restriction enzymes followed by ligation-dependent probe amplification (MS-MLPA) 25 and nanopore sequencing 26 . However, both chemical and enzymatic conversion of DNA as well as sequencing procedures are time-and resource-consuming, and in addition, chemical conversion leads to DNA degradation, which appears to be methylation-dependent and may thus lead to overrepresentation of the methylated DNA 27.</p>
+<p>The therascreen ® MGMT Pyro Kit (Qiagen, described here as the therascreen ® MGMT Kit) is a widely used pyrosequencing method to evaluate MGMTp methylation status of brain tumor samples. The therascreen ® MGMT Kit targets four CpG sites (CpG 76-79) in the DMR2 of the MGMTp (Figure 2), and, as with most other current methods for evaluating DNA methylation, purified DNA needs to be bisulfite-treated prior to analysis by the therascreen ® MGMT Kit method.</p>
+<p>The EpiDirect ® MGMT Methylation qPCR Assay (&quot;EpiDirect MGMT Assay&quot;, PentaBase A/S) is a novel method for direct quantification of MGMTp methylation in untreated DNA, as recently described 28 . The method is based on direct selective amplification of methylated MGMTp DNA using an EpiPrimer™, which contains hydrophobic base analogues [29] [30] [31] [32] giving the EpiPrimer™ its unique affinity for methylated DNA. The EpiDirect ® Assay also evaluates the methylation status of four CpG sites in the DMR2 of the MGMTp (CpG 75-78), thus overlapping with three of the CpG sites evaluated by the therascreen ® MGMT Kit (Figure 2) 15, 18, 22.</p>
+<p>Figure 2. The EpiPrimer™ in the EpiDirect ® MGMT Assay is placed in the differentially methylated region 2 (DMR2, GRCh38 chr10; 129,467,232-129,467,363) of the MGMT promoter 19 and covers CpG 75-79 28 . DMR2 methylation has been shown to correlate strongly with overall MGMT promoter methylation status as well as with temozolomide treatment efficiency 15, 18, 22.</p>
+<p>Motivated by the upcoming discontinuation of the therascreen ® MGMT Kit, we conducted both retrospective and prospective comparative studies between the EpiDirect ® MGMT Assay and the therascreen ® MGMT Kit, using various brain cancer sample types as well as both formalin-fixed, paraffin-embedded (FFPE) and fresh frozen samples. We also compared results obtained with the EpiDirect ® MGMT Assay when using either predefined algorithms or standard curve-derived algorithms for calculating sample methylation percentages. We demonstrate a convincing correlation between the results obtained with the EpiDirect ® MGMT Assay and those . generated by the therascreen ® MGMT Kit. MGMTp methylation frequencies were generally lower with the EpiDirect ® MGMT Assay, and when comparing results to those obtained with the therascreen ® MGMT Kit with a 10% cutoff, a 5% and 7% methylation cutoff for the EpiDirect ® MGMT Assay yielded similar results when analyzing FFPE samples used in Cohort 1 and fresh frozen samples used in Cohort 2, respectively.</p>
+<h3>Methods</h3>
+<h3>MGMT methylation assays</h3>
+<p>The EpiDirect ® MGMT Methylation qPCR Assay (&quot;EpiDirect ® MGMT Assay&quot;, PentaBase A/S, Odense, Denmark Ref. No. 8300) was used according to the Instructions for Use (IFU) version 2.8. The therascreen ® MGMT Pyro Kit (&quot;therascreen ® MGMT Kit&quot;, Qiagen, Hilden, Germany, Cat no. 971061) was used according to IFU version 1 with the PyroMark Q24 instrument (Qiagen) and the PyroMark Q24 Software, v.2.0.8. Cohort 1 Cohort 1 was used in a prospective study involving brain tumor samples collected in Denmark by Aarhus University Hospital, Aarhus, Denmark during the fall of 2024 and the spring of 2025. Patients were between 27 and 86 years of age diagnosed with either glioblastoma, oligodendroglioma, glioma, or a brain tumor with an unspecific alteration (Supplementary Table 1). Inclusion criteria were histologically proven brain tumor samples containing at least 20% tumor tissue with available leftover tumor tissue or DNA for EpiDirect ® MGMT Assay evaluation. DNA was purified using the EZ1&amp;2 DNA FFPE Kit (Qiagen Cat no. 954404) and DNA concentration was determined by the Qubit fluorometer (Qiagen) according to the manufacturer&#x27;s instructions. Exclusion criteria were purified sample DNA concentrations below 3.0 ng/µL and more concentrated samples were diluted to 3.0 ng/µL before analysis by the EpiDirect ® MGMT Assay. Before analysis by the therascreen ® MGMT Kit, purified DNA was bisulfite converted using the MethylEdge™ Bisulfite Conversion System (Promega Cat no. N1301) according to the manufacturer&#x27;s instructions. The EpiDirect ® MGMT Assay was run on both a QuantStudio™ 5 (Applied Biosystems) and the BaseTyper™ 48.4 (PentaBase A/S) Real-Time PCR System and was used in combination with the Methylated Human DNA Control Panel (PentaBase A/S, Ref. No. 5070) for the generation of DNA methylation standard curves including 3%, 5%, and 10% methylated samples in addition to the 25% methylated positive control. The slope and y-axis intercept of the resulting trendline were used to calculate run-specific sample methylation percentages in addition to calculations based on the pre-defined algorithms described in the EpiDirect ® MGMT Assay IFU version 2.8. To determine the impact of decreasing DNA input on methylation percentages determined by the EpiDirect ® MGMT Assay, selected patient DNA samples were diluted in nuclease-free water down to 0.5 ng/µL. Cohort 2 Cohort 2 was collected at Rigshospitalet, Copenhagen, Denmark, between February and December 2025 as fresh frozen tissue samples for nanopore sequencing. Patients were between 18 and 89 years of age diagnosed with either glioblastoma, astrocytoma, oligodendroglioma, or not otherwise specified (NOS) glioma (Supplementary Table 2). DNA was purified using the Maxwell RSC Blood DNA kit (Promega, Madison, WI, No. AS1400) on a Maxwell RSC instrument. DNA was diluted to 2 ng/µL before MGMT testing by the EpiDirect ® MGMT Assay using a QuantStudio™ 5 Real-Time PCR System and using the pre-defined algorithm for calculating sample methylation percentage as described in EpiDirect ® MGMT Assay IFU version 2.8. a In some cohort 2 runs, the positive control was replaced by a 5% control which was used for setting the threshold.</p>
+<h3>Data analysis and statistical methods</h3>
+<p>Data analysis and statistical methods .</p>
+<h3>EpiDirect</h3>
+<p>The delta Ct values were subsequently used to calculate the sample and control MGMTp methylation percentage using the predefined algorithm described in the EpiDirect ® MGMT Assay IFU version 2.8 (Equation 2): (𝑆𝑆𝑆𝑆𝑆𝑆𝑆𝑆𝑆𝑆𝑆𝑆 𝛥𝛥𝛥𝛥𝛥𝛥-6) 2.7</p>
+<h3>(Equation 2)</h3>
+<p>In cohort 1, sample methylation percentages were also calculated using the algorithms generated by plotting the delta Ct values of the 3%, 5%, 10% standards and positive control (25%) as a function of the common logarithm (log(10)) to the methylation percentage. The resulting equation describing the linear regression (Equation 3) was used to calculate the methylation percentages of the samples included in each run (Equation 4).</p>
+<p>where y is the ΔCt value, x is the common logarithm to the methylation percentage, a is the y-axis intercept, and b is the slope of the trendline.</p>
+<h3>Sample methylation % =10</h3>
+<p>(𝑆𝑆𝑆𝑆𝑆𝑆𝑆𝑆𝑆𝑆𝑆𝑆 𝛥𝛥𝛥𝛥𝛥𝛥-𝑆𝑆) 𝑏𝑏 (Equation 4)</p>
+<p>The methylation percentages of each of the 4 included CpG sites were determined, and the average methylation percentage was calculated. A 10% average methylation percentage was used as the cutoff between methylated and unmethylated samples.</p>
+<h3>Ethical considerations</h3>
+<p>This study was based on leftover samples that the study sites have permission to use for evaluation of diagnostic assays. The results obtained with the EpiDirect ® MGMT Methylation qPCR Assay were only used for assay evaluation and not for diagnostic purposes. Thus, the original diagnosis and treatment of the individuals from whom the samples originated were not changed based on this study.</p>
+<h3>Results</h3>
+<h3>Cohort 1</h3>
+<p>Analysis of purified DNA from FFPE samples A total of 45 prospective brain tumor samples as well as two external quality assessment (EQA) samples were analyzed during the fall of 2024 and the spring of 2025 in parallel by the therascreen ® MGMT Kit and the EpiDirect ® MGMT Assay (Supplementary Table 1). The EpiDirect ® MGMT Assay was run on both a QuantStudio™ 5 (Applied Biosystems) and a BaseTyper™ 48.4 (PentaBase A/S) Real-Time PCR System. MGMTp methylation percentages were calculated using both predefined algorithms as well as by including a standard curve in each run. Standard curves were generated by plotting the delta Ct values (Ct value obtained with the Methyl-specific Assay subtracted the Ct value obtained with the Internal Reference Assay) of the controls as a function of the common logarithm to their MGMTp methylation percentages, 3%, 5%, 10%, and 25% (Supplementary Figure 1). The methylation percentages of the individual samples were calculated from the included standard curve in the same run.</p>
+<p>. EpiDirect ® and pyrosequencing results show a fairly high degree of correlation for the MGMTp methylation percentages with an R² of 0.81 and 0.78 when using the EpiDirect ® MGMT Assay on the QuantStudio™ 5 and the BaseTyper™ 48.4 Real-Time PCR System, respectively (Figure 3).</p>
+<p>On both real-time PCR systems, the determined sample methylation percentages were generally lower when using the EpiDirect ® MGMT Assay compared to the therascreen ® MGMT Kit. Thus, linear regression slopes were 0.51 and 0.45 when using the EpiDirect ® MGMT Assay with the QuantStudio™ 5 and the BaseTyper™ 48.4 Real-Time PCR Systems, respectively. Similar results were found when using predefined algorithms for calculating methylation frequencies with the EpiDirect ® MGMT Assay (Supplementary Figure 2).</p>
+<h3>Robustness across real-time PCR platforms</h3>
+<p>When directly comparing EpiDirect ® MGMT Assay results on the two different qPCR platforms, a high degree of correlation between the determined MGMTp methylation percentages was found when using both the IFU version 2.8 algorithms and the algorithms generated by including a standard curve in each run (Figure 4). While the slope is further from 1 and the R² value is lower with the standard curve algorithms compared to the IFU algorithms, the opposite is true when excluding samples with methylation percentages above 20% that are far from the expected clinically relevant area, and the slope becomes very close to 1 (0.97) (Supplementary Figure 3). (QuantStudio™ 5) and Table 2 (BaseTyper™ 48.4). The ROC curve analysis found optimal corresponding cutoffs for the EpiDirect ® MGMT Assay between 5.9% and 8.2% methylation across instruments and analysis methods (Table 1 and Table 2).</p>
+<p>In all cases, these cutoffs resulted in 100% negative percent agreements (NPA), while the positive percent agreements (PPA) were lower. We therefore also evaluated which MGMT methylation cutoffs would produce similar PPA and NPA values (method described in Supplementary Data 2). In this case, the cutoffs were between 3.1% and 6.1% when using IFU algorithms and between 4.5% and 4.6% when using standard curve algorithms, supporting the notion that the use of standard curves for calculating sample methylation percentages leads to more similar results across different real-time PCR platforms.</p>
+<p>. BaseTyper™ 48.4 Algorithm Method Cutoff (% methylation) PPA NPA OPA AUC IFU algorithm Optimal cutoff* 8.2 0.83 (15/18) 1.00 (27/27) 0.93 (42/45) 0.97 Similar PPA and NPA 6.1 0.89 (16/18) 0.89 (24/27) 0.89 (40/45) Standard curve algorithms Optimal cutoff* 5.9 0.83 (15/18) 1.00 (27/27) 0.93 (42/45) 0.96 Similar PPA and NPA 4.5 0.89 (16/18) 0.85 (23/27) 0.87 (39/45) Laboratory procedure 5.0 0.83 (15/18) 0.85 (23/27) 0.84 (38/45) Table 3.2x2 table comparing MGMTp methylation results obtained for Cohort 1 with the EpiDirect ® MGMT Assay and the therascreen ® MGMT Kit. A 5% methylation percentage cutoff and standard curve-derived algorithms were used with the EpiDirect ® MGMT Assay, and a 10% methylation percentage cutoff was used for the therascreen ® MGMT Kit.</p>
+<p>This 5% cutoff is compared visually to the cutoff used with the therascreen ® MGMT Kit in Figure 5. It can be appreciated from the figure that several of the discrepant cases are close to either or both cutoffs used. Notably, the three samples that are methylated with the therascreen ® MGMT Kit cutoff but unmethylated with EpiDirect ® MGMT Assay all show a relatively high variation in pyrosequencing between the different CpG sites and, in particular CpG 79, which is not included in the EpiDirect ® MGMT Assay, shows an above-average methylation percentage (Supplementary Table 5). Furthermore, one of the cases found methylated with the EpiDirect ® MGMT Assay but unmethylated with the therascreen ® MGMT Kit (Sample 20) had two individual CpG sites with pyrosequencing methylation percentages at or above the applied average 10% cutoff (10% and 12%, respectively).</p>
+<h3>Impact of decreasing DNA input</h3>
+<p>The impact of decreasing DNA input on the determined MGMTp methylation percentages by the EpiDirect ® MGMT Assay was investigated by diluting selected samples in nuclease-free water. As shown in Figure 6, the calculated MGMTp methylation percentages did not significantly change when diluting three different patient samples from 25 ng per reaction to 2.5 ng per reaction.</p>
+<h3>Cohort 2</h3>
+<p>Analysis of purified DNA from fresh frozen samples To further investigate the correlation between EpiDirect ® MGMT Assay and therascreen ® MGMT Kit results in the clinical setting, we retrospectively evaluated 33 fresh frozen brain tumor samples where the methylation status had previously been determined using the therascreen ® MGMT Kit also with a 10% average MGMTp methylation cutoff (Supplementary Table 2). In this study, no standard curve controls were included, and the standard IFU algorithm was used for calculating corresponding methylation percentages. Similar to cohort 1, the EpiDirect ® MGMT Assay results correlated well with the therascreen ® MGMT Kit results in cohort 2 with a slope of 0.60 and an R² value of 0.83 (Figure 7). A ROC curve analysis with Youden&#x27;s Index found an optimal cutoff for the EpiDirect ® MGMT Assay to be 4.8% methylation when using a 10% methylation cutoff for the therascreen ® MGMT Kit (Table 4). This led to a PPA and an NPA of 1.00 and 0.95, respectively, and an overall percent agreement (OPA) of 0.97 (32 out of 33 cases). Thus, the optimal cutoff was also equal to that for obtaining similar PPA and NPA. The clinical site decided to use a methylation cutoff of 7% with the EpiDirect ® MGMT Assay in order to obtain 100% unmethylated sample agreement with the therascreen ® MGMT Kit, although this led to a lower overall percent agreement (Figure 7 and Table 4). Thus, sample 7 was called non-methylated with this cutoff for the EpiDirect ® MGMT Assay (5.5% methylation vs 19% methylation with the therascreen ® MGMT Kit). Also, samples 10 and 32 that were found to be 12% and 13% methylated with the therascreen ® MGMT Kit, respectively, were called non-methylated with the EpiDirect ® MGMT Assay. These samples are, however, considered borderline methylated with the therascreen ® MGMT Kit and therefore do not support lowering the threshold for the EpiDirect ® MGMT Assay. Furthermore, both sample 7 and sample 32 had a markedly higher methylated CpG 79 compared to the remaining three included CpG sites (Supplementary Table 5). Consequently, when excluding CpG 79 (which is not targeted by the EpiDirect ® MGMT Assay), the mean methylation percentages for sample 7 and 32 were 10% and 5%, respectively, and thus much more in line with the EpiDirect ® MGMT Assay results. Also, sample 10 had one CpG site (CpG 77) with a markedly higher methylation percentage (34%) compared to the remaining three targeted CpG sites (7%, 4% and 7%) as determined by the therascreen ® MGMT Kit.</p>
+<p>QuantStudio™ 5 Method Cutoff (% methylation) PPA NPA OPA AUC Optimal cutoff* 4.8 1.00 (11/11) 0.95 (21/22) 0.97 (32/33) 0.996 Laboratory procedure 7.0 0.72 (8/11) 1.00 (22/22) 0.91 (30/33)</p>
+<p>Table 4. Cohort 2 receiver operating characteristic (ROC) curve analysis for determination of corresponding cutoff when comparing EpiDirect ® MGMT Assay results on the QuantStudio™ Real-Time PCR System with the therascreen ® MGMT Kit. A cutoff of 10% methylation was used for the therascreen ® MGMT Kit. *Based on ROC curve analysis with Youden&#x27;s index. The optimal cutoff was also identical to the cutoff needed for obtaining similar PPA and NPA. PPA, positive percent agreement (methylated samples). NPA, negative percent agreement (unmethylated samples). OPA, overall percent agreement. AUC, Area Under the Curve. The corresponding 2x2 table when using a 7% methylation cutoff with the EpiDirect ® MGMT Assay is shown in Table 5. Device therascreen ® MGMT Kit Methylated Unmethylated Total EpiDirect ® MGMT Assay Methylated 8 0 8 Unmethylated 3 22 25 Total 11 22 33 Table 5.2x2 table comparing Cohort 2 MGMT promoter methylation results obtained with the EpiDirect ® MGMT Assay and the therascreen ® MGMT Kit. A 7% methylation percentage cutoff calculated using the IFU algorithm was used with the EpiDirect ® MGMT Assay, and a 10% methylation percentage cutoff was used with the therascreen ® MGMT Kit.</p>
+<h3>Discussion</h3>
+<p>The principal aim of this study was to evaluate the degree of correlation between the EpiDirect ® MGMT Assay and the therascreen ® MGMT Kit and to define corresponding cutoff values for the former, using the established thresholds of the latter as a reference. A high degree of correlation was observed between the two methods, despite their fundamentally different approaches to quantifying MGMTp methylation. Notably, the determined MGMTp methylation percentages and corresponding cutoffs were generally lower with the EpiDirect ® MGMT Assay. This may be due to the pre-treatment with bisulfite required for pyrosequencing, which has been reported to result in methylation-dependent degradation of DNA and consequently overestimation of methylation percentage. Alternatively, it can, at least in part, be explained by loss of chromosome 10 heterozygosity, which is common in glioblastoma and on which the MGMT gene is found 33 . This will not affect pyrosequencing results but will impact the EpiDirect ® results because it uses the TBP gene on chromosome 6 as the target for the Internal Reference assay.</p>
+<p>Technical cutoffs and clinical implications have previously been described for the therascreen ® MGMT Kit 34, 35.</p>
+<p>In this study, a 10% average methylation of the evaluated CpG sites was used with the therascreen ® MGMT Kit. While treatment data for the patients included in this study were unavailable and therapeutic decisions remained unaffected, the relatively high correlation between EpiDirect ® MGMT Assay and therascreen ® MGMT Kit results is expected to lead to similar treatment efficiencies when based on the identified corresponding EpiDirect ® MGMT Assay cutoffs. However, future studies should investigate the clinical significance of the applied cutoff values for the EpiDirect ® MGMT Assay in relation to treatment outcomes, with particular focus on cases exhibiting discordant methylation status between the EpiDirect ® MGMT Assay and comparator methods.</p>
+<p>ROC curve analysis with Youden&#x27;s index was performed to identify corresponding cutoffs for the EpiDirect ® MGMT Assay. In cohort 1, the optimal cutoffs were found to be in the range of 5.9% to 8.2% methylation but also tended to prioritize NPA (methylation negative) over PPA (methylation positive) samples. When optimizing for equal NPA and PPA, the range was 3.1% to 6.1% methylation for the two different real-time PCR platforms when using the IFU algorithm for calculating sample methylation percentages and a much narrower range of 4.5% to 4.6% methylation when using standard curve algorithms. The clinical site decided to use a 5% cutoff with standard curve algorithms which led to an overall agreement with the therascreen ® MGMT Kit results of 84%. This is in line with a recent study by Németh et al. also using a 5% methylation cutoff for the EpiDirect ® MGMT Assay and finding an overall agreement with pyrosequencing of 88.6% in IDH-wildtype glioblastoma samples 36.</p>
+<p>In cohort 2, which was based on fresh frozen samples and a pre-defined algorithm for calculating MGMT methylation, the optimal cutoff for the EpiDirect ® MGMT Assay (4.8% methylation) was also identical to the one for obtaining equal NPA and PPA values. The clinical site decided to use a cutoff of 7% in order to obtain 100% NPA which led to an overall agreement with therascreen ® MGMT Kit results of 91%.</p>
+<p>The relatively few patients where the two methods did not reach the same result (n=9 in the two cohorts combined) can in most cases be associated with differences in targeted CpG sites or to being borderline cases. Thus, two of the nine discrepant cases had a much higher methylated CpG 79, which is not targeted by the EpiDirect ® MGMT Assay, compared to the remaining three CpG sites as determined by the therascreen ® MGMT Kit. Furthermore, five of the nine cases can be considered borderline since three were 7.8%, 11.3%, and 13% methylated, respectively, with the therascreen ® MGMT Kit (10% cutoff), and two samples in Cohort 1 were 5.1% and 5.2% methylated, respectively, with the EpiDirect ® MGMT Assay (5% cutoff). The remaining two samples were clearly unmethylated with the EpiDirect ® MGMT Assay while being above but still relatively close to the methylation percentage threshold with the therascreen ® MGMT Kit (13.5% and 15.3% methylated, respectively).</p>
+<p>The second aim of this study was to investigate the correlation of EpiDirect ® MGMT Assay performance across real-time PCR systems and the impact of including a standard curve. In general, the correlation between data obtained with the QuantStudio™ 5 and BaseTyper™ 48.4 real-time PCR systems was very high. Using a standard curve for the quantitative analysis did not improve correlation between the two real-time PCR instruments when including all samples above the limit of detection but did improve correlation when only looking at samples with methylation percentages below 20%. The resulting slope of 0.97 shows that by using a standard curve, EpiDirect ® MGMT Assay data are essentially identical between the different real-time systems when evaluating samples with methylation percentages in the area of clinical relevance.</p>
+<p>In summary, this study validates the EpiDirect ® MGMT Methylation qPCR Assay, a rapid method for measuring MGMTp methylation directly from untreated DNA, against the established therascreen ® MGMT Pyro Kit in brain tumor samples. Across FFPE and fresh frozen cohorts, the EpiDirect ® MGMT Assay showed solid agreement with pyrosequencing (R² = 0.78-0.83), although it consistently reported lower methylation percentages. The results suggest that EpiDirect ® is a reliable and faster alternative to bisulfite-based MGMTp methylation testing for brain cancer diagnostics.</p>
+<p>and Zaineb Adel Kamel Ali Al-Jaberi and Maiken Sønder Zacho from the Department of Pathology, Rigshospitalet, Copenhagen, Denmark, for their valuable technical assistance and contributions to the validation work.</p>
+<p>® MGMT Assay Data analysis was performed according to the EpiDirect ® MGMT Methylation qPCR Assay IFU version 2.8 as well as the Methylated Human MGMT and MLH1 DNA Control Panel (ref. no. 5070) IFU version 1.0. Baselining was performed according to the manufacturer&#x27;s instructions, and the threshold was set in each run at 10% of the mean maximum relative fluorescence units (RFU) level of the positive control duplicate reactions a . For each sample and control, the Ct values for both the Methyl-specific Assay and the Internal Reference Assay were determined, and the delta Ct was calculated by subtracting the Ct value of the Internal Reference Assay from the Ct value of the Methyl-specific Assay (Equation 1): Delta Ct (ΔCt) = Ct(Methyl-specific assay) -Ct(Internal Reference assay) (Equation 1)</p>
+<p>ROC curves ROC curve analysis with Youden&#x27;s Index was performed using RStudio (2025.05.1 Build 513) with R version 4.5.1 to calculate the optimal EpiDirect ® MGMT Assay methylation percentage cutoff that corresponds to a 10% methylation cutoff used with the therascreen ® MGMT Kit as well as the EpiDirect ® MGMT Assay methylation percentage cutoff that leads to a similar negative (unmethylated) percent agreement (NPA) and positive (methylated) percent agreement (PPA) (Supplementary Data 1 and Supplementary Data 2).</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Cohort 1 MGMT promoter (MGMTp) methylation frequencies as determined by the EpiDirect ® MGMT Assay plotted against methylation frequencies of the same samples determined with the therascreen ® MGMT Kit. The EpiDirect ® MGMT Assay was used with the QuantStudio™ 5 (left) and the BaseTyper™ 48.4 real-time PCR systems (right). MGMTp methylation frequencies were calculated using the algorithms generated by including a standard curve in each run.</p>
+<h3>.Figure 4.</h3>
+<p>Figure 4. Correlation between MGMT promoter (MGMTp) methylation frequencies determined by the EpiDirect ® MGMT Assay when using the QuantStudio™ 5 and the BaseTyper™ 48.4 real-time PCR Systems in Cohort 1. Data are shown for MGMTp methylation frequencies calculated using the algorithms described in the EpiDirect ® MGMT Assay Instructions for Use (IFU) version 2.8 (left) and when including a standard curve in each run using the Methylated Human DNA Control panel (right). Samples below the limit of detection of the EpiDirect ® MGMT Assay are excluded. Calculating Corresponding Cutoff for the EpiDirect ® MGMT Assay A 10% average methylation cutoff across the four included CpG sites was used with the therascreen ® MGMT Kit for differentiating methylated samples from unmethylated samples clinically. To calculate the corresponding cutoff for the EpiDirect ® MGMT Assay, a receiver operating characteristic (ROC) curve analysis with Youden&#x27;s Index was performed (Supplementary Data 1). The resulting ROC curves and corresponding cutoffs for EpiDirect ® MGMT Assay are shown in Supplementary Figure 4, Table 1(QuantStudio™ 5) and Table 2 (BaseTyper™ 48.4). The ROC curve analysis found optimal corresponding cutoffs for the EpiDirect ® MGMT Assay between 5.9% and 8.2% methylation across instruments and analysis methods (Table1and Table2). In all cases, these cutoffs resulted in 100% negative percent agreements (NPA), while the positive percent agreements (PPA) were lower.</p>
+<h3>.Figure 5.</h3>
+<p>Figure 5. Correlation between determined methylation percentages of the MGMT promoter (MGMTp) by the EpiDirect ® MGMT Methylation qPCR Assay and the therascreen ® MGMT Kit in Cohort 1, including cutoffs as indicated. The EpiDirect ® MGMT Methylation qPCR Assay was used with the QuantStudio™ 5 Real-Time PCR System (left) and the BaseTyper™ 48.4 Real-Time PCR System (right). MGMTp methylation was calculated using the algorithm generated from including a standard curve in each run. Discrepant sample numbers are shown.</p>
+<h3>Figure 6.</h3>
+<p>Figure 6. Titration of DNA input using Cohort 1 samples 8, 13 and 18. Calculated MGMT promoter (MGMTp) methylation percentages as determined by the EpiDirect ® MGMT Assay using the QuantStudio™ 5 (left) and the BaseTyper™ 48.4 (right) Real-Time PCR System are depicted as a function of the amount of DNA input as measured by the Qubit Fluorometer (Qiagen). *Average methylation percentage of two qPCR runs. Within sample P value &gt; 0.21 using 1-way ANOVA.</p>
+<h3>.Figure 7.</h3>
+<p>Figure 7. Correlation between determined methylation percentages of the MGMT promoter (MGMTp) by the EpiDirect ® MGMT Assay using the QuantStudio™ 5 Real-Time PCR System and the therascreen ® MGMT Kit when using purified DNA from fresh frozen samples from Cohort 2. Left: Resulting trendline and linear regression analysis. Right: Illustration of applied cutoffs and discrepant cases excluding samples with methylation percentages above 40%.</p>
+<h3>Table 1.</h3>
+<p>Receiver operating characteristic (ROC) curve analysis of Cohort 1 results for determination of corresponding cutoff when comparing EpiDirect ® MGMT Methylation qPCR Assay results on the QuantStudio™ 5 Real-Time PCR System with the therascreen ® MGMT Kit. A cutoff of 10% methylation was used for the therascreen ® MGMT Kit. * With Youden&#x27;s index. PPA, positive percent agreement (methylated samples). NPA, negative percent agreement (unmethylated samples). OPA, overall percent agreement. AUC, Area Under the Curve.</p>
+<h3>Table 2.</h3>
+<p>Receiver operating characteristic (ROC) curve analysis of Cohort 1 results for determination of corresponding cutoff when comparing EpiDirect ® MGMT Methylation qPCR Assay results on the BaseTyper™ 48.4 Real-Time PCR System with the therascreen ® MGMT Kit. A cutoff of 10% methylation was used for the therascreen ® MGMT Kit. * With Youden&#x27;s index. PPA, positive percent agreement (methylated samples). NPA, negative percent agreement (unmethylated samples). OPA, overall percent agreement. AUC, Area Under the Curve.The clinical site decided to use a 5% methylation cutoff with the EpiDirect ® MGMT Assay and standard curve algorithms which leads to highly similar relative proportions of methylated vs. unmethylated samples when comparing EpiDirect ® MGMT Assay with therascreen ® MGMT Kit results (Table1and Table2). With standard curve-derived algorithms, this gave a PPA of 0.83 on both instruments, and an NPA of 0.93 and 0.85 on the QuantStudio™ 5 and BaseTyper™ 48.4, respectively. The corresponding 2x2 table is shown in Table3. Thus, 17 and 19 samples were found to be methylated with the EpiDirect ® MGMT Assay when using the QuantStudio™ 5 and BaseTyper™ 48.4 instrument, respectively, vs. 18 samples when using the therascreen ® MGMT Kit. Similarly, 28 and 26 samples were found to be unmethylated with the EpiDirect ® MGMT Assay on the two different qPCR instruments vs. 27 with the therascreen ® MGMT Kit.</p>
+<h3>References</h3>
+<p>Masood, S., Shaikh, A., and Brar, Y. (2025). Evaluating Molecular and Immune Biomarkers in Predicting Bladder Cancer Recurrence and Survival: A Systematic Review. Cureus. https://doi.org/10.7759/cureus.96824.</p>
+<p>Xie, J., and Soleimani Samarkhazan, H. (2025). Beyond the DNA sequence: mapping the dynamic epigenetic landscape for risk stratification and therapeutic intervention in acute myeloid leukemia. Preprint, https://doi.org/10.1007/s10238-025- 01972-w https://doi.org/10.1007/s10238-025-01972-w.</p>
+<p>Ma, C., Cheng, J., Gu, J., and Wang, Q. (2025). Epigenetic drugs in cancer therapy: mechanisms, immune modulation, and therapeutic applications. Molecular Biomedicine 6, 132. https://doi.org/10.1186/s43556-025-00373-5.</p>
+<p>Belanich, M., Pastor. M, Randall, T., Guerra, D., Kibitel, J., Alas, L., Li, B., Citron, M., Wasserman, P., White, A., et al. (1996). Retrospective study of the correlation between the DNA repair protein alkyltransferease and survival of brain tumor patients treated with carmustine. Cancer Res. 56, 783-788.</p>
+<p>Jaeckle, K.A., Eyre, H.J., Towsend, J.J., Schulman, S., Knudson, H.M., Belanich, M., Yarosh, D.B., Bearman, S.I., Giroux, D.J., and Schold, S.C. (1998). Correlation of tumor O6 methylguanine-DNA methyltransferase levels with survival of malignant astrocytoma patients treated with bis-chloroethylnitrosurea: a Southwest Oncology Group study. Journal of Clinical Oncology 16, 3310-3315.</p>
+<p>Friedman, H.S., McLendon, R.E., Kerby, T., Dugan, M., Bigner, S.H., Henry, A.J., Ashley, D.M., Krischer, J., Lowell, S., Rasheed, K., et al. (1998). DNA mismatch repair and O6-alkylguanine-DNA alkyltransferase analysis and response to Temodal in newly diagnosed malignant glioma. Journal of Clinical Oncology 16, 3851-3857.</p>
+<p>Hegi, M.E., Diserens, A.-C., Godard, S., Dietrich, P.-Y., Regli, L., Ostermann, S., Otten, P., Melle, G. Van, Tribolet, N. de, and Stupp, R. (2004). Clinical Trial Substanciates the Predictive Value of O-6-Methylguanine-DNA Methyltransferase Prmooter Methylation in Glioblastoma PAtients Treated with Temozolomide. Clinical Cancer Research 10, 1871-1874.</p>
+<p>Esteller, M., Garcia-Foncillas, J., Andion, E., Goodman, S.N., Hidalgo, O.F., Vanaclocha, V., Baylin, S.B., and Herman, J.G. (2000). Inactivation of the DNA-Repair Gene MGMT and the Clinical Response of Gliomas to Alkylating Agents. N. Engl. J. Med. 343, 1350-1354.</p>
+<p>Stupp, R., Mason, W.P., van den Bent, M.J., Weller, M., Fischer, B., Taphoorn, M.J.B., Belanger, K., Brandes, A.A., Marosi, C., Bogdahn, U., et al. (2005). Radiotherapy plus concomitant and adjuvant temozolomide for glioblastoma. N. Engl. J. Med. 325, 987-996.</p>
+<p>Gilbert, M.R., Wang, M., Aldape, K.D., Stupp, R., Hegi, M.E., Jaeckle, K.A., Armstrong, T.S., Wefel, J.S., Won, M., Blumenthal, D.T., et al. (2013). Dose-dense temozolomide for newly diagnosed glioblastoma: A randomized phase III clinical trial. Journal of Clinical Oncology 31, 4085-4091. https://doi.org/10.1200/JCO.2013.49.6968.</p>
+<p>Paz, M.F., Yaya-Tur, R., Rojas-Marcos, I., Reynes, G., Pollan, M., Aguirre-Cruz, L., García-Lopez, J.L., Piquer, J., Safont, M.J., Balaña, C., et al. (2004). CpG island hypermethylation of the DNA repair enzyme methyltransferase predicts response to temozolomide in primary gliomas. Clin. Cancer Res. 10, 4933-4938. https://doi.org/10.1158/1078-0432.CCR-04-0392.</p>
+<p>Hegi, M.E., Diserens, A.-C., Gorlia, T., Hamou, M.-F., Tribolet, N. de, Weller, M., Kros, J.M., Hainfeller, J.A., Mason, W., Mariani, L., et al. (2005). MGMT Gene Silencing and Benefit from Temozolomide in Glioblastoma. N. Engl. J. Med. 352, 997- 1003.</p>
+<p>Perry, J.R., Laperriere, N., O&#x27;Callaghan, C.J., Brandes, A.A., Menten, J., Phillips, C., Fay, M., Nishikawa, R., Cairncross, J.G., Roa, W., et al. (2017). Short-Course Radiation plus Temozolomide in Elderly Patients with Glioblastoma. N. Engl. J. Med. 376, 1027-1037. https://doi.org/10.1056/NEJMOA1611977.</p>
+<p>Dunn, J., Baborie, A., Alam, F., Joyce, K., Moxham, M., Sibson, R., Crooks, D., Husband, D., Shenoy, A., Brodbelt, A., et al. (2009). Extent of MGMT promoter methylation correlates with outcome in glioblastomas given temozolomide and radiotherapy. Br. J. Cancer 101, 124-131. https://doi.org/10.1038/SJ.BJC.6605127.</p>
+<p>Siller, S., Lauseker, M., Karschnia, P., Niyazi, M., Eigenbrod, S., Giese, A., and Tonn, J.C. (2021). The number of methylated CpG sites within the MGMT promoter region linearly correlates with outcome in glioblastoma receiving alkylating agents. Acta Neuropathol. Commun. 9, 35. https://doi.org/10.1186/S40478-021-01134-5.</p>
+<p>Stupp, R., Brada, M., van den Bent, M.J., Tonn, J.C., and Pentheroudakis, G. (2014). High-grade glioma: ESMO clinical practice guidelines for diagnosis, treatment and follow-up. Annals of Oncology 25, 93-101. https://doi.org/10.1093/annonc/mdu050.</p>
+<p>Burt Nabors, L., Portnow, J., Bhatia, A., Bloch, O., Brem, S., Butowski, N., Cannon, D.M., Chao, S.T., Chheda, M.G., Fabiano, A.J., et al. (2025). NCCN Clinical Practice Guidelines in Oncology (NCCN Guidelines®) -Central Nervous System Cancers Version 3.2025.</p>
+<p>Bienkowski, M., Berghoff, A.S., Marosi, C., Wöhrer, A., Heinzl, H., Hainfellner, J.A., and Preusser, M. (2015). Clinical Neuropathology practice guide 5-2015: MGMT methylation pyrosequencing in glioblastoma: unresolved issues and open questions. Clin. Neuropathol. 34, 250-257. https://doi.org/10.5414/NP300904.</p>
+<p>Malley, D.S., Hamoudi, R.A., Kocialkowski, S., Pearson, D.M., Collins, V.P., and Ichimura, K. (2011). A distinct region of the MGMT CpG island critical for transcriptional regulation is preferentially methylated in glioblastoma cells and xenografts. Acta Neuropathol. 121, 651-661.</p>
+<p>Nakagawachi, T., Soejima, H., Urano, T., Zhao, W., Higashimoto, K., Satoh, Y., Matsukura, S., Kudo, S., Kitajima, Y., Harada, H., et al. (2003). Silencing effect of CpG island hypermethylation and histone modifications on O6-methylguanine-DNA methyltransferase (MGMT) gene expression in human cancer. Oncogene 22, 8835-8844. https://doi.org/10.1038/SJ.ONC.1207183.</p>
+<p>Shah, N., Lin, B., Sibenaller, Z., Ryken, T., Lee, H., Yoon, J.G., Rostad, S., and Foltz, G. (2011). Comprehensive analysis of MGMT promoter methylation: correlation with MGMT expression and clinical response in GBM. PLoS One 6. https://doi.org/10.1371/JOURNAL.PONE.0016146.</p>
+<p>Leske, H., Camenisch Gross, U., Hofer, S., Neidert, M.C., Leske, S., Weller, M., Lehnick, D., and Rushing, E.J. (2023). MGMT methylation pattern of long-term and short-term survivors of glioblastoma reveals CpGs of the enhancer region to be of high prognostic value. Acta Neuropathol. Commun. 11. https://doi.org/10.1186/S40478-023-01622-W.</p>
+<p>Herman, J.G., Graff, J.R., Myöhänen, S., Nelkin, B.D., and Baylin, S.B. (1996). Methylation-specific PCR: a novel PCR assay for methylation status of CpG islands. Proc. Natl. Acad. Sci. U. S. A. 93, 9821-9826. https://doi.org/10.1073/PNAS.93.18.9821.</p>
+<p>Colella, S., Shen, L., Baggerly, K.A., Issa, J.P.J., and Krahe, R. (2003). Sensitive and quantitative universal Pyrosequencing methylation analysis of CpG sites. Biotechniques 35, 146-150. https://doi.org/10.2144/03351MD01.</p>
+<p>Nygren, A.O.H., Ameziane, N., Duarte, H.M.B., Vijzelaar, R.N.C.P., Waisfisz, Q., Hess, C.J., Schouten, J.P., and Errami, A. (2005). Methylation-Specific MLPA (MS-MLPA): Simultaneous detection of CpG methylation and copy number changes of up to 40 sequences. Nucleic Acids Res. 33, 1-9. https://doi.org/10.1093/nar/gni127.</p>
+<p>Halldorsson, S., Nagymihaly, R.M., Patel, A., Brandal, P., Panagopoulos, I., Leske, H., Lund-Iversen, M., Sahm, F., and Vik-Mo, E.O. (2024). Accurate and comprehensive evaluation of O6-methylguanine-DNA methyltransferase promoter methylation by nanopore sequencing. Neuropathol. Appl. Neurobiol. 50. https://doi.org/10.1111/nan.12984.</p>
+<p>Olova, N., Krueger, F., Andrews, S., Oxley, D., Berrens, R. V., Branco, M.R., and Reik, W. (2018). Comparison of whole- genome bisulfite sequencing library preparation strategies identifies sources of biases affecting DNA methylation data. Genome Biol. 19. https://doi.org/10.1186/S13059-018-1408-2.</p>
+<p>Bendixen, K.K., Mindegaard, M., Epistolio, S., Dazio, G., Marchi, F., Spina, P., Arnspang, E.C., Soerensen, M., Christensen, U.B., Frattini, M., et al. (2023). A qPCR technology for direct quantification of methylation in untreated DNA. Nat. Commun. 14. https://doi.org/10.1038/S41467-023-40873-Y.</p>
+<p>Christensen, U.B., and Pedersen, E.B. (2002). Intercalating nucleic acids containing insertions of 1-O -(1- pyrenylmethyl)glycerol: stabilisation of dsDNA and discrimination of DNA over RNA. Nucleic Acids Res. 30, 4918-4925. https://doi.org/10.1093/NAR/GKF624.</p>
+<p>Christensen, U.B., Wamberg, M., El-Essawy, F.A.G., Ismail, A.E.H., Nielsen, C.B., Filichev, V. V., Jessen, C.H., Petersen, M., and Pedersen, E.B. (2004). Intercalating Nucleic Acids: The Influence of Linker Length and Intercalator Type on Their Duplex Stabilities. Nucleosides Nucleotides Nucleic Acids 23, 207-225. https://doi.org/10.1081/NCN-120027829.</p>
+<p>Nielsen, C.B., Petersen, M., Pedersen, E.B., Hansen, P.E., and Christensen, U.B. (2004). NMR Structure Determination of a Modified DNA Oligonucleotide Containing a New Intercalating Nucleic Acid. Bioconjug. Chem. 15, 260-269.</p>
+<p>Christensen, U.B., and Pedersen, E.B. (2003). Intercalating Nucleic Acids with pyrene nucleotide analogues as next-nearest neihbours for excimer fluorescence detection of single point mutations under nonstringent hybridisation conditions. Helv. Chim. Acta 86, 2090-2097.</p>
+<p>Richard, S., Tachon, G., Milin, S., Wager, M., and Karayan-Tapon, L. (2020). Dual MGMT inactivation by promoter hypermethylation and loss of the long arm of chromosome 10 in glioblastoma. Cancer Med. 9, 6344-6353. https://doi.org/10.1002/cam4.3217.</p>
+<p>Skarin, N., Hallbeck, M., Werlenius, K., Rohan, Z., Sandström, M., Turanyi, E., Löfgren, D., Johansson, H., Strandéus, M., Tavelin, B., et al. (2026). MGMT promoter methylation status for glioblastoma: defining the clinically relevant cut-off value for pyrosequencing. J. Neurooncol. 178. https://doi.org/10.1007/s11060-026-05633-0.</p>
+<p>Quillien, V., Lavenu, A., Ducray, F., Meyronet, D., Chinot, O., Fina, F., Sanson, M., Carpentier, C., Karayan-Tapon, L., Rivet, P., et al. (2017). Clinical validation of the CE-IVD marked Therascreen MGMT kit in a cohort of glioblastoma patients. Cancer Biomarkers 20, 435-441. https://doi.org/10.3233/CBM-170191.</p>
+<p>Németh, A., Selignow, C., May, A., Schmid, K., Dohmen, H., Stein, M., Trautner, J., Haag, D., Sahm, F., and Acker, T. (2026). EpiDirect enables rapid bisulfite-free MGMT promoter methylation testing in IDH-wildtype glioblastoma with high agreement across established assays. Neurooncol. Adv. 8, vdag255. https://doi.org/10.1093/NOAJNL/VDAG255.</p>
 </div>
 </details>
 </div>
