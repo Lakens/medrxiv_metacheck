@@ -196,7 +196,7 @@ Use of AI-Related CPT Codes by Patient, Geographic, and Payer
 Characteristics in the U.S., 2021-2026
 </p>
 <p class="meta">
-2026-11-12 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.09.26367689
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367689
 </p>
 </header>
 <div class="mc-main">
@@ -318,8 +318,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -671,9 +674,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -695,7 +702,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -710,9 +718,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -725,13 +751,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -751,6 +780,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -758,12 +793,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -864,6 +905,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -883,6 +944,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1138,19 +1234,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1260,6 +1438,97 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>How has billed use of artificial intelligence (AI)-related CPT codes changed nationally since 2021, and how does use differ by patient, geographic, and payer characteristics?</p>
+<p>Findings: In this cross-sectional study of 11.6 billion US encounters, 2.9 per 100,000 included an AI-required CPT code. Odds of use were nearly 10 times higher in 2025 than in 2021, higher among Medicare beneficiaries, and lower among Medicaid enrollees and residents of socially vulnerable areas.</p>
+<p>Meaning: Billed AI use remains rare and uneven across payers and communities, so payment policy for AI may need to be paired with monitoring of who receives AI-enabled care.</p>
+<h3>INTRODUCTION</h3>
+<p>National adoption of clinical artificial intelligence (AI) tools spans applications in screening, diagnosis, treatment, risk stratification, and workflow automation. 1 Uptake of clinical AI has previously been characterized through a combination of public and proprietary claims databases and health system surveys. [1] [2] [3] These studies have collectively found imaging and radiology applications to be the most mature area of clinical adoption among health systems, with AI devices assessing coronary artery disease and diabetic retinopathy generating the highest number of claims. AI-related claims are an increasing source of revenue for health systems, with nearly 50% of radiology AI claims to Medicare reimbursed between 2018 and 2023 with year-over-year growth. 2 Since then, the number of FDA- approved AI medical devices has nearly doubled from 726 to 1544, 4 with 23 new AI-related CPT codes becoming available. 5 Recent policy changes have also driven the availability of autonomous AI, with AI- driven fractional flow reserve (FFR) calculation becoming the first software-as-a-service CPT code in 2024, 6 and diabetic retinopathy becoming a HEDIS measure alongside the availability of autonomous AI tools that can fulfill this measure. 7 While this growth is widely recognized, less is understood about the use of clinical AI CPT codes in realworld practice at a national level, and their patterns of diffusion after new CPT codes become available.</p>
+<p>Prior work suggests that adoption has been uneven. Health systems have been slow to implement AI tools due to concerns around clinical or financial value, 8 and lack of reimbursement has further limited uptake despite widespread technical availability. 9 The presence of geographic disparities in AI readiness and implementation capacity may also limit use, with metropolitan areas having higher rates of adoption as compared to rural settings. 10  Monitoring the reach of these initiatives requires a mechanism to monitor AI adoption nationally and throughout our communities. In this study, we describe national use of AI-related CPT codes from 2021 to 2026 and how use differs by age, sex, race, ethnicity, rurality, area-level social vulnerability, region, and payer. We also describe how use changed after codes became payable or tied to quality measures, and how quickly new codes reached rural areas.</p>
+<h3>METHODS</h3>
+<p>This study follows the Strengthening the Reporting of Observational Studies in Epidemiology (STROBE) reporting guidelines for cross-sectional studies. The University of California San Diego Institutional Review Board determined that this study was not human subjects research because it used deidentified limited data.</p>
+<h3>Data Source and Inclusion Criteria</h3>
+<p>Data used in this study came from Epic Cosmos, a deidentified dataset created in collaboration with a community of health systems using the Epic electronic health record, representing more than 300 million patient records from over 2067 hospitals and 47,100 clinics as of May 2026. All analyses used data from patients in the United States.</p>
+<p>We included encounters from January 1, 2021 through April 14, 2026. We queried from the patient and encounter data models. Of the 88 AI-associated CPT codes we identified, 65 appeared in Cosmos and formed the basis of our analysis.</p>
+<p>Billed procedures were extracted along with a set of variables chosen to capture demographic, geographic, and socioeconomic variation: age, race, ethnicity, rural-urban commuting area designation, social vulnerability index percentile, census region, state of residence, and primary payer financial class.</p>
+<h3>Creating a Comprehensive Database of CPT Codes</h3>
+<p>To build a list of CPT codes associated with AI, we used a multi-step approach. We defined an AI-related CPT code as a code whose descriptor or associated FDA-listed device uses an algorithm that analyzes clinical data to produce an output beyond a summation of the input, consistent with the CPT Appendix S taxonomy. We searched the CPT code book for terms that frequently appear in AI-related billing: &quot;autonomous&quot;, &quot;augmentative&quot;, &quot;assistive&quot;, &quot;automated&quot;, &quot;automatic&quot;, &quot;algorithmic&quot;, and &quot;algorithm&quot;. We also compiled descriptors of all 1,544 FDA 510(k) devices building on prior work 16 , filtered to AI- enabled devices, and matched each to its most plausible CPT code through researching the CPT code book, vendor materials, and literature reviews. Each pair was reviewed by two authors, with differences adjudicated by a third author. Large language model-based queries were used to identify additional candidates. Because emerging technologies are often assigned a temporary Category III code prior to a permanent Category I code, the same procedure can be represented by multiple CPT codes over time; we grouped such codes with their successors. For instance, 0502T and 75580 represent the same procedure across different timeframes and were combined in our data.</p>
+<p>We also evaluated 32 CPT codes from Wu et al. and 23 CPT codes from Zhang et al. for inclusion. 2,17 In total, this process produced 88 AI CPT codes. Of these, 51 required the use of AI (primary analysis) and 37 were AI-optional (included in sensitivity analysis). AI-optional codes were ones without AI use described or alluded to in their definition in the CPT code book and have known associations with products that do and do not use AI. The complete listing of AI CPT codes is in eTable 1.</p>
+<p>clinically relevant data without generating an interpretation or providing conclusions. Augmentative AI refers to software that analyzes or quantifies data to produce a clinically meaningful output that represents more than a summation of the source data. Autonomous AI refers to software that independently generates clinically meaningful interpretations, with degrees of automation ranging from providing recommendations (Level I) to initiating management actions (Level III). 5</p>
+<h3>Diffusion of AI from Urban to Rural Areas</h3>
+<p>For a subset of AI CPT codes that were new and grew in use within the study&#x27;s timeframe, adoption was visually assessed over time and across RUCA scores to characterize how usage of the CPT code diffused from urban to rural areas indexed to the availability of the code. This analysis was descriptive. These CPT codes were: 92229 for automated retinopathy screening, 0865T-0866T for quantitative MRI of the brain, 0623T-0626T for plaque analysis on coronary CTA, 0932T for heart failure detection on echocardiogram.</p>
+<h3>Statistical Analyses</h3>
+<p>Because the aim was descriptive, we report unadjusted odds ratios. Differences across groups reflect both clinical need for the underlying services and access to them. Because the outcome was rare, odds ratios closely approximate relative risks. Unadjusted odds ratios were used to compare the likelihood of AI use across demographic categories, with 95% confidence intervals calculated using the Wald method.</p>
+<p>Analyses were performed at the patient level, with demographic categories compared against the outcome of patient exposure to any CPT code indicative of AI use during any encounter. Patients were counted multiple times if they had multiple encounters across different variables, e.g. age/year, insurance payer, or moving to a different region of the U.</p>
+<h3>Sensitivity Analysis</h3>
+<p>In addition to recently introduced CPT codes that are definitive indicators of AI use, there are a set of older CPT codes for which AI technology has subsequently become available or more accurate (for example, computer-aided mammography). Use of these CPT codes may indicate AI use but is not definitive. We refer to these codes as &quot;AI-optional&quot; since the use of AI within these codes is optional. As a sensitivity analysis, we repeated our primary analysis with these AI-optional codes included.</p>
+<h3>Software</h3>
+<p>All analyses were conducted in R version 4.5.1. Data visualization was done using ggplot2 in R. An interactive Health AI Adoption Tracker is available online at https://health-ai-adoption-tracker.web.app/review.</p>
+<h3>RESULTS</h3>
+<p>Of 233,628,292 patients and 11,605,867,309 encounters between January 1, 2021 and April 14, 2026, there were 335,349 encounters that involved an AI CPT code (2.9 per 100,000 encounters) among 284,501 patients (0.12% of patients). Among patients that had encountered an AI CPT code, most were between 50 and 75 years old (67%), male (54%), white (62%), not Hispanic or Latino (79%), and live in the most urban RUCA (75%). Medicare or Medicare Advantage was the most common group of insurance among patients receiving an AI-required CPT code, representing 42% of the cohort (Table 1).</p>
+<p>Table 1. Demographic breakdown of all patients with an AI-required CPT code from 1/1/2021 to 4/14/2026 (n = 284501). For certain variables, one patient could be counted multiple times. For example, if their primary payer changed within the timeframe, if they had multiple AI-required services at different ages, or if they reported multiple races.</p>
+<p>Characteristic Value AI-required CPT code use Age (years) &lt;18 605 (0.21%) [18, 30) 3295 (1.15%) [30, 40) 8862 (3.11%) [40, 50) 22837 (8%) [50, 65) 94484 (33.11%) [65, 75) 96269 (33.74%) [75, 85) 51213 (17.95%) ≥85 7800 (2.73%) No value 0 (0%) Sex Female 129974 (45.68%) Male 152293 (53.53%) None of the above 2234 (0.79%) Race American Indian or Alaska Native 2932 (0.91%) Asian 11711 (3.62%) Black or African American 32879 (10.16%) Native Hawaiian or Other Pacific Islander 1225 (0.38%) Other Race 40082 (12.38%) White 199412 (61.6%) None of the above 35477 (10.96%) Ethnicity Hispanic or Latino 17346 (6.1%) Not Hispanic or Latino 225516 (79.27%) None of the above 41639 (14.64%) US census region Midwest 78411 (27.56%) Northeast 50658 (17.81%) South 125353 (44.06%) West 29936 (10.52%) None of the above 143 (0.05%) Characteristic Value AI-required CPT code use 2-3 Metropolitan commuting 28445 (10%) 4-6 Micropolitan 22586 (7.94%) 7-9 Small town 10630 (3.74%) 10 Rural areas 5961 (2.1%) None of the above 2432 (0.85%) SVI &lt;25% 63882 (22.45%) [25%, 50%) 49642 (17.45%) [50%, 75%) 40869 (14.37%) ≥75% 32611 (11.46%) No value 97497 (34.27%) Primary payer Commercial 151980 (33.16%) Medicaid 58178 (12.69%) Medicare 110420 (24.09%) Medicare Advantage 83743 (18.27%) VA/Tricare 6469 (1.41%) Other 47557 (14.33%) Year 2021 13301 (4.54%) 2022 19436 (6.64%) 2023 31832 (10.87%) 2024 58088 (19.84%) 2025 122287 (41.77%) 2026 (to April 14) 47806 (16.33%)</p>
+<p>Overall, use of AI has increased nationally between 2021 and 2026 (Figure 1). The odds of an encounter with an AI-required code were 9.88 (95% CI, 9.71-10.06) times higher in 2025 than in 2021 (Figure 2).</p>
+<p>The increase reflected growth in assistive, augmentative, and autonomous AI codes, and several increases followed payment or quality measure changes (Figure 3). For example, use of AI for retinopathy screening (CPT 92229) began to increase after changes to the Healthcare Effectiveness Data and Information Set (HEDIS) diabetic eye exam measure requiring explicit result, retiring the hybrid collection method as of measurement year 2025. A handful of category III codes, generally considered experimental, have transitioned to the more permanent Category I codes. There remain many AI codes that have near-zero usage, such as 0740T for autonomous algorithm-based insulin dose calculation. Figure 3. Proportion of encounters per million, per month, that included an AI-related CPT code in the Cosmos data set from 1/1/2021 to 3/30/2026. This plot excludes AI-optional CPT codes 85027, 95027, 77067, 88175, 92083, 93356 (with 0399T), 77280 (with 77285 and 77290), and 92227-92228 for complete blood counts with and without differentials, screening mammography, pap smear, visual field exams, myocardial strain imaging, therapeutic radiology simulation-aided field setting, and non-automated retinal imaging respectively, given their much greater scale. CPT 75580 (which is grouped with preceding codes 0501T-0504T) is used for coronary fractional flow reserve estimation from computed tomography angiography. CPT code 92229 is used for automated retinopathy screening. CPT code 0866T is used for quantitative MRI brain analyses. CPT code 0932T is used for heart failure detection on echocardiogram. Factors Associated with AI Adoption Associations between demographic factors and AI adoption are described in Figure 2. Age. With age [50, 65) as a reference, the highest AI adoption was among those aged [75, 85) (OR 1.85; 95% CI 1.83-1.87) and [65, 75) (OR 1.81; 95% CI 1.79-1.82), while the lowest adoption was among people under the age of 50 and people aged 85 and older. Sex. Males had higher odds of AI use than females (OR 1.09; 95% CI 1.08-1.10). Race and ethnicity. Non-White race was associated with a lower use of AI, including American Indian or Alaska Natives (OR 0.87), Asian (OR 0.75), Black or African Americans (OR 0.72), and Hawaiian/Pacific Islanders (OR 0.59). Hispanic or Latino ethnicity was also associated with lower use of AI (OR 0.34).</p>
+<p>Region and rurality. As compared to the Midwest, all regions had a lower use of AI, including the West (OR 0.37), Northeast (OR 0.76), and South (OR 0.91). As compared to metropolitan areas, metropolitan 0 commuting (OR 1.24), micropolitan (OR 1.09), and small town (OR 1.07) areas saw a higher use of AI, whereas rural areas saw a lower use of AI (OR 0.86).</p>
+<p>Social vulnerability. Compared with residents of the least socially vulnerable areas (SVI &lt;25%), residents of more vulnerable areas had lower use of AI, most pronounced in the most vulnerable areas (SVI ≥75%; OR, 0.53).</p>
+<p>Primary payer. As compared to commercial insurance, Medicare (OR 5.11) and Medicare Advantage (OR 5.12) had higher use of AI, whereas Medicaid (OR 0.65),VA/Tricare (OR 0.91), and other insurance (OR 0.18) were associated with lower use of AI.</p>
+<h3>Diffusion of AI from Urban to Rural Areas</h3>
+<p>Looking at highly used CPT codes reveals patterns of diffusion from the most urban to the most rural areas (Figure 4). In the case of older codes, such as automated retinopathy and plaque analysis on coronary CT angiogram, the codes were used in primarily urban areas for years until recent use in rural areas. On the other hand, the CPT code quantitative MRI brain was introduced in January of 2024, with the code seeing use in rural areas within months. In the case of heart failure on echocardiogram, its use of the code in rural, small town, and micropolitan areas is disproportionately high as compared to overall encounters.</p>
+<h3>Sensitivity Analysis</h3>
+<p>Inclusion of AI-optional CPT codes expanded the outcome of AI CPT use to 472,807,750 encounters representing 112,435,216 patients. The latter showed similar patterns across most variables, but with reduced magnitudes (eFigure 1). Notable differences were that males had lower odds of encountering an AI-required or AI-optional CPT code (OR 0.64), and certain racial minorities had higher odds of encountering these codes, including Black or African American patients (OR 1.06), American Indian or Alaska Native (OR 1.10), and Native Hawaiian or other Pacific Islander (OR 1.14). Higher SVI remained associated with lower use of AI, whereas rural areas had a higher use of AI-optional codes as compared with metropolitan areas.</p>
+<h3>DISCUSSION</h3>
+<p>In this national analysis of AI CPT code use, we found that the use of assistive, augmentative, and autonomous AI in healthcare has risen since 2021. We found several social and geographic variables associated with the use of AI and lower use of AI among those with the highest SVI and those in the most rural (RUCA 10) areas. In contrast to prior work, 10 use of several AI codes reached rural areas over time (Figure 4), although the lag ranged from a few months to several years after a code became effective.</p>
+<p>Lower use in the most socially vulnerable patients, however, persisted.</p>
+<p>Our findings are consistent with the payment pathway affecting whether, and for whom, an AI service is used. Many Category III AI codes had near-zero use, such as 0740T for autonomous insulin dose calculation. This is consistent with how those codes are paid: contractor-specific pricing and frequent commercial noncoverage give clinicians little reason to adopt a tool. Yet moving to Category I requires evidence of widespread use, so an AI tool cannot show broad use without payment and cannot get predictable payment without broad use. The largest increases in use coincided with a service becoming both paid and measured. FFR-CT use appeared to increase after Category I conversion (Figure 3).</p>
+<p>Autonomous retinopathy screening grew only modestly under national payment, then more than doubled within a year after a HEDIS quality measure created demand from health plans (Figure 3).</p>
+<p>Even Category I payment remains unsettled, because the fee schedule&#x27;s practice expense method was not built for software bought by subscription or per use, and CMS has asked for comment on a consistent payment approach across care settings. 18,19 The proposed &quot;software as a medical service&quot; policy would place outpatient AI in New Technology APCs while CMS develops a permanent method. 14 Pairing that interim payment with requirements to report outcomes could help promising Category III services build the evidence they need for permanent valuation. Payment pathways outside the CPT system raise separate concerns about access and measurement. NTAPs apply only to hospitals paid under the inpatient prospective payment system. Critical access hospitals, which Medicare pays on the basis of reasonable cost, are excluded. 20,21 Recent AI NTAPs have also been much smaller than the first one, at $241.39 per case in fiscal year 2025 and $137.53 in fiscal year 2027.21,22 Once the alternative pathway ends, AI developers will have to show substantial clinical improvement to qualify. Wong and colleagues warn that this change will affect US clinical AI innovation, and it may narrow the main inpatient payment route for AI just as more tools reach the market. 13 ACCESS moves in a different direction: it pays for outcomes that algorithms may help achieve rather than for the algorithms themselves. 15 This design may discourage low-value use, but it carries equity risks. Organizations may favor patients who are most likely to meet targets. The model initially covers only Original Medicare, so it excludes Medicaid enrollees, who in our data already had lower AI use. Neither inpatient AI paid through NTAPs nor AI funded through ACCESS shows up in CPT-based data. Public reporting of AI use within these pathways, broken down by patient and community characteristics, would be needed to tell whether new payment policies are narrowing or widening gaps in access. Our report has limitations. Our study includes only patients in Epic&#x27;s Cosmos, which may overrepresent larger health systems and miss patients who receive care in a setting with a different electronic health record or those who did not receive care. The Cosmos data set included 65 of 88 identified AI-related CPT codes, which could indicate that certain codes were not used or were not present in the data. We found variable levels of data missingness; for example, 34% of patients do not have an SVI, 11% do not have a race documented, 15% do not have ethnicity documented (Table 1). Comparisons were unadjusted, so differences by age, payer, and region partly reflect clinical need for the underlying services, and Medicare differences partly reflect age. We did not distinguish care settings, so we cannot separate inpatient, outpatient, and ambulatory surgery use, which are paid through different pathways.</p>
+<p>Temporal associations with payment and quality measure changes do not establish that those changes caused the increases. Lastly, AI CPT codes are merely a proxy for overall AI use and may overrepresent higher-risk use cases (e.g., autonomous AI) with separate billing mechanisms.</p>
+<p>Billed use of AI-enabled services in the U.S. is growing quickly from a very low base and remains uneven across payers and communities. As payment for AI moves toward new pathways, including softwarespecific payment and outcome-based models such as ACCESS, monitoring use by patient and community characteristics will help show whether these policies widen or narrow gaps in access.</p>
+<h3>ACKNOWLEDGEMENTS</h3>
+<p>The authors thank Hanyang Li and Xiao He, for generating the FDA device descriptors that helped us in capturing AI-related CPT codes more completely. The authors also thank Phil Lindeman and the Epic Cosmos team for helping to establish our data queries and for building the Cosmos database for research. AI-related tools used to supplement our CPT code database were Anthropic&#x27;s Claude Sonnet 4.6, OpenAI&#x27;s ChatGPT 5.3, and Google&#x27;s Gemini 3 Flash, from February 2026 through April 2026.</p>
+<p>Anthropic&#x27;s Claude Opus 5.5 was used to edit the manuscript in October 2026. The authors take responsibility for the integrity of the content generated.</p>
+<p>Active since 1/1/2021 Active since 1/1/2018 Active since 1/1/2024</p>
+<p>Federal policy now targets this gap. The Rural Health Transformation Program, launched in 2026, directs $50 billion through the Centers for Medicare &amp; Medicaid Services (CMS) to rural health care, including technology adoption. Whether new AI services reach rural patients, and how quickly, is therefore a policy-relevant question. 11 Most AI services enter CPT as temporary Category III codes. These codes carry no national relative value units, are priced by individual Medicare Administrative Contractors, and are often not covered by commercial payers 12 . Only after showing widespread use and clinical efficacy can a service move to a permanent Category I code with national payment under the Medicare Physician Fee Schedule. Hospitals are paid differently. Inpatient AI can receive a new technology add-on payment (NTAP) on top of diagnosis-related group payments 13 . Outpatient services can be placed in New Technology Ambulatory Payment Classifications, and CMS has proposed handling algorithm-based services as a separate category called &quot;software as a medical service&quot; 14 . Most recently, the CMS ACCESS Model, which began in July 2026, pays organizations for technology-enabled chronic care on the basis of patient outcomes rather than individual services. 15 Several of these pathways are changing at once. CMS will end the NTAP alternative pathway for breakthrough devices beginning with fiscal year 2028 applications, a change expected to affect US clinical AI innovation. 13,14</p>
+<p>S. Reference groups were: age 50 to 65 years, female, White race, Not Hispanic or Latino, Midwest US census region, rural-urban commuting area (RUCA) of 1 Metropolitan area core, social vulnerability index (SVI) &lt;25%, and commercial primary payer. Social vulnerability was measured with the CDC SVI for the patient&#x27;s area of residence by census tract. Data visualizations over time accounted for the overall increasing number of encounters captured in Cosmos by showing proportions rather than raw counts. Missing data were excluded from analyses involving the variable in question.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Heat map of the continental United States showing state-level encounters per capita (per 100,000 residents that have a record in Cosmos) that included an AI CPT code by year.</p>
+<h3>Figure 2 .Figure 3.</h3>
+<p>Figure2. Odds ratios by demographic factors comparing patients with any encounter involving an AI-required CPT code versus no recorded AI use. Odds ratios &gt; 1 are indicative of greater AI use. Patients were counted multiple times in these analyses if they had multiple encounters across different variables, e.g. age/year, insurance payer, or moving to a different region of the U.S. t</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Breakdown of encounters that use a given AI-related CPT code per month by RUCA. Plots either begin at the start of our data on 1/1/2021 or the date that the CPT code became effective.</p>
+<p>All encounters Encounters using AI-required CPT codes Encounters with automated retinopathy screening (92229) Encounters with heart failure detection on echocardiogram (0932T) Encounters with quantitative MRI brain (0865T-0866T) Encounters with plaque analysis on coronary CTA (0623T-0626T)</p>
+<h3>References</h3>
+<p>Poon EG, Lemak CH, Rojas JC, Guptill J, Classen D. Adoption of artificial intelligence in healthcare: survey of health system priorities, successes, and challenges. J Am Med Inform Assoc 2025;32(7):1093-100.</p>
+<p>Zhang E, Dang M, Joo JH, Lin C-CC, Liao JM. National Adoption of Artificial Intelligence Software in Medicare Among Radiologists. J Am Coll Radiol 2026;23(3):430-3.</p>
+<p>Wu K, Wu E, Theodorou B, et al. Characterizing the Clinical Adoption of Medical AI Devices through U.S. Insurance Claims. NEJM AI 2024;1(1):AIoa2300030.</p>
+<p>Health C for D and R. Artificial Intelligence-Enabled Medical Devices. FDA [Internet] 2026 [cited 2026 Apr 9];Available from: https://www.fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-enabled-medical- devices</p>
+<p>CPT Appendix S: Taxonomy for artificial intelligence in medical services &amp; procedures [Internet]. 2026;Available from: https://www.ama-assn.org/practice-management/cpt/cpt-appendix-s-taxonomy-artificial-intelligence-medical-services- procedures?check_logged_in=1</p>
+<p>Medicare and Medicaid Programs; CY 2026 Payment Policies Under the Physician Fee Schedule and Other Changes to Part B Payment and Coverage Policies; Medicare Shared Savings Program Requirements; and Medicare Prescription Drug Inflation Rebate Program [Internet]. Fed. Regist. 2025 [cited 2026 Apr 17];Available from: https://www.federalregister.gov/documents/2025/11/05/2025-19787/medicare-and-medicaid-programs-cy-2026- payment-policies-under-the-physician-fee-schedule-and-other</p>
+<p>NCQA. HEDIS MY 2024 Measure Description [Internet]. [cited 2026 Apr 17];Available from: https://wpcdn.ncqa.org/www- prod/wp-content/uploads/HEDIS-MY-2024-Measure-Description.pdf</p>
+<p>Angus DC, Khera R, Lieu T, et al. AI, Health, and Health Care Today and Tomorrow: The JAMA Summit Report on Artificial Intelligence. JAMA 2025;334(18):1650-64.</p>
+<p>Esmaeilzadeh P. Challenges and strategies for wide-scale artificial intelligence (AI) deployment in healthcare practices: A perspective for healthcare organizations. Artif Intell Med 2024;151:102861.</p>
+<p>Hwang Y-M, Rice BT, Hernandez-Boussard T. The Inverse Care Law in the Age of AI -Geographic Disparities in Health Care Technology Access. NEJM AI 2026;3(4):AIp2600103.</p>
+<p>Rural Health Transformation (RHT) Program [Internet].</p>
+<p>Medicaid.gov. [cited 2026 Oct 15];Available from: https://www.medicaid.gov/resources-for-states/rural-health</p>
+<p>CPT Category III Codes [Internet]. 2017 [cited 2026 Oct 14];Available from: https://www.ama-assn.org/sites/ama- assn.org/files/corp/media-browser/public/cpt/cpt-category3-codes-descriptors.pdf</p>
+<p>Wong A, Adler-Milstein J, Nicholson Price W, Singh K. How Repeal of the NTAP Alternative Pathway will Impact U.S. Clinical AI Innovation. NEJM AI [Internet] 2026 [cited 2026 Oct 16];3(10). Available from: https://ai.nejm.org/doi/10.1056/AIpc2600711</p>
+<p>Centers for Medicare &amp; Medicaid Services. Medicare Program: Hospital Outpatient Prospective Payment and Ambulatory Surgical Center Payment Systems; and Quality Reporting Programs; Including the Hospital Outpatient Quality Reporting Program and Ambulatory Surgical Center Quality Program; Request for Information on Strengthening the Standardization and Comparability of Hospital Price Transparency (HPT) Data; Prior Authorization; Accrediting Organization (AO) Deeming for Emergency Medical Treatment and Labor Act (EMTALA); and Notices of Closure of Teaching Hospitals and Opportunities To Apply for Available Slots [Internet]. 2026 [cited 2026 Oct 14];Available from: https://www.federalregister.gov/documents/2026/07/07/2026-13656/medicare-program-hospital-outpatient- prospective-payment-and-ambulatory-surgical-center-payment</p>
+<p>ACCESS (Advancing Chronic Care with Effective, Scalable Solutions) Model [Internet]. CMS.gov. [cited 2026 Oct 15];</p>
+<p>Li H, He X, Subbaswamy A, et al. Scaling medical device regulatory science using large language models. Npj Digit Med 2026;9(1):221.</p>
+<p>Wu K, Wu E, Theodorou B, et al. Characterizing the Clinical Adoption of Medical AI Devices through U.S. Insurance Claims. NEJM AI [Internet] 2024 [cited 2026 June 7];1(1). Available from: https://ai.nejm.org/doi/10.1056/AIoa2300030</p>
+<p>Centers for Medicare &amp; Medicaid Services. Medicare and Medicaid Programs; CY 2026 Payment Policies Under the Physician Fee Schedule and Other Changes to Part B Payment and Coverage Policies; Medicare Shared Savings Program Requirements; and Medicare Prescription Drug Inflation Rebate Program [Internet]. 2025 [cited 2026 Apr 5];Available from: https://www.federalregister.gov/documents/2025/11/05/2025-19787/medicare-and-medicaid-programs-cy- 2026-payment-policies-under-the-physician-fee-schedule-and-other</p>
+<p>Centers for Medicare &amp; Medicaid Services. Medicare and Medicaid Programs; CY 2027 Payment Policies Under the Physician Fee Schedule and Other Changes to Part B Payment and Coverage Policies; Medicare Shared Savings Program Requirements; and Medicare Prescription Drug Inflation Rebate Program [Internet]. 2026 [cited 2026 Nov 9];Available from: https://www.federalregister.gov/documents/2026/11/09/2026-22743/medicare-and-medicaid-programs-cy- 2027-payment-policies-under-the-physician-fee-schedule-and-other</p>
+<p>Critical Access Hospitals Payment System [Internet]. 2021 [cited 2026 Oct 14];Available from: https://www.medpac.gov/wp-content/uploads/2021/11/medpac_payment_basics_21_cah_final_sec.pdf</p>
+<p>Centers for Medicare &amp; Medicaid Services. Medicare and Medicaid Programs and the Children&#x27;s Health Insurance Program; Hospital Inpatient Prospective Payment Systems for Acute Care Hospitals and the Long-Term Care Hospital Prospective Payment System and Policy Changes and Fiscal Year 2025 Rates; Quality Programs Requirements; and Other Policy Changes [Internet]. 2024 [cited 2026 Oct 14];Available from: https://www.federalregister.gov/documents/2024/08/28/2024-17021/medicare-and-medicaid-programs-and-the- childrens-health-insurance-program-hospital-inpatient</p>
+<p>Centers for Medicare &amp; Medicaid Services. Medicare Program; Hospital Inpatient Prospective Payment Systems for Acute Care Hospitals (IPPS) and the Long-Term Care Hospital Prospective Payment System and Policy Changes and Fiscal Year (FY) 2027 Rates; Requirements for Quality Programs; Other Policy Changes; and Adoption of Updated Versions of Certain Health Information Technology Standards [Internet]. 2026 [cited 2026 Oct 14];Available from: https://www.federalregister.gov/documents/2026/08/04/2026-15833/medicare-program-hospital-inpatient- prospective-payment-systems-for-acute-care-hospitals-ipps-and</p>
 </div>
 </details>
 </div>
