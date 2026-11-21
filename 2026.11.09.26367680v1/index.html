@@ -196,7 +196,7 @@ Browser-Based Video Supports Scalable Computer Vision Analysis for Open
 Surgical Skill Assessment
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.09.26367680
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367680
 </p>
 </header>
 <div class="mc-main">
@@ -321,8 +321,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -713,9 +716,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -737,7 +744,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -752,9 +760,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -767,13 +793,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -793,6 +822,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -800,12 +835,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -906,6 +947,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -925,6 +986,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1180,19 +1276,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1302,6 +1480,139 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Objective assessment of open surgical skills remains limited by expert availability.</p>
+<p>Machine learning (ML)-based hand keypoint detection offers potential for automated, on-demand assessment, but performance in accessible browser-based recording environments (laptop-webcam video recorded in a web browser) is unknown. We hypothesized that browser-based recordings would achieve acceptable keypoint localization (percentage of correct keypoints [PCK] &gt;70%).</p>
+<p>Methods: Retrospective technical validation of prospectively collected video from 14 PGY-1 interns at one academic center (July to August 2024). We annotated 203 frames ( 101browser-based, 1280x720/854x480; 102 overhead, 3840x2160/1920x1080), yielding 6,232 ground-truth keypoints. An internally developed pipeline and MediaPipe Hands were evaluated.</p>
+<p>The primary endpoint was PCK normalized to the index-proximal bone; bounding-box-normalized PCK, detection rate, and per-region accuracy were also evaluated.</p>
+<p>Results: Primary PCK, normalized to a fixed anatomical hand scale, was 85.9% (95% CI, 80.3-91.0) for browser-based recordings and 81.5% (95% CI, 76.7-87.0) for overhead recordings. Secondary bounding-box-normalized PCK showed a similar pattern (91.6% vs 90.6%), and detection rates were high in both environments (94.9% vs 97.7%). In contrast, MediaPipe detection rates were only 5.3% for browser-based recordings and 15.4% for overhead recordings, resulting in substantially lower accuracy.</p>
+<p>Conclusion: Hand keypoint detection performance was comparable between browser-based and overhead recordings using the internally developed pipeline. These findings suggest that browser-based video acquisition can provide data of sufficient quality for ML-based hand 2.</p>
+<h3>Introduction</h3>
+<p>Surgical training has traditionally depended on subjective evaluations by experienced surgeons, with trainees acquiring skills through observation and hands-on practice [1]. However, expert availability for direct supervision is limited, creating challenges in training consistency and assessment reliability [1]. Established assessment instruments such as the Objective Structured Assessment of Technical Skills (OSATS) provide validated frameworks for evaluating surgical proficiency, but they require trained evaluators and are logistically constrained for frequent, formative use [2, 3]. Recent advances in machine learning (ML) and computer vision have enabled approaches to surgical skill assessment through automated video analysis [4] [5] [6].</p>
+<p>Hand keypoint detection, the automated identification of anatomical landmarks on the hands, offers particular promise for assessing open surgical skills by enabling extraction of kinematic features (e.g., velocity) directly from video without specialized sensors [7]. Prior work has demonstrated that hand detection and tracking can distinguish between novice and experienced practitioners in open surgical tasks [8, 9], and that hand pose estimation can generate dexterity metrics with discriminative value [7]. However, these studies have largely relied on controlled laboratory or simulator setups with fixed camera viewpoints and overhead acquisition conditions.</p>
+<p>Whether machine learning models for hand keypoint detection can achieve comparable performance using laptop webcam videos acquired outside specialized recording environments remains unknown. This distinction is critical for scalability. If accurate hand keypoint detection requires specialized recording hardware, deployment is limited to equipped simulation centers. If, however, standard webcam recordings provide sufficient signal quality, then ML-based assessment can be extended 4. http://creativecommons.org/licenses/by-nc-nd/4.0/ It is made available under a is the author/funder, who has granted medRxiv a license to display the preprint in perpetuity. (which was not certified by peer review) preprint</p>
+<p>The copyright holder for this this version posted November 10, 2026. ; https://doi.org/10.64898/2026.11.09.26367680 doi: medRxiv preprint to any setting with a laptop, enabling distributed, on-demand training and data collection. We developed a browser-based platform that enables trainees to record open surgical tasks using a laptop webcam with a structured calibration workflow to standardize framing.</p>
+<p>This study aimed to evaluate how recording modality affects hand keypoint detection performance by comparing results obtained from browser-based videos recorded via laptop webcams with those from overhead recordings, using manual annotations as the ground truth. We hypothesized that acceptable performance (percentage of correct keypoints [PCK] &gt; 70%) could be achieved on browser-based recordings. This threshold was selected a priori based on the rationale that downstream kinematic feature extraction (e.g., velocity, path length) requires the majority of keypoints to be correctly localized to produce meaningful measurements. Secondary objectives included comparing performance against MediaPipe (an open-source hand-tracking solution) [10, 11], and characterizing performance variation across individual hand keypoints.</p>
+<h3>Methods</h3>
+<h3>Study Design</h3>
+<p>This retrospective technical validation study evaluated the performance of an internally developed machine learning pipeline against manual ground-truth annotations for hand keypoint detection in surgical task videos. Videos were collected at Beth Israel Deaconess Medical Center (BIDMC) from July 2024 through August 2024 under a protocol approved by the BIDMC institutional review board (IRB) that authorizes video collection, annotation, and ML development for surgical education research. Oral informed consent was obtained from all participants.</p>
+<h3>5</h3>
+<p>Participants and Video Sources Surgical trainees enrolled in scheduled training sessions were eligible; no exclusion criteria were applied. Fourteen postgraduate year 1 (PGY-1) surgical interns participated. Participants uploaded a total of 321 videos through a custom browser-based recording platform designed to enable standardized recording of open surgical tasks using laptop webcams.</p>
+<p>Two video datasets were used for the validation analysis: Browser-based dataset: Videos were recorded by trainees using laptop webcams through the browser-based platform at resolutions of 1280 × 720 and 854 × 480. Before recording, participants completed a structured calibration workflow that guided laptop positioning, camera angle, task-field alignment, and hand placement to standardize framing and visibility of the task field. The laptop was positioned approximately 46 cm (18 inches) from the simulated tissue model, with the screen tilted toward the participant and the task field aligned to an on-screen guide. Recordings were then captured directly through the browser-based interface.</p>
+<p>Overhead dataset: Overhead videos were recorded by interns from the same cohort, within an ongoing institutional research program conducted under the same IRB-approved protocol. These videos were recorded using a mounted GoPro camera positioned above the task field at a fixed distance, with consistent lighting and no camera movement. Recordings were captured at resolutions of 3840 × 2160 and 1920 × 1080 and included standardized open suturing tasks performed on a benchtop simulation setup. Both recording environments are shown in Figure 1. positioned 46 cm (18 inches) from the front edge of the simulated tissue model; (B) screen tilted approximately 10° toward the participant; and (C) task field aligned with the on-screen guide and hand positioned within the calibration box. Right, fixed, table-mounted GoPro camera positioned above the benchtop suturing field</p>
+<h3>Frame Sampling</h3>
+<p>Of the 321 uploaded browser-based videos, 29 were selected at random, yielding 101 annotated frames. Of the 720 available overhead videos, 22 were selected at random, yielding 102 annotated frames. All frames were sampled at 0.05 frames per second. In total, 203 frames were annotated, corresponding to 6,232 visible ground-truth keypoints (3,079 browser-based; 3,153 overhead).</p>
+<h3>Internally Developed ML Pipeline</h3>
+<p>We used an internally developed two-stage pipeline built on two published models. Hands were first detected in each sampled frame with a Faster R-CNN hand detector [12], and 21 anatomical 7 . keypoints were then obtained for each detected hand with HaMeR [13], which reconstructs a three-dimensional hand model and projects its joints into the image.</p>
+<p>The pipeline was applied to all sampled frames (0.05 frames per second) and output (x, y) coordinates for all 21 anatomical keypoints (standard finger-joint and palm landmarks) of each detected hand, regardless of keypoint visibility.</p>
+<h3>Comparison: MediaPipe</h3>
+<p>MediaPipe Hands is an open-source hand landmark detection system developed by Google. In this study we used the MediaPipe Hand Landmarker (mediapipe version 0.10.21, Tasks application programming interface, full palm-detection and hand-landmark models) in image mode, predicting 21 anatomical keypoints for each detected hand, with a maximum of two hands per frame and the library&#x27;s default confidence thresholds of 0.5 for hand detection, hand presence, and tracking [10, 11]. MediaPipe was applied to the same sampled frames using the same preprocessing and evaluation steps as the internally developed pipeline. It was selected as a comparator because it is a widely used, publicly available hand-tracking solution.</p>
+<p>Other available hand pose frameworks were considered; however, many do not distinguish left and right hands or are not designed for robust, direct inference on videos, making them less suitable as general-purpose comparators for this study. Because MediaPipe performance has been reported to depend on glove color [14], detection rate and PCK were additionally stratified by glove color, which was recorded for each video. Only two glove colors were present in the dataset, so this comparison is reported descriptively.</p>
+<h3>Manual Ground-Truth Annotations 8</h3>
+<p>Ground-truth hand keypoints were manually annotated using the CVAT (Computer Vision Annotation Tool) platform [15] with a standardized 21-point hand landmark schema consistent with prior computer vision literature [16]. Annotators labeled all keypoints they judged to be visible and identifiable. To improve annotation efficiency, a model-assisted pre-annotation workflow was used. Model-generated keypoints were first uploaded into CVAT as an initial annotation layer, after which annotators manually reviewed, adjusted, and corrected the landmarks to create the final reference labels. Because pre-annotations were generated from model predictions, annotators were not blinded to the model output.</p>
+<h3>Inter-Annotator Reliability</h3>
+<p>Two annotators independently labeled an overlapping set of 40 frames, including 20 browser-based frames and 20 overhead frames, to assess reliability of the ground truth.</p>
+<p>Localization agreement was quantified as the Euclidean distance between annotators, normalized separately by the index-proximal bone and by the hand bounding-box diagonal. Agreement on keypoint presence was quantified using Cohen&#x27;s κ.</p>
+<h3>Definition of Keypoint Inclusion Criteria</h3>
+<p>Evaluation was restricted to visible keypoints that were identifiable and labeled by the annotators in the ground truth. Although the model output coordinates for all 21 keypoints per hand on every frame regardless of visibility, predictions corresponding to keypoints not labeled in the ground truth were excluded from analysis and were not counted as errors. This ensured that the model was neither penalized for predicting locations of non-visible keypoints nor credited for keypoints that could not be verified against ground truth. 9</p>
+<h3>Analysis Methods</h3>
+<h3>Keypoint Localization Accuracy and Normalization</h3>
+<p>Keypoint localization accuracy was evaluated using percentage of correct keypoints (PCK). A predicted keypoint was counted as correct if its Euclidean distance from the corresponding annotated keypoint was within a specified fraction, α, of a reference hand scale. The primary reference scale was the index-proximal bone length, defined as the distance between the index-finger metacarpophalangeal and proximal-interphalangeal joints, corresponding to keypoints 5 and 6. This joint-to-joint anatomical reference provides a fixed hand-based scale that is independent of camera resolution, image size, and overall frame dimensions. This approach is consistent with established PCK-based pose-estimation evaluation, in which keypoint localization error is normalized by an object-or anatomy-specific reference distance rather than raw pixel distance [16].</p>
+<p>The index-proximal bone was selected as the primary normalizer because its endpoints were the most consistently visible anatomical landmarks in the dataset and were present in approximately 97% of visible annotated keypoints. PCK was reported at α = 0.10, 0.20, and 0.30, with α = 0.30 used for the primary reported analysis. For each analysis, we also reported normalizer coverage, defined as the percentage of visible annotated keypoints for which the reference scale could be computed; keypoints were excluded from that analysis when the landmarks required for the scale were not visible.</p>
+<p>As a secondary normalization strategy, PCK was recomputed using the diagonal of the ground-truth hand bounding box as the reference scale, evaluated at α = 0.05, 0.10, and 0.20. The bounding-box reference was defined for all annotated hands and was used as a robustness check 10.</p>
+<p>to confirm that the primary findings were not driven by the small number of keypoints excluded when using the index-proximal bone reference.</p>
+<h3>Performance Metrics</h3>
+<p>Percentage of correct keypoints quantified localization accuracy among visible annotated keypoints. Predicted keypoints were grouped into hands by the model&#x27;s left-or right-hand label (one predicted hand per label per frame). Within each frame, predicted hands were then optimally matched to annotated hands on the basis of the average distance between corresponding landmarks, without using the labels in the assignment (optimal assignment by the Hungarian algorithm). A pairing was accepted only if that average distance was no more than half the diagonal of the box enclosing the annotated hand&#x27;s landmarks; otherwise the annotated hand was counted as undetected. Landmarks within each matched pair were then compared one to one by anatomical position. Detection rate was reported separately as the proportion of visible ground-truth keypoints for which the model produced a matched prediction. Because each detected hand yielded all 21 keypoints, a keypoint was counted as undetected when its corresponding hand was not detected or not matched to the annotated hand. This allowed hand-detection failures to be distinguished from keypoint-localization errors.</p>
+<p>Sensitivity analysis was performed using only keypoints for which all three candidate reference scales could be calculated: the index-proximal bone, palm length (wrist to the middle-finger metacarpophalangeal joint), and the bounding-box diagonal. This ensured that the normalizers were compared on the same set of keypoints. To maintain a comparable physical tolerance across scales, α was adjusted in inverse proportion to the median reference length. 11 with replacement (10,000 resamples) and recomputed the pooled PCK. Recording environments were compared descriptively using point estimates and, for the primary endpoint, 95% confidence intervals; no formal hypothesis test was performed. Analyses were performed in Python 3.9 (NumPy 2.0.2, pandas 2.3.1, SciPy 1.13.1), with a fixed random seed for the bootstrap.</p>
+<p>Claude (Anthropic) assisted in reviewing the analysis code; the code and results were verified by the authors who performed the analysis, and all authors take full responsibility for the content.</p>
+<h3>Results</h3>
+<h3>Ground-Truth Quality</h3>
+<p>The median localization difference between annotators was 10.7% (IQR, 0.0-22.9) of the index-proximal bone length, which was within the primary PCK tolerance, and 2.5% (IQR, 0.0-5.4) of the hand bounding-box diagonal. Agreement on keypoint presence was substantial, with Cohen&#x27;s κ = 0.69, categorized as substantial agreement according to the conventional Landis and Koch interpretation [17].</p>
+<h3>Dataset Characteristics</h3>
+<p>Table 1 summarizes the characteristics of both validation datasets.</p>
+<p>Table 1. Characteristics of Validation Datasets Characteristic Browser-Based Overhead Videos sampled, No. 29 22 Characteristic Browser-Based Overhead Frames annotated, No. 101 102 Resolution, pixels 1280x720 + 854x480 3840x2160 + 1920x1080 Visible ground-truth keypoints, No. 3,079 3,153</p>
+<h3>Model Performance</h3>
+<p>Using the internally developed pipeline, hand keypoint detection performance was comparable between browser-based and overhead recordings (Table 2). The primary anatomical reference, the index-proximal bone, was available for approximately 97% of visible annotated keypoints, including 96.6% of browser-based keypoints and 97.8% of overhead keypoints. Coverage for each candidate reference scale is reported in Online Resource 1, Table S3. At the primary threshold, PCK was 85.9% (95% CI, 80.3-91.0) for browser-based recordings and 81.5% (95% CI, 76.7-87.0) for overhead recordings. Both estimates exceeded the a priori acceptability threshold of PCK &gt; 70%. The difference between recording environments was 4.4 percentage points (95% CI, -3.4 to 11.7).</p>
+<p>Table 2. Keypoint Detection Performance by Recording Environment Using the Internally Developed Pipeline 14 . Performance Metric Browser-Based Overhead Index-proximal reference coverage, % 96.6 97.8 Primary PCK using index-proximal normalization (α = 0.30), % 85.9 81.5 Detection rate, % 94.9 97.7 Secondary PCK using bounding-box normalization (α = 0.10), % 91.6 90.6 Abbreviation: PCK, percentage of correct keypoints.</p>
+<p>This pattern was consistent under the secondary bounding-box normalization, where PCK was 91.6% for browser-based recordings and 90.6% for overhead recordings. Similar findings were observed in the sensitivity analysis comparing all three candidate normalizers on a common subset of keypoints, indicating that the result was not dependent on the choice of reference scale (Online Resource 1, Table S1). Detection rate was high in both environments, at 94.9% for browser-based recordings and 97.7% for overhead recordings, indicating that nearly all visible keypoints had matched model predictions. PCK across the full range of evaluated thresholds is shown for both normalizers in Figure 2 and tabulated in Online Resource 1, Table S2.</p>
+<p>15 internally developed pipeline across increasing normalized distance thresholds, α, comparing browser-based and overhead recordings. The primary analysis used the index-proximal bone as the reference scale, defined as the distance between the index-finger metacarpophalangeal and proximal-interphalangeal joints. The secondary analysis used the hand bounding-box diagonal as the reference scale</p>
+<h3>Per-Keypoint Performance</h3>
+<p>In a secondary anatomical-region analysis using hand bounding-box normalization for full landmark coverage, localization accuracy was generally high across anatomical regions in both recording environments (Online Resource 1, Fig. S1). Per-finger PCK@0.10 was at least 87% in both browser-based and overhead recordings, indicating consistently high localization accuracy across the hand.</p>
+<p>By joint level, the modest overhead deficit was concentrated at proximal landmarks, particularly the wrist (77% overhead vs 91% browser-based) and metacarpophalangeal joints (88% overhead vs 92% browser-based). In contrast, more distal landmarks, including the proximal-interphalangeal joints, distal-interphalangeal joints, and fingertips, were comparable 16 between environments (91%-94%). No finger group demonstrated a marked performance drop in either environment.</p>
+<p>The complete per-keypoint and joint-level breakdown across all 21 landmarks is provided in Online Resource 1, Tables S4 and S5.</p>
+<h3>Comparison With MediaPipe</h3>
+<p>MediaPipe performed substantially worse than the internally developed pipeline in both recording environments (Table 3). MediaPipe detected only a minority of visible gloved surgical hands, with detection rates of 5.3% in browser-based recordings and 15.4% in overhead recordings. Because undetected keypoints were counted as localization failures, overall bounding-box-normalized PCK values were 4.2% for browser-based recordings and 11.3% for overhead recordings. detection on purple gloves (20 videos). Performance of the internally developed pipeline was similar across the two glove colors evaluated, with detection rates of 96.7% versus 95.5% and PCK@0.10 of 90.8% versus 91.6% for blue and purple gloves respectively (Online Resource 1, Table S6).</p>
+<h3>Discussion</h3>
+<p>This study demonstrates that hand keypoint detection performance was comparable between browser-based laptop recordings and overhead recordings when evaluated using normalized localization metrics. Using the internally developed pipeline, keypoint localization accuracy was similar across recording environments, with closely overlapping confidence intervals between modalities. The model also achieved high detection rates in both settings and substantially outperformed MediaPipe, which detected only a minority of gloved surgical hands.</p>
+<h3>Implications for Scalable Surgical Skill Assessment 18</h3>
+<p>For the internally developed pipeline, the overhead setup, which combined higher spatial resolution with fixed-camera mounting, did not improve keypoint localization compared with browser-based recordings. Because these acquisition factors differed together, the findings reflect the overall recording setup rather than the effect of spatial resolution alone.</p>
+<p>From a practical perspective, specialized recording hardware does not appear to be a prerequisite</p>
+<h3>Comparison With MediaPipe</h3>
+<h3>19</h3>
+<p>MediaPipe demonstrated substantially lower performance than the internally developed pipeline across both datasets. Its poor performance primarily reflected failure to detect gloved surgical hands, suggesting that the model did not generalize well to this surgical video setting.</p>
+<p>According to its original description, MediaPipe Hands was trained on a combination of in-the-wild real-world images, an in-house gesture dataset, and synthetic hand renderings, primarily representing bare hands in general-purpose environments [10]. The published training datasets do not include surgical scenes, gloved hands, or instrument interactions. The poor performance observed in our study may therefore reflect limited representation of surgical-domain visual characteristics in its training data.</p>
+<p>Prior surgical-domain studies have reported that MediaPipe performance decreases in the presence of surgical gloves and varies substantially by glove color, with particularly poor localization for blue and green gloves [14]. Similarly, Kiefer et al. reported that MediaPipe Hands failed to detect keypoints on medical-gloved hands, whereas a domain-specific DeepLabCut model successfully tracked gloved-hand landmarks [19]. In our own data this pattern was reproduced directly: MediaPipe failed entirely on blue gloves in both recording environments, whereas performance of the internally developed pipeline was similar across the two glove colors evaluated. These findings suggest that lightweight general-purpose hand trackers may not generalize to gloved surgical hands.</p>
+<p>Future work should evaluate whether keypoint-derived kinematic features correlate with validated measures of surgical proficiency and determine the robustness of these findings across multiple institutions and recording setups.</p>
+<h3>20</h3>
+<h3>Limitations</h3>
+<p>Manual annotation served as the ground truth. Although such labeling is inherently subjective, inter-annotator agreement was substantial. However, annotation was model-assisted: model predictions served as initial labels, which annotators then reviewed and corrected. Absolute accuracy may therefore be overestimated, and because both annotators began from the same initial labels, inter-annotator agreement reflects the reproducibility of the ground truth rather than an independent estimate of human annotation accuracy. As the same annotation protocol was applied to both recording environments, this bias is expected to affect absolute accuracy more than the comparison between environments.</p>
+<p>A second limitation is that PCK estimates depend on the choice of hand-scale normalizer. We used the index-proximal bone as the primary anatomical reference and also reported results using the hand bounding-box diagonal as a secondary measure with full keypoint coverage. Sensitivity analysis on the subset of keypoints for which all three candidate scales were available showed similar findings across normalization approaches. However, the choice of normalizer and the α threshold was made during the analysis rather than prespecified. Although this approach reduces the influence of normalization strategy, it does not eliminate it entirely.</p>
+<p>The study was conducted at a single academic center. Participants were enrolled by convenience from scheduled training sessions, although videos were selected at random from those available, which may limit generalizability to other institutions, recording setups, or surgical tasks. The sample size was determined by annotation resources rather than a formal power calculation, and the study evaluated only suturing tasks, which may not generalize to other open surgical procedures. Finally, the browser-based and overhead environments differ in several bundled 21 factors: spatial resolution, camera mounting and viewpoint, and framing. Therefore, the observed comparability reflects the overall acquisition setting rather than the effect of resolution alone.</p>
+<h3>Conclusions</h3>
+<p>Hand keypoint detection performance was comparable between browser-based laptop recordings and overhead recordings when evaluated using a fixed anatomical normalizer, with detection reported separately from localization. Performance in both environments exceeded the a priori acceptability threshold of 70%. In the secondary bounding-box-normalized analysis, the internally developed pipeline demonstrated high localization accuracy across anatomical regions in both recording environments, with no landmark group showing a marked performance failure.</p>
+<p>These findings indicate that accessible browser-based video can provide data of sufficient quality for ML-based hand keypoint detection, supporting a scalable approach to surgical skill assessment and model development. In contrast, a lightweight hand-tracking model developed for bare hands did not generalize to gloved surgical hands.</p>
+<p>Funding: No funding was received for this study.</p>
+<h3>Data availability:</h3>
+<p>The data are restricted under the IRB-approved protocol and are not publicly available. The analysis code and pipeline are available from the corresponding author on reasonable request.</p>
+<h3>Competing interests:</h3>
+<p>The authors declare no competing interests.</p>
+<h3>Per-Keypoint Analysis</h3>
+<p>To identify which anatomical landmarks were most and least accurately detected, PCK was calculated separately for each of the 21 hand keypoints, including the wrist, thumb joints, and the metacarpophalangeal (MCP), proximal interphalangeal (PIP), distal interphalangeal (DIP), and fingertip landmarks of the index, middle, ring, and little fingers. Per-keypoint metrics were computed separately for browser-based and overhead recordings.</p>
+<h3>Comparison With MediaPipe</h3>
+<p>Model performance was compared with MediaPipe, an open-source hand-tracking solution [10, 11], using the same sampled frames, preprocessing approach, and evaluation pipeline. PCK and detection rate were computed for MediaPipe predictions and compared with the internally developed pipeline in both recording environments.</p>
+<h3>Sample Size</h3>
+<p>Sample size was determined by annotation resource limitations. A total of 203 frames were annotated: 101 from 29 browser-based videos and 102 from 22 overhead videos, corresponding to 6,232 visible ground-truth keypoints (3,079 browser-based; 3,153 overhead). No formal sample size calculation was performed.</p>
+<h3>Statistical Analysis</h3>
+<p>PCK was reported as the pooled proportion of correct keypoints across all visible keypoints for which the reference scale could be computed. To account for the clustering of keypoints within videos, 95% confidence intervals were obtained by a clustered bootstrap that resampled videos</p>
+<h3>Statements and Declarations</h3>
+<p>Ethics approval: This study was approved by the Beth Israel Deaconess Medical Center Institutional Review Board and conducted in accordance with the Declaration of Helsinki.</p>
+<p>Consent to participate: Oral informed consent was obtained from all participants.</p>
+<p>Consent to publish: Not applicable; no identifiable images of participants are included.</p>
+<h3>Fig 1</h3>
+<p>Fig 1 Recording environments. Left, structured laptop-webcam calibration workflow: (A) laptop</p>
+<h3>Fig 2</h3>
+<p>Fig 2 Percentage of Correct Keypoints Across Normalized Distance Thresholds. PCK for the for ML-based hand keypoint detection in this setting.</p>
+<p>Because a laptop webcam and a browser-based calibration workflow are available wherever trainees already work, this could reduce a major hardware barrier to collecting surgical video at scale. Standard laptop webcams, when combined with structured calibration procedures, may provide sufficient video quality for scalable surgical skill assessment and distributed data collection. The calibration workflow built into the browser-based platform, which guides framing and hand scale, may help offset the lower resolution of webcam video. Because the approach requires only a laptop and a browser, it may also extend objective skill assessment to resource-constrained settings where dedicated recording hardware is unavailable. Beyond the assessment of individual trainees, this has implications for how open surgical video datasets are built. In open surgery, progress in computer vision has been limited by a lack of large annotated video datasets[18], and collecting such video has typically required dedicated cameras and fixed installations. A browser-based workflow shifts collection onto hardware trainees already use: in this study, 14 interns contributed 321 recordings over two months. Data gathered this way could support model development, curriculum evaluation, and longitudinal performance feedback across multiple institutions.</p>
+<h3>Table 3 . Performance Comparison: Internally Developed Pipeline vs MediaPipe Metric Browser-Based Internal Browser-Based MediaPipe Overhead Internal Overhead MediaPipe</h3>
+<p>MediaPipe performance varied substantially by glove color. It detected no hands at all on blue gloves in either recording environment (0% detection across 31 videos), compared with 29.5%</p>
+<h3>References</h3>
+<p>Shah J, Darzi A (2001) Surgical skills assessment: an ongoing debate. BJU Int 88:655-660. https://doi.org/10.1046/j.1464-4096.2001.02424.x</p>
+<p>Martin JA, Regehr G, Reznick R, MacRae H, Murnaghan J, Hutchison C, Brown M (1997) Objective structured assessment of technical skill (OSATS) for surgical residents. Br J Surg 84:273-278. https://doi.org/10.1046/j.1365-2168.1997.02502.x</p>
+<p>Niitsu H, Hirabayashi N, Yoshimitsu M, Mimura T, Taomoto J, Sugiyama Y, Murakami S, Saeki S, Mukaida H, Takiyama W (2013) Using the Objective Structured Assessment of Technical Skills (OSATS) global rating scale to evaluate the skills of surgical trainees in the operating room. Surg Today 43:271-275. https://doi.org/10.1007/s00595-012-0313-7</p>
+<p>Hashimoto DA, Rosman G, Rus D, Meireles OR (2018) Artificial intelligence in surgery: promises and perils. Ann Surg 268:70-76. https://doi.org/10.1097/SLA.0000000000002693</p>
+<p>Lam K, Chen J, Wang Z, Iqbal FM, Darzi A, Lo B, Purkayastha S, Kinross JM (2022) Machine learning for technical skill assessment in surgery: a systematic review. NPJ Digit Med 5:24. https://doi.org/10.1038/s41746-022-00566-0</p>
+<p>Lavanchy JL, Zindel J, Kirtac K, Twick I, Hosgor E, Candinas D, Beldi G (2021) Automation of surgical skill assessment using a three-stage machine learning algorithm. Sci Rep 11:5197. https://doi.org/10.1038/s41598-021-84295-6</p>
+<p>Bkheet E, D&#x27;Angelo AL, Goldbraikh A, Laufer S (2023) Using hand pose estimation to automate open surgery training feedback. Int J Comput Assist Radiol Surg 18:1279-1285. https://doi.org/10.1007/s11548-023-02947-6</p>
+<p>Goldbraikh A, D&#x27;Angelo AL, Pugh CM, Laufer S (2022) Video-based fully automatic assessment of open surgery suturing skills. Int J Comput Assist Radiol Surg 17:437-448. https://doi.org/10.1007/s11548-022-02559-6</p>
+<p>Zuckerman I, Werner N, Kouchly J, Huston E, DiMarco S, DiMusto P, Laufer S (2024) Depth over RGB: automatic evaluation of open surgery skills using depth camera. Int J Comput Assist Radiol Surg 19:1349-1357. https://doi.org/10.1007/s11548-024-03158-3</p>
+<p>Zhang F, Bazarevsky V, Vakunov A, Tkachenka A, Sung G, Chang CL, Grundmann M (2020) MediaPipe Hands: on-device real-time hand tracking. arXiv:2006.10214. https://doi.org/10.48550/arXiv.2006.10214</p>
+<p>Google (2023) MediaPipe Solutions: Hand landmarker. https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker. Accessed 7 November 2026</p>
+<p>Shan D, Geng J, Shu M, Fouhey DF (2020) Understanding human hands in contact at internet scale. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pp 9866-9875. https://doi.org/10.1109/CVPR42600.2020.0098924</p>
+<p>Pavlakos G, Shan D, Radosavovic I, Kanazawa A, Fouhey D, Malik J (2024) Reconstructing hands in 3D with transformers. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pp 9826-9836. https://doi.org/10.1109/CVPR52733.2024.00938</p>
+<p>Müller LR, Petersen J, Yamlahi A, Wise P, Adler TJ, Seitel A, Kowalewski KF, Müller B, Kenngott H, Nickel F, Maier-Hein L (2022) Robust hand tracking for surgical telestration.</p>
+<p>Int J Comput Assist Radiol Surg 17:1477-1486. https://doi.org/10.1007/s11548-022-02637-9</p>
+<p>CVAT.ai Corporation (2024) Computer Vision Annotation Tool (CVAT), version 2.22.0. Zenodo. https://doi.org/10.5281/zenodo.3497105</p>
+<p>Simon T, Joo H, Matthews I, Sheikh Y (2017) Hand keypoint detection in single images using multiview bootstrapping. In: Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR), pp 4645-4653. https://doi.org/10.1109/CVPR.2017.494</p>
+<p>Landis JR, Koch GG (1977) The measurement of observer agreement for categorical data. Biometrics 33:159-174. https://doi.org/10.2307/2529310</p>
+<p>Goodman ED, Patel KK, Zhang Y, Locke W, Kennedy CJ, Mehrotra R, Ren S, Guan M, Zohar O, Downing M, Chen HW, Clark JZ, Berrigan MT, Brat GA, Yeung-Levy S (2024) Analyzing surgical technique in diverse open surgical videos with multitask machine learning. JAMA Surg 159:185-192. https://doi.org/10.1001/jamasurg.2023.6262</p>
+<p>Kiefer AW, Willoughby D, MacPherson RP, Hubal R, Eckel SF (2024) Enhanced 2D hand pose estimation for gloved medical applications: a preliminary model. Sensors 24:6005. https://doi.org/10.3390/s24186005</p>
 </div>
 </details>
 </div>
