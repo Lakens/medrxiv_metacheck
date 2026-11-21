@@ -197,7 +197,7 @@ Place-based structural disadvantage and mortality inequality across 379
 Polish counties, 2010-2025: a spatial Mundlak analysis
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.02.26367044
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.02.26367044
 </p>
 </header>
 <div class="mc-main">
@@ -383,8 +383,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -739,9 +740,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -763,7 +768,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -778,9 +784,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -793,13 +817,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -819,6 +846,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -826,12 +859,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -932,6 +971,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -951,6 +1010,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1206,19 +1300,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1328,6 +1504,152 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Place-based mortality inequalities may persist even as short-term associations with local conditions change. We examined age-sex-standardised all-cause mortality in 379 harmonised Polish counties (2010)(2011)(2012)(2013)(2014)(2015)(2016)(2017)(2018)(2019)(2020)(2021)(2022)(2023)(2024)(2025), asking whether durable between-county differences or lagged within-county deviations better characterise mortality geography. Spatial Mundlak generalised additive models allowed non-linear associations and county-specific spatial modification; a pre-COVID model (2010-2019) was compared with overlapping models through 2022 and 2025. In the pre-COVID model, median county average partial slopes per standard deviation were -26.1 deaths per 100,000 for higher education, +29.4 for primary/lower-secondary education and +30.2 for PM2.5. Directions of these between-county gradients persisted across analytical windows. By contrast, within-county associations were less stable and sometimes reversed sign in pandemic-inclusive models. County-level uncertainty indicated stronger and more coherent pre-COVID spatial patterns for education, PM2.5 and population density than for several health-care and migration terms. Strict leaveone-year-out validation revealed weak temporal transportability, particularly for the 2010-2022 model, limiting predictive interpretation. Outcome-defined comparisons further showed that educational composition remained an important separator of high-and low-mortality counties after COVID-19, while the fitted PM2.5 contribution contrast diminished. These.</p>
+<h3>1. Introduction</h3>
+<p>Health inequalities are socially and geographically patterned through places as well as through individual circumstances. Local labour markets, educational infrastructure, healthcare capacity, environmental quality, housing and institutional legacies cluster geographically, creating configurations of advantage and disadvantage that are closely linked to population health across generations (Macintyre et al., 2002; Cummins et al., 2007; Diez Roux and Mair, 2010). Place-based approaches have proliferated in part because the spatial clustering of social determinants makes it impossible to separate individual exposures from the area contexts in which they are embedded and through which they operate.</p>
+<p>Poland offers an informative setting. The country achieved substantial national mortality improvements after 1989, but these gains have been distributed unequally across its 379 counties (powiaty), which differ markedly in educational composition, employment, healthcare capacity, urbanisation, migration and PM2.5 air pollution (Wojtyniak and Gorynski, 2020, 2022). This geographic heterogeneity reflects post-socialist economic restructuring, uneven regional development and historical legacies spanning nineteenth-century partitions, post-war settlement and the rapid dissolution of state-owned agriculture after 1991 (Bąk et al., 2021; Grosfeld and Zhuravskaya, 2015). These histories provide interpretive context but are not encoded as exposures in our models. COVID-19 then created a distinct temporal break in mortality trends, mobility, health-care use and labour-market conditions.</p>
+<p>Two analytical challenges motivate our approach. First, durable differences between places are not equivalent to short-run changes within the same place. A county characterised by chronically low educational attainment occupies a different structural position than one that temporarily falls below its own historical level. Pooled panel coefficients blend these sources of variation; county fixed effects eliminate the persistent between-county gradient that is central to place-based inequality research. The Mundlak correlated-random-effects decomposition retains both components and estimates them simultaneously (Mundlak, 1978; Bell and Jones, 2015; Arkhangelsky and Imbens, 2024). This separation matters because annual county indicators can co-move with unobserved changes in behaviour, composition and service use; allowing short-run ecological co-movement to be estimated separately rather than conflated with the structural place gradient.</p>
+<p>Second, the mortality association of a given social or environmental determinant need not be spatially uniform. Uniform-coefficient models impose a national average relationship even when institutional, environmental and social conditions differ substantially across space.</p>
+<p>Spatially varying-coefficient approaches can reveal contextual heterogeneity in exposurehealth relationships (Janko et al., 2019; Comber et al., 2023 Comber et al., , 2024a Comber et al., , 2024b)), and recent guidance highlights the importance of explicit specification checks, perturbation sensitivity and local uncertainty quantification (Comber et al., 2026; Irekponor and Oshan, 2025).</p>
+<p>This study treats place not simply as the location of exposure but as a durable configuration of social, environmental and service conditions. Poland provides a setting in which post-socialist restructuring, territorial unevenness and the COVID-19 disruption can be studied together within harmonised local administrative units. Our substantive question is whether the geography of mortality inequality remains anchored in persistent differences between counties even when within-county associations change during a major societal shock. We examine this question using spatial Mundlak generalised additive models (GAMs) for 379 counties over 2010-2025, guided by the Dahlgren-Whitehead framework as a heuristic rather than a causal diagram. We ask: (1) how durable place differences compare with lagged local deviations; (2) where education, employment, service-capacity and pollution gradients vary geographically; (3) whether the principal place gradients persist when COVID-19 and post-COVID years are included; and (4) which fitted contributions distinguish counties with high versus low observed mortality.</p>
+<p>The broader contribution is to show why stable spatial inequality and  &gt;Data and measures</p>
+<h3>2.1 Study area and analytical panel</h3>
+<p>The unit of analysis is the Polish county (powiat), the second-order administrative unit below NUTS-3 subregions. Counties approximate local labour-market and service environments while remaining small enough to reveal sub-regional variation. Wałbrzych regained city-withcounty-rights status on 1 January 2013, increasing the contemporary number of county-level units to 380. To maintain a spatially consistent panel across 2010-2025, Wałbrzych city and the surrounding Wałbrzych county were harmonised to a common pre-change geography, yielding 379 analytical units throughout. The primary pre-COVID model covers 2010-2019; two overlapping extensions cover 2010-2022 and 2010-2025, adding COVID-period and post-COVID controls. Because within-county determinants are lagged by one year, effective estimation samples begin in 2011: n=3,411 (Model 1), n=4,548 (Model 2), and n=5,685 (Model 3).</p>
+<h3>2.2 Mortality outcome</h3>
+<p>The outcome was the annual age-sex standardised all-cause mortality rate (ASMR) per 100,000 residents. County deaths and population denominators were obtained from Statistics Poland&#x27;s Local Data Bank (Statistics Poland, 2026). Deaths were harmonised into 18 age groups (0-4 through 85+) separately for women and men. Direct standardisation used a fixed sex-by-age reference distribution pooled across counties in 2010-2019 and applied uniformly from 2010 to 2025. Further construction and harmonisation details are provided in Supplementary Methods S1.2 and Supplementary Table S2.</p>
+<h3>2.3 Determinants</h3>
+<p>Nine between-county and eight lagged within-county determinants were derived from Statistics Poland&#x27;s Local Data Bank, the 2011 and 2021 national population censuses, and CAMS air-quality reanalysis products (Supplementary Table S2; raw determinant geography and annual change: Supplementary Figures S6-S7). Educational composition (higher education share; primary/lower-secondary education share) was constructed by linear interpolation between census anchors and should therefore be interpreted as a structural trajectory rather than an independently observed annual shock. The two education indicators represent the upper and lower tails of the educational distribution rather than complementary categories; upper-secondary, vocational and post-secondary non-tertiary education form a substantial intermediate group. Annual mean PM2.5 was derived from CAMS EAC4 (2010) (2011) (2012) and the CAMS European air-quality reanalysis (2013 onward) (Copernicus Atmosphere Monitoring Service, 2026a, 2026b). Distance to the nearest city with county rights entered as a time-invariant structural marker. All time-varying determinants were standardised to a common 2010-2019 reference scale. Supplementary Table S1 maps each determinant to its Dahlgren-Whitehead layer, Mundlak role and interpretive caveat. Additional details on the census-derived education series and PM2.5 construction are provided in Supplementary Methods S1.3-S1.4.</p>
+<h3>3. Analytical strategy</h3>
+<p> &gt;Analytical strategy</p>
+<h3>3.1 Mundlak decomposition</h3>
+<p>For each time-varying determinant , the lagged county-year value was decomposed into a persistent county mean and a lagged within-county deviation: where is the determinant observed for county in the preceding year, is the county-specific mean of that determinant over the relevant analytical window, and is the lagged withincounty deviation from that mean.</p>
+<p>The county mean represents persistent between-county differences; the lagged deviation represents a year-specific departure from the county&#x27;s own typical level. Distance to a city with county rights entered only as a between-county term. The decomposition therefore produces nine between-county and eight within-county components.</p>
+<p>A pooled model blends persistent spatial inequality with short-run ecological co-movement; county fixed effects discard the stable place differences central to this analysis. Mundlak retains both and makes their divergence an empirical result. We interpret within-county terms as historically contingent ecological associations that can reflect unmeasured changes in behaviour, composition, care-seeking or local service provision. Supplementary Methods S1.9 formalises this interpretive hierarchy. The conceptual distinction between structural and within-county layers is summarised in Supplementary Methods S1.1, with the interpretive hierarchy for within terms in S1.9.</p>
+<h3>3.2 Spatial Mundlak GAM</h3>
+<p>The outcome was modelled using a Gaussian identity-link GAM:</p>
+<p>Here is the smooth calendar-time term, contains COVID-period indicators, is the baseline spatial mortality surface, is the national non-linear partial function for Mundlak component , and is its spatially varying coefficient modifier. Determinant-specific national functions and spatial modifiers used shrinkage thin-plate splines; the temporal and baseline spatial terms used thin-plate regression splines. All analyses were performed in R and estimated with mgcv&#x27;s bam using fREML and (Wood, 2017).</p>
+<h3>3.3 Basis-dimension selection</h3>
+<p>Basis dimensions were selected empirically using a 48-model grid on the pre-COVID model, spanning for one-dimensional determinant smooths, for SVC surfaces, for the baseline spatial surface, and for calendar time. Selection targeted the smallest dimensions for which curves, average partial slopes and SVC surfaces stabilised under upward increases in ; an additional 175→200 boundary check confirmed the stability of for the baseline surface. Final dimensions (global: , SVC: , baseline: , year: ) were fixed across Models 1-3 to preserve cross-window comparability (Supplementary Methods S1.5; Supplementary Table S3).</p>
+<h3>3.4 Effect summaries and local uncertainty</h3>
+<p>For each Mundlak component, effect curves varied the focal component across 25 values spanning its empirical P2-P98 range while holding all non-focal determinant components at zero. For the focal determinant, both its national smooth and its corresponding spatially varying coefficient term were retained. Average partial slopes (APS) are finite-difference derivatives averaged over the grid within each county and summarised by the median and IQR across counties; IQRs describe fitted spatial heterogeneity, not sampling uncertainty.</p>
+<p>Marginal-effect maps show the local slope per +1 SD. Between-county accumulatedcontribution maps compare each county&#x27;s structural level with the 0-SD reference; withincounty maps compare a +1-SD lagged deviation with 0. These quantities answer different questions and can have opposite signs under a non-linear response surface (Supplementary Methods S1.11). Local uncertainty was propagated from the GAM coefficient covariance matrix using approximate pointwise 95% intervals; counties were classified as robust positive, robust negative or uncertain (Mennis, 2006; Irekponor and Oshan, 2025; Supplementary Methods S1.10; Supplementary Table S9 and Figures S11-S12).</p>
+<p>To quantify the role of spatial modification, we performed a same-fit post-estimation sensitivity in which the determinant-specific spatial modifier for each focal component was . set to zero while all other fitted model components were retained. This contrasts the reported focal relationship (national smooth plus spatial modifier) with the national smooth alone; no alternative model was refitted. Results for all three analytical windows are reported in Supplementary Table S10 and Supplementary Methods S1.13.</p>
+<h3>3.5 Linear benchmark and validation</h3>
+<p>A linear Mundlak ridge model with the same decomposition served as a homogeneous benchmark; uncertainty was estimated using 1,000 recentred dependent-multiplier bootstrap replications (Cameron et al., 2008; Shao, 2010; Zhang and Politis, 2022). Validation combined basis-dimension checks, annual Moran&#x27;s I, county-level lag-1 residual autocorrelation, and strict leave-one-year-out cross-validation with preprocessing recomputed within each training fold. A structured-noise perturbation stress test (50 replicates per model) summarised stability using curve-shape correlations, APS sign agreement, signal-to-noise ratios and, where meaningful, spatial-pattern correlations (Supplementary Methods S1.6-S1.7; Supplementary Tables S4-S6).</p>
+<h3>3.6 Post-estimation profile analysis</h3>
+<p>To relate fitted determinant contributions to substantively recognisable county profiles, we used the common Model 3 fit but defined comparison groups independently of the model. descriptive period (2010-2019, 2020-2022 and 2023-2025), counties in the bottom and top deciles of observed mean ASMR were classified as LOW and HIGH, respectively. We first compared raw county characteristics (Supplementary Table S7) and then determinant-specific accumulated contributions from Model 3 (Supplementary Table S8). HIGH-minus-LOW contrasts are differences in reference-based fitted contributions, not marginal slopes or causal attributable effects. A separate sensitivity analysis defines groups by total model-derived determinant burden (Supplementary Methods S1.8; Supplementary Figure S10).</p>
+<h3>Within each</h3>
+<h3>4.1 Mortality geography, model fit and temporal transportability</h3>
+<p>Median county ASMR was 1,060.9 per 100,000 (IQR 987.5-1,110.3) in 2010-2019, rose to 1,193.7 (IQR 1,114.0-1,250.6) during 2020-2022, and fell to 961.7 (IQR 898.5-1,016.5) in 2023-2025-below the pre-pandemic median (Figure 1). The pandemic increase was geographically widespread; the post-pandemic decline was spatially uneven.  S4). Strict leave-one-year-out validation showed marked temporal instability after 2020: median held-out R² was 0.479 for Model 1, -3.544 for Model 2 and +0.326 for Model 3, while mean held-out RMSE remained large in both pandemic-inclusive windows. We therefore treat the GAMs as periodconditioned explanatory models rather than forecasting tools.</p>
+<h3>4.2 Persistent between-county structural gradients</h3>
+<p>The largest pre-COVID associations were concentrated in the between-county layer (Figure 2;</p>
+<p>Table 2). In Model 1, PM2.5 had an APS of +30.2 ASMR per 100,000 per SD (county IQR +16.3 to +43.6), primary/lower-secondary education +29.4 (+16.1 to +37.9), and higher education -26.1 (-46.2 to -5.7). Population density was +15.1 and long-term unemployment +7.5. Gross wages had a small negative median slope (-2.6); physicians, net migration and distance to city were close to zero.</p>
+<p>These gradients persisted as the analytical window expanded. Higher education remained negative (-25.0 in Model 2; -33.5 in Model 3), while primary/lower-secondary education (+24.2; +19.2), long-term unemployment (+8.9; +9.6) and PM2.5 (+31.6; +36.7) remained positive. Population density weakened from +15.1 in Model 1 to +2.5 in Model 3, whereas the physician APS increased from near zero to +9.9. Cross-period APS are shown in Supplementary Figure S1; complete between-county effect grids for Models 1-3 are in maintext Figure 2 and Supplementary Figures S2 and S4.</p>
+<p>Local uncertainty materially qualified the pre-COVID spatial maps. Approximate pointwise intervals supported a negative higher-education marginal effect in 65.7% of counties, a positive primary/lower-secondary education effect in 55.4%, a positive PM2.5 effect in 72.3%, and a positive population-density effect in all counties; physicians, net migration and distance to city had no counties with a robust local marginal sign. Selected coverage percentages are reported in Supplementary Table S9 and full Model 1 uncertainty maps in Supplementary Figures S11-S12. These intervals are pointwise and model-conditional, not multiplicity-adjusted spatial significance tests. The linear benchmark agreed with the GAM on the broad direction of education, unemployment, wages and PM2.5 but disagreed for population density and physicians (Figure 3; full ridge results: Supplementary Table S5)-expected when a homogeneous coefficient averages across exposure ranges and locations for which the GAM can estimate different relationships. Blue circles show debiased linear Mundlak coefficients with 95% dependent-multiplier bootstrap confidence intervals (B=1,000). Orange triangles show the GAM mean average derivative with approximate 95% coefficientcovariance intervals derived from the fitted GAM. These intervals quantify estimation uncertainty and should not be interpreted as the cross-county heterogeneity reported by the APS IQRs in Table 2. Discrepancies can reflect non-linearity, spatially varying slopes and differential allocation of shared spatial signal. Full ridge estimates are in Supplementary Table S3.</p>
+<h3>4.3 Within-county lagged dynamics and ecological co-movement</h3>
+<p>Within-county lagged associations were generally smaller than between-county gradients and changed more across estimation windows (Figure 4; Table 2). In the pre-COVID model, primary/lower-secondary education (+7.1) and population density (+3.7) had the clearest positive APS values; long-term unemployment was modestly negative (-1.1); remaining within terms were close to zero. Pandemic-inclusive models produced qualitatively different within-county patterns. Higher education was negative in Model 2 (-8.7) but close to zero/weakly positive in Model 3 (+2.0); PM2.5 was positive in Model 2 (+4.6) but negative in Model 3 (-13.2); long-term.</p>
+<p>unemployment was negative in both (-5.2 and -5.5). These reversals should not be interpreted as established risk factors becoming protective. They indicate that short-term county deviations were embedded in a changed temporal regime in which employment, mobility, energy use, health-care utilisation and mortality co-moved differently. Complete within-county effect grids for Models 1-3 are in main-text Figure 4 and Supplementary Figures S3 and S5; Supplementary Methods S1.9 and S1.14 provide the interpretation hierarchy for such sign changes.</p>
+<p>Structured-noise perturbation supported the stability of the major between-county curves more consistently than several local spatial modifiers and within-county surfaces. Education and PM2.5 between-county curves showed high signal-to-noise ratios and near-unit shape correlations, whereas some within-county and spatial-pattern metrics were more variable (Supplementary Table S6).</p>
+<h3>4.4 What distinguishes high-and low-mortality counties?</h3>
+<p>In 2010-2019, median ASMR was 1,168.7 per 100,000 in the highest observed-ASMR decile versus 901.4 in the lowest. High-mortality counties had less higher education (14.1% versus 24.3%), more primary/lower-secondary education (23.9% versus 14.5%), fewer physicians (13.4 versus 35.7 per 10,000), much lower population density (80 versus 1,091 persons/km²) and greater distance from a city with county rights (27.7 versus 0.0 km).</p>
+<p>The same outcomedefined profiling is reported for the COVID and post-COVID periods in Supplementary Table S7.</p>
+<p>Model 3 contribution profiles show how the fitted structural configuration separating HIGH and LOW counties changed across descriptive periods. In the pre-COVID window, HIGHminus-LOW mean contribution contrasts were +68.9 ASMR per 100,000 for higher education, +58.0 for primary/lower-secondary education, +22.1 for PM2.5, +5.3 for long-term unemployment and +4.0 for wages. Education remained the clearest separator during COVID (+79.3 and +52.0) and post-COVID (+58.5 and +48.6), whereas the PM2.5 contrast attenuated to +8.2 during COVID and +0.3 post-COVID (Supplementary Table S8). Figure 5 shows the Model 1 dominant-contribution map; Supplementary Figures S8-S9 show Models 2-3. Dominance is relative: the map identifies the largest accumulated contribution within a county, not the determinant with the largest national slope. Consequently, a factor such as distance to a city can become visually dominant in Model 3 even though its national APS is small (+0.7) and its spatial modifier is effectively shrunk to zero; this reflects the referencebased contrast and smaller competing contributions rather than the emergence of a strong post-COVID distance effect. Supplementary Figure S10 provides the model-burden grouping sensitivity.</p>
+<h3>5. Discussion</h3>
+<p> &gt;Discussion</p>
+<h3>5.1 Structural mortality inequality as a layered property of place</h3>
+<p>The most robust finding is that persistent between-county structural differences-in education, PM2.5 and labour-market conditions-were larger and more temporally stable than most lagged within-county associations. This pattern is consistent with a layered determinants perspective in which disadvantage is bundled across educational, labour-market, environmental, service and accessibility domains rather than attributable to a single exposure (Dahlgren and Whitehead, 1991, 2021). The stability of the leading between-county ordering despite pandemic-era disruption is therefore more informative than any individual short-run sign reversal.</p>
+<p>Education should not be read as an isolated schooling effect. County educational composition indexes material resources, labour-market opportunities, health literacy, health-related behaviours and capacity to navigate services. Polish and European evidence links educational position to health behaviour, preventive orientation, health literacy and mortality (Stelmach et al., 2004; Puchalski and Korzeniowska, 2011; Huijts et al., 2017; Laaksonen et al., 2008; Stormacq et al., 2019; IHME-CHAIN Collaborators, 2024). The non-linear curves and spatially varying slopes further imply that a common 1-SD contrast does not carry an identical association across the exposure range or across counties.</p>
+<p>The two education indicators capture different parts of the county educational distribution.</p>
+<p>Higher-education share may index concentrations of human capital, professional employment, institutional resources, health literacy, social networks and health-related norms; area-level college-education composition has been associated with mortality beyond individual attainment in other settings (Bor et al., 2024). By contrast, a high primary/lower-secondary share marks the lower tail of the distribution and is better interpreted as accumulated structural disadvantage, labour-market exclusion and limited socioeconomic mobility.</p>
+<p>European evidence also indicates that educational expansion can make the remaining loweducation group increasingly selected, changing the magnitude of education-mortality inequalities (Mackenbach et al., 2015; Östergren et al., 2017). Upper-secondary, vocational and post-secondary non-tertiary education form a substantial intermediate category, so the two shares are not mirror images.</p>
+<p>PM2.5 is a measured environmental exposure rather than a generic deprivation proxy. Its large positive between-county APS persisted across all analytical windows and its southern concentration is consistent with the documented particulate-pollution burden of Upper Silesia and adjacent southern Poland (Kobza et al., 2018). By contrast, the within-PM2.5 association changed sign across pandemic-inclusive windows (+4.6 in Model 2; -13.2 in Model 3). That reversal is not credible evidence of a protective pollution effect. It is more plausibly a marker of altered temporal coupling during a period when mortality shocks, mobility, heating and emissions changed simultaneously.</p>
+<p>The apparently weak conditional slopes for some service and accessibility indicators require similar care. Physicians, migration and distance to a city are strongly patterned components of county population geography, but much of their variation overlaps with education, density, labour markets and urbanity. A small average partial slope therefore does not imply substantive irrelevance. This distinction is especially visible in the dominant-contribution maps: distance to a city appears frequently as a Model 3 dominant accumulated contribution even though its average slope remains small and its determinant-specific spatial modifier is effectively penalised to zero. Dominance here is relative to other reference-based contributions, not evidence that distance suddenly became the strongest post-COVID mortality determinant.</p>
+<p>County wage levels likewise index local labour-market composition and productivity rather than household disposable income, while net migration may capture selective demographic sorting and the relative attractiveness of employment, housing and service environments. The indicators should therefore be interpreted as partially overlapping markers of place-based domains. Their conditional coefficients describe what remains after the other modelled dimensions of place are held constant; they are not isolated causal effects.</p>
+<h3>5.2 Within-county dynamics: temporal contingency, not noise</h3>
+<p>The within-county results warrant interpretation rather than dismissal, but their meaning differs fundamentally from the between-county layer. A within term asks whether a county&#x27;s departure from its own typical determinant level co-varies with next-year mortality after conditioning on persistent structure and the other model components. The pandemic altered this temporal regime. Several within terms changed sign or magnitude while the leading structural ordering persisted, indicating historically contingent ecological co-movement rather than a reversal of the underlying long-run determinants.</p>
+<p>Strict leave-one-year-out results reinforce this interpretation. Model 2 showed extremely poor temporal transportability, while Model 3&#x27;s median held-out R² recovered to a positive value but prediction errors remained large. These models are therefore period-conditioned explanatory surfaces, not forecasting models, and differences across the overlapping windows should not be read as clean causal pre/post contrasts.</p>
+<p>The post-COVID period nevertheless suggests a partial reweighting of the structural profile selective mortality or mortality displacement among frailer populations; secular improvement and compressed variability in exposures such as PM2.5; and a lower signal-to-noise ratio when remaining within-country variation is small relative to measurement error, shared trends and residual confounding. These mechanisms are not identified directly by the present ecological models and should be treated as hypotheses, not explanations established by the data (Supplementary Methods S1.14). In this sense, the post-COVID profile reflects a reconfiguration rather than a disappearance of structural mortality disadvantage.</p>
+<h3>5.3 Methodological contribution and policy implications</h3>
+<p>For place-based health research, the value of the spatial Mundlak approach lies in keeping persistent contextual configurations distinct from short-run ecological co-movement, while allowing associations to differ in shape and location. The method does not turn county-level The policy implication is not that counties should be ranked by individual coefficients.</p>
+<p>Rather, high-mortality counties combine disadvantages across education, labour markets, health-care capacity and peripherality, while the relative contribution of specific domains can change over time. This supports multi-domain place-sensitive responses: educational and vocational investment, equitable primary and specialist health-care access, transport connectivity and continued air-quality improvement. The persistence of educational contrasts after COVID and the attenuation of PM2.5 as a HIGH-LOW separator also suggest that intervention priorities should be informed by both durable structural gradients and the changing composition of local mortality disadvantage.</p>
+<p>The spatial pattern should also be read against Poland&#x27;s historically uneven regional development. Contemporary county differences overlay territories shaped by different nineteenth-century institutional and infrastructural regimes, post-war population transfers and industrialisation, the concentration and later dissolution of state agriculture in parts of northern and western Poland, and highly uneven post-1989 restructuring (Bąk et al., 2021; Grosfeld and Zhuravskaya, 2015; Herbst, 2023). These histories are not modelled exposures and the present surfaces cannot attribute mortality gradients to former partitions or later restructuring. They provide an interpretive backdrop for why education, labour-market conditions, migration, urban accessibility and service capacity remain geographically bundled (Supplementary Methods S1.12).</p>
+<h3>5.4 Limitations</h3>
+<p>This analysis is ecological and cannot identify individual-level effects. The Mundlak decomposition separates between-and within-county variation but does not eliminate time- Estimates remain regularised, model-conditional ecological associations.</p>
+<h3>6. Conclusion</h3>
+<p>Across 379 harmonised Polish counties, persistent educational and environmental differences between places were more stable correlates of mortality inequality than lagged within-county deviations over 2010-2025. This distinction matters beyond Poland: a major mortality shock can disrupt short-run ecological associations without erasing the underlying geography of structural disadvantage. Place-sensitive policy should therefore consider bundles of educational opportunity, labour-market conditions, health-care access and environmental quality rather than rank counties by isolated model coefficients. The estimates remain observational, ecological and model-conditional; they identify geographic patterns for further investigation, not causal effects of individual determinants.</p>
+<h3>Ethics statement</h3>
+<p>This study used publicly available aggregate county-level administrative, demographic and environmental data. No identifiable individual-level information was used and no human participants were directly involved. Ethical approval and informed consent were not required.</p>
+<h3>Data and code availability</h3>
+<p>County-level mortality and population data were obtained from Statistics Poland&#x27;s Local Data Bank; PM2.5 was derived from Copernicus Atmosphere Monitoring Service reanalysis products. Detailed data provenance and processing methods are reported in Supplementary Table S2. The harmonised analytical county-year panel and its documentation have been prepared for deposit in Zenodo, and the analysis code is maintained in a version-controlled repository. During double-anonymised review, author-identifying repository links and unpublished repository identifiers are withheld from the manuscript. Neither the dataset nor the code is currently available through a public archival DOI. Public access and persistent identifiers are planned after acceptance, subject to verification of the redistribution terms of third-party source data.</p>
+<h3>Declaration of generative AI and AI-assisted technologies in the manuscript preparation process</h3>
+<p>During the preparation of this work, the authors used OpenAI ChatGPT and Anthropic Claude to support language editing, consistency checking, code review and manuscript formatting.</p>
+<p>After using these tools, the authors reviewed and edited all content and take full responsibility for the published article.</p>
+<h3>.</h3>
+<p>unstable temporal association can coexist, and what that distinction means for interpreting place-sensitive health policy.</p>
+<h3>Figure 1.</h3>
+<p>Figure1. Descriptive geography of age-sex standardised mortality across three periods. Maps show county mean ASMR per 100,000 for 2010-2019, 2020-2022 and 2023-2025 using one pooled percentile-informed class scheme so colours are comparable across panels. Map lines delineate study areas and do not necessarily depict accepted national boundaries.The spatial Mundlak GAM explained 73.1% of variance in Model 1 (deviance explained 74.4%; RMSE 49.8 per 100,000; Table1). In-sample R² was 0.803 in Model 2 and 0.787 in Model 3. Positive residual Moran&#x27;s I occurred in 0/9 model years in Model 1, 1/12 in Model 2 and 4/15 in Model 3 (full diagnostics: Supplementary TableS4). Strict leave-one-year-out</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Between-county structural effects in the primary pre-COVID spatial Mundlak GAM (2010-2019; effective model years 2011-2019). Left: county-specific partial effect curves summarised by median, IQR and P10-P90 bands; the bands show fitted cross-county heterogeneity, not confidence intervals. Centre: local marginal effects per +1 SD at each county&#x27;s observed structural level. Right: accumulated contributions of observed structural levels relative to the 0-SD reference. Pale counties indicate approximate pointwise 95% intervals that include zero. Colour limits are symmetric and common across paired cartograms, with robust pooled clipping used only for visual scaling. uncertainty maps: Supplementary Figure S11. Quantities are fitted partial contrasts, not causal effects. Map lines delineate study areas and do not necessarily depict accepted national boundaries.</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Linear Mundlak benchmark and spatial GAM partial slopes, primary pre-COVID model (2010-2019). Blue circles show debiased linear Mundlak coefficients with 95% dependent-multiplier bootstrap confidence intervals (B=1,000). Orange triangles show the GAM mean average derivative with approximate 95% coefficientcovariance intervals derived from the fitted GAM. These intervals quantify estimation uncertainty and should not be interpreted as the cross-county heterogeneity reported by the APS IQRs in Table2. Discrepancies can reflect non-linearity, spatially varying slopes and differential allocation of shared spatial signal. Full ridge estimates are in Supplementary TableS3.</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Within-county lag-1 effects in the primary pre-COVID spatial Mundlak GAM (2010-2019). Layout follows Figure 2. Within effects describe conditional temporal coupling relative to each county&#x27;s own historical level and may track unmeasured behavioural, compositional or service changes. Education within terms use census-derived annual trajectories. Colour limits are symmetric and common across paired cartograms, with robust pooled clipping used only for visual scaling. Map lines delineate study areas and do not necessarily depict accepted national boundaries.</p>
+<h3>Figure 5.</h3>
+<p>Figure5. Dominant accumulated determinant contribution by county in the primary pre-COVID spatialMundlak  GAM (2010-2019). Top row: determinant with the largest positive accumulated contribution; bottom row: determinant with the largest negative accumulated contribution. Left column: between-county structural layer; right column: within-county lag-1 layer. Grey indicates no dominant contribution. Dominance identifies the largest reference-based accumulated contribution within each county and does not rank determinants by national effect magnitude. A determinant with a small average partial slope may therefore appear as locally dominant when its observed level lies far from the 0-SD reference or when competing determinant contributions are smaller. Accumulated-contribution signs need not match local marginal slopes under non-linearity. Map lines delineate study areas and do not necessarily depict accepted national boundaries.</p>
+<p>associated with high mortality. Determinants that strongly differentiated HIGH from LOW counties before the pandemic did not contribute equally strongly afterwards: education remained the dominant separator, whereas the PM2.5 HIGH-minus-LOW contribution contrast fell from +22.1 before COVID to +0.3 in 2023-2025. This does not mean that the underlying PM2.5 gradient disappeared-the between-county APS remained large-but that PM2.5 no longer separated the contemporaneous mortality extremes in the same way. Several mechanisms could contribute to the instability of within-county signs more generally: pandemic-era co-movement of employment, mobility, energy use and care utilisation; associations into individual-level causal effects.</p>
+<h3>.</h3>
+<p>National curves, local modifiers and modelbased uncertainty jointly indicate which geographic patterns merit substantive interpretation and which remain weakly identified.</p>
+<p>varying confounding or unmeasured stable heterogeneity. Health behaviours, psychosocial stress, detailed service use and occupational exposures are incompletely observed; county indicators may partly capture unmeasured intermediary or compositional processes. Education values are census-derived trajectories rather than independently observed annual shocks. PM2.5 changes source product in 2013; harmonisation reduces but cannot eliminate this discontinuity. The post-COVID descriptive window contains only three years (2023-2025), limiting inference about whether observed reweighting will persist. The three model windows overlap, so changes in APS across Models 1-3 are sensitivity comparisons rather than isolated pre-, COVID-and post-COVID effects. Selective mortality, mortality displacement and compressed exposure variability are plausible interpretations of some short-run sign changes but are not directly tested. Spatial concurvity is structurally expected; penalisation, basis sensitivity analysis, perturbation and coefficient-covariance uncertainty propagation reduce over-reading of unstable surfaces but do not make smooth components causally separable.</p>
+<h3>Table 1.</h3>
+<p>Spatial Mundlak GAM fit and validation across the three overlapping analysis periods. RMSE is in ASMR per 100,000. Moran counts refer to annual one-sided positive residual spatial autocorrelation at p&lt;0.05. Strict LOO = leave-one-year-out cross-validation with preprocessing recomputed within the training fold.</p>
+<h3>Table 2.</h3>
+<p>GAM average partial slopes across analysis periods, by Mundlak layer. Values are median county average partial slopes [county IQR], expressed as ΔASMR per 100,000 for a +1-SD change on the common Model-1 reference scale. IQRs describe spatial heterogeneity, not sampling-confidence intervals. ≈₀ denotes effects below ±0.05 per SD.</p>
+<h3>References</h3>
+<p>Arkhangelsky, D., &amp; Imbens, G. W. (2024). Fixed effects and the generalized Mundlak estimator. Review of Economic Studies, 91(5), 2545-2571.</p>
+<p>Bąk, I., Wawrzyniak, K., &amp; Oesterreich, M. (2021). The impact of transformational changes on the socio-economic conditions of the rural population: an example of Poland. Agriculture, 11(5), 403.</p>
+<p>Bell, A., &amp; Jones, K. (2015). Explaining fixed and random effects models: making an informed choice. Political Science Research and Methods, 3(1), 133-153.</p>
+<p>Bor, J. H., Cutler, D. M., Glaeser, E. L., &amp; Ristovska, L. (2024). Human capital spillovers and health: Does living around college graduates lengthen life? NBER Working Paper 32346. https://doi.org/10.3386/w32346</p>
+<p>Cameron, A. C., Gelbach, J. B., &amp; Miller, D. L. (2008). Bootstrap-based improvements for inference with clustered errors. Review of Economics and Statistics, 90(3), 414-427.</p>
+<p>Comber, A., et al. (2023). A route map for successful applications of geographically weighted regression. Geographical Analysis, 55(1), 155-178.</p>
+<p>Comber, A., Harris, P., &amp; Brunsdon, C. (2024a). Encapsulating spatially varying relationships with a generalized additive model. ISPRS International Journal of Geo-Information, 13(12), 459.</p>
+<p>Comber, A., Harris, P., &amp; Brunsdon, C. (2024b). Multiscale spatially varying coefficient modelling using a Geographical Gaussian Process GAM. International Journal of Geographical Information Science, 38(1), 27-47.</p>
+<p>Comber, A., Harris, P., &amp; Brunsdon, C. (2026). Specification of multiscale space-time varying coefficient GAMs. Journal of Spatial Information Science, 32, 37-66.</p>
+<p>Copernicus Atmosphere Monitoring Service. (2026a). CAMS global reanalysis (EAC4). https://doi.org/10.24381/d58bbf47</p>
+<p>Copernicus Atmosphere Monitoring Service. (2026b). CAMS European air quality reanalyses. https://doi.org/10.24381/7cc0465a</p>
+<p>Cummins, S., et al. (2007). Understanding and representing place in health research. Social Science &amp; Medicine, 65(9), 1825-1838.</p>
+<p>Dahlgren, G., &amp; Whitehead, M. (1991). Policies and strategies to promote social equity in health. Stockholm: Institute for Futures Studies.</p>
+<p>Dahlgren, G., &amp; Whitehead, M. (2021). The Dahlgren-Whitehead model of health determinants: 30 years on and still chasing rainbows. Public Health, 199, 20-24. https://doi.org/10.1016/j.puhe.2021.08.009</p>
+<p>Diez Roux, A. V., &amp; Mair, C. (2010). Neighborhoods and health. Annals of the New York Academy of Sciences, 1186(1), 125-145.</p>
+<p>Grosfeld, I., &amp; Zhuravskaya, E. (2015). Cultural vs. economic legacies of empires: evidence from the partition of Poland. Journal of Comparative Economics, 43(1), 55-75. https://doi.org/10.1016/j.jce.2014.11.004</p>
+<p>Herbst, M. (2023). Norms in action? On the channels through which Poland&#x27;s historical partitions may still contribute to divergent educational achievements in the country&#x27;s regions. PLOS ONE, 18(8), e0289686. https://doi.org/10.1371/journal.pone.0289686</p>
+<p>Huijts, T., et al. (2017). Educational inequalities in risky health behaviours in 21 European countries. European Journal of Public Health, 27(Suppl 1), 63-72.</p>
+<p>IHME-CHAIN Collaborators. (2024). Effects of education on adult mortality. The Lancet Public Health, 9(3), e155-e165.</p>
+<p>Irekponor, V., &amp; Oshan, T. M. (2025). Reproducible visualization strategies for spatially varying coefficient (SVC) models. Cartography and Geographic Information Science. https://doi.org/10.1080/15230406.2025.2557949</p>
+<p>Janko, M., et al. (2019). Extending multilevel spatial models to include spatially varying coefficients. Health &amp; Place, 60, 102235.</p>
+<p>Kobza, J., et al. (2018). Characteristics of air quality and sources affecting high levels of PM10 and PM2.5 in Poland, Upper Silesia urban area. Environmental Monitoring and Assessment, 190, 515.</p>
+<p>Laaksonen, M., et al. (2008). Health behaviours as explanations for educational level differences in cardiovascular and all-cause mortality. European Journal of Public Health, 18(1), 38-43.</p>
+<p>Macintyre, S., Ellaway, A., &amp; Cummins, S. (2002). Place effects on health. Social Science &amp; Medicine, 55(1), 125-139.</p>
+<p>Mackenbach, J. P., Kulhánová, I., Bopp, M., Deboosere, P., Eikemo, T. A., Hoffmann, R., Kulik, M. C., Leinsalu, M., Martikainen, P., Menvielle, G., Regidor, E., Wojtyniak, B., Östergren, O., &amp; Lundberg, O. (2015). Variations in the relation between education and cause-specific mortality in 19 European populations: A test of the &quot;fundamental causes&quot; theory of social inequalities in health. Social Science &amp; Medicine, 127, 51-62. https://doi.org/10.1016/j.socscimed.2014.05.021</p>
+<p>Mennis, J. (2006). Mapping the results of geographically weighted regression. The Cartographic Journal, 43(2), 171-179.</p>
+<p>Mundlak, Y. (1978). On the pooling of time series and cross section data. Econometrica, 46(1), 69-85.</p>
+<p>Puchalski, K., &amp; Korzeniowska, E. (2011). Zróżnicowanie stosunku do edukacji zdrowotnej a wykształcenie. Polacy na tle pracowników z Hiszpanii, Łotwy i Słowenii. Zdrowie Publiczne i Zarządzanie, 9(2), 85-96.</p>
+<p>Östergren, O., Lundberg, O., Artnik, B., Bopp, M., Borrell, C., Kalediene, R., Leinsalu, M., Martikainen, P., Regidor, E., Rodríguez-Sanz, M., de Gelder, R., &amp; Mackenbach, J. P. (2017). Educational expansion and inequalities in mortality-A fixed-effects analysis using longitudinal data from 18 European populations. PLOS ONE, 12(8), e0182526. https://doi.org/10.1371/journal.pone.0182526</p>
+<p>Shao, X. (2010). The dependent wild bootstrap. Journal of the American Statistical Association, 105(489), 218-235.</p>
+<p>Statistics Poland. (2026). Local Data Bank. Statistics Poland, Warsaw.</p>
+<p>Stelmach, W., et al. (2004). The impact of income, education and health on lifestyle in a large urban population of Poland. International Journal of Occupational Medicine and Environmental Health, 17(3), 393-401.</p>
+<p>Stormacq, C., et al. (2019). Does health literacy mediate the relationship between socioeconomic status and health disparities? Health Promotion International, 34(5), e1- e17.</p>
+<p>Wojtyniak, B., &amp; Gorynski, P. (Eds.). (2020). Health status of Polish population and its determinants 2020. National Institute of Public Health.</p>
+<p>Wojtyniak, B., &amp; Gorynski, P. (Eds.). (2022). Health status of Polish population and its determinants 2022. National Institute of Public Health.</p>
+<p>Wood, S. N. (2017). Generalized additive models: an introduction with R (2nd ed.). CRC Press.</p>
+<p>Zhang, Y., &amp; Politis, D. N. (2022). Ridge regression revisited: debiasing, thresholding and bootstrap. The Annals of Statistics, 50(3), 1401-1422.</p>
 </div>
 </details>
 </div>
