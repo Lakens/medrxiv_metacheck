@@ -197,7 +197,7 @@ Glucagon-like peptide-1 receptor agonists in diabetic patients with
 heart failure with reduced ejection fraction
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.03.26367091
+2026-11-21 · Metacheck 0.4.4.29 · DOI 10.64898/2026.11.03.26367091
 </p>
 </header>
 <div class="mc-main">
@@ -216,8 +216,8 @@ applicable</span></a>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 2 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 2 detected.</p>
 </div>
 </div>
 </div>
@@ -325,8 +325,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -677,9 +678,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -701,7 +706,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -716,9 +722,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -731,13 +755,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -757,6 +784,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -764,12 +797,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -870,6 +909,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -889,6 +948,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1144,19 +1238,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1266,6 +1442,90 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Aims: To evaluate the effectiveness of GLP-1 RAs on clinical outcomes in diabetic patients with heart failure with reduced ejection fraction (HFrEF).</p>
+<p>In this retrospective observational cohort study, all adults with diabetes mellitus and HFrEF between 2014 and 2025 were identified. Patients treated with GLP-1 RAs were matched to controls using stratified exact matching. The primary outcome was a composite of heart failure hospitalization or all-cause mortality. Treatment effects were estimated using nonparametric bootstrap resampling (1,000 iterations) to derive risk ratios, NNT estimates, and corresponding 95% confidence intervals. Time-to-event analyses using Cox proportional hazards models were performed as a validation analysis. Among 7,878 patients with HFrEF, 793 (10.1%) patients who initiated GLP-1 RA therapy after HF diagnosis were matched to 1,825 controls.</p>
+<p>GLP-1 receptor agonist use was associated with a lower risk of heart failure hospitalization or death, with risk ratios of 0.58 (95% CI: 0.42-0.77) at 12 months and 0.72 (95% CI: 0.61-0.85) at 36 months. The combination of high baseline event rates and substantial relative risk reduction translated into remarkably low NNT values in the overall population, with an NNT of 17 (95% CI: 11-33) at 1 year and 13 (95% CI: 8-25) at 3 years. Post hoc subgroup analyses demonstrated consistent effects across clinical subgroups, with no significant heterogeneity observed.</p>
+<p>In this large real-world cohort of diabetic patients with HFrEF, GLP-1 receptor agonist therapy, in addition to guideline-directed medical therapy, was associated with a lower risk of death or heart failure hospitalization.</p>
+<h3>Graphical abstract:</h3>
+<p>Introduction: Despite substantial advances in pharmacological therapies for heart failure with reduced ejection fraction (HFrEF) over the past two decades, patients with this condition continue to experience high rates of mortality and heart failure hospitalization, along with impaired quality of life [1].</p>
+<p>Glucagon-like peptide-1 receptor agonists (GLP-1 RA) include several medications which bind to a GLP-1 receptor and thereby promote insulin secretion, inhibit glucagon release and gastric emptying, and induce satiety [2]. Various GLP-1 RA differ in their structure and therefore differ in their dose, duration of action, mode of administration, and efficacy [3]. GLP-1 RA therapy has been investigated in several of cohorts and was shown to decrease the likelihood of death and major adverse cardiac events as well renal outcomes [4] [5] [6] [7] [8] [9]. However, as the prevalence of HF ranged from 9-24% in those studies, evidence regarding the effect of GLP-1 RA in patients with HF in general and HFrEF in particular, is scarce. While the recent publication of the STEP-HFpEF trials have provided evidence regarding the possible beneficial effect of GLP-1 RA in patients with heart failure with preserved ejection fraction (HFpEF) [10, 11], there is still no robust evidence regarding the efficacy in those with HFrEF, as only 3 small clinical trials have examined the use of GLP-1 RA in patients with HFrEF [12] [13] [14], and none currently in progress.</p>
+<p>Furthermore, while GLP-1 RA do not feature as recommended therapy in patients with HFrEF per latest published HF guidelines [15, 16], a substantial number of patients with HFrEF are treated with GLP-1 RA for indications other than HF. Therefore, the aim of this study was to evaluate the real-world effectiveness of GLP-1 receptor agonist therapy on the risk of heart failure hospitalization and all-cause mortality in patients with HFrEF.</p>
+<h3>Methods:</h3>
+<h3>Study Population and Data Sources</h3>
+<p>The study was approved by the Helsinki institutional review board of Clalit Health Services. This retrospective cohort study was based on the Clalit Health Services database, the largest healthcare organization in Israel, providing universal healthcare coverage to more than 5 million members, including approximately two-thirds of the population aged &gt;65 years. Demographic, social, clinical, medication, and laboratory data were extracted from the electronic medical records of eligible patients. Left ventricular ejection fraction (LVEF) was obtained from echocardiographic reports to identify patients with HFrEF. Eligible patients were adults aged 50 and above with diabetes mellitus, a validated ICD-9</p>
+<h3>Outcome Measures</h3>
+<p>The primary outcome was a composite of first heart failure hospitalization or all-cause mortality, assessed at 12 and 36 months after the prespecified 3-month post-index landmark. Heart failure hospitalizations were identified from validated hospitalization records in the Clalit Health Services database, and mortality was ascertained from the national death registry linked to the electronic medical record. The individual components of the composite outcome were also analyzed separately. Treatment effects were summarized using risk ratios, relative and absolute risk reductions, and number needed to treat (NNT). Subgroup analyses evaluated the consistency of treatment effects across demographic characteristics, renal function, glycemic status, obesity, ischemic heart disease, and background guideline-directed medical therapy.</p>
+<h3>Data analysis</h3>
+<p>Baseline characteristics were summarized descriptively and reported as median (interquartile range [IQR]) for continuous variables and percentages with 95% confidence intervals for categorical variables.</p>
+<p>We define index date as the day where patients received their first GLP-1 therapy We applied a 3-month post-index landmark, requiring both treated patients and matched controls to remain alive and free of the primary outcome, to mitigate the healthy initiator effect and other peri-initiation selection biases that may favor patients able to initiate GLP-1 therapy. This period also allowed sufficient time for dose titration and early treatment effects to emerge. Patients initiating GLP-1 receptor agonist therapy were matched to nonusers using stratified exact matching based on clinically categorized baseline covariates, including age (49-60, 60-70, 70-80, and &gt;80 years), sex, body mass index (BMI; 18.5-25, 25-30, 30-40, and &gt;40 kg/m²), estimated glomerular filtration rate (eGFR; &lt;30, 30-45, 45-60, and &gt;60 mL/min/1.73 m²), and HbA1c (&lt;6.5%, 6.5-8%, and &gt;8%) and tenure group in the diseases (0-2 , 2-5, 5+ years) at the index date.</p>
+<p>To estimate treatment effects while accounting for variability in the matching process, a repeated nonparametric bootstrap resampling framework was applied with 1,000 iterations. In each iteration, GLP-1 receptor agonist initiators were randomly sampled and matched to eligible controls within predefined strata, generating repeated matched cohorts. Event rates for the composite outcome of heart failure hospitalization or all-cause mortality were calculated at 12 and 36 months. For the primary composite outcome, each patient contributed a single event indicator based on the occurrence of either first heart failure hospitalization or all-cause mortality during the prespecified follow-up period. To further characterize the composite outcome, we conducted an additional supplementary analysis in which first heart failure hospitalization and all-cause mortality were evaluated separately (Supplementary Table S1 and Supplementary Figure S1). For the heart failure hospitalization analysis, only the first hospitalization was considered; death before hospitalization resulted in matched-pair censoring, whereby both the patient who died and their matched counterpart were censored at the time of death. Treatment effects were summarized as risk ratios, relative risk reduction, absolute risk reduction, and number needed to treat (NNT), with corresponding 95% confidence intervals derived from the bootstrap distribution.</p>
+<p>To assess the robustness of the primary findings using an independent analytical framework, we conducted a validation analysis based on time-to-event methods using multivariable Cox proportional hazards regression models. To create a comparable cohort using a different matching strategy, we first performed propensity score matching with a nearest-neighbor approach based on sex, age at heart failure diagnosis, year of heart failure diagnosis, and sociodemographic characteristics. We then fitted Cox models stratified by matched pair and adjusted for age at index date, socioeconomic status, body mass index, renal function, glycemic status, ischemic heart disease, and background guideline-directed medical therapy. Hazard ratios (HRs) with 95% confidence intervals were estimated at 1 and 3 years of follow-up.</p>
+<p>Post hoc subgroup analyses were performed according to sex, age, BMI, ischemic heart disease, eGFR and background medical therapies including ARNI, beta-blockers, MRA, SGLT2 inhibitors, metformin, insulin, DPP4 inhibitors. Statistical analyses were performed using Python version 3.9.7 (Python Software Foundation).</p>
+<p>Post hoc subgroup analyses were performed to evaluate the consistency of associations between GLP-1 receptor agonist therapy and the primary outcome across clinically relevant patient subgroups. Subgroups were defined according to sex, age, body mass index (BMI), eGFR, glycemic status, ischemic heart disease, and background medical therapies, including ARNI, Insulin, MRA, Metformin, SGLT2i, betablockers, mineralocorticoid receptor antagonists (MRA), SGLT2 inhibitors, insulin, metformin, and DPP-4 inhibitors. Treatment effects within subgroups were summarized using risk ratios with corresponding 95% confidence intervals at 12-and 36-month follow-up periods. Relative risk reduction, absolute risk reduction, and number needed to treat (NNT) were additionally calculated for subgroup analyses.</p>
+<h3>Results:</h3>
+<p>Patient population Out of 7,878 individuals identified in the initial cohort with DM and HFrEF, 821 (10.4%) were excluded because of dialysis, prior kidney transplantation, or an estimated glomerular filtration rate (eGFR) &lt;15 mL/min/1.73 m² (figure 1). Among the remaining 7,057 eligible individuals, 1,519 (21.5%) were excluded because of GLP-1 receptor agonist use before HFrEF diagnosis. The final study cohort therefore included 5,538 patients. Baseline characteristics were broadly similar between GLP-1 receptor agonist initiators and matched controls (Table 1). Median age was comparable between groups (65.0 [IQR: 60.0-70.0] years vs 67.0 [IQR: 62.0-73.0] years), with most patients aged 60-70 years, and the proportion of male patients was similar (79.7% vs 80.3%). Renal function distribution was also comparable, with most patients having an eGFR ≥60 mL/min/1.73 m². Use of guideline-directed medical therapy, including ACEi/ARB and betablockers, was high in both groups. GLP-1 receptor agonist initiators had numerically higher use of several cardiometabolic therapies, including SGLT2 inhibitors, mineralocorticoid receptor antagonists, insulin, and DPP-4 inhibitors. Overall, these findings suggest that GLP-1 receptor agonist initiators did not represent a clinically lower-risk population at baseline.</p>
+<h3>Clinical outcomes</h3>
+<p>GLP-1 receptor agonist use was associated with a lower cumulative incidence of the composite outcome of heart failure hospitalization or all-cause mortality compared with matched controls (Figure 2). At 12 months, the cumulative incidence was 8.2% among GLP-1 receptor agonist initiators versus 14.2% among matched controls, corresponding to a risk ratio of 0.58 (95% CI: 0.42-0.77). At 36 months, cumulative incidence increased to 20.3% in the GLP-1 receptor agonist group and 28.1% in matched controls, corresponding to a risk ratio of 0.72 (95% CI: 0.61-0.85). These treatment effects translated into remarkably low NNT values of 17 (95% CI: 11-33) at 1 year and 13 (95% CI: 8-25) at 3 years, underscoring both the high residual risk and substantial treatment benefit in this HFrEF population (Table 2). In a validation analysis employing time-to-event framework, GLP-1 receptor agonist therapy remained independently associated with a lower risk of heart failure hospitalization or all-cause mortality at both 1 year (HR 0.51, 95% CI 0.31-0.82; p=0.005) and 3 years (HR 0.65, 95% CI 0.48-0.89; p=0.006), supporting the robustness of the primary findings (SI Appendix).</p>
+<p>Table 1. Baseline demographic, clinical, laboratory, and treatment characteristics of GLP-1 receptor agonist initiators and matched controls. Values are presented as mean percentages with 95% confidence intervals across matched bootstrap cohorts unless otherwise indicated. Continuous variables are presented as median [interquartile range, IQR]. GLP-1 RA = glucagon-like peptide-1 receptor agonist; BMI = body mass index; eGFR = estimated glomerular filtration rate; HbA1c = glycated hemoglobin; ACEi = angiotensinconverting enzyme inhibitor; ARB = angiotensin receptor blocker; ARNI = angiotensin receptor-neprilysin inhibitor; MRA = mineralocorticoid receptor antagonist; SGLT2 = sodium-glucose cotransporter-2 inhibitor; DPP-4 = dipeptidyl peptidase-4 inhibitor; IHD = Followup Subgroup Category GLP-1 events, mean (95% CI) GLP-1 event rate, % (95% CI) Control events, mean (95% CI) Control event rate, % (95% CI) RRR, % (95% CI) ARR, % (95% CI) NNT (95% CI) 1 year All patients 47.5 (35.0 -59.0) 8.2 (6.0 -10.1) 82.3 (68.0 -96.0) 14.2 (11.6 -16.3) 42.0 (23.0 -58.0) 6.0 (3.1 -9.2) 17 (11 -33) Sex Female 5.4 (2.0 -9.0) 5.2 (1.9 -8.8) 17.8 (12.0 -24.0) 17.0 (11.9 -22.2) 69.0 (46.1 -88.5) 11.8 (6.1 -17.8) 8 (6 -16) Sex Male 41.4 (30.0 -53.0) 8.7 (6.2 -11.1) 63.5 (51.0 -76.0) 13.4 (10.8 -15.9) 34.2 (11.5 -54.1) 4.7 (1.4 -8.1) 21 (12 -70) BMI &lt;30 26.2 (17.0 -36.0) 8.8 (5.9 -11.9) 38.4 (28.0 -48.0) 12.9 (9.5 -16.3) 30.6 (-0.1 -57.5) 4.1 (0.0 -8.7) 24 (11 -∞) BMI ≥30 20.6 (13.0 -28.0) 7.3 (4.7 -10.0) 42.6 (33.0 -52.0) 15.1 (12.0 -18.5) 51.2 (29.4 -70.2) 7.8 (3.8 -12.0) 13 (8 -27) eGFR &lt;45 12.9 (7.0 -19.0) 13.9 (8.1 -20.2) 19.4 (12.0 -27.0) 21.0 (14.5 -27.8) 31.7 (-13.3 -64.7) 7.0 (-2.2 -16.0) 14 (6 -∞) eGFR ≥45 33.9 (23.0 -44.0) 7.0 (4.8 -9.0) 61.9 (51.0 -74.0) 12.7 (10.4 -15.1) 44.7 (25.9 -63.4) 5.8 (2.8 -9.1) 17 (11 -35) HbA1c &lt;7 4.4 (1.0 -8.0) 3.3 (0.8 -6.1) 16.2 (10.0 -23.0) 12.1 (7.9 -16.6) 71.8 (40.0 -94.1) 8.8 (3.4 -14.3) 11 (7 -30) HbA1c ≥7 29.5 (20.0 -39.0) 9.2 (6.4 -12.2) 51.9 (41.0 -62.0) 16.2 (13.0 -19.3) 42.4 (18.6 -62.3) 7.0 (2.5 -11.3) 14 (9 -40) 3 years All patients 117.6 (99.0 -134.0) 20.3 (17.2 -23.2) 162.8 (145.0 -180.0) 28.1 (25.2 -30.9) 28.0 (15.0 -39.0) 7.8 (4.0 -11.8) 13 (8 -25) Sex Female 14.7 (8.0 -21.0) 14.0 (8.1 -20.0) 31.0 (23.0 -39.0) 29.6 (23.3 -35.9) 52.3 (29.2 -72.0) 15.6 (7.5 -23.3) 6 (4 -13) Sex Male 102.3 (85.0 -119.0) 21.6 (18.1 -24.9) 131.4 (115.0 -147.0) 27.7 (24.5 -30.9) 21.9 (7.8 -35.7) 6.1 (1.9 -10.4) 16 (10 -52) BMI &lt;30 57.2 (44.0 -71.0) 19.3 (15.0 -23.5) 78.7 (65.0 -93.0) 26.5 (22.3 -30.5) 26.9 (6.9 -46.0) 7.2 (1.6 -13.2) 14 (8 -61) BMI ≥30 59.7 (47.0 -72.0) 21.2 (17.1 -25.4) 82.7 (72.0 -95.0) 29.4 (25.7 -33.3) 27.5 (9.1 -43.7) 8.2 (2.4 -13.9) 12 (7 -41)</p>
+<p>Table 2: GLP-1 Receptor Agonists, Risk Reduction and NNT by Subgroup.</p>
+<h3>Subgroup analysis</h3>
+<p>Post hoc subgroup analyses demonstrated that the association between GLP-1 receptor agonist use and lower risk of heart failure hospitalization or all-cause mortality was generally consistent across clinically relevant subgroups at both 1 and 3 years (Figure 3A and B). Estimates were broadly similar across sex, BMI, renal function, glycemic status, age, ischemic heart disease status, and background medical therapies. Numerically greater relative risk reductions were observed among women, patients with BMI ≥30 kg/m², and patients with HbA1c ≥7%. Associations were observed irrespective of background use of ARNI, SGLT2 inhibitors, MRA, insulin, or metformin, although confidence intervals crossed unity in several smaller subgroups. Overall, these findings suggest a consistent treatment effect of GLP-1 receptor agonists across a range of clinically relevant patient subgroups. Notably, several subgroups demonstrated particularly large treatment benefits or low NNT values. Women, who comprised approximately 20% of the study population, demonstrated relative risk reductions of 69.0% (95% CI: 46.1%-88.5%) at 1 year and 52.3% (95% CI: 29.2%-72.0%) at 3 years, corresponding to NNT values of 8 (95% CI: 6-16) and 6 (95% CI: 4-13), respectively (Table 2). Patients with impaired renal function (eGFR &lt;45 mL/min/1.73 m²) demonstrated a relative risk reduction of 29.8% (95% CI: 5.9%-51.2%) at 3 years, with an NNT of 7 (95% CI: 4-44). eGFR &lt;45 28.6 (20.0 -38.0) 30.9 (22.4 -39.0) 41.1 (32.0 -50.0) 44.4 (36.7 -52.1) 29.8 (5.9 -51.2) 13.5 (2.3 -24.7) 7 (4 -44) eGFR ≥45 88.4 (73.0 -104.0) 18.2 (15.2 -21.2) 121.4 (106.0 -137.0) 24.9 (21.9 -28.0) 26.9 (11.8 -40.6) 6.8 (2.7 -10.9) 15 (9 -37) HbA1c &lt;7 19.6 (12.0 -28.0) 14.7 (9.0 -20.7) 31.1 (23.0 -40.0) 23.2 (17.5 -29.2) 35.8 (0.0 -62.1) 8.6 (0.0 -16.3) 12 (6 -∞) HbA1c ≥7 68.8 (55.0 -81.0) 21.5 (17.5 -25.5) 103.4 (91.0 -116.0) 32.4 (28.7 -36.0) 33.2 (17.2 -47.2) 10.8 (5.1 -16.0) 9 (6 -19) Table 2. Event rates, relative and absolute risk reduction, and number needed to treat for the primary composite outcome by clinical subgroup at 1 and 3 years. Event counts represent the mean number of events per matched bootstrap cohort across 1,000 iterations and may therefore be non-integer values. Event rates, relative risk reduction (RRR), absolute risk reduction (ARR), and number needed to treat (NNT) were estimated within the repeated matching and bootstrap framework. Values in parentheses represent 95% bootstrap confidence intervals. An infinite upper confidence limit for NNT indicates that the corresponding confidence interval for ARR included zero.</p>
+<h3>Discussion</h3>
+<p>In this large real-world cohort of patients with HFrEF receiving contemporary guideline-directed medical therapy, initiation of GLP-1 receptor agonist therapy was associated with a lower risk of heart failure hospitalization or all-cause mortality at both 1 and 3 years of follow-up. GLP-1 receptor agonist use was associated with relative risk reductions of 42% at 1 year and 28% at 3 years, corresponding to absolute risk reductions of 6.0% and 7.8%, respectively. These treatment effects translated into remarkably low NNT values of 17 at 1 year and 13 at 3 years, reflecting both the substantial residual risk and clinically meaningful treatment benefit observed in this HFrEF population. Treatment effects emerged early and were sustained over time, with progressive separation in cumulative event rates translating into increasing absolute risk differences during follow-up. Importantly, these associations were consistent across a broad range of clinically relevant subgroups, with no significant heterogeneity observed, supporting the robustness and generalizability of the findings.</p>
+<p>Given the fact that heart failure (HF) and diabetes mellitus (DM) often coexist, anti-diabetic medications have been historically prescribed to patients with cardiac disease with the purpose of lowering their glucose level and prevent long-term diabetes-related complications. Recent studies have provided evidence regarding the beneficial effect of several anti-diabetic medications that improved cardiovascular outcomes in patients with DM, independent of their glucose-lowering effect. However, while medications such as sodium-glucose cotransporter-2 (SGLT2) inhibitors have been proven to be associated with favorable clinical outcomes in patients with heart failure (both HFrEF and HFpEF) [17] [18] [19] [20], the evidence regarding the beneficial effect of GLP-1 RA in HF in general and in HFrEF in particular, remains limited [5] [6] [7] [8]. Furthermore, in addition to not showing any clear benefit, there was uncertainty regarding the safety of some GLP-1 RA in this patient population [13].</p>
+<p>Several studies have examined the potential benefit of GLP-1 RA therapy in patients with HF. The 2 STEP-HFpEF trials reported improved quality of life and weight loss in a population of obese patients with HFpEF with and without DM [10, 11]. The recently reported pooled analysis from 4 trials which investigated the effect of GLP-1 RA further reported a reduction in HF hospitalizations in a cohort of patients with HFpEF [21]. The evidence regarding HFrEF is not as robust. A recent study reported a reduction of death but not HF hospitalization in a large cohort of patients with HF treated with GLP-1 RA [22]. However, this study included all subtypes of HF, and therefore its results cannot be applied specifically to patients with HFrEF.</p>
+<p>Villaschi et al also reported a meta-analysis of GLP-1 RA in patients with HF (HFrEF and HFpEF) and could not find a clear benefit of GLP-1 RA in those patients. Compared with the above studies, our study focuses only on patients with HFrEF, includes a larger cohort, and displays a significant benefit of GLP-1 RA in all patients included, regardless of other factors such as age and BMI. Currently there are no randomized controlled studies to report the effect of GLP-1 RA in patients with HFrEF.</p>
+<p>Although several bio-mechanisms have been suggested to mediate the cardiometabolic effect of GLP-1 RA, the exact mechanism by which GLP-1 RA improves quality of life and outcomes in patients with HF is still largely unknown. The recent results reported in the STEP-HFpEF trials, which included only patients with HFpEF and obesity, suggested an indirect effect through weight loss, a common comorbidity in patient with HFpEF [10]. Other suggested mechanisms for the effect of GLP-1 RA on patients with HF include anti-inflammatory and hemodynamic effects [23]. In our study, the prevalence of the primary outcomes was significantly lower in all patients treated with GLP-1 RA, regardless of their BMI. This finding suggests a different mechanism rather than pure weight loss, which will need to be further explored in future studies.</p>
+<h3>Limitations</h3>
+<p>This study has several limitations. First, as matching was limited to selected baseline characteristics, differences between the treatment and control groups persisted, particularly with respect to medical therapy. Specifically, patients treated with GLP-1 receptor agonists were more likely to receive contemporary cardiometabolic therapies, including SGLT2 inhibitors, Metformin, insulin and MRAs.. Notably, subgroup analyses demonstrated consistent treatment effects across strata of background therapies, including SGLT2 inhibitors, MRAs, and ARNI, with no evidence of significant effect modification, supporting the robustness of the findings. Nevertheless, residual confounding cannot be fully excluded. Second, given the observational and retrospective design, causal inferences cannot be established, and unmeasured confounding and selection bias may have influenced the observed associations. Third, the database lacked detailed clinical parameters, including natriuretic peptide levels, as well as other markers of heart failure severity, limiting our ability to fully adjust for disease severity and to explore potential mechanistic pathways underlying the observed effects. Fourth, given the fact that the study population included patients with HFrEF and DM, the treatment benefit of GLP-1 RA cannot be attributable only to HFrEF, and future studies would need to examine this question in non-diabetic patients with HFrEF. Fifth, as all patients in this study were treated with GLP-1 RA for the indication of DM, medication doses were likely to be lower compared with doses prescribed nowadays for weight loss, and therefore higher does of GLP-1 RA would need to be examined in the future in this population.</p>
+<h3>Policy implications</h3>
+<p>Although current guidelines call for caution when using GLP-1 RA in patients with HFrEF, the results of our study suggest the possible beneficial effect of GLP-1 RA as an additive therapy to the contemporary GDMT given to all patients with HFrEF. The possible addition of GLP-1 RA may further improve the clinical outcomes of this patient population by reducing the rate of death and HF hospitalization. While therapy with GLP-1 RA is associated with possible gastrointestinal side effects, they are mostly mild and tend to resolve within a short period of time, thus making the risk-benefit profile tilt towards the benefit side. Considering the already established effect of GLP-1 RA in terms of weight loss, which is a common comorbidity in HFrEF [24], GLP-1 RA may be an especially appealing treatment option for patients with HFrEF, especially in those with coexistent obesity.</p>
+<h3>Conclusions</h3>
+<p>In this cohort study of patients with diabetes mellitus and heart failure with reduced ejection fraction, treatment with GLP-1 receptor agonists was associated with a lower risk of death or heart failure hospitalization. The observed association was consistent across clinically relevant subgroups, suggesting a potentially broad benefit and a favorable safety profile. These findings support the potential role of GLP-1 receptor agonists as an adjunct to contemporary guideline-directed medical therapy in this population. However, randomized controlled trials are warranted to confirm these findings and to better quantify the magnitude of clinical effectiveness and elucidate the underlying mechanisms of benefit.</p>
+<p>Funding: This work was supported by the European Research Council, project #949850</p>
+<p>The individual components of the primary composite outcome were also examined separately. Results for first HF hospitalization and all-cause mortality are presented in Supplementary Table S1 and Supplementary Figure S1.</p>
+<p>diagnosis of heart failure (codes 428.x), and documented LVEF ≤ 40%. Patients were subsequently categorized according to GLP-1 receptor agonist exposure status. The GLP-1 receptor agonist group included patients treated with liraglutide, exenatide, dulaglutide, or semaglutide, defined by at least 3 consecutive dispensed prescriptions. To evaluate the association of GLP-1 receptor agonist therapy initiated after established HFrEF diagnosis, only patients who started GLP-1 receptor agonist treatment after the date of HFrEF diagnosis were included in the GLP-1 receptor agonist group. The comparison group consisted of patients with HFrEF who were not treated with GLP-1 receptor agonists. Exclusion criteria included prior GLP-1 receptor agonist use before HFrEF diagnosis, heart failure with preserved ejection fraction, hemodialysis, kidney transplantation, heart transplantation, or left ventricular assist device implantation.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Study cohort selection and matching process for patients with HFrEF treated with GLP-1 receptor agonists and matched controls.</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Subgroup analyses of the association between GLP-1 receptor agonist use and the composite outcome of heart failure hospitalization or all-cause mortality at 1 year (A) and 3 years (B). Forest plots display risk ratios with 95% confidence intervals across clinically relevant subgroups. The vertical dashed line represents the overall treatment effect estimate in the full study population. Values to the left of the line indicate a greater relative treatment benefit compared with the overall population estimate, whereas values to the right indicate a smaller relative treatment benefit.</p>
+<h3>Table 1.</h3>
+<p>Baseline demographic, clinical, laboratory, and treatment characteristics of GLP-1 receptor agonist initiators and matched controls.</p>
+<h3>Figure 2.</h3>
+<p>Cumulative incidence of the composite outcome of heart failure hospitalization or all-cause mortality among GLP-1 receptor agonist initiators and matched controls over 3 years of follow-up. Shaded areas represent 95% confidence intervals. Risk ratios at 1 and 3 years are shown inset.</p>
+<h3>References</h3>
+<p>McDonagh TA, Metra M, Adamo M, et al. 2023 Focused Update of the 2021 ESC Guidelines for the diagnosis and treatment of acute and chronic heart failure. Eur Heart J. 2023 Oct 1;44(37):3627-3639.</p>
+<p>Marx N, Husain M, Lehrke M, et al. GLP-1 Receptor Agonists for the Reduction of Atherosclerotic Cardiovascular Risk in Patients With Type 2 Diabetes. Circulation. 2022 Dec 13;146(24):1882- 1894.</p>
+<p>Khan MS, Fonarow GC, McGuire DK, et al. Glucagon-Like Peptide 1 Receptor Agonists and Heart Failure: The Need for Further Evidence Generation and Practice Guidelines Optimization. Circulation. 2020 Sep 22;142(12):1205-1218.</p>
+<p>Perkovic V, Tuttle KR, Rossing P, et al. Effects of Semaglutide on Chronic Kidney Disease in Patients with Type 2 Diabetes. N Engl J Med. 2024 Jul 11;391(2):109-121.</p>
+<p>Gerstein HC, Colhoun HM, Dagenais GR, et al. Dulaglutide and cardiovascular outcomes in type 2 diabetes (REWIND): a double-blind, randomised placebo-controlled trial. Lancet. 2019 Jul 13;394(10193):121-130.</p>
+<p>Husain M, Birkenfeld AL, Donsmark M, et al. Oral Semaglutide and Cardiovascular Outcomes in Patients with Type 2 Diabetes. N Engl J Med. 2019 Aug 29;381(9):841-851.</p>
+<p>Marso SP, Bain SC, Consoli A, et al. Semaglutide and Cardiovascular Outcomes in Patients with Type 2 Diabetes. N Engl J Med. 2016 Nov 10;375(19):1834-1844.</p>
+<p>Marso SP, Daniels GH, Brown-Frandsen K, et al. Liraglutide and Cardiovascular Outcomes in Type 2 Diabetes. N Engl J Med. 2016 Jul 28;375(4):311-22.</p>
+<p>Lincoff AM, Brown-Frandsen K, Colhoun HM, et al. Semaglutide and Cardiovascular Outcomes in Obesity without Diabetes. N Engl J Med. 2023 Dec 14;389(24):2221-2232.</p>
+<p>Kosiborod MN, Abildstrom SZ, Borlaug BA, et al. Semaglutide in Patients with Heart Failure with Preserved Ejection Fraction and Obesity. N Engl J Med. 2023 Sep 21;389(12):1069-1084.</p>
+<p>Kosiborod MN, Petrie MC, Borlaug BA, et al. Semaglutide in Patients with Obesity-Related Heart Failure and Type 2 Diabetes. N Engl J Med. 2024 Apr 18;390(15):1394-1407.</p>
+<p>Lepore JJ, Olson E, Demopoulos L, et al. Effects of the Novel Long-Acting GLP-1 Agonist, Albiglutide, on Cardiac Function, Cardiac Metabolism, and Exercise Capacity in Patients With Chronic Heart Failure and Reduced Ejection Fraction. JACC Heart Fail. 2016 Jul;4(7):559-566.</p>
+<p>Margulies KB, Hernandez AF, Redfield MM, et al. Effects of Liraglutide on Clinical Stability Among Patients With Advanced Heart Failure and Reduced Ejection Fraction: A Randomized Clinical Trial. JAMA. 2016 Aug 2;316(5):500-8.</p>
+<p>Jorsal A, Kistorp C, Holmager P, et al. Effect of liraglutide, a glucagon-like peptide-1 analogue, on left ventricular function in stable chronic heart failure patients with and without diabetes (LIVE)- a multicentre, double-blind, randomised, placebo-controlled trial. Eur J Heart Fail. 2017 Jan;19(1):69-77.</p>
+<p>Authors/Task Force M, McDonagh TA, Metra M, et al. 2021 ESC Guidelines for the diagnosis and treatment of acute and chronic heart failure: Developed by the Task Force for the diagnosis and treatment of acute and chronic heart failure of the European Society of Cardiology (ESC). With the special contribution of the Heart Failure Association (HFA) of the ESC. Eur J Heart Fail. 2022 Jan;24(1):4-131.</p>
+<p>Heidenreich PA, Bozkurt B, Aguilar D, et al. 2022 AHA/ACC/HFSA Guideline for the Management of Heart Failure: A Report of the American College of Cardiology/American Heart Association Joint Committee on Clinical Practice Guidelines. Circulation. 2022 May 3;145(18):e895-e1032.</p>
+<p>Zinman B, Wanner C, Lachin JM, et al. Empagliflozin, Cardiovascular Outcomes, and Mortality in Type 2 Diabetes. N Engl J Med. 2015 Nov 26;373(22):2117-28.</p>
+<p>Wiviott SD, Raz I, Sabatine MS. Dapagliflozin and Cardiovascular Outcomes in Type 2 Diabetes. Reply. N Engl J Med. 2019 May 9;380(19):1881-1882.</p>
+<p>McMurray JJV, Solomon SD, Inzucchi SE, et al. Dapagliflozin in Patients with Heart Failure and Reduced Ejection Fraction. N Engl J Med. 2019 Nov 21;381(21):1995-2008.</p>
+<p>Packer M, Anker SD, Butler J, et al. Cardiovascular and Renal Outcomes with Empagliflozin in Heart Failure. N Engl J Med. 2020 Oct 8;383(15):1413-1424.</p>
+<p>Kosiborod MN, Deanfield J, Pratley R, et al. Semaglutide versus placebo in patients with heart failure and mildly reduced or preserved ejection fraction: a pooled analysis of the SELECT, FLOW, STEP-HFpEF, and STEP-HFpEF DM randomised trials. Lancet. 2024 Sep 7;404(10456):949-961.</p>
+<p>Wallner M, Biber ME, Stolfo D, et al. Glucagon-like peptide-1 receptor agonists use and associations with outcomes in heart failure and type 2 diabetes: data from the Swedish Heart Failure and Swedish National Diabetes Registries. Eur Heart J Cardiovasc Pharmacother. 2024 Jul 16;10(4):296-306.</p>
+<p>Zheng Z, Zong Y, Ma Y, et al. Glucagon-like peptide-1 receptor: mechanisms and advances in therapy. Signal Transduct Target Ther. 2024 Sep 18;9(1):234.</p>
+<p>Vest AR, Schauer PR, Rodgers JE, et al. Obesity and Weight Loss Strategies for Patients With Heart Failure. JACC Heart Fail. 2024 Sep;12(9):1509-1527.</p>
 </div>
 </details>
 </div>
