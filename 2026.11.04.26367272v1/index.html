@@ -198,7 +198,7 @@ Prognostic Performance in Hospitalized Adults: A Retrospective Cohort
 Study
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.04.26367272
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.04.26367272
 </p>
 </header>
 <div class="mc-main">
@@ -341,8 +341,8 @@ Your Statistical Inferences</a>.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 6 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 6 detected.</p>
 </div>
 </div>
 </div>
@@ -439,8 +439,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -799,9 +800,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -823,7 +828,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -838,9 +844,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -853,13 +877,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -879,6 +906,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -886,12 +919,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -992,6 +1031,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1011,6 +1070,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1266,19 +1360,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1388,6 +1564,150 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Electronic frailty indices (eFIs) derived from structured electronic health record (EHR) data may incompletely capture functional deficits. Large language models (LLMs) can extract frailty-related information from clinical notes, but whether improved frailty ascertainment improves prognostic performance is uncertain. Objective: To compare frailty ascertainment and prognostic performance between standard and LLM-enhanced eFIs among hospitalized adults. Design: Retrospective cohort study Participants: Adults aged ≥50 years enrolled in two studies at an academic medical center and affiliated community hospital between February 2022 and April 2024. Main Measures: A validated 35-deficit diagnosis-based eFI and an LLM-enhanced eFI incorporating deficits extracted from physical therapy (PT) documentation using GPT-4o. Frailty was defined using an index threshold of ≥0.20. The primary outcome was a composite of discharge to a facility, readmission, or death within 90 days. Multivariable logistic regression models assessed associations with the outcome, and discrimination was compared using area under the receiver operating characteristic curve (AUROC). Secondary analyses examined threshold-based classification and PT-documentation availability; prespecified sensitivity analyses evaluated population and outcome restrictions. Results: Among 616 hospitalizations, mean (SD) age was 70.9 (10.2) years, 329 (53.4%) had PT documentation, and 320 (51.9%) experienced the composite outcome. Standard and LLM-enhanced eFIs classified 216 (35.1%) and 362 (58.8%) hospitalizations as frail, respectively. Both were independently associated with the outcome (standard eFI: adjusted OR, 1.98 [95% CI, 1.39-2.83]; LLM-enhanced eFI: adjusted OR, 2.46 [95% CI, 1.75-3.47]).</p>
+<p>Discrimination did not differ significantly (AUROC, 0.636 vs 0.660; difference, 0.024 [95% CI, -0.006 to 0.053]; p=0.12). LLM enhancement increased sensitivity (42.5% to 69.4%) but decreased specificity (73.0% to 52.7%).</p>
+<p>.</p>
+<h3>[div-01]</h3>
+<p>Conclusions: LLM enhancement substantially increased frailty ascertainment and sensitivity for adverse outcomes but did not significantly improve prognostic discrimination.</p>
+<p>Thus, LLM-enhanced frailty assessment may depend on whether the intended use prioritizes broad identification of functional vulnerability or prediction of adverse post-hospital outcomes.</p>
+<h3>INTRODUCTION</h3>
+<p>Frailty is a multidimensional syndrome of decreased physiologic reserve resulting from accumulated deficits across health domains and is associated with adverse outcomes-such as readmission, ongoing facility care, and mortality-among hospitalized older adults. [1] [2] [3] [4] Because frailty captures vulnerability beyond chronologic age, 5, 6 identifying frailty during hospitalization may inform risk stratification and targeted care of vulnerable adults. Frailty screening is increasingly relevant to inpatient care, reinforced by national initiatives such as the Centers for Medicare &amp; Medicaid Services Age-Friendly Hospital Measure.</p>
+<h3>3,7-9</h3>
+<p>Comprehensive geriatric assessment can characterize frailty but is resource intensive and difficult to implement universally. 8, [10] [11] [12] [13] [14] [15] Electronic frailty indices (eFIs), which quantify accumulated deficits using passively collected electronic health record (EHR) data, offer a validated alternative. [16] [17] [18] [19] However, eFIs based primarily on structured diagnosis codes may incompletely capture functional deficits, including mobility impairment, gait abnormalities, and falls, that are often documented in narrative clinical notes, such as physical therapy (PT) documentation. 8,20,21   Large language models (LLMs) provide a scalable means of extracting frailty-related information from unstructured documentation. 8, 22 In prior work, we developed and validated an LLM-enhanced eFI incorporating deficits extracted from PT notes. 23 Compared with the standard eFI, the LLM-enhanced eFI demonstrated greater discrimination and sensitivity for frailty defined by a geriatrician-performed comprehensive geriatric assessment. 23   Whether improved frailty ascertainment translates into improved prognostic stratification remains uncertain. 9 Frailty measurement and prediction of post-hospital outcomes are distinct objectives, and additional functional information may identify more patients as frail without proportionately improving prediction of outcomes influenced by acute illness, social factors, and transitions of care. We therefore compared standard and LLMenhanced eFIs among at-risk hospitalized middle-aged and older adults, evaluating their associations with and discrimination of adverse post-hospitalization outcomes. 8, 24, 25 Secondarily, we examined changes in frailty classification and threshold-based prognostic performance. We hypothesized that LLM augmentation would identify more patients as frail and that frailty identified by either approach would be associated with adverse outcomes.</p>
+<h3>METHODS</h3>
+<h3>Study Design, Setting, and Population</h3>
+<p>We conducted a secondary, retrospective analysis of two cohorts of at-risk adults hospitalized between February 2022 and April 2024 at Brigham and Women&#x27;s Hospital and Brigham and Women&#x27;s Faulkner Hospital within Mass General Brigham (MGB), Boston, Massachusetts. Study 1 enrolled general medicine patients with two or more chronic conditions discharged home, 27 and Study 2 enrolled patients undergoing interhospital transfer. 28 We restricted the analytic cohort to adults aged ≥50 years because frailty and functional vulnerability are present in middle age and potentially associated with adverse outcomes following acute hospitalization. 5, 6, 29, 30 Detailed eligibility criteria were previously reported. 27, 28 We followed TRIPOD+AI and applicable TRIPOD-LLM reporting guidance. 26 Because we evaluated prespecified frailty indices rather than developed a prediction model, model-development items were not applicable (Supplement). Consent procedures for each source study were approved by the MGB Institutional Review Board.</p>
+<h3>Data Sources and Covariates</h3>
+<p>Demographic, clinical, and outcome data were obtained from the electronic health record (EHR; Epic Systems, Inc.) and institutional enterprise data warehouse (EDW).</p>
+<p>Prespecified covariates included age, sex, race and ethnicity, marital status, primary language, education, insurance type, employment status, and source-study cohort. These covariates were selected a priori based on their established associations with post-discharge outcomes. [31] [32] [33] [34] We intentionally did not include individual comorbidities or a separate comorbidity index because morbidity-related deficits are constituent components of the frailty measures (below) under evaluation. Structured data included International Classification of Diseases, Tenth Revision (ICD-10) diagnosis codes from the 24 months preceding index hospitalization; unstructured data consisted of PT documentation from index hospitalization.</p>
+<h3>Frailty Measures</h3>
+<h3>Standard Electronic Frailty Index</h3>
+<p>Frailty was assessed using a previously validated MGB eFI comprising 35 deficits across morbidity, functional, sensory, and cognitive domains. 35 Deficits were identified from ICD-10 codes during the preceding 24 months, and the eFI was calculated as the number of deficits present divided by 35. Frailty was defined as eFI ≥0.20.</p>
+<h3>LLM-Enhanced Electronic Frailty Index</h3>
+<p>The previously developed and validated LLM-enhanced eFI supplements the standard eFI with frailty-related deficits extracted from PT documentation and demonstrated greater discrimination and correlation with geriatrician-assessed frailty than the standard eFI. 23 For this study, GPT-4o processed PT documentation in a HIPAA-compliant Microsoft Azure environment using standardized prompts to identify the same 35 deficits. The prior validation study used the element-wise maximum of structured and LLM-derived deficits to construct the enhanced eFI, consistent with this approach. 23 For each deficit, the enhanced eFI used the maximum value identified from structured ICD-10 data or LLM-derived information, thereby adding deficits documented in PT notes but absent from structured diagnoses. Frailty scores and the ≥0.20 threshold were otherwise calculated identically to the standard eFI. For hospitalizations without PT documentation, the enhanced eFI equaled the standard eFI. Prompt specifications and operational definitions are provided in the Supplement and were described previously. 23</p>
+<h3>Outcomes</h3>
+<p>The primary outcome was a composite of hospital readmission, discharge to a postacute or long-term care facility following the index or a subsequent hospitalization, or death, occurring at discharge or within 90 days. Facility discharge was included as a marker of vulnerability and hospitalization-associated functional decline. 30, [36] [37] [38] Functional vulnerability, in particular, may be associated with adverse outcomes among middle-aged adults with multimorbidity and unrecognized frailty following acute hospitalization. 5, 25 Outcomes were ascertained from EHR data consistently across both source studies and independently of frailty classification.</p>
+<h3>Sample</h3>
+<p>Based on prior validation, we anticipated AUROCs of approximately 0.62 for the standard eFI and 0.70 for the LLM-enhanced eFI. With approximately 600 eligible hospitalizations from the source study cohorts and a balanced outcome distribution, the available sample was expected to detect an AUROC difference of approximately 0.08; smaller differences were examined under varying assumptions regarding correlation between paired predictions.</p>
+<h3>Statistical Analysis</h3>
+<p>Patient characteristics, PT-documentation availability, frailty measures, and outcomes were summarized using mean (SD) for continuous variables and counts (percentages) for categorical variables. Differences by composite-outcome status were assessed using Pearson chi-square or Fisher exact tests, as appropriate.</p>
+<p>Primary analyses used separate multivariable logistic regression models containing either the standard or LLM-enhanced eFI (frailty threshold ≥0.20), adjusted for age, sex, race and ethnicity, marital status, primary language, education, insurance, employment status, and source study. We reported adjusted odds ratios (ORs) with 95% CIs. Missing categorical values were retained as a separate category without imputation. Model discrimination was assessed using AUROC with 95% CIs and compared using DeLong&#x27;s test.</p>
+<p>Secondary analyses compared sensitivity, specificity, positive and negative predictive values, positive and negative likelihood ratios, accuracy, balanced accuracy, and F1-score at eFI thresholds of ≥0.20 and ≥0.30. These measures assessed classification of the adverse outcome rather than diagnostic accuracy for frailty, which was previously evaluated against a geriatrician-performed reference standard. 23 Because PT documentation could reflect functional assessment and discharge planning, we repeated both models with adjustment for PT-documentation availability and evaluated effect modification using an interaction between LLM-enhanced frailty and PT-documentation availability.</p>
+<p>Sensitivity analyses repeated the primary models among hospitalizations with PT documentation, adults aged ≥65 years, patients discharged home after the index hospitalization, and separately within each source-study cohort. We also repeated all analyses using an alternative composite outcome of hospital readmission or death within 90days, excluding facility discharge from the outcome definition.</p>
+<h3>I Models A and B Source study Examine consistency across study populations</h3>
+<p>All models included adjustment for the following covariates: age, sex, ethnicity, language, race, marital status, employment, insurance, and source study.</p>
+<h3>Exploratory Manual Chart Review</h3>
+<p>In a random 10% subset of hospitalizations, comprehensive EHR review assessed incremental deficit ascertainment associated with LLM augmentation of the standard eFI.</p>
+<p>Manual review incorporated the structured diagnoses used to derive the standard eFI together with PT, occupational therapy, case management, social work, and physician documentation. This analysis was intended to characterize additional deficits identified through LLM augmentation and their confirmation on comprehensive EHR review, rather than to estimate accuracy against an independent reference standard. Two trained reviewers independently evaluated a subset using standardized abstraction procedures, with clinician adjudication of discrepancies; Cohen&#x27;s κ &gt;0.80 was established before subsequent single-reviewer abstraction. Detailed deficit definitions and chart-review procedures are provided in the Supplement.</p>
+<h3>RESULTS</h3>
+<h3>Cohort Characteristics, Frailty Classification, and Outcomes</h3>
+<p>Of 795 hospitalizations identified from the two source cohorts (293 from Study 1; 502 from Study 2), 179 were excluded (101 from Study 1, 78 from Study 2) because patients were aged &lt;50 years.</p>
+<p>A total of 616 hospitalizations (601 unique patients) were available for analysis: 192 (31.2%) were from Study 1 and 424 (68.8%) from Study 2. Mean (SD) age was 70.9 (10.2) years, 272 (44.2%) patients were female, and 329 (53.4%) hospitalizations had PT documentation (Table 2).</p>
+<p>The composite outcome occurred following 320 hospitalizations (51.9%), including 226 readmissions, 145 facility discharges, and 53 deaths (outcome sub-components were not mutually exclusive). Of the 145 facility discharges, 120 occurred after the index hospitalization and 25 after subsequent hospitalization.</p>
+<p>At the prespecified ≥0.20 threshold, the standard eFI classified 216 hospitalizations (35.1%) as frail, whereas the LLM-enhanced eFI classified 362 (58.8%) as frail. Among hospitalizations with the composite outcome (n=320), 42.5% and 69.4% were classified as frail, respectively; corresponding percentages among those without the outcome (n=296) were 27.0% and 47.3%, respectively.</p>
+<h3>Primary Analysis</h3>
+<p>Frailty was independently associated with the composite outcome using both the standard eFI (adjusted OR, 1.98; 95% CI, 1.39-2.83) and LLM-enhanced eFI (adjusted OR, 2.46; 95% CI, 1.75-3.47). Model discrimination was similar (AUROC, 0.636 vs 0.660; difference, 0.024 [95% CI, -0.006 to 0.053]; p=0.12) (Figures 1 and 2) Legend. Receiver operating characteristic (ROC) curves compare prognostic discrimination of adjusted models incorporating the standard electronic frailty index (eFI) and LLM-enhanced eFI for the composite 90-day outcome. AUROCs were 0.636 and 0.660, for Model A and B, respectively; the difference was 0.024 (95% CI, -0.006 to 0.053; p=0.12).</p>
+<h3>Secondary Analyses</h3>
+<p>The composite outcome occurred following 61.4% of hospitalizations with PT documentation versus 41.1% without PT documentation. After adjustment for PTdocumentation availability, frailty remained associated with the composite outcome using the standard eFI (adjusted OR, 1.95; 95% CI, 1.36-2.80) and LLM-enhanced eFI (adjusted OR, 1.93; 95% CI, 1.31-2.85). In the interaction model, LLM-enhanced frailty remained associated with the composite outcome both among hospitalizations without PT documentation (adjusted OR, 1.91; 95% CI, 1.14-3.20) and with PT documentation (adjusted OR, 1.96; 95% CI, 1.09-3.51), with no evidence of effect modification by PTdocumentation availability (interaction p-value = 0.95) Legend. Forest plot showing adjusted odds ratios (ORs) and 95% confidence intervals (CIs) from multivariable logistic regression models evaluating associations of the standard electronic frailty index (eFI) and large language model (LLM)-enhanced eFI with the composite outcome. All models were adjusted for age, sex, race and ethnicity, primary language, marital status, education, insurance, employment status, and source-study cohort; models C and D were also adjusted for PT documentation availability.</p>
+<p>At the ≥0.20 threshold, LLM augmentation increased sensitivity for the composite outcome from 42.5% to 69.4% and decreased specificity from 73.0% to 52.7%. NPV, accuracy, and F1-score were higher with the LLM-enhanced eFI, whereas PPVs were similar. At ≥0.30, sensitivity remained higher with the LLM-enhanced eFI (42.5% vs 21.6%) and specificity lower (74.3% vs 87.8%) (Table 3).</p>
+<p>Table 3. Threshold-based prognostic classification of electronic frailty models across-full cohort, n=616 Frailty Cutoff Sens. % (95% CI) Spec. % (95% CI) LR+ (95% CI) LR-(95% CI) PPV, % (95% CI) NPV, % (95% CI) Accuracy, % (95% CI) F1score, % Balanced accuracy, % eFI ≥0.2 42.5 (37.2-48.0) 73.0 (67.6-77.7) 1.57 (1.25-1.97) 0.79 (0.70-0.89) 63.0 (56.3-69.1) 54.0 (49.1-58.8) 57.1 (53.2-61.0) 50.7 57.8 eFI ≥0.3 21.6 (17.4-26.4) 87.8 (83.6-91.1) 1.77 (1.22-2.57) 0.89 (0.83-0.96) 65.7 (56.2-74.1) 50.9 (46.6-55.2) 53.4 (49.5-57.3) 32.5 54.7 LLM-eFI ≥0.2 69.4 (64.1-74.2) 52.7 (47.0-58.3) 1.47 (1.27-1.69) 0.58 (0.48-0.71) 61.3 (56.2-66.2) 61.4 (55.3-67.2) 61.4 (57.5-65.1) 65.1 61.1 LLM-eFI ≥0.3 42.5 (37.2-48.0) 74.3 (69.1-79.0) 1.66 (1.31-2.09) 0.77 (0.69-0.87) 64.2 (57.5-70.3) 54.5 (49.6-59.2) 57.8 (53.9-61.6) 51.1 58.4 Data are presented as percentages with 95% confidence intervals (CI). Confidence intervals for sensitivity, specificity, PPV, NPV, and accuracy were calculated using Wilson score intervals; likelihood ratio CIs were calculated using the log method. F1-score is shown as a point estimate. Balance accuracy represents a singlethreshold approximation calculated as (sensitivity + specificity)/2 Sensitivity Analyses Among the 329 hospitalizations with PT documentation, both measures remained associated with the composite outcome (standard eFI: adjusted OR, 2.25 [95% CI, 1.36-3.78]; LLM-enhanced eFI: adjusted OR, 2.18 [95% CI, 1.21-3.98]), with AUROCs of 0.656 and 0.631, respectively. At the ≥0.20 threshold, LLM augmentation increased sensitivity from 43.6% to 86.1% but decreased specificity from 71.7% to 24.4% (Supplemental Table S2).</p>
+<p>Associations remained consistent across additional sensitivity analyses (Figure 3).</p>
+<p>Among adults aged ≥65 years, adjusted ORs were 1.99 and 2.55, with AUROCs of 0.643 and 0.657 for the standard and LLM-enhanced eFIs, respectively. Among patients discharged home, adjusted ORs were 2.33 and 2.28, with an AUROC of 0.658 for both eFIs.</p>
+<p>When the outcome was alternatively defined as 90-day readmission or mortality, adjusted ORs were 2.52 and 2.49, with AUROCs of 0.646 and 0.649, respectively.</p>
+<p>Frailty-outcome associations also persisted within each source study, although estimates were less precise. Adjusted ORs for the standard and LLM-enhanced eFIs were 2.44 and 2.23 in Study 1 and 1.96 and 2.66 in Study 2, with corresponding AUROCs of 0.730 and 0.730 in Study 1 and 0.622 and 0.661 in Study 2, respectively (Supplemental Table S3).</p>
+<p>Legend. Forest plot showing adjusted odds ratios (ORs) and 95% confidence intervals (CIs) for the association between frailty and the composite adverse outcome in prespecified sensitivity analyses. Separate multivariable logistic regression models evaluated frailty defined by the standard electronic frailty index (eFI) and large language model (LLM)-enhanced eFI at the prespecified threshold of ≥0.20. Sensitivity analyses included restriction to hospitalizations with available PT documentation (n=329), adults aged ≥65 years (n=437), and patients discharged home after the index hospitalization (n=496), as well as an alternative outcome definition comprising 90-day readmission or mortality and excluding facility discharge (n=616). All models were adjusted for age, sex, race and ethnicity, primary language, marital status, education, insurance, employment status, and source-study cohort. Squares indicate adjusted ORs, horizontal lines indicate 95% CIs, and the dashed vertical line indicates an OR of 1. AUROC indicates area under the receiver operating characteristic curve.</p>
+<h3>Exploratory Manual Chart Review</h3>
+<p>In the random 10% chart-review sample (n=60), comprehensive manual EHR review identified 830 deficit-level positives. The standard eFI identified 339 (40.8%) of these deficits. Incorporation of LLM-extracted information from PT documentation identified an additional 106 manually confirmed deficits, increasing the number detected to 445 (53.6%) and reducing false negatives from 491 to 385. Of 152 deficit-level positives added through LLM augmentation, 106 (69.7%) were confirmed by comprehensive manual review and 46 (30.3%) were not confirmed. Unconfirmed LLM-derived deficits were concentrated in gait abnormality, cachexia/failure to thrive/debility, falls, fatigue, and use of health services. See Supplemental Table S4.</p>
+<h3>DISCUSSION</h3>
+<p>In this retrospective analysis of a cohort of middle-aged and older hospitalized adults, LLM augmentation increased the percentage classified as frail from 35.1% to 58.8%. Frailty defined by either approach was independently associated with the composite adverse outcome, but LLM augmentation did not significantly improve prognostic discrimination (AUROC, 0.636 vs 0.660; p=0.12). Instead, augmentation primarily increased sensitivity while decreasing specificity. These findings distinguish two related but different properties of electronic frailty measurement: frailty identification and prediction of adverse outcomes. [39] [40] [41] In our prior study, the LLM-enhanced eFI improved discrimination of geriatrician-assessed frailty (AUROC, 0.701 vs 0.614; p&lt;0.001) and correlation with a comprehensive geriatric assessment. 23 The present findings suggest that more complete frailty ascertainment does not necessarily produce comparable gains in prognostic discrimination. The clinical value of enhanced electronic phenotyping therefore depends on whether its intended purpose is identification, prediction, or informing clinical decisions. 42, 43 Several factors may explain this divergence. Structured eFI data may already capture much of the prognostic information associated with accumulated health deficits, even when functional deficits are incompletely documented. Frailty and multimorbidity frequently coexist but represent distinct constructs associated with adverse outcomes. 44, 45 A meta-analysis found that approximately 72% of frail individuals had multimorbidity, whereas only 16% of individuals with multimorbidity were frail. 44 Additional deficits identified by LLM augmentation may therefore provide limited independent prognostic information beyond structured diagnoses. Moreover, inpatient PT assessments may reflect acute functional decline as well as baseline frailty, though our operational definitions reflected this distinction. While the source study cohorts represented different inpatient contexts, including interhospital transfer with potentially distinct determinants of adverse outcomes, 46, 47 both eFIs remained associated with post-hospitalization outcomes after adjustment for source study, with consistent findings across multiple sensitivity analyses.</p>
+<p>Threshold-based analyses further illustrate the distinction between frailty identification and prognostic performance. At ≥0.20, LLM augmentation increased sensitivity for the composite outcome from 42.5% to 69.4% while decreasing specificity from 73.0% to 52.7%, with a more pronounced tradeoff among hospitalizations with PT documentation.</p>
+<p>Exploratory chart review suggested that this broader classification reflected, at least in part, recovery of clinically documented deficits not captured by structured diagnoses. Among deficit classifications added through LLM augmentation (Supplemental Table S5), most were confirmed on comprehensive EHR review, although some were not, indicating a tradeoff between broader ascertainment and overidentification of individual deficits. This pattern was particularly evident for functional deficits: identification of falls increased from 8.6% with the standard eFI to 32.8% with LLM augmentation, closer to the 46.7% identified by manual chart review, whereas gait abnormality was identified more frequently by the LLM-enhanced eFI than by manual chart review (54.2% vs 31.7%). These findings are consistent with our prior validation study, in which incorporation of PT-derived information increased ascertainment of functional deficits but also introduced some false-positive classification. 23 These findings have implications for implementation. LLM augmentation may improve frailty ascertainment more than prognostic discrimination, and its clinical value may therefore depend on the intended use. When the objective is broad screening to identify patients for further geriatric or functional assessment, more complete identification of vulnerability may be valuable despite lower specificity. Conversely, our findings provide limited evidence that LLM augmentation alone improves prediction of adverse posthospitalization outcomes beyond a primarily diagnosis-coded based eFI. The added complexity of LLM-based extraction should therefore be justified by whether the additional patients identified as frail constitute a clinically actionable population. Future evaluations should examine the clinical utility, resource requirements, and outcomes of acting on enhanced frailty information. 43, 48 This study has several strengths. We evaluated a previously validated LLMenhanced frailty measure across two distinct hospitalized populations, examining both frailty ascertainment and prognostic performance. Analyses assessed complementary dimensions of performance, including associations with adverse outcomes, discrimination, and threshold-based classification, supported by multiple prespecified sensitivity analyses.</p>
+<p>Restricting analyses to hospitalizations with available PT documentation also enabled direct comparison of the standard and LLM-enhanced eFI among patients for whom additional functional information was available, reducing concerns that observed differences reflected selection for PT evaluation alone.</p>
+<p>Several limitations warrant consideration. First, frailty-related deficits extracted from the initial PT consultation may reflect baseline vulnerability, acute illness-related functional decline, or both, limiting our ability to distinguish chronic frailty from transient impairment.</p>
+<p>Furthermore, we used a single-generation LLM (GPT-4o) applied to a single clinical note.</p>
+<p>More advanced models and approaches incorporating longitudinal or multimodal clinical information, particularly prehospital functional status, may better distinguish chronic vulnerability from acute impairment and yield different prognostic performance. Second, PT documentation was more common among hospitalizations associated with adverse outcomes, raising the possibility of confounding by indication and selection bias. Although findings were generally consistent in analyses restricted to hospitalizations with PT documentation, this approach does not fully address selection bias or establish performance among patients without PT evaluation.</p>
+<p>Third, the source cohorts differed in eligibility criteria and clinical context, including the exclusion of index-hospitalization facility discharges from one cohort. Although we adjusted for source cohort and observed broadly consistent findings across cohort-specific and prespecified sensitivity analyses, residual differences may have influenced results.</p>
+<p>Fourth, approximately one-third of hospitalizations involved middle-aged adults, whereas eFIs have primarily been developed and validated in older populations. However, frailty may capture clinically relevant and unrecognized vulnerability in middle-aged adults with multimorbidity, and findings were similar when restricted to adults aged 65 years or older.</p>
+<p>Finally, this single-health-system study may have limited generalizability, as institutional differences in patient populations, PT referral and documentation practices, ICD-10 coding, and availability of clinical narratives could affect the performance of both standard and LLMenhanced eFIs.</p>
+<p>In conclusion, LLM augmentation substantially increased frailty ascertainment but did not significantly improve prognostic discrimination. Improved electronic measurement of frailty and prediction of adverse outcomes should therefore be considered distinct objectives.</p>
+<p>The value of LLM-enhanced frailty assessment may lie principally in more complete identification of functional vulnerability. Future studies should determine whether the additional patients identified constitute a clinically actionable population and whether using this information to guide care improves outcomes.</p>
+<h3>DISCLOSURES &amp; COMPETING INTERESTS:</h3>
+<p>The authors declare no relevant financial conflicts of interest.</p>
+<h3>CONTRIBUTORSHIP:</h3>
+<p>All authors made substantial contributions to the conception or design of the work; acquisition, analysis, or interpretation of data; and/or drafting or critical revision of the manuscript. All authors approved the final manuscript and agree to be accountable for the work.</p>
+<h3>FUNDING DECLARATION:</h3>
+<p>This work was supported by the National Institute on Aging (R01AG083035).</p>
+<h3>HUMAN ETHICS &amp; CONSENT TO PARTICIPATE:</h3>
+<p>The study was approved by the Mass General Brigham Institutional Review Board (IRB protocol numbers: 2021P002593 and 2022P001284). Consent procedures for each source study were approved by the Institutional Review Board.</p>
+<h3>USE OF ARTIFICIAL INTELLIGENCe: GPT-4o (OpenAI, deployed through Microsoft</h3>
+<p>Azure) was used as part of the study methodology to extract prespecified frailty-related deficits from physical therapy documentation, as detailed in the Methods and Supplementary Appendix. Generative AI tools were additionally used to assist with manuscript editing and refinement of data visualizations. Figures 1 through 3 were initially generated from study data using R code and subsequently refined with Microsoft Copilot powered by GPT-5.6. Generative AI did not generate or alter the underlying study data or determine the study results. All AI-assisted outputs were reviewed and verified by the authors, who take responsibility for the final manuscript.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. ROC Curves for Standard and LLM-Enhanced Electronic Frailty Indices.</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Associations of Standard and LLM-Enhanced Electronic Frailty Indices with the Composite Outcome</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Sensitivity Analyses of Standard and LLM-Enhanced Electronic Frailty Indices.</p>
+<h3>Table 1.</h3>
+<p>Summary of Regression Models and Analytic Objectives</p>
+<h3>Table 2 . Cohort Characteristics by Composite Outcome Status</h3>
+<p>Data are presented as counts (N) and n (row %) unless otherwise indicated. Row percentages indicate the proportion of hospitalizations within each characteristic category with or without the composite outcome. P-values were calculated using Pearson&#x27;s chi-square test, with missing values included as separate categories where indicated. Exact tests were used when expected cell counts were small. Analyses were conducted at the hospitalization level (N = 616), representing 601 unique patients.</p>
+<h3>References</h3>
+<p>Fried LP, Tangen CM, Walston J, et al. Frailty in older adults: evidence for a phenotype. J Gerontol A Biol Sci Med Sci. Mar 2001;56(3):M146-56. doi:10.1093/gerona/56.3.m146</p>
+<p>Clegg A, Young J, Iliffe S, Rikkert MO, Rockwood K. Frailty in elderly people. Lancet. Mar 2 2013;381(9868):752-62. doi:10.1016/s0140-6736(12)62167-9</p>
+<p>Hoogendijk EO, Afilalo J, Ensrud KE, Kowal P, Onder G, Fried LP. Frailty: implications for clinical practice and public health. Lancet. Oct 12 2019;394(10206):1365-1375. doi:10.1016/s0140-6736(19)31786-6</p>
+<p>Boucher EL, Gan JM, Rothwell PM, Shepperd S, Pendlebury ST. Prevalence and outcomes of frailty in unplanned hospital admissions: a systematic review and meta- analysis of hospital-wide and general (internal) medicine cohorts. EClinicalMedicine. May 2023;59:101947. doi:10.1016/j.eclinm.2023.101947</p>
+<p>Hanlon P, Nicholl BI, Jani BD, Lee D, McQueenie R, Mair FS. Frailty and pre-frailty in middle-aged and older adults and its association with multimorbidity and mortality: a prospective analysis of 493737 UK Biobank participants. Lancet Public Health. Jul 2018;3(7):e323-e332. doi:10.1016/s2468-2667(18)30091-4</p>
+<p>Segaux L, Broussier A, Oubaya N, et al. Several frailty parameters highly prevalent in middle age (50-65) are independent predictors of adverse events. Sci Rep. Apr 22 2021;11(1):8774. doi:10.1038/s41598-021-88410-5</p>
+<p>Rodriguez-Mañas L, Fried LP. Frailty in the clinical scenario. Lancet. Feb 14 2015;385(9968):e7-e9. doi:10.1016/s0140-6736(14)61595-6</p>
+<p>Loewenthal JV, Ernecoff NC, Dalal AK. Novel Electronic Health Record Strategies to Identify Frailty Among Hospitalized Older Adults with Multiple Chronic Conditions. J Gen Intern Med. Dec 4 2024;doi:10.1007/s11606-024-09227-2</p>
+<p>Adler-Milstein J, Rosenthal SW, Thombley R, et al. From 4Ms to 5 domains: ensuring new CMS Age-Friendly hospital measure improves care for older adults. Health Affairs Scholar. 2025;3(10)doi:10.1093/haschl/qxaf184</p>
+<p>Stuck AE, Iliffe S. Comprehensive geriatric assessment for older adults. Bmj. Oct 27 2011;343:d6799. doi:10.1136/bmj.d6799</p>
+<p>Ellis G, Gardner M, Tsiachristas A, et al. Comprehensive geriatric assessment for older adults admitted to hospital. Cochrane Database Syst Rev. Sep 12 2017;9(9):Cd006211. doi:10.1002/14651858.CD006211.pub3</p>
+<p>Jones DM, Song X, Rockwood K. Operationalizing a frailty index from a standardized comprehensive geriatric assessment. J Am Geriatr Soc. Nov 2004;52(11):1929-33. doi:10.1111/j.1532-5415.2004.52521.x</p>
+<p>Orkaby AR, Callahan KE, Driver JA, Hudson K, Clegg AJ, Pajewski NM. New horizons in frailty identification via electronic frailty indices: early implementation lessons from experiences in England and the United States. Age Ageing. Feb 1 2024;53(2)doi:10.1093/ageing/afae025</p>
+<p>Cooper L, Loewenthal J, Frain LN, et al. From research to bedside: Incorporation of a CGA-based frailty index among multiple comanagement services. J Am Geriatr Soc. Jan 2022;70(1):90-98. doi:10.1111/jgs.17446</p>
+<p>Lester PE, Dharmarajan TS, Weinstein E. The Looming Geriatrician Shortage: Ramifications and Solutions. J Aging Health. Oct 2020;32(9):1052-1062. doi:10.1177/0898264319879325</p>
+<p>Lin KP, Li HY, Chen JH, et al. Prediction of adverse health outcomes using an electronic frailty index among nonfrail and prefrail community elders. BMC Geriatr. Aug 7 2023;23(1):474. doi:10.1186/s12877-023-04160-1</p>
+<p>Callahan KE, Clark CJ, Edwards AF, et al. Automated Frailty Screening At-Scale for Pre-Operative Risk Stratification Using the Electronic Frailty Index. J Am Geriatr Soc. May 2021;69(5):1357-1362. doi:10.1111/jgs.17027</p>
+<p>Clegg A, Bates C, Young J, et al. Development and validation of an electronic frailty index using routine primary care electronic health record data. Age Ageing. May 2016;45(3):353-60. doi:10.1093/ageing/afw039</p>
+<p>DuMontier C, Hennis R, Yilidirim C, et al. Construct validity of the electronic Veterans Affairs Frailty Index against clinician frailty assessment. J Am Geriatr Soc. Dec 2023;71(12):3857-3864. doi:10.1111/jgs.18540</p>
+<p>Kharrazi H, Anzaldi LJ, Hernandez L, et al. The Value of Unstructured Electronic Health Record Data in Geriatric Syndrome Case Identification. J Am Geriatr Soc. Aug 2018;66(8):1499-1507. doi:10.1111/jgs.15411</p>
+<p>Chen T, Dredze M, Weiner JP, Kharrazi H. Identifying vulnerable older adult populations by contextualizing geriatric syndrome information in clinical notes of electronic health records. Journal of the American Medical Informatics Association. 2019;26(8-9):787- 795. doi:10.1093/jamia/ocz093</p>
+<p>Chen T, Dredze M, Weiner JP, Hernandez L, Kimura J, Kharrazi H. Extraction of Geriatric Syndromes From Electronic Health Record Clinical Notes: Assessment of Statistical Natural Language Processing Methods. JMIR Med Inform. Mar 26 2019;7(1):e13039. doi:10.2196/13039</p>
+<p>Plasek JM, Leeson M, Lundstedt J, et al. Validation of a Large Language Model Enhanced Frailty Index. J Med Syst. Apr 15 2026;50(1)doi:10.1007/s10916-026-02384-3</p>
+<p>Albrecht JS, Gruber-Baldini AL, Hirshon JM, et al. Hospital discharge instructions: comprehension and compliance among older adults. J Gen Intern Med. Nov 2014;29(11):1491-8. doi:10.1007/s11606-014-2956-0</p>
+<p>Brown RT, Diaz-Ramirez LG, Boscardin WJ, Lee SJ, Williams BA, Steinman MA. Association of Functional Impairment in Middle Age With Hospitalization, Nursing Home Admission, and Death. JAMA Intern Med. May 1 2019;179(5):668-675. doi:10.1001/jamainternmed.2019.0008</p>
+<p>Gallifant J, Afshar M, Ameen S, et al. The TRIPOD-LLM reporting guideline for studies using large language models. Nat Med. Jan 2025;31(1):60-69. doi:10.1038/s41591-024-03425-5</p>
+<p>Plombon S, Rudin RS, Rodriguez J, et al. Real-time symptom monitoring using electronic patient-reported outcomes: A prospective study protocol to improve safety during care transitions for patients with multiple chronic conditions. J Hosp Med. Feb 16 2025;doi:10.1002/jhm.70013</p>
+<p>Mueller SK, Garabedian P, Goralnick E, Bates DW, Samal L. Advancing health information during interhospital transfer: An interrupted time series. J Hosp Med. Dec 2023;18(12):1063-1071. doi:10.1002/jhm.13221</p>
+<p>Guessous I, Luthi JC, Bowling CB, et al. Prevalence of frailty indicators and association with socioeconomic status in middle-aged and older adults in a swiss region with universal health insurance coverage: a population-based cross-sectional study. J Aging Res. 2014;2014:198603. doi:10.1155/2014/198603</p>
+<p>Covinsky KE, Pierluissi E, Johnston CB. Hospitalization-associated disability: &quot;She was probably able to ambulate, but I&#x27;m not sure&quot;. Jama. Oct 26 2011;306(16):1782-93. doi:10.1001/jama.2011.1556</p>
+<p>Gordon HS, Rosenthal GE. Impact of Marital Status on Outcomes in Hospitalized Patients: Evidence From an Academic Medical Center. Archives of Internal Medicine. 1995;155(22):2465-2471. doi:10.1001/archinte.1995.00430220129014</p>
+<p>Farmer HR, Xu H, Granger BB, Thomas KL, Dupre ME. Factors associated with racial differences in all-cause 30-day readmission in adults with cardiovascular disease: an observational study of a large healthcare system. BMJ Open. Nov 24 2022;12(11):e051661. doi:10.1136/bmjopen-2021-051661</p>
+<p>Calvillo-King L, Arnold D, Eubank KJ, et al. Impact of social factors on risk of readmission or mortality in pneumonia and heart failure: systematic review. J Gen Intern Med. Feb 2013;28(2):269-82. doi:10.1007/s11606-012-2235-x</p>
+<p>Wei MY, Cho J. Readmissions and postdischarge mortality by race and ethnicity among Medicare beneficiaries with multimorbidity. J Am Geriatr Soc. Jun 2023;71(6):1749- 1758. doi:10.1111/jgs.18251</p>
+<p>Kochar B, Cheng D, Lehto HR, et al. Application of an Electronic Frailty Index to Identify High-Risk Older Adults Using Electronic Health Record Data. J Am Geriatr Soc. May 2025;73(5):1491-1497. doi:10.1111/jgs.19389</p>
+<p>Kamo T, Asahi R, Inaba Y, et al. Impact of Frailty on Activities of Daily Living in Hospitalized Older Adults: A Systematic Review and Meta-Analysis. Geriatr Gerontol Int. Sep 2026;26(9):e70811. doi:10.1111/ggi.70811</p>
+<p>Umegaki H, Nakashima H, Yamada Y, et al. Frailty Modifies the Association Between Multimorbidity and Hospital-Associated Disability in Hospitalized Older Adults. J Am Med Dir Assoc. Sep 30 2026;27(11):106492. doi:10.1016/j.jamda.2026.106492</p>
+<p>Semelka CT, White BN, Callahan KE, Pajewski NM. The Association of Frailty With Post-Hospital Discharge Location and Health Outcomes. J Am Geriatr Soc. Nov 2025;73(11):3512-3518. doi:10.1111/jgs.70034</p>
+<p>Gilbert T, Neuburger J, Kraindler J, et al. Development and validation of a Hospital Frailty Risk Score focusing on older people in acute care settings using electronic hospital records: an observational study. Lancet. May 5 2018;391(10132):1775-1782. doi:10.1016/s0140-6736(18)30668-8</p>
+<p>Mak JKL, Hägg S, Eriksdotter M, et al. Development of an Electronic Frailty Index for Hospitalized Older Adults in Sweden. J Gerontol A Biol Sci Med Sci. Nov 21 2022;77(11):2311-2319. doi:10.1093/gerona/glac069</p>
+<p>Toyoshima K, Araki A, Tamura Y, et al. Prognostic value of the electronic Multimorbidity Frailty Index for mortality, change in basic activities of daily living, length of hospital stay and discharge home in older hospitalized patients. Geriatr Gerontol Int. Sep 2025;25(9):1185-1193. doi:10.1111/ggi.70126</p>
+<p>Van Calster B, McLernon DJ, van Smeden M, Wynants L, Steyerberg EW. Calibration: the Achilles heel of predictive analytics. BMC Med. Dec 16 2019;17(1):230. doi:10.1186/s12916-019-1466-7</p>
+<p>Vickers AJ, Elkin EB. Decision curve analysis: a novel method for evaluating prediction models. Med Decis Making. Nov-Dec 2006;26(6):565-74. doi:10.1177/0272989x06295361</p>
+<p>Vetrano DL, Palmer K, Marengoni A, et al. Frailty and Multimorbidity: A Systematic Review and Meta-analysis. J Gerontol A Biol Sci Med Sci. Apr 23 2019;74(5):659-666. doi:10.1093/gerona/gly110</p>
+<p>Rodrigues LP, de Oliveira Rezende AT, Delpino FM, et al. Association between multimorbidity and hospitalization in older adults: systematic review and meta-analysis. Age Ageing. Jul 1 2022;51(7)doi:10.1093/ageing/afac155</p>
+<p>Mueller S, Zheng J, Orav EJ, Schnipper JL. Inter-hospital transfer and patient outcomes: a retrospective cohort study. BMJ Qual Saf. Nov 2019;28(11):e1. doi:10.1136/bmjqs-2018-008087</p>
+<p>Mueller SK, Singleton S, Mutte M, et al. Prevalence and Characteristics of Potentially Avoidable Interhospital Transfers. JAMA Network Open. 2026;9(9):e2636614- e2636614. doi:10.1001/jamanetworkopen.2026.36614</p>
+<p>Collins GS, Moons KGM, Dhiman P, et al. TRIPOD+AI statement: updated guidance for reporting clinical prediction models that use regression or machine learning methods. Bmj. Apr 16 2024;385:e078378. doi:10.1136/bmj-2023-078378</p>
 </div>
 </details>
 </div>
