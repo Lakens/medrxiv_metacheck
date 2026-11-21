@@ -196,7 +196,7 @@ Streamlined point-of-care ultrasound examination for pulmonary
 tuberculosis
 </p>
 <p class="meta">
-2026-11-12 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.09.26367649
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367649
 </p>
 </header>
 <div class="mc-main">
@@ -588,8 +588,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -987,9 +990,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -1011,7 +1018,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -1026,9 +1034,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -1041,13 +1067,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1067,6 +1096,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -1074,12 +1109,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1180,6 +1221,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1199,6 +1260,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1454,19 +1550,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1576,6 +1754,105 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Point-of-care ultrasound (POCUS) is a low-cost, radiation-free triage tool but lacks standardized acquisition protocols for tuberculosis (TB). We developed and evaluated a streamlined symmetric POCUS protocol for pulmonary TB in a high-burden setting.</p>
+<p>Methods: Ugandan participants aged ≥13 years with confirmed pulmonary TB, household TB exposure, or a non-TB respiratory condition underwent an 18-position POCUS examination (12 lung zones and 6 pre-established extrapulmonary positions). Random Forest classifiers using prespecified pathologic features were developed in a fixed stratified 75/25 training/holdout split. All symmetric 2-, 4-, and 6-zone combinations were evaluated in training data. The best protocol of each size was locked and tested in the holdout set.</p>
+<p>Results: Among 318 analyzed participants, 118 (37.1%) had pulmonary TB and 200 were TB-negative, including 102 with other respiratory conditions (ORC). The modelselected 6-zone protocol comprised bilateral anterior-superior, lateral-superior, and posterior-superior lung zones. For TB versus all TB-negative participants, the AUCs for the 6-zone, 12-zone, and 18-position protocols were 0.82 (95% CI, 0.73-0.92), 0.81 (0.70-0.92), and 0.81 (0.71-0.91), respectively (all P &gt; 0.76). For TB versus ORC, AUCs were 0.81 (0.70-0.91), 0.85 (0.76-0.93), and 0.85 (0.76-0.94), respectively (all P &gt; 0.45). The 2-zone protocol had a lower AUC than the 6-zone protocol for TB versus all TBnegative participants (P = 0.004). Shred sign, consolidation, and B-lines with irregular pleura were the strongest TB-associated findings.</p>
+<p>Conclusions: A fixed 6-zone lung POCUS examination showed similar discrimination for TB to more comprehensive 12-lung-zone and 18-position protocols. This supports a simpler, scalable approach to TB triage.</p>
+<h3>INTRODUCTION</h3>
+<p>Despite progress in tuberculosis (TB) control, more than one in five incident TB cases are not diagnosed or reported each year, reflecting the persistent gap between estimated incidence and case notifications, particularly in high-burden, resource-limited settings. [1] [2] [3] Limited access to chest radiography in Uganda supports the need for portable TB screening tools. 4 High-throughput screening is constrained by the operational demands and costs of molecular assays and chest radiography, underscoring the need for affordable, field-deployable triage tools that can be deployed at scale. 3, [5] [6] [7] Point-of-care ultrasound (POCUS) offers a portable, radiation-free, and relatively lowcost alternative that can be performed by non-specialist healthcare workers in community settings. [8] [9] [10] However, its broader adoption is limited by operator dependence, heterogeneous image acquisition, and lack of standardized acquisition protocols, which may undermine reproducibility and scalability. 8, 10 The Focused Assessment with Sonography for HIV-associated tuberculosis (FASH) protocol focuses on extrapulmonary manifestations of HIV-associated TB, 9, 11 while the BLUE protocol uses standardized lung ultrasound points for evaluating acute respiratory failure 12 ; neither was designed to optimize lung scanning for pulmonary TB detection For pulmonary TB, lung ultrasound (LUS) can detect peripheral abnormalities particularly subpleural nodules and small consolidations, with reported sensitivities generally ranging from approximately 70% to &gt;90%. 10, [13] [14] [15] [16] However, in these studies, the specificity of small subpleural consolidations was generally low (16%-39%), reflecting substantial overlap with other respiratory conditions. [14] [15] [16] In Papua New Guinea, for example, a comprehensive LUS examination achieved 92.6% sensitivity and 46.8% specificity for pulmonary TB, whereas a structured score incorporating multiple sonographic features improved specificity to 84.2% at a modestly reduced sensitivity of 82.8%. 15 These observations support multivariable, pattern-based approaches, including machine learning models that can identify the combination of pathologic features-and potentially the subset of scanning sites-most informative for TB detection. 14, 15, 17 We aimed to derive and internally evaluate a streamlined lung POCUS protocol for pulmonary TB that could reduce scanning burden while preserving discrimination for identifying individuals who should be prioritized for confirmatory TB testing.</p>
+<h3>MATERIAL AND METHODS</h3>
+<h3>Study Population and Reference Standard</h3>
+<p>In this prospective Uganda TBRU/Halting TB sub-study, participants aged 13 years or older were recruited as outpatients through KCC clinics from July 2023 to March 2025. Groups included microbiologically-confirmed pulmonary TB index cases (ICs), household contacts (HHCs), and TB-negative symptomatic participants with another respiratory condition (ORC). IC eligibility and final analytic pulmonary TB status was based on sputum Xpert MTB/RIF Ultra (Ultra) and mycobacterial culture results. Ultra trace results required culture confirmation (e-Table 1). Participants provided consent or, for minors, assent with parental/guardian permission. Exclusions for severe illness, likely loss to follow-up, and TB treatment beyond protocol limits are detailed in the Supplementary Methods.</p>
+<h3>POCUS Acquisition and Image Interpretation</h3>
+<p>All participants underwent a standardized 18-position POCUS examination comprising 12 lung zones and six FASH positions (Figure 1). Examinations used a Philips Lumify phased-array transducer connected to an Android tablet. Six-second cine loops were recorded at each position.</p>
+<p>Professionally qualified sonographers were trained by expert clinicians -a pulmonologist and radiologist with expertise in ultrasonography. Training consisted of an initial 1-hour didactic session and 2-hour virtual demonstration on a live model, followed by successive rounds of instruction and feedback during the study. For each examination, the sonographer prospectively recorded an interpretation of pathologic findings. The expert clinicians then independently reviewed the stored cine loops, and any disagreements were resolved by feedback and consensus with the sonographer. Sonographers and reviewers were fully blinded to participants&#x27; TB status and enrollment status. Detailed procedures are provided in the Supplementary Methods.</p>
+<h3>Chest Radiography</h3>
+<p>Protocol-specified chest radiographs (CXRs) were obtained for ICs and HHCs, but not ORC participants. A separate pulmonologist retrospectively interpreted frontal and lateral images using a predefined case report form. The pulmonologist was blinded to individual participant TB status and POCUS findings but aware of the overall number TB cases in the cohort, thus blinding of CXR reads was partial.</p>
+<h3>Machine Learning Derivation and Evaluation of Streamlined POCUS Protocols</h3>
+<p>We developed models to identify reduced POCUS protocols for pulmonary TB detection. Models classified TB versus all TB-negative participants (N = 318; training, n = 238; holdout, n = 80, including 30 with TB) and TB versus ORC (N = 220; training, n = 165; holdout, n = 55, including 29 with TB). TB versus participants with no respiratory condition (NRC) was prespecified as a supplemental analysis (N = 216; training, n = 162; holdout, n = 54, including 29 with TB). Random forest (RF) classifiers were trained using complete-case REDCap data without imputation.</p>
+<p>Candidate predictors were subpleural nodules, consolidation, B-lines with irregular or smooth pleura, echogenic or anechoic pleural fluid, and shred sign (e-Table 2). The two B-line predictors combined B-lines with the corresponding pleural appearance. Signs of normal aeration were excluded. Cavity or abscess was excluded because no positive findings were recorded. Feature definitions, exclusions, and FASH predictors are detailed in the Supplementary Methods.</p>
+<p>Within each comparison, participants were assigned to a fixed 75:25 training/holdout split stratified by TB status; the same split was used for every protocol. All symmetric 2-, 4-, and 6-zone lung combinations were compared with complete 12-zone lung and 18position lung-plus-FASH protocols. Protocols were selected using stratified fivefold cross-validation repeated 10 times within the training set. Preprocessing, feature selection, and the synthetic minority oversampling technique (SMOTE) were performed only in each fold&#x27;s training subset. For each zone count, we selected the protocol with the highest mean cross-validation area under the receiver operating characteristic curve (AUC) for TB versus all TB-negative participants. Selected zones were used unchanged for the other comparisons. Holdout sets were used for evaluation. Modeling details appear in the Supplementary Methods.</p>
+<p>AUC confidence intervals and paired comparisons used DeLong&#x27;s method. Sensitivity was estimated at 60% and 70% specificity, with 95% CIs from 1,000 bootstrap samples. Other classification metrics used the threshold maximizing Youden&#x27;s index in the holdout set. Feature-enrichment tests and multiple-testing adjustments are detailed in the Supplementary Methods.</p>
+<p>Exploratory analyses by HIV and sputum-smear status used holdout predictions without model refitting or additional feature selection. Some subgroups included only five or six TB-positive participants, limiting precision (Supplementary Methods).</p>
+<h3>Nomogram Modeling and Statistical analyses</h3>
+<p>Logistic-regression nomograms used RF-selected 6-zone features, training-only imputation, observed training prevalence without SMOTE, and L2 penalization. Complete-separation predictors were excluded. Fitting criteria are in the Supplementary Methods. Evaluation included AUC, sensitivity at 70% and 60% specificity corresponding to World Health Organization targets, 18, 19 Brier score, calibration intercept, and calibration slope.</p>
+<p>Clinical characteristics were compared using Wilcoxon rank-sum, chi-square, or Fisher exact tests in Stata 18.0. Tests were two-sided, with P &lt; 0.05 considered significant. Radiographic comparisons were restricted to participants with protocol chest radiography. Supplementary Methods provide statistical procedures, POCUS-positive definitions, and anatomical-correspondence rules.</p>
+<h3>RESULTS</h3>
+<h3>Participant Characteristics</h3>
+<p>A total of 407 participants were screened, of whom 84 were excluded because of ineligibility (n = 33, 31 aged &lt; 13 y and 2 with prior anti-tuberculosis treatment per protocol) or declined participation (n = 51). Of 323 enrolled participants, 5 HHCs were excluded because TB status was indeterminate or POCUS data were incomplete. The final analysis population were 318 participants: 114 ICs, 102 HHCs, and 102 symptomatic clinic participants with ORC (e-Figure 1). Pulmonary TB was diagnosed in 118 participants (37.1%), comprising 114 ICs and 4 HHCs; 90 of 118 (76.3%) were smear positive. The 200 TB-negative participants comprised of 98 HHCs with no respiratory condition (NRC) and 102 participants with ORC. Baseline characteristics are shown in Table 1. Participants with pulmonary TB (TBpositive) were younger (median age 31.5 vs 34.5 years in the ORC group, P = .026). BMI was significantly lower in TB-positive individuals (median 19.4) than in the NRC (21.6) and ORC (23.2) groups (both P &lt; .001). HIV prevalence was lowest in the NRC group (15.3%) and similar between TB-positive (24.6%) and ORC (26.5%) participants (P = .09 and P = .75, respectively). Nearly all TB-positive participants (97.5%) reported multiple TB symptoms, compared with 17.3% in the TB-negative NRC group (P &lt; .001) and 88.2% in the ORC group (P = .024). Among participants with ORC, the most common diagnoses were bronchopneumonia (23.5%), viral respiratory infection (16.7%), and lobar pneumonia (11.8%).</p>
+<h3>Diagnostic Performance of Reduced and Comprehensive POCUS Protocols</h3>
+<p>The training-data candidate search selected L3/R3 for the 2-zone protocol, L3/L5/R3/R5 for the 4-zone protocol, and L1/L3/L5/R1/R3/R5 for the 6-zone protocol (e-Table 6).</p>
+<p>For TB versus all TB-negative participants, the selected 6-zone protocol achieved an AUC of 0.82 (95% CI, 0.73-0.92) and sensitivity of 0.81 (95% CI, 0.68-0.93) at 70% specificity. Its AUC was comparable to that of the 12-zone lung protocol (0.81, 6 vs 12 zones, P = 0.7667) and 18-position lung-plus-FASH protocol (0.81, 6 zones vs 18 positions, P = 0.7852). The 4-zone AUC was 0.77 (95% CI, 0.66-0.88, 4 vs 6 zones, P = 0.2172). The 2-zone AUC was 0.70 (95% CI, 0.60-0.80) and was lower than the 6-zone AUC (P = 0.0042) (Figure 2A, e-Tables 4 and 5).</p>
+<p>For TB versus ORC, the 12-zone (AUC 0.85, 95% CI, 0.76-0.93) and 18-position (AUC 0.85, 95% CI, 0.76-0.94) protocols had the highest point estimates, followed by the selected 4-zone and 6-zone protocols (both approximately 0.81) and the 2-zone protocol (0.77). Comparisons of the 6-zone protocol with the 4-zone (P = 0.7449), 12-zone (P = 0.4556), and 18-position (P = 0.4862) protocols were not statistically significant. Sensitivity at 70% specificity was 0.70 for the 2-zone, 0.75 for the 6-zone, and 0.79 for the 12-zone protocol (Figure 2B, e-Tables 4 and 5). Complete TB-versus-NRC performance is reported in e-Table 3.</p>
+<p>FASH response variables were retained by the 18-position feature-selection procedure, but adding FASH positions did not improve AUC over the 12-zone lung protocol for TB versus all TB-negative participants (P = 0.9439) or TB versus ORC (P = 0.9748) (e-Table 5).</p>
+<h3>Radiographic Correlates of POCUS Detection</h3>
+<p>Because CXR was obtained for ICs and HHCs but not the separately enrolled ORC cohort, radiographic comparisons were restricted to TB versus NRC. Central infiltration (70.1% vs 3.1%), peripheral infiltration (82.1% vs 6.1%), cavitation (32.5% vs 1.0%), pleural effusion (9.4% vs 0%), and hilar or mediastinal lymphadenopathy (17.9% vs 1.0%) were more frequent among TB than NRC participants (all P ≤ .001), and 91.8% of NRC participants had normal CXRs (Table 1). POCUS positive TB participants had more extensive radiographic disease than POCUS-negative TB participants, with more frequent central infiltration (79.0% vs 50.0%, P = .002), peripheral infiltration (91.4% vs 61.1%, P &lt; .001), involvement of both upper and lower lung fields (71.6% vs 36.1%, P &lt; .001), and a greater number of involved lung fields (mean 2.4 vs 1.6, P &lt; .001).</p>
+<p>Peripheral involvement showed the strongest association with POCUS detection: 74 of 96 participants (77.1%) with peripheral infiltration were POCUS positive, compared with 7 of 21 (33.3%) without peripheral infiltration (P &lt; .001). Cavitation and hilar or mediastinal lymphadenopathy were not directly visualized by POCUS. Among 30 of 38 participants with radiographic cavitation who were POCUS positive, detection was attributed to consolidation (n = 20) and/or subpleural nodules (n = 12), and 29 of 30 (96.7%) also had peripheral infiltration. Notably, 2 of the 117 TB-positive participants were identified by POCUS but had a normal CXR whereas 26 TB participants were POCUS negative but had CXR findings. Overall, 78 of 81 (96.3%) POCUS-positive participants had a TB-suggestive POCUS finding corresponding to a radiographically involved lung field. Full findings are shown in e-Table 12.</p>
+<h3>Exploratory Subgroup Analyses</h3>
+<p>In the exploratory HIV-stratified analyses, estimates were imprecise because each HIVpositive holdout stratum contained only five TB-positive participants. For TB versus all TB-negative participants, the 6-zone AUC was 0.925 (95% CI, 0.766-1.000) among HIVpositive participants and 0.802 (95% CI, 0.695-0.909) among HIV-negative participants. For TB versus ORC, the corresponding 6-zone AUCs were 0.760 (95% CI, 0.467-1.000) and 0.819 (95% CI, 0.704-0.934). 12-zone and 18-position results are provided in e-Table 7. No subgroup superiority or interaction was significant.</p>
+<p>In the exploratory analyses of TB stratified by smear-microscopy status, the 6-zone model achieved an AUC of 0.860 (95% CI, 0.685-1.000) and sensitivity of 0.867 (95% CI, 0.586-1.000) at 70% specificity for distinguishing smear-negative TB versus no TB. For smear-positive TB versus no TB, the corresponding AUC was 0.816 (95% CI, 0.713-0.919). Results across the 6-zone, 12-zone, and 18-position models and the TB-versus-ORC endpoint are provided in e-Table 8 and require cautious interpretation because smear-negative strata contained only five or six TB-positive participants.</p>
+<h3>Top Zone-Level Pathologic Features</h3>
+<p>After two-sided Fisher exact testing with Benjamini-Hochberg FDR adjustment across 91 nonconstant processed lung and FASH features, the strongest TB-associated findings were pathologic lung features, particularly shred sign, consolidation, and B-lines with irregular pleura (Table 2). For TB versus all TB-negative participants, the leading features were R1 shred sign, R1 consolidation, and L3 consolidation. For TB versus ORC, the leading features were R3 B-lines with irregular pleura, R1 consolidation, and R1 shred sign. Normal-aeration signs were excluded from this feature ranking. Endpoint-specific RF importance plots are provided in e-Figures 2 3 4.</p>
+<h3>Clinically-interpretable Nomograms</h3>
+<p>Both moderate nomograms used RF-selected predictors from the fixed 6-zone protocol. For TB versus all TB-negative participants, the retained features were L3 consolidation, L5 consolidation, L5 B-lines with irregular pleura, R3 B-lines with irregular pleura, and R5 consolidation. Holdout AUC was 0.848 (95% CI, 0.763-0.933), sensitivity at 70% specificity was 0.733, Brier score was 0.146, and the calibration intercept and slope were 0.988 and 2.796, respectively. For TB versus ORC, retained features were L5 consolidation, R5 consolidation, L3 consolidation, L3 B-lines with irregular pleura, and L3 B-lines with smooth pleura. Holdout AUC was 0.809 (95% CI, 0.709-0.909), sensitivity at 70% specificity was 0.690, Brier score was 0.174, and the calibration intercept and slope were -0.112 and 2.276, respectively (Figure 3, e-Tables 9 10 11, e-Figure 5).</p>
+<h3>DISCUSSION</h3>
+<p>In this prospective study, a simplified 6-zone lung examination (L1, L3, L5, R1, R3, R5), derived retrospectively from the training data, performed similarly to comprehensive 12zone and 18-zone protocols in distinguishing TB from all TB-negative participants. The comprehensive protocols performed slightly better in distinguishing TB from other respiratory conditions, although the differences were not statistically significant.</p>
+<p>The six zones cover bilateral anterior-superior, lateral-superior, and posterior-superior lung regions where pulmonary TB commonly predominates. 20, 21 The 2-, 4-, and 6-zone solutions progressively added superior regions, supporting an anatomically coherent signal. Apical oxygen pressure, lymphatic clearance, and perfusion-to-ventilation patterns may contribute to the upper-zone predominance of post-primary TB. 20 Other lung ultrasound studies have also associated apical and superior-zone consolidations with pulmonary TB. [14] [15] [16] [17] In contrast to the six-zone 12-view sweep technique, which standardizes broad apex-to-diaphragm lung acquisition for bedside interpretation and trainability, 22 the 6-zone exam is specifically optimized for triage of microbiologicallyconfirmed TB. This abbreviated 6-zone exam may reduce scanning time compared with a 12-zone scan. Its portability, lower infrastructure requirements, and absence of ionizing radiation may make it particularly useful where chest radiography is unavailable or limited for other reasons, such as costs. 8, 10, 18 If validated, this may be a more desirable imaging approach for pregnant women and children and allows repeated imaging to assess for response to treatment. 8 The six zones align closely with scanning regions in established frameworks such as the BLUE protocol 12 , which uses standardized lung ultrasound points to differentiate causes of acute respiratory failure, and E-FAST which incorporates thoracic ultrasound for the detection of pneumothorax and intrathoracic fluid 23 , which may facilitate integration into existing lung-ultrasound training and workflows.</p>
+<p>The 6-zone strategy may not suit every clinical use case. Distinguishing TB from ORC was more difficult than distinguishing TB from TB-negative participants overall, reflecting shared sonographic findings such as consolidations and effusions. 14, 16 Comprehensive examinations may remain relevant for symptomatic patients without superior-zone abnormalities, particularly in health facilities where their greater acquisition burden may be more feasible.</p>
+<p>Across analyses, the top zone-feature predictors were consistently pathologic findings: shred sign, consolidation, and B-lines paired with pleural irregularity. These findings reflect disruption of the normal pleural interface and parenchymal heterogeneity typical of TB granulomatous inflammation. 10, 13, 14, 21 Their visual distinctiveness may support rapid recognition and the future development of automated or semi-automated AI-assisted interpretation. Importantly, normal-lung signs such as the curtain sign-which reflects preserved aerated lung at the costophrenic recess 24 -were not used as risk predictors in the final feature set, because their inclusion in earlier exploratory analyses yielded risk associations inconsistent with their physiologic interpretation as markers of normal lung. Restricting the model to pathologic findings improved interpretability and aligned modelselected predictors with established sonographic markers of pulmonary TB. 10, 14 Comparison with chest radiography confirmed the expected limitation of transthoracic ultrasound. Cavity or abscess was not recorded on POCUS in any participant with radiographic cavitation. 13 Those who were POCUS positive were identified through consolidation or subpleural nodules, nearly all in participants with peripheral infiltrates, consistent with previous reports. 10, 13 Similarly, almost all POCUS-positive participants with central infiltration had accompanying peripheral disease, and POCUS positivity was more than twice as frequent when peripheral infiltration was present. Most POCUS findings occurred in a radiographically involved lung field, although spatial correspondence does not establish that both modalities identified the same lesion. More than a quarter of participants with TB whom POCUS did not identify had a normal chest radiograph, and the remainder had less extensive radiographic disease, suggesting that a proportion of POCUS-negative TB reflect limited disease. This study has several limitations. First, the study was conducted in a single high-burden TB country, and findings may not generalize to populations with different disease epidemiology or comorbidity profiles. Meanwhile, the model selection of apical/superior lung zones where pulmonary TB classically predominates suggests biologic relevance of the 6-zone exam across TB populations. Second, despite structured training and competency assessments, ultrasound remains operator-dependent, and inter-operator variability may have influenced feature detection. Consistent with this, eight participants with radiographic cavitation were POCUS negative, including seven with peripheral infiltration on chest radiography. ORC diagnoses were assigned clinically, which may limit conclusions about specific respiratory conditions. The analysis focused on distinguishing TB from non-TB, for which the specific ORC diagnosis was not required. Additionally, the abbreviated protocol was derived retrospectively from comprehensive examinations. Therefore, its effects on scanning time, operator burden, image quality, and diagnostic performance require prospective evaluation. Furthermore, holdout samples were modest, especially for TB versus ORC and HIV-positive or smear-negative subgroups. Sparse predictors required exclusions and penalization, so nomograms and calibration estimates remain exploratory. Both RF and nomogram models require external validation before clinical use.</p>
+<p>Altogether, these results support a tiered approach: a fixed 6-zone scan for highthroughput case finding where chest radiography is unavailable, with comprehensive lung examination when differentiation from other respiratory conditions is the main clinical question. Prospective implementation studies should assess scanning time, training burden, cost, throughput, and confirmatory referrals. Further studies should compare ultrasound acquisition methods and feature extraction models, including fully automated deep learning approaches. These comparisons would help assess generalizability and identify opportunities to improve diagnostic performance and reproducibility.</p>
+<p>Main Tables Table 1. Baseline characteristics of the analyzed cohort by TB status. Data are presented as median (IQR), median (range), range, or No./total (%), as indicated. Pairwise P values compare TB with NRC and ORC using Wilcoxon rank-sum, Pearson χ², or Fisher exact tests, as appropriate; tests were two-sided without multiplicity adjustment. TB status was microbiologically determined as detailed in e-Table 1. Microbiologic categories are not mutually exclusive; participants could be positive by more than one method, so component rows do not sum to the total. ORC diagnoses were assigned clinically; viral respiratory infection includes influenza (n = 11) and common cold (n = 6), and bronchitis includes acute (n = 7), chronic (n = 3), and unspecified bronchitis (n = 1). An em dash indicates a comparison that was not applicable or estimable. Abbreviations: BMI = body mass index; IQR = interquartile range; LJ = Löwenstein-Jensen; MGIT = Mycobacteria Growth Indicator Tube; NRC = no respiratory condition; ORC = other respiratory condition; TB = tuberculosis; Ultra = Xpert MTB/RIF Ultra.</p>
+<h3>Characteristic</h3>
+<p>Pulmonary TB (n = 118)</p>
+<p>TB-Negative, No Respiratory Condition (NRC) (n = 98) TB-Negative, Other Respiratory Condition (ORC) (n = 102) P Value TB vs NRC P Value TB vs ORC Demographics Age, y, median (IQR) 31.5 (25-40) 29 (21-39) 34.5 (26-48) .166 .026 Age range, y 17-76 13-72 15-68 --Male sex, No. (%) 72 (61.0) 50 (51.0) 57 (55.9) .140 .441 Examination BMI, kg/m², median (IQR) 19.4 (17.8-20.8) 21.6 (19.8-25.6) 23.2 (19.8-26.2) &lt; .001 &lt; .001 Temperature, °C, median (IQR) 36.6 (36.2-36.8) 36.5 (36.2-36.8) 36.4 (36.1-36.7) .364 .039 Temperature &gt; 38 °C, No./total (%) 0/118 (0.0) 0/98 (0.0) 1/102 (1.0) -.464 Clinical History and Comorbidities Prior TB, No./total (%) 5/118 (4.2) 2/98 (2.0) 10/102 (9.8) .460 .115 HIV positive, No./total (%) 29/118 (24.6) 15/98 (15.3) 27/102 (26.5) .092 .748 Diabetes, No./total (%) 1/118 (0.8) 0/98 (0.0) 1/102 (1.0) 1.000 1.000 Current smoker, No./total (%) 12/117 (10.3) 3/98 (3.1) 6/102 (5.9) .039 .240 Enrollment Category Index case, No./total (%) 114/118 (96.6) 0/98 (0.0) 0/102 (0.0) --Household contact, No./total (%) 4/118 (3.4) 98/98 (100.0) 0/102 (0.0) --ORC No./total (%) 0/118 (0.0) 0/98 (0.0) 102/102 (100.0) --Respiratory Symptoms</p>
+<p>The study received ethical approval from the Rutgers University Institutional Review Board (eIRB #Pro2022001456) and the Mulago Hospital Research and Ethics Committee (MHREC #2349) in Uganda. All participants provided informed consent before enrollment.</p>
+<h3>Acknowledgements</h3>
+<p>: Funding was provided by the National Institute of Allergy and Infectious Diseases (NIAID), part of the U.S. National Institutes of Health (NIH). Research reported in this publication was supported by the National Cancer Institute under award numbers -R01CA249992 -01A1, R01CA257612 -01A1, R01CA264017 -01, R01CA268287 -01A1, U01CA113913 -16A1, U01CA269181 -01, U24CA274494 -01; U54CA302465 -01; R01CA268207-01; the National Heart, Lung and Blood Institute under award numbers -R01HL158071 -01A1; the National Institute of Allergy and Infectious Diseases under award number -R01AI175555 -01A1 and R01HL151277 -NOTE: This preprint reports new research that has not been certified by peer review and should not be used to guide clinical practice. 01A1, the National Institute of Biomedical Imaging and Bioengineering under award number 75N92022D00015; the National Library of Medicine under award number -R01LM013864 -01A1; the National Institute on Aging under award number -R01AG089759; the National Institute of Diabetes and Digestive and Kidney Diseases under award number -R01DK118431; the Office of the Director, National Institutes of Health under award number 1OT2OD038065-01; the Kidney Mapping and Atlas Project (KMAP) under award number -U01DK133090 -01; the United States Department of Veterans Affairs VA Merit Review award -IBX004121; the VA Biomedical Laboratory Research and Development Service under award numbers -IK6BX006185; the VA Research and Development Office through the Lung Precision Oncology Program -LPOP-L0021; and sponsored research agreements from Astrazeneca, Bristol Myers Squibb, the Prevent Cancer Foundation, Innovation in Cancer Informatics, the Institute for Technology in Health Care, the Breast Cancer Research Foundation and the Scott R. Mackenzie Foundation. The content is solely the responsibility of the authors and does not necessarily represent the official views of the National Institutes of Health, the U.S. Department of Veterans Affairs, or the United States Government.</p>
+<p>The data supporting the findings of this study are available from the corresponding author upon reasonable request, subject to applicable institutional and ethical approvals.</p>
+<p>We declare no competing interests.</p>
+<h3>Characteristic</h3>
+<p>Pulmonary TB (n = 118) TB-Negative, No Respiratory Condition (NRC) (n = 98) TB-Negative, Other Respiratory Condition (ORC) (n = 102) P Value TB vs NRC P Value TB vs ORC None, No./total (%) 0/118 (0.0) 70/98 (71.4) 1/102 (1.0) &lt; .001 .024 Cough only, No./total (%) 3/118 (2.5) 11/98 (11.2) 11/102 (10.8) Cough plus other TB symptom, No./total (%) 115/118 (97.5) 17/98 (17.3) 90/102 (88.2) Microbiologic Confirmation of TB Laboratory-confirmed (Ultra or culture positive), No./total (%) 118/118 (100.0) ----Xpert Ultra positive a , No. /total (%) 111/118 (94.1) ----Semiquantitative result, No. High 39/111 (35.1%) ----Medium 34/111 (30.6%) ----Low 32/111 (28.8%) ----Very Low 6/111 (5.4%) ----Culture positive (MGIT or LJ), No./total (%) 96/118 (81.4) ----Smear positive, No./total (%) 90/118 (76.3) ----Smear negative, No./total (%) 28/118 (23.7) ----Clinical diagnosis only, No./total (%) 0/118 (0.0) ----Other Respiratory Condition, Diagnosis Bronchopneumonia, No./total (%) --24/102 (23.5) --Viral respiratory infection, No./total (%) --17/102 (16.7) --Lobar pneumonia, No./total (%) --12/102 (11.8) --Bronchitis, No./total (%) --11/102 (10.8) --Allergic or vasomotor rhinitis, No./total (%) --9/102 (8.8) --Interstitial pneumonia, No./total (%) --5/102 (4.9) --Other, No./total (%) --24/102 (23.5) --Chest Radiograph, Overall Interpretation b (n = 117) (n = 98) Normal, No./total (%) 12/117 (10.3) 90/98 (91.8) -&lt; .001 -Findings attributable to TB, No./total (%) 104/117 (88.9) 3/98 (3.1) --Findings unlikely to be TB, No./total (%) 0/117 (0.0) 2/98 (2.0) --Indeterminate, No./total (%) 1/117 (0.9) 3/98 (3.1) --Chest Radiograph, Specific Findings Infiltration, central, No./total (%) 82/117 (70.1) 3/98 (3.1) -&lt; .001 -Characteristic Pulmonary TB (n = 118) TB-Negative, No Respiratory Condition (NRC) (n = 98) TB-Negative, Other Respiratory Condition (ORC) (n = 102) P Value TB vs NRC P Value TB vs ORC Infiltration, peripheral, No./total (%) 96/117 (82.1) 6/98 (6.1) -&lt; .001 -Cavitation, No./total (%) 38/117 (32.5) 1/98 (1.0) -&lt; .001 -Cavities per participant, median (range) 1 (1-4) 1 (1-1) ---Pleural effusion, unilateral or bilateral, No./total (%) 11/117 (9.4) 0/98 (0.0) -.001 -Hilar or mediastinal lymphadenopathy, No./total (%) 21/117 (17.9) 1/98 (1.0) -&lt; .001 -Miliary pattern, No./total (%) 1/117 (0.9) 0/98 (0.0) -1.000 -Other finding, No./total (%) 15/117 (12.8) 1/98 (1.0) -.001 -Chest Radiograph, Lung Fields Involved Right upper field, No./total (%) 78/117 (66.7) 1/98 (1.0) -&lt; .001 -Left upper field, No./total (%) 67/117 (57.3) 3/98 (3.1) -&lt; .001 -Right lower field, No./total (%) 50/117 (42.7) 4/98 (4.1) -&lt; .001 -Left lower field, No./total (%) 55/117 (47.0) 6/98 (6.1) -&lt; .001 -Bilateral involvement, right and left No./total (%) 62/117 (53.0) 4/98 (4.1) -&lt; .001 -Fields involved, mean (SD) 2.1 (1.2) 0.1 (0.5) -&lt; .001 b Fourteen index cases with an initially negative or trace Xpert Ultra result were confirmed on repeat Xpert Ultra testing at the Mycobacteriology Laboratory, Makerere University College of Health Sciences, Kampala, Uganda. Because protocol chest radiography was not performed in the ORC cohort, radiographic comparisons are limited to TB versus NRC c One TB participant had no CXR due to pregnancy and was excluded from radiographic analyses. Participants with indeterminate CXR interpretations were included, as specific findings were available.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Study workflow and derivation of streamlined POCUS protocols. (A) Enrollment and POCUS examination of pulmonary TB index cases, household contacts, and participants with other respiratory conditions. (B) Standardized 18-position acquisition comprising 12 lung zones and six FASH positions. (C) Findings from lung zones and FASH positions recorded for analysis. (D) Machine-learning development of reduced protocols, yielding the fixed 6-zone set L1, L3, L5, R1, R3, and R5.</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Holdout performance of reduced and comprehensive POCUS protocols: ROC curves compare the 2-, 4-, 6-, and 12-zone lung protocols and the 18-position combined protocol for (A) TB versus all TB-negative participants (N = 80; 30 TB-positive) and (B) TB versus other respiratory conditions (N = 55; 29 TB-positive). (C) Corresponding AUC, sensitivity and specificity at the Youden threshold, and sensitivity at 70% and 60% specificity thresholds. The selected 6-zone protocol comprised L1, L3, L5, R1, R3, and R5.</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Six-zone nomograms for TB classification: L2-penalized logistic-regression models display five RF-selected POCUS features for (A) TB versus all TB-negative participants and (B) TB versus other respiratory conditions. Points assigned to present findings are summed to estimate TB probability; dashed lines indicate the thresholds corresponding to 70% specificity. These exploratory models require external validation.</p>
+<h3>Table 2 . Top 10 zone-level POCUS features in the selected 6-zone modeling workflow.</h3>
+<p>Features are restricted to L1, L3, L5, R1, R3, and R5. For each endpoint, the first five rows correspond to features retained in the moderate nomogram and are listed in the same order as Figure3; the remaining five are additional RF-retained features with the lowest FDR-adjusted P values. FDR-adjusted P values were calculated using twosided Fisher exact tests with Benjamini-Hochberg correction and represent univariate associations, not RF importance or multivariable effects. Abbreviations: FDR = false discovery rate; ORC = other respiratory conditions; POCUS = point-of-care ultrasound; RF = random forest; TB = tuberculosis.</p>
+<h3>References</h3>
+<p>World Health Organization. Global Tuberculosis Report 2025. World Health Organization; 2025. Accessed November 5, 2026.WHO report</p>
+<p>Marks GB, Nguyen NV, Nguyen PTB, et al. Community-wide screening for tuberculosis in a high-prevalence setting. N Engl J Med. 2019;381(14):1347-1357. doi:10.1056/NEJMoa1902129</p>
+<p>Esmail H, Miller C, Falzon D, et al. Scaling-up symptom-agnostic, community-wide screening toward global tuberculosis elimination: opportunities, challenges, and lessons from history. Int J Infect Dis. 2025;155:107875. doi:10.1016/j.ijid.2025.107875</p>
+<p>Obungoloch J, Tumusiime J, Buri G, et al. Optimizing chest X-ray referral using clinical metadata: pulmonary disease patterns and diagnostic access in southwestern Uganda. Cureus. 2026;18(8):e115057. doi:10.7759/cureus.115057</p>
+<p>Brümmer LE, Thompson RR, Malhotra A, et al. Cost-effectiveness of low-complexity screening tests in community-based case-finding for tuberculosis. Clin Infect Dis. 2024;78(1):154-163. doi:10.1093/cid/ciad501</p>
+<p>Andrews JR, Kendall EA, Cattamanchi A, et al. Projecting the impact and costs of near point-of-care tuberculosis screening assays in community-based active case finding. Clin Infect Dis. 2025;81(4):776-784. doi:10.1093/cid/ciaf395</p>
+<p>Abdulgader SM, Okunola AO, Ndlangalavu G, et al. Diagnosing tuberculosis: what do new technologies allow us to (not) do? Respiration. 2022;101(9):797-813. doi:10.1159/000525142</p>
+<p>Suttels V, Du Toit JD, Fiogbé AA, et al. Point-of-care ultrasound for tuberculosis management in Sub-Saharan Africa-a balanced SWOT analysis. Int J Infect Dis. 2022;123:46-51. doi:10.1016/j.ijid.2022.07.009</p>
+<p>Heller T, Wallrauch C, Goblirsch S, Brunetti E. Focused assessment with sonography for HIV-associated tuberculosis (FASH): a short protocol and a pictorial review. Crit Ultrasound J. 2012;4(1):21. doi:10.1186/2036-7902-4-21</p>
+<p>Bigio J, Kohli M, Klinton JS, et al. Diagnostic accuracy of point-of-care ultrasound for pulmonary tuberculosis: a systematic review. PLoS One. 2021;16(5):e0251236. doi:10.1371/journal.pone.0251236</p>
+<p>Bélard S, Taccari F, Kumwenda T, et al. Point-of-care ultrasound for tuberculosis and HIV-revisiting the focused assessment with sonography for HIV-associated tuberculosis (FASH) protocol and its differential diagnoses. Clin Microbiol Infect. 2024;30(3):320-327. doi:10.1016/j.cmi.2023.10.021</p>
+<p>Lichtenstein DA, Mezière GA. Relevance of lung ultrasound in the diagnosis of acute respiratory failure: the BLUE protocol. Chest. 2008;134(1):117-125. doi:10.1378/chest.07-2800</p>
+<p>Fentress M, Ugarte-Gil C, Cervantes M, et al. Lung ultrasound findings compared with chest X-ray findings in known pulmonary tuberculosis patients: a cross-sectional study in Lima, Peru. Am J Trop Med Hyg. 2020;103(5):1827-1833. doi:10.4269/ajtmh.20-0542</p>
+<p>Weber SF, Wolf R, Manten K, et al. Lung and abdominal ultrasound accuracy for tuberculosis: an Indian prospective cohort study. PLoS One. 2025;20(9):e0329670. doi:10.1371/journal.pone.0329670</p>
+<p>Lightowler M, Min J, Nape A, et al. Diagnostic accuracy of lung ultrasound for pulmonary tuberculosis in outpatients from Papua New Guinea, a resource-limited setting. Int J Infect Dis. 2026;163:108239. doi:10.1016/j.ijid.2025.108239</p>
+<p>Weber SF, Wolf P, Wetzstein N, et al. Diagnostic accuracy of lung and abdominal ultrasound for tuberculosis in a German multicenter cohort of patients with presumed tuberculosis disease. Open Forum Infect Dis. 2024;11(12):ofae651. doi:10.1093/ofid/ofae651</p>
+<p>Montuori M, Casella F, Casazza G, et al. Lung ultrasonography in pulmonary tuberculosis: a pilot study on diagnostic accuracy in a high-risk population. Eur J Intern Med. 2019;66:29-34. doi:10.1016/j.ejim.2019.06.002</p>
+<p>World Health Organization. Target Product Profiles for Tuberculosis Screening Tests. World Health Organization; 2025. WHO publication</p>
+<p>World Health Organization. WHO Consolidated Guidelines on Tuberculosis. Module 2: Screening-Systematic Screening for Tuberculosis Disease. World Health Organization; 2021. Accessed August 17, 2026. WHO guidelines</p>
+<p>Goodwin RA, Des Prez RM. Apical localization of pulmonary tuberculosis, chronic pulmonary histoplasmosis, and progressive massive fibrosis of the lung. Chest. 1983;83(5):801-805. doi:10.1378/chest.83.5.801</p>
+<p>Lyu J, Narum DE, Baldwin SL, et al. Understanding the development of tuberculous granulomas: insights into host protection and pathogenesis, a review in humans and animals. Front Immunol. 2024;15:1427559. doi:10.3389/fimmu.2024.1427559</p>
+<p>Fentress M, Ezibon P, Bulabek A, et al. A lung ultrasound scanning technique for children and adults in low-resource settings: preliminary experiences in sub-Saharan Africa. Am J Trop Med Hyg. 2021;105(5):1148-1151. doi:10.4269/ajtmh.20-0272</p>
+<p>American Institute of Ultrasound in Medicine. The AIUM practice parameter for the performance of the extended focused assessment with sonography for trauma (EFAST). J Ultrasound Med. 2023;42(4):E1-E7. doi:10.1002/jum.16027</p>
+<p>Lee FCY. The curtain sign in lung ultrasound. J Med Ultrasound. 2017;25(2):101-104. doi:10.1016/j.jmu.2017.04.005</p>
 </div>
 </details>
 </div>
