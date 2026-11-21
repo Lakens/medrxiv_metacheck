@@ -197,7 +197,7 @@ Deep Learning-based Framework for Rapid, Precise and Fully Automated
 Localization of Cochlea Landmarks in 3D CT Images
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.06.26366894
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.06.26366894
 </p>
 </header>
 <div class="mc-main">
@@ -319,8 +319,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -682,9 +685,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -706,7 +713,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -721,9 +729,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -736,13 +762,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -762,6 +791,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -769,12 +804,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -875,6 +916,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -894,6 +955,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1149,19 +1245,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1271,6 +1449,147 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Manual localization of anatomical landmarks within human cochlea structures in 3D computed tomography (CT) images is labor-intensive. However, despite progress in various studies on automatic localization methods, it remains challenging to jointly achieve rapid, precise, and fully automated landmark localization. Therefore, we propose a deep learning-based localization framework, called MEDICO-YOLO, which bridges speed and precision. It can automatically and simultaneously localize 6 human cochlea landmarks (apex, basal point, round window center of both left and right cochleae) in the full-resolution 3D CT images. The main contributions are: 1) MEDICO-YOLO learns from few manually annotated 3D CT images; 2) Within the framework, a 2D CNN-based network was developed to specifically localize cochlea landmarks in 3D single-scale medical CT images; 3) A novel loss function was designed; 4) The localization model achieved human expert-level precision while ensuring rapid inference. This study employed anonymized 3D pre-operative CT images (0.3 mm, covering the full head or temporal bone region). The evaluation involved comparing four models that were trained using 4 different training set sizes (n=4, 8, 12, 16). Each of them was evaluated on a distinct test set (n=16). The results show that the MEDICO-YOLO framework achieved strong localization performance by learning from few annotated 3D CT images. Trained on only 8 CT volumes, the model already attained a mean localization error of 1.30 mm (approximately 4 voxels). When trained on 16 CT volumes, the model achieved a mean error of 0.71 mm and a successful detection rate (SDR@3.0 mm) of 97.92%. Furthermore, on an Apple M1 laptop, the model achieved a real-time speed (32 ms) for inferencing each 2D slice (608 x 608) and an average latency of 25.43 s for inferencing the full 3D CT image (608 x 608 x 200, including post-processing). The complete methodology for the MEDICO-YOLO framework is presented in this article.</p>
+<h3>INTRODUCTION</h3>
+<p>Understanding the precise spatial information of patient-specific anatomical structures in medical imaging is critical for individualized surgical planning and other medical applications. Relevant to the temporal bone region, different studies have focused on the segmentation of anatomical structures (1, 2). However, in cochlear implant surgery, segmenting the shape of a structure alone is often insufficient, localizing clinically relevant landmarks (e.g., cochlea apex, basal point and round window center) can also be crucial for performing minimally invasive surgical procedures (3). Whereas manually localizing cochlea landmarks remains challenging and labor-intensive due to the cochlea&#x27;s minute size and significant inter-individual variation (4, 5).</p>
+<p>Earlier studies employed atlas-based approaches for automatic localization or segmentation of anatomical structures within the temporal bone region (6) (7) (8). Such approaches employ predefined anatomical atlas constructed from annotated dataset as templates, aligning them with new patient scans via registration techniques, demonstrating precise localization performance. However, it is often sensitive to anatomical variability and can become computationally expensive when integrating multiatlas strategy or deformable registration technique.</p>
+<p>Deep learning-based convolutional neural networks (CNNs) have been increasingly employed in various studies to perform automatic landmark detection in medical images (9, 10). More relevant to our domain, several studies have proposed CNN-based approaches for localizing anatomical structures within the temporal bone region. Margeta et al. (11) developed the web-based platform Nautilus, employing a 3D U-Net architecture for cochlea landmark detection and segmentation in pre-and postoperative images. For detection in pre-operative images, the 3D U-Net outputs a heatmap for each landmark, 3 heatmaps in total. Subsequently, the coordinates of landmarks are extracted by identifying peak responses on the predicted Gaussian probability maps. The network trained with 279 pre-and post-operative scans, achieved an average localization error of approximately 2 voxels on pre-operative CT images. However, this method requires a manual initialization via a user-defined 10 × 10 × 10 mm region of interest (ROI). Wang et al. (12) demonstrated an approach to train the algorithm using only a single annotated CT scan. They first employed a shallow 2D U-Net to segment the structure of interest (SOI) mask, enabling an initial alignment between the target image and reference image. Subsequently, they integrated 3D registration to refine the coordinates of landmarks. However, the accuracy of this method can be sensitive to the quality of the single annotated reference image, and the registrationbased optimization can become complex when large anatomical variation presents. Additionally, Stebani et al. (13) proposed a dual-headed 3D U-Net trained on 38 CT scans to achieve both temporal bone segmentation and landmark detection. In the detection component, they integrated a heatmap regression output layer into the network&#x27;s head module and implemented its corresponding regression loss. This approach rapidly localizes the helicotrema, oval window and round window within a 128 × 128 × 128 voxel sub-volume, achieving an average localization error of 5.2 voxel units. Furthermore, Wang et al. (14) proposed a few-shot learning approach for automatic localization of several cochlea landmarks (apex, basal point and round window center), combining an optimized data pre-processing operation with a tailored multi-class classification 2D CNN model. A sliding window strategy was then employed at the localization process. Using only 5 annotated CT scans as training data, their algorithm achieved an average localization error of approximately 3 voxels on the input 3D CT volumes.</p>
+<p>However, due to its two-stage design, a manual ROI initialization is required to accelerate the inference.</p>
+<p>These works underscore that the landmarks within the temporal bone area can be localized automatically and precisely on 3D CT images. However, due to multi-stage strategies or the characteristic of the U-Net architecture in localization (which often outputs one heatmap with full input image size per landmark), some approaches necessitate a manually defined ROI to accelerate the detection process. Achieving both rapid and precise automatic landmark localization on CT images without pre-cropping ROI, still remains a challenge. Two-stage object detection algorithms such as R-CNN, Fast R-CNN, Faster R-CNN (15-17) first require filtering ROIs through a region proposal mechanism, then followed by the object classification and bounding box regression on the selected ROIs. Although these methods can achieve high detection precision, such two-stage detection design still slows down the inference speed. On the other hand, single-stage detector like center-based approach CenterNet (18) can predict directly the object&#x27;s center with heatmap-based output. However, each class necessitates a separate heatmap to detect its center, increasing computational cost during inference.</p>
+<p>Another single-stage detection algorithm, You Only Look Once (YOLO) (19), has gained more attention owing to its real-time inference capability, global context and end-to-end processing pipeline. YOLO employs a single grid-based CNN model to process the entire input image in a single forward pass. By treating object detection as regression rather than classification, it simultaneously predicts the class, confidence scores and bounding box coordinates of multiple presented objects at output, thereby reducing inference duration while retaining high detection accuracy.</p>
+<p>Unlike conventional YOLO, which primarily detects multi-scale objects on 2D natural images, our clinical task focuses on localizing anatomical landmarks within the human cochlea structure: the apex (helicotrema), the basal point (center of the cochlea basal turn), and the round window center. The dataset in use is 3D medical CT images covering the entire head or temporal bone region, with consistent isotropic image resolution.</p>
+<p>Therefore, we propose a deep learning-based, automated landmark localization framework, named MEDICO-YOLO (MEDical Image Centers Only YOLO), which is single-scale, 3D medical CT image-focused. The methodology of this framework encompasses 2D CNN-based network architecture, loss function, data generation, training configuration, and the 3D localization inference pipeline. It supports few-volume learning and localizes multiple cochlea landmarks simultaneously and fully automatically, attains both high precision and rapid inference. Furthermore, it requires no manual initialization thanks to its single-stage design.</p>
+<p>To the best of our knowledge, this is the first automated cochlea landmark localization framework that achieves collectively all of the aforementioned features. Thus, the main contributions include: 1) To enable few-volume learning while solving the overfitting issue, a custom data generator was developed.</p>
+<p>From a limited set of manually labeled 3D CT volumes, the data generator could generate a large and adjustable amount of 2D images and their corresponding ground truth label matrix for training and validation data. To enhance 3D spatial context on the generated 2D images, 3D augmentation was also integrated.</p>
+<p>2) A 2D CNN-based network architecture was developed. Since the target cochlea structure appeared at a consistent scale on the studied dataset (isotropic image spacing of 0.3 mm), the neck module was omitted, and the backbone and head modules were adapted accordingly. Thus, the network outputs single-scale rather than multi-scale feature maps, thereby reducing the network size.</p>
+<p>3) A novel loss function was designed from scratch, this included the implementation of customized individual loss components and an overall loss calculation mechanism that considers different cases. This loss function determined the model&#x27;s learning direction, contributing to its high precision. It also led to a correlation between the confidence threshold and precision, where the model localizes more precisely with a higher confidence threshold.</p>
+<p>4) A localization inference pipeline integrated DBSCAN clustering (20) was developed to directly process the input full-resolution 3D CT scan. Without any manual initialization, it simultaneously outputs the 3D coordinates of all 6 target landmarks on either a full-head or temporal bone 3D CT scan.</p>
+<p>5) The overall MEDICO-YOLO framework was evaluated quantitatively and qualitatively on a distinct test set (n=16), including inference speed, localization precision, qualitative visualization, comparison with human experts in localization precision, and overall comparison with other related works. The results demonstrate that this framework achieved human expertlevel precision while maintaining rapid inference speed.</p>
+<h3>MATERIAL AND METHODS</h3>
+<h3>Data Description</h3>
+<p>The dataset employed in this study (TABLE 1) consists of 36 anonymized preoperative 3D cone beam computed tomography (CBCT) scans, including 17 scans covering the human head and 19 scans covering the temporal bone region. The image shape for full head CT scan is 812 × 812 × 460, for temporal bone CT scan is 536 × 536 × 198. The dimension represents (X, Y, Z) in the axial view, where X and Y denote axial dimension, and Z denotes the number of axial slices. These scans were acquired from 36 patients (21 females and 15 males, all adults), using 2 different scanners, between 2010 to 2023. Each scan includes both left and right cochleae, with 0.3 mm isotropic image spacing and no gantry tilt. 21 of them were scanned at the ENT clinic or Neuroradiology department in Medizinische Hochschule Hannover with the institutional review board&#x27;s generic ethics decision No. 1897-2013 from 2013-07-09 regarding publications with patient data. Other 15 scans were acquired from full-body donors (ethics vote No. A 2016-0083) with University of Rostock. The scans with strong motion artifacts were excluded, while scans showing strong metal artifact on the side of the head (due to the attachment of a mini-stereotactic metal frame) were included. Ground truth annotations were manually performed by an expert using 3D Slicer (21), and divided into training, validation and testing sets, with each group containing distinct CT scans. To assess few-volume learning performance, the model was trained on 4 distinct training sets containing 4, 8, 12 and 16 manually labeled CT volumes respectively. For testing, a separate test set comprising 16 different CT volumes was employed.</p>
+<h3>Network Architecture</h3>
+<p>Since clinicians or radiologists commonly analyze 3D CT scans with 2D multiplanar views, we accordingly redefined the 3D CT cochlea landmark localization task as 2D slice localization in the axial direction. Therefore, a 2D CNN-based network architecture was developed. Compared to 3D convolutions, this 2D convolution-based adjustment reduces the computational burden by eliminating convolution operations along the depth dimension. The backbone module of the network was inspired by the CSPDarknet53 (22), employing Mish (23) as activation function. Beyond the backbone module, several architectural modifications tailored to our task were implemented: (1) The input image was adjusted to a single-channel image with the shape of 1 x 608 x 608. (2) The conventional neck module was removed due to the consistent anatomical size of the cochlea structure and fixed isotropic voxel spacing of 0.3 mm across the studied dataset, which eliminated the need for multi-scale feature fusion.</p>
+<p>(3) The head module was adjusted accordingly to the modification of the neck module, which outputs a single-scale feature map with an anchor-free design (24, 25), and (4) the shape of the output tensor was tailored to 13 x 13 x 2 x 9.</p>
+<p>As FIGURE 1 illustrates, the input image is downsampled across 5 successive CSP stages. Each stage integrates CSPNet (26), which divides the input feature map into two branches: one branch processes through a series of residual blocks (27), while the other bypasses them, the two branches are then merged via channel concatenation. This design reduces the computation while keeping both spatial and semantic information. Following the backbone module, the feature map is directly connected to the head module, which consists of five 3 x 3 convolution layer and one 1 x 1 convolution layer, Leaky ReLU is employed as activation function. The output tensor has a shape of 13 x 13 x 2 x 9, corresponding to 13 x 13 grid cells that divide the input image, each cell contains two bounding boxes, where each box consists of 9 parameters: x, y, w, h, confidence, and a class label represented by onehot encoding (4 classes in total). The parameters (x, y, w, h) are defined relative to each grid cell.</p>
+<p>As anatomically, the human cochlea structure has a dimension of approximately 10 mm x 8 mm x 4 mm, which corresponds to 33 x 27 x 13 voxels in 0.3 mm resolution CT scan (4). Thus, to ensure the output feature map contains a sufficient receptive field, and each cell approximately covers the dimension of the cochlea structure, the size of input image was determined to 608 x 608, and the grid size to 13 x 13. In this single-scale design, such suitable spatial configuration is particularly important since all spatial information is presented on a single scale feature map.</p>
+<h3>Loss Function</h3>
+<p>Beyond the network architecture, the definition of the loss function was equally crucial, as the network defines the feature extraction capacity while the loss function determines the learning objective. Thus, to localize cochlea landmarks, a novel loss function was designed. Unlike traditional YOLO family, we redesigned the loss function to directly predict the landmarks (x, y) coordinates rather than the bounding box, the (w, h) parameters were then omitted and thus eliminated the need of traditional loss metrics like intersection over union (IoU). Each cell was designed to predict 2 landmarks, which is consistent with the cochlea anatomy presented in the studied dataset. Each grid cell on the 2D axial CT slice can contain at most 2 cochlea landmarks (apex, basal point). In the loss function, the prediction with the minimum matching cost (1) comparing to the ground truth, is responsible for localizing the corresponding landmark.</p>
+<p>where 𝑖 and 𝑗 represent the index of the cells, ℳ&quot;𝑝 !&quot; , 𝑔 !&quot; &amp; was defined as the matching cost, encompassing both localization and classification metrics. 𝑝 !&quot; denotes as predicted tensor and 𝑔 !&quot; denotes as ground truth label, 𝑑 #$ denotes the mean square error (MSE) between them. 𝑝̂$ was defined as the softmax of the predicted class probability for the ground truth class 𝑔. Hyperparameter 𝛽 was set to 0.17.</p>
+<p>As shown in FIGURE 2, each input image corresponds to a 2D axial slice from a 3D CT image, which is divided by 13 x 13 cells. The predicted outputs for each cell were compared against the ground truth, the corresponding error and total loss were then calculated based on the designed loss calculation mechanism.</p>
+<p>For an image contains only background, no-object loss (2) was applied to all the predicted outputs, where ℒ %&amp;&#x27;( &#x27;&amp;&amp;*&quot; denotes the confidence loss component for the background cells, 𝜆 &#x27;&amp;&amp;*&quot; = 0.1 and 𝐶 !</p>
+<p>represents the predicted confidence score, and the target confidence for background cells was set to 0. The thresholds obj_thresh and no_obj_thresh define the distance criteria for matching the predicted and ground truth landmarks based on their Euclidean distance, obj_thresh was set to 0.16 and no_obj_thresh was set to 0.26.</p>
+<p>Since landmarks can locate close to cell boundaries, for an image containing ground truth landmarks, each cell containing a ground truth landmark was further assigned together with its 4 adjacent neighboring cells: (𝑖 + 1, 𝑗), (𝑖 -1, 𝑗), (𝑖, 𝑗 + 1) and (𝑖, 𝑗 -1). The predicted landmarks within the ground truth cell and its neighboring cells were all assigned to be responsible for the presented landmarks in the ground truth cell.</p>
+<p>Based on the defined matching cost and Euclidean distance in pixel space, the object loss ℒ &amp;*&quot; was computed for the matched predicted and the ground truth landmark, where ℒ &amp;*&quot; was defined as the sum of the coordinates loss ℒ %&amp;&amp;,-(3), the confidence loss ℒ %&amp;&#x27;( &amp;*&quot; (5), and the classification loss ℒ %. /.</p>
+<p>Since each cell contained at most 2 ground truth landmarks, 3 cases were considered, cells containing 1 landmark, 2 landmarks and no landmark (FIGURE 2).</p>
+<p>where ℒ %&amp;&amp;,-denotes the coordinates loss component, 𝑑 #$ denotes the mean square error (MSE) between the predicted center and the ground truth landmark, 𝑐𝑜𝑠𝜃 denotes the cosine similarity between the predicted and the ground truth vectors, computed by the dot product of their normalized vectors. 𝜆 %&amp;&amp;,-was set to 30.0 and 𝜆 0&#x27;$.1 was set to 1.0. As we noticed the difficulty of distinguishing the apex and basal point class because they were located close to each other, focal loss (28) was integrated as ℒ %./ , with the parameter 𝛾 = 2.0 and 𝛼 = (0.4, 0.4, 0.2), respectively for apex, basal point and round window center class, with the 𝜆 %. / = 2.0.</p>
+<p>The total loss ℒ 2&amp;20. = ℒ %&amp;&#x27;( &#x27;&amp;&amp;*&quot; + ℒ &amp;*&quot; , which accumulates the losses of all grid cells in the input image integrating each specific case, providing the objective function for the network training.</p>
+<h3>Custom Data Generator</h3>
+<p>For data preparation, different operations were implemented. To address the issue of strong metal artifact presented by the frame attached on the 3D loaded CT volume, intensity thresholding was applied, where the threshold was determined adaptively by calculating the mean and standard deviation of the voxel intensities in the loaded volume. The voxel values exceeding this threshold were replaced with 0. The entire volume voxel values were then normalized to a range between 0 and 1. Due to the scarcity of manually annotated 3D CT images, and to prevent the potential overfitting (29) issue, a custom 2D data generator was implemented. This generator can produce a large, adjustable amount of training and validation data for the network, containing both 2D cochlea images and background-only images, along with their label matrix. To compensate for the lack of 3D spatial context information resulting from the 2D network design, 3D data augmentation operations were also incorporated into the generator.</p>
+<p>For cochlea images, a 3D rigid rotation around the CT volume center was firstly applied: ±6° rotation about x-axis and y-axis, and a wider angular range rotation about the z-axis (within the axial plane) with higher sampling probability within ±30° range. Subsequently, the central axial 2D slice contains the ground truth landmark were extracted from the rotated 3D volume. A translation operation was additionally integrated. For non-rotated volumes, a 2D translation was applied on the extracted axial 2D slice. When involving 3D rotation, a 3D rigid transformation was firstly applied to the CT volume by randomly translating its rotation center within a defined translation range, then the central axial slice was extracted from the transformed volume while ensuring the presence of the landmarks on the extracted 2D slice. The same 3D augmentations were applied to background-only images. However, owing to the substantial imbalance between images containing landmarks and background, the amount of augmented background images was correspondingly reduced.</p>
+<p>According to the different dimension of the input CT volume (covering full head or temporal bone region), the extracted 2D slices were cropped or padded to 608 x 608, while preserving at least the full temporal bone region. Furthermore, 2D augmentation operations including Gaussian blur and random sharpness were applied.</p>
+<p>For the network&#x27;s learning, the ground truth labels for training must align with the augmented images, meaning the labels must correspond to the transformed positions of the target landmarks in the augmented images. To achieve this, the corresponding geometric transformations were also applied to the original ground truth label matrix.</p>
+<p>The label matrix was structured the same as the network&#x27;s output format, with the shape of 13 x 13 x 2 x 9, which contains coordinates information (x,y,w,h), confidence score, and the class label of 4 classes (one-hot encoding). Thus, this custom data generator was able to flexibly produce augmented 2D images with their corresponding ground truth label matrix, for all 3 landmark classes (apex, basal point and round window center) and a background class.</p>
+<h3>Training Configuration</h3>
+<p>The complete framework was implemented using PyTorch (30) and trained from scratch on 4 NVIDIA Tesla V100 GPUs with 32GB RAM. All of the 4 GPUs were employed to accelerate the training process by integrating Distributed Data Parallel (DDP) via NCCL. To reduce memory consumption, automatic mixed precision (AMP) with FP16 precision was integrated. The training process was configured with 100 epochs, a batch size of 16, and an AdamW (31) optimizer with weight decay set to 0.005. The initial learning rate was set to 0.0001 and the cosine annealing scheduler was enabled.</p>
+<p>To compare performances of different models, a total of 4 independent models were trained on 4 different training sets, each training set comprises 4, 8, 12 and 16 CT volumes respectively, and the corresponding validation sets is 1,2,3 and 4 CT volumes.</p>
+<h3>Localization Inference Pipeline</h3>
+<p>At inference, the entire 3D CT volume (containing the full head or the temporal bone region) was processed sequentially slice by slice along the axial direction. Each input 2D slice was cropped or padded (without resizing) to 608 x 608 while preserving at least the full temporal bone region. The trained model inferenced on each slice, generating a 13 x 13 x 2 x 9 output tensor. This tensor contains the landmark coordinates information, confidence score, and a class label with one-hot encoding format. Subsequently, the predicted tensors across each axial 2D slice were aggregated together based on their class and the confidence threshold and then clustered in 3D space using DBSCAN (20). The centroid of each cluster was then computed. These centroids were assigned to the left or right side based on their x or y coordinates, which correspond to the anatomical position of the left and right cochleae in the 3D CT scan. This final predicted output label was then compared with the ground truth label, and the localization error was measured using 3D Euclidean distance, in mm. The number of predicted output tensors can vary with the confidence threshold setting, which can potentially influence localization precision.</p>
+<p>Thus, in a single forward pass, the proposed network automatically and simultaneously classifies and localizes a total of 6 cochlea landmarks in the input 3D CT image, for each cochlea (left/right cochleae): apex, basal point and round window center.</p>
+<h3>RESULTS</h3>
+<p>To investigate the localization performance, 16 CT volumes from the test set were used. All the CT scans had isotropic image spacing of 0.3 mm. The evaluation consisted of both quantitative and qualitative analyses. Metrics employed include the 3D Euclidean distance and the successful detection rate (SDR@3.0mm), the latter defined as the percentage of detected landmarks with the localization errors bellow 3.0 mm. The localization error was calculated by measuring the 3D Euclidean distance in mm, between the predicted landmark position and its ground truth position in 3D space. The missed landmark localizations were considered as undetected when calculating the SDR@3.0mm. Furthermore, the inference speed was evaluated based on the duration (ms) of single 2D slice inference and the latency (s) of end-to-end entire 3D volume inference, including post-processing. All experiments were performed on an Apple M1 MacBook Pro, 16 GB memory, with Metal Performance Shaders (MPS) enabled for GPU acceleration.</p>
+<h3>Few-Volume Learning Analysis</h3>
+<p>The few-volume learning characteristic of the MEDICO-YOLO was first evaluated by comparing 4 models trained on 4 different training set sizes (respectively 4, 8, 12, 16 CT volumes). The evaluation was contacted on the entire test set of 16 volumes, in total of 96 landmarks, the confidence threshold was set to 0.7 for all the inferences. FIGURE 3 and TABLE 2 demonstrate that the models trained with larger training set size achieve a higher SDR@3.0mm, and reduced dispersion and outliers. Especially, the model achieved high localization accuracy when trained only on 8 CT volumes, with a mean localization error of 1.30 mm (approximately 4 voxels). While training on 16 CT volumes, the model achieved peak localization performance among the evaluated training set sizes, with SDR@3.0mm of 97.9 %, and an overall mean localization error of 0.71 mm (approximately 2.4 voxels). Specifically, 0.85 mm for the apex, 0.67 mm for the basal point, and 0.60 mm for the round window center. This additionally indicates the localization performance varied across different anatomical landmarks, nevertheless, sub-millimeter precision was achieved for all landmarks. These findings demonstrate that the MEDICO-YOLO framework achieved promising localization performance from few annotated ground truth 3D CT scans. This few-volume learning capacity may benefit from the synergistic design of the entire framework, particularly the custom data generator with its data augmentation.</p>
+<h3>Localization Inference (Speed &amp; Precision) Across Different Confidence Thresholds</h3>
+<p>To further investigate the impact of confidence thresholding, the model trained on 16 volumes was assessed on the test set, under different confidence thresholds (TABLE 3). Mean distance, SDR@3.0mm and inference speed per slice (2D) and per volume (3D), were measured over all 16 test volumes. We report to 3 decimals to highlight the precision difference under varied confidence thresholds. Results demonstrate the precision improved slightly as confidence threshold increases, reaching its peak at confidence threshold 0.9, where localization error attained 0.678 mm. SDR@3.0mm decreases at higher confidence threshold, but all beyond 90%. This precision confidence threshold behavior indicates a trade-off exists between localization error and SDR@3.0 mm, where larger confidence threshold results in more precise detection but a lower SDR@3.0 mm. Threshold Mean Distance (mm) SDR@3.0 mm (%) Mean Inference Duration per Slice (ms) Mean Volume Inference Latency (s; entire volume) 0.1 0.720±0.341 98.96 27.66 ± 1.04 0.3 0.715±0.334 98.96 25.24 ± 0.67 0.5 0.712±0.330 97.92 25.44 ± 0.53 0.7 0.706±0.326 97.92 32.08 ± 3.17 25.43 ± 0.23 0.9 0.678±0.316 94.79 25.52 ± 0.63 0.96 0.679±0.337 90.63 25.84 ± 0.35</p>
+<p>As confidence thresholding doesn&#x27;t impact the network&#x27;s each forward inference computation, the average inference duration per 2D slice remains consistent at approximately 32 ms across different confidence thresholds (Apple M1 MacBook Pro). In parallel, we measured the model&#x27;s end-to-end inference latency per volume, defined as the duration of the complete inference process for the input 3D CT volume. This includes preprocessing the loaded CT, network forward inference of all the 2D slices, and the post-processing allows to output the definitive coordinates of 6 landmarks in the 3D CT volume (both left and right cochleae). Since end-to-end volume inference latency (3D) varies with the volume depth, 10 representative CT volumes from test set with the same depth of 200 slices were employed. TABLE 3 shows that different confidence thresholds lead to subtle variations in latency, this is because lower confidence threshold outputs more detected coordinates, thus slightly increases post-processing computation. When the confidence threshold set at 0.7, the model completed the localization of full-resolution, 200-slice depth 3D CT volumes with a mean latency of 25.4 s (Apple M1 MacBook Pro laptop). Together, the proposed MEDICO-YOLO framework performs real-time inference on each 2D slice and completes localization of the entire 3D CT volume in under half a minute while attaining high precision.</p>
+<h3>Qualitative Localization Visualization</h3>
+<p>To qualitatively evaluate the localization performance, the output of the model trained on 16 volumes was compared with human expert&#x27;s annotation (FIGURE 4) on a representative 3D CT image from the test set. We can visually observe that the model-predicted landmarks closely overlap (within around 3 voxels) with the ground truth landmarks.</p>
+<h3>Localization Precision Comparison with Human Experts</h3>
+<p>In particular, we also quantitatively compared the proposed framework with the human experts&#x27; annotations in terms of the precision (FIGURE 5). 3 human experts manually labeled 10 cochleae on a different dataset than the model&#x27;s test set (but the same acquisition source). One expert&#x27;s annotation served both as the ground truth for the model and as the reference for comparing with the other 2 human experts&#x27; annotations. The model&#x27;s localization precision was evaluated on the same 16 test volumes used in FIGURE 3 (in total of 32 cochleae). The missed landmark predictions from the model were excluded, which is consistent with SDR@3.0mm of 97.9 %.</p>
+<h3>DISCUSSION</h3>
+<h3>Overall Comparison with Related Works</h3>
+<p>To provide a general view of the field, we compared the proposed framework with the other relevant studies in terms of overall methodology (TABLE 4). Due to the differences in datasets and methods, this comparison was performed using the results reported in the respective literature, only the localization part was compared. Each method presents distinct advantages in its specific clinical scenario.  11) developed an approach that capable of localizing landmarks on both pre-and post-operative CT scans, thereby offering a more general usage scenario. Meanwhile, in this specific task of localizing the landmarks of both left and right cochleae on pre-operative 3D CT scans, the advantage of our approach is that it achieved a balance between the few-volume learning, a fully automated localization pipeline, the rapid inference speed, and high localization precision.</p>
+<p>Overall, achieving such encouraging performance underscores the strength of the framework&#x27;s synergistic and task-oriented design, which encompasses the network architecture, loss function, data generation, training configuration, and inference pipeline. Each component is tailored to the others, collectively forming an end-to-end localization framework.</p>
+<h3>Limitations and Future Work</h3>
+<p>This work has several limitations. First, since the data generator was designed for generating axial slices from the 3D CT scans, the model can only process the input 3D CT in the axial direction. Second, only the anatomical landmarks of the cochlea structure were localized, whereas additional structures are also interesting to involve for more comprehensive surgical plannings. Another limitation is that this study integrated exclusively pre-operative CT scan data, which restricts its utility in post-operative analysis. In future work, we aim to directly address these limitations by: (1) expanding the data generator to include further sagittal and coronal view slices, (2) extending the framework to localize landmarks of additional structures (e.g., ossicles, facial nerve) without largely modifying the design principle of the MEDICO-YOLO framework, and (3) involving post-operative CT scans through metal artifact reduction or registration techniques. This work can also be extended by integrating multi-modal imaging data.</p>
+<h3>CONCLUSION</h3>
+<p>In conclusion, both quantitative and qualitative experiments demonstrated that the proposed MEDICO-YOLO framework can localize multiple cochlea landmarks in 3D pre-operative CT scans fully automatically and with reliable localization performance, thereby supporting its practical integration into pre-operative surgical planning for cochlear implant surgery. A broader clinical application can also be envisaged with the planned expansion in future work.</p>
+<h3>ACKNOWLEDGMENTS</h3>
+<p>The authors would like to thank the support from Comm4CHILD project and Medizinische Hochschule Hannover. We also would like to thank Dr. Felix Repp for the discussion of transformation matrices within the CT and the manual annotation.</p>
+<h3>FUNDING</h3>
+<p>This project has received funding from both the European Union&#x27;s Horizon 2020 research and innovation program under the Marie Sklodowska-Curie Grant Agreement No 860755, and OtoJig GmbH.</p>
+<h3>DATA AVAILABILITY STATEMENT</h3>
+<p>Part of the generated or analyzed data in this study can be shared by the authors on reasonable requests.</p>
+<h3>CONFLICT OF INTEREST</h3>
+<p>The authors declare no conflicts of interest associated with this publication.</p>
+<h3>AUTHOR CONTRIBUTIONS</h3>
+<p>Y.W: Writing -original draft, Writing -review &amp; editing, Data curation, Investigation, Methodology, Formal analysis, Software, Visualization, Validation, Conceptualization. A.K: Conceptualization, Supervision, Writing -review &amp; editing. T.L: Conceptualization, Supervision, Writing -review &amp; editing, Funding acquisition, Resources. S.J: Supervision, Writing -review &amp; editing, Resources, Conceptualization, Validation, Funding acquisition, Project Administration.</p>
+<h3>ETHICAL APPROVAL AND CONSENT TO PARTICIPATE</h3>
+<p>The ethical approval regarding anonymized data was confirmed by Medizinische Hochschule Hannover with the institutional review board&#x27;s generic ethics decision No. 1897-2013 from 2013-07-09 regarding publications with patient data, and by University of Rostock with ethics vote No. A 2016-0083.</p>
+<h3>DECLARATION OF AI ASSISTED TOOLS</h3>
+<p>DeepL tool was used only for language refinement of the text. The author reviewed, refined and validated all the text. The author takes full responsibility for all the content of this work.</p>
+<h3>FIGURE 1.</h3>
+<p>FIGURE 1.2D CNN network architecture in MEDICO-YOLO. Input image shape 1 x 608 x 608. The backbone module follows cspdarknet53. The neck module has been removed owing to the single-scale design. The head module has been modified accordingly, outputting a single scaled tensor of shape 13 x 13 x 2 x 9.</p>
+<h3>FIGURE 2.</h3>
+<p>FIGURE 2. MEDICO-YOLO loss function diagram. Pred_center represents predicted center. GT represents ground truth landmark.The thresholds obj_thresh and no_obj_thresh define the distance criteria for matching the predicted and ground truth landmarks based on their Euclidean distance, obj_thresh was set to 0.16 and no_obj_thresh was set to 0.26.</p>
+<p>) where 𝐶 20,$12 indicates the target confidence score when ground truth landmark presents, 𝛿 #$ was defined as the Euclidean distance in pixel space between the predicted and ground truth landmark. The distance threshold 𝑑 2 was set to 0.07 and 𝐶 /%0.1 was set to 2.4. 𝐶 20,$12 = 1 was only assigned when 𝛿 #$ &lt; 𝑑 2 , otherwise the value of 𝐶 20,$12 varied with 𝛿 #$ . Such design enabled the correlation behavior between confidence and precision at inference. ℒ %&amp;&#x27;( &amp;*&quot; denotes the confidence loss component for cells containing ground truth landmark and 𝐶 ! corresponds to the predicted confidence score, with 𝜆 &amp;*&quot; = 5.0.</p>
+<h3>FIGURE 3.</h3>
+<p>FIGURE 3. Localization performance comparison (mm) across varying training set sizes. The x-axis indicates model versions trained on different training set. The y-axis indicates the 3D Euclidean distance (mm) between predicted and ground truth landmark coordinates. Each dot represents the localization error for a single landmark predication. Missed landmark localizations were excluded.</p>
+<h3>FIGURE 4.</h3>
+<p>FIGURE 4. Visual comparison between ground truth landmarks and predicted landmarks of 16 volumes-trained model (confidence threshold 0.7) on a representative full temporal bone CT scan from test set (volume shape: 536 x 536 x 198) in axial view. For each landmark, total distance represents the Euclidean distance in 3D space, and axial offset represents error along the axial direction, while the color variation of predicted landmarks illustrates the magnitude of axial offset. The mean 3D localization error for all the landmarks on the presented CT scan is 0.69 ± 0.41mm.</p>
+<p>FIGURE 5 illustrates a minor inter-expert variability, while the model achieved a level of localization precision comparable to that of human experts in this particular task (localizing 3 landmarks of both left and right cochleae). To further investigate, a Mann-Whitney U test was performed, owing to the different datasets annotated by the human experts and the model. The output suggests that for overall classes, the model&#x27;s localization errors are still significantly different from those of the human experts (𝑝 = 0.024). However, specifically for localizing the round window center, the model&#x27;s localization errors are not significantly different from those of the human experts (𝑝 = 0.707). However, this statistical observation can be limited due to the scarcity of human expert annotation resources.</p>
+<h3>FIGURE 5.</h3>
+<p>FIGURE 5. Localization error comparison between the model and the human experts. The x-axis indicates different landmark classes. The y-axis indicates the Euclidean distance (mm) in 3D space between predicted landmark position and its true position. Model employed is the 16 volumes-trained version with confidence threshold set at 0.7. Each dot represents the localization error for a single landmark annotation.</p>
+<p>Wang et al. (14) achieved CNN based landmark localization with small-scale training dataset, each trained model demonstrated robust localization precision. Stebani et al. (13) presented the precise localization of structures including the oval window. Wang et al. (12) introduced an approach that only a single labeled CT image was employed for the training. Margeta et al. (</p>
+<h3>TABLE 1.</h3>
+<p>Distribution characteristics of datasets for training, validation and testing. TB: Temporal Bone; XT: Xoran Technologies; xCAT: xCAT® ENT.</p>
+<h3>TABLE 2.</h3>
+<p>Comparison of localization performance across different training set sizes. Apex: helicotrema; Basal: center of the basal turn of the cochlea; RW: round window center; SDR@3.0mm(%): percentage of successfully detected landmarks within error threshold of 3 mm.</p>
+<h3>TABLE 3.</h3>
+<p>Localization performance across different confidence thresholds. Inference per Slice: forward inference duration on single slice; End-to-end volume inference latency: total inference duration on a 3D CT volume (incl. image preprocessing, network inference, and post-processing).</p>
+<h3>TABLE 4.</h3>
+<p>Overall Comparison with Other Related Works in Temporal Bone Landmarks Localization. NR: not reported; ROI: region of interest; SOI: structure of interest; Pre-operative CT scan: scans without electrode implanted.</p>
+<h3>References</h3>
+<p>Neves CA, Tran ED, Kessler IM, Blevins NH. Fully automated preoperative segmentation of temporal bone structures from clinical CT scans. Sci Rep (2021) 11:116. doi: 10.1038/s41598-020-80619-0</p>
+<p>Nikan S, Van Osch K, Bartling M, Allen DG, Rohani SA, Connors B, Agrawal SK, Ladak HM. PWD-3DNet: A Deep Learning-Based Fully-Automated Segmentation of Multiple Structures on Temporal Bone CT Scans. IEEE Trans on Image Process (2021) 30:739-753. doi: 10.1109/TIP.2020.3038363</p>
+<p>Salcher R, John S, Stieghorst J, Kluge M, Repp F, Fröhlich M, Lenarz T. Minimally Invasive Cochlear Implantation: First-in-Man of Patient-Specific Positioning Jigs. Front Neurol (2022) 13:829478. doi: 10.3389/fneur.2022.829478</p>
+<p>Gee AH, Zhao Y, Treece GM, Bance ML. Practicable assessment of cochlear size and shape from clinical CT images. Sci Rep (2021) 11:3448. doi: 10.1038/s41598-021-83059-6</p>
+<p>Pietsch M, Aguirre Dávila L, Erfurt P, Avci E, Lenarz T, Kral A. Spiral Form of the Human Cochlea Results from Spatial Constraints. Sci Rep (2017) 7:7500. doi: 10.1038/s41598-017-07795-4</p>
+<p>Powell KA, Wiet GJ, Hittle B, Oswald GI, Keith JP, Stredney D, Andersen SAW. Atlas-based segmentation of cochlear microstructures in cone beam CT. Int J CARS (2021) 16:363-373. doi: 10.1007/s11548-020-02304-x</p>
+<p>Al-Dhamari I, Helal R, Abdelaziz T, Waldeck S, Paulus D. Automatic cochlear multimodal 3D image segmentation and analysis using atlas-model-based method. Cochlear Implants International (2024) 25:46-58. doi: 10.1080/14670100.2023.2274199</p>
+<p>Ding AS, Lu A, Li Z, Galaiya D, Siewerdsen JH, Taylor RH, Creighton FX. Automated Registration-Based Temporal Bone Computed Tomography Segmentation for Applications in Neurotologic Surgery. Otolaryngol--head neck surg (2022) 167:133-140. doi: 10.1177/01945998211044982</p>
+<p>Zhang J, Liu M, Shen D. Detecting Anatomical Landmarks From Limited Medical Imaging Data Using Two-Stage Task-Oriented Deep Neural Networks. IEEE Trans on Image Process (2017) 26:4753-4764. doi: 10.1109/TIP.2017.2721106</p>
+<p>Liu J, Xing F, Shaikh A, Linguraru MG, Porras AR. &quot;Learning with Context Encoding for Single-Stage Cranial Bone Labeling and Landmark Localization.,&quot; In: Wang L, Dou Q, Fletcher PT, Speidel S, Li S, editors. Medical Image Computing and Computer Assisted Intervention - MICCAI 2022. Lecture Notes in Computer Science. Cham: Springer Nature Switzerland (2022). p. 286-296 doi: 10.1007/978-3-031-16452-1_28</p>
+<p>Margeta J, Hussain R, López Diez P, Morgenstern A, Demarcy T, Wang Z, Gnansia D, Martinez Manzanera O, Vandersteen C, Delingette H, et al. A Web-Based Automated Image Processing Research Platform for Cochlear Implantation-Related Studies. JCM (2022) 11:6640. doi: 10.3390/jcm11226640</p>
+<p>Wang Z, Vandersteen C, Raffaelli C, Guevara N, Patou F, Delingette H. &quot;One-Shot Learning for Landmarks Detection.,&quot; In: Engelhardt S, Oksuz I, Zhu D, Yuan Y, Mukhopadhyay A, Heller N, Huang SX, Nguyen H, Sznitman R, Xue Y, editors. Deep Generative Models, and Data Augmentation, Labelling, and Imperfections. Lecture Notes in Computer Science. Cham: Springer International Publishing (2021). p. 163-172 doi: 10.1007/978-3-030-88210-5_15</p>
+<p>Stebani J, Blaimer M, Zabler S, Neun T, Pelt DM, Rak K. Towards fully automated inner ear analysis with deep-learning-based joint segmentation and landmark detection framework. Sci Rep (2023) 13:19057. doi: 10.1038/s41598-023-45466-9</p>
+<p>Wang Y, Lenarz T, Kral A, John S. Automatic Landmark Localization in 3D Medical CT Images: Few-Shot Learning through Optimized Data Pre-Processing and Network Design. Proceedings of the 2023 10th International Conference on Bioinformatics Research and Applications. Barcelona Spain: ACM (2023). p. 1-7 doi: 10.1145/3632047.3632048</p>
+<p>Girshick R, Donahue J, Darrell T, Malik J. Rich Feature Hierarchies for Accurate Object Detection and Semantic Segmentation. 2014 IEEE Conference on Computer Vision and Pattern Recognition. Columbus, OH, USA: IEEE (2014). p. 580-587 doi: 10.1109/CVPR.2014.81</p>
+<p>Girshick R. Fast R-CNN. 2015 IEEE International Conference on Computer Vision (ICCV). Santiago, Chile: IEEE (2015). p. 1440-1448 doi: 10.1109/ICCV.2015.169</p>
+<p>Ren S, He K, Girshick R, Sun J. Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks. IEEE Transactions on Pattern Analysis and Machine Intelligence (2017) 39:1137-1149. doi: 10.1109/TPAMI.2016.2577031</p>
+<p>Duan K, Bai S, Xie L, Qi H, Huang Q, Tian Q. CenterNet: Keypoint Triplets for Object Detection. 2019 IEEE/CVF International Conference on Computer Vision (ICCV). Seoul, Korea (South): IEEE (2019). p. 6568-6577 doi: 10.1109/ICCV.2019.00667</p>
+<p>Redmon J, Divvala S, Girshick R, Farhadi A. You Only Look Once: Unified, Real-Time Object Detection. 2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR). Las Vegas, NV, USA: IEEE (2016). p. 779-788 doi: 10.1109/CVPR.2016.91</p>
+<p>Martin Ester, Hans-Peter Kriegel, Jörg Sander, Xiaowei Xu. A density-based algorithm for discovering clusters in large spatial databases with noise. In Proceedings of the Second International Conference on Knowledge Discovery and Data Mining (KDD&#x27;96). AAAI Press (1996). p. 226-231</p>
+<p>Fedorov A, Beichel R, Kalpathy-Cramer J, Finet J, Fillion-Robin J-C, Pujol S, Bauer C, Jennings D, Fennessy F, Sonka M, et al. 3D Slicer as an image computing platform for the Quantitative Imaging Network. Magnetic Resonance Imaging (2012) 30:1323-1341. doi: 10.1016/j.mri.2012.05.001</p>
+<p>Bochkovskiy A, Wang C-Y, Liao H-YM. YOLOv4: Optimal Speed and Accuracy of Object Detection. (2020) doi: https://doi.org/10.48550/arXiv.2004.10934</p>
+<p>Misra D. Mish: A Self Regularized Non-Monotonic Activation Function. Proceedings of the British Machine Vision Conference 2020. Online: British Machine Vision Association (2020). p. 191 doi: 10.5244/C.34.191</p>
+<p>Ge Z, Liu S, Wang F, Li Z, Sun J. YOLOX: Exceeding YOLO Series in 2021. (2021) doi: https://doi.org/10.48550/arXiv.2107.08430</p>
+<p>Tian Z, Shen C, Chen H, He T. FCOS: Fully Convolutional One-Stage Object Detection. 2019 IEEE/CVF International Conference on Computer Vision (ICCV). Seoul, Korea (South): IEEE (2019). p. 9626-9635 doi: 10.1109/ICCV.2019.00972</p>
+<p>Wang C-Y, Mark Liao H-Y, Wu Y-H, Chen P-Y, Hsieh J-W, Yeh I-H. CSPNet: A New Backbone that can Enhance Learning Capability of CNN. 2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW). Seattle, WA, USA: IEEE (2020). p. 1571-1580 doi: 10.1109/CVPRW50498.2020.00203</p>
+<p>He K, Zhang X, Ren S, Sun J. Deep Residual Learning for Image Recognition. (2015) doi: 10.48550/ARXIV.1512.03385</p>
+<p>Lin T-Y, Goyal P, Girshick R, He K, Dollar P. Focal Loss for Dense Object Detection. 2017 IEEE International Conference on Computer Vision (ICCV). Venice: IEEE (2017). p. 2999- 3007 doi: 10.1109/ICCV.2017.324</p>
+<p>Ying X. An Overview of Overfitting and its Solutions. J Phys: Conf Ser (2019) 1168:022022. doi: 10.1088/1742-6596/1168/2/022022</p>
+<p>Paszke A, Gross S, Massa F, Lerer A, Bradbury J, Chanan G, Killeen T, Lin Z, Gimelshein N, Antiga L, et al. PyTorch: An Imperative Style, High-Performance Deep Learning Library. (2019) doi: https://doi.org/10.48550/arXiv.1912.01703</p>
+<p>Loshchilov I, Hutter F. Decoupled Weight Decay Regularization. (2019) doi: 10.48550/arXiv.1711.05101</p>
 </div>
 </details>
 </div>
