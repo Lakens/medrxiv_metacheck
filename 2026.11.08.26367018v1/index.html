@@ -197,7 +197,7 @@ The effects of exercise and physical activity on gait biomechanics and
 pain in knee osteoarthritis: A systematic review and meta-analysis
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.08.26367018
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.08.26367018
 </p>
 </header>
 <div class="mc-main">
@@ -346,8 +346,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -685,9 +688,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -709,7 +716,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -724,9 +732,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -739,13 +765,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -765,6 +794,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -772,12 +807,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -878,6 +919,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -897,6 +958,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1152,19 +1248,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1274,6 +1452,187 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Exercise and physical activity are recommended non-pharmacological interventions for managing knee osteoarthritis, but their effects on gait biomechanics across different exercise modalities remain unclear.</p>
+<p>This systematic review and meta-analysis found that exercise and physical activity were associated with reduced pain and improved spatiotemporal gait parameters in people with knee osteoarthritis, while effects on knee kinematics and kinetics were small or uncertain.</p>
+<p>Exercise/physical activity remain central to knee osteoarthritis management. Future trials should investigate whether targeted interventions can modify knee joint mechanics, using standardised biomechanical assessments and longer follow-up.</p>
+<h3>Introduction</h3>
+<p>Knee osteoarthritis, a chronic musculoskeletal disease, is the most prevalent type of osteoarthritis and the leading cause of disability and major healthcare costs worldwide.</p>
+<p>Globally, approximately 13% of women and 10% of men aged over 60 years have symptomatic knee osteoarthritis. The prevalence of knee osteoarthritis is expected to continue to increase globally due to ageing population and increasing rates of obesity and injury [1].</p>
+<p>Knee osteoarthritis is a whole joint disease involving multifaceted interactions between structural, biological, and biomechanical factors. It is characterised by a progressive deterioration of the articular cartilage, formation of osteophytes, subchondral bone sclerosis, synovial proliferation, inflammation, and lax tendons. These ultimately lead to a loss of knee joint function, chronic pain, impaired mobility and proprioception, and disability.</p>
+<p>Management of symptoms and pain are primary treatments for knee osteoarthritis [2], with knee replacement surgery typically considered later in the disease. While medications such as non-steroidal anti-inflammatory drugs may be prescribed to relieve pain, physical activity and exercise are non-pharmacological recommendations for a long-term management of knee osteoarthritis [3].</p>
+<p>Patients with knee osteoarthritis exhibit altered gait biomechanics when compared to age-matched healthy individuals [4, 5]. Common gait changes include spatiotemporal parameters such as reduced walking speed and stance duration as well as increased step length. Three-dimensional patterns of the knee joint such as kinematic changes include reduced range of motion in knee flexion, extension and rotation, and increased knee adduction, whereas kinetic changes include reduced peak knee extension moment, increased knee valgus moment and loading on the contralateral limb.</p>
+<p>Moreover, alterations in gait biomechanics can impact other joints increasing likelihood of joint tissue damage, muscular injury and chronic pain.</p>
+<p>Increasing evidence suggests that physical activity and exercise training are costeffective and widely available interventions for the treatment of knee osteoarthritis, however, consideration of type of physical activity and optimal exercise modality are needed if the aim is to reduce pain, improve gait, knee joint function, stiffness, and muscle weakness in individuals with knee osteoarthritis. For example, low-impact physical activities including walking, swimming, and cycling have been shown to be beneficial for individuals with severe knee osteoarthritis [6].</p>
+<p>Regular aquatic exercises can help to relieve pain and improve daily function in people with both knee and hip osteoarthritis [7, 8], whereas high-impact activities such as running and jumping can potentially worsen symptoms of knee osteoarthritis by increasing stress and inflammation in affected joints [9, 10].</p>
+<p>In this systematic review with meta-analysis, we examine the effects of different types of exercise training and physical activity on gait characteristics and pain in individuals with knee osteoarthritis and provide evidence to inform personalised therapeutic strategies as well as a reference for future research and clinical application of these training programmes.</p>
+<h3>Methods</h3>
+<h3>Study eligibility criteria</h3>
+<p>Potential studies were searched and screened according to their population, intervention, comparator, outcome, and study design (PICOS) (Table 1). Studies not meeting the criteria outlined in Table 1 were excluded.</p>
+<p>Population: Adults aged 18 years and older from any race, gender, ethnicity, or geographical location. Studies conducted on populations with knee osteoarthritis and comorbidities that severely affected gait at baseline (such as individuals diagnosed with inflammatory arthritis, neurological conditions including Parkinson&#x27;s disease) were excluded. Studies that assessed exercise/physical activates following surgical intervention were also excluded.</p>
+<p>Intervention: Any physical activity or exercise intervention that involved motion of the lower limbs aiming to improve gait characteristics, increasing mobility, and reducing or relieving pain. The characteristics of the physical activity/exercise regimen (such as type, duration, total work) were unrestricted but were considered during interpretation of results. Any study that insufficiently described the intervention was excluded.</p>
+<p>Comparator: Only studies of physical activity or exercise interventions that included a control group of participants with established knee osteoarthritis were included.</p>
+<p>Alternate interventions were excluded unless a control group provided relevant information based on the inclusion and exclusion criteria. Studies without a control or comparator group were excluded.</p>
+<p>Outcomes: The primary outcomes were gait related characteristics including spatiotemporal (such as gait velocity and cadence, step length and width), kinematic (such as range of motion (ROM), knee flexion and extension) or kinetic (such as joint moment and ground reaction force (GRF)) parameters used to assess gait patterns [4, 11].</p>
+<h3>Study design:</h3>
+<p>Controlled intervention studies were included including randomised clinical trials and quasi-experimental designs. Studies that implemented a secondary analysis of data were also considered if the study details were outlined.</p>
+<p>Conference proceedings, abstracts, case studies, dissertations, intervention studies with no observation/control group, and reviews (systematic or narrative) were excluded.</p>
+<p>This meta-analysis adhered to the Preferred Reporting Items for Systematic reviews and Meta-Analyses (PRISMA) guidelines [15] (Tables S1 and S2). The protocol for this meta-analysis was preregistered in PROSPERO (CRD42024565957) [16].</p>
+<h3>Data sources and search strategy</h3>
+<p>We searched four electronic databases: PubMed, Web of Science, Scopus, and Sport Discus from 13 July 2024 to 31 December 2024. Key search terms included &#x27;Osteoarthritis&#x27;, &#x27;Knee&#x27;, &#x27;Gait&#x27;, AND (&#x27;Exercise OR physical activity&#x27;). Based on PRISMA guidelines [15], an example of the search strategy is provided in the Supplementary material (Table S3).</p>
+<p>Each database was searched using tailored syntax and relevant MeSH terms, adjusted accordingly for each database. Where appropriate, headline headings were also used if the search string resulted in a greater number of returned results. Only studies involving human participants were considered. All selected articles were written in English (Table S4).</p>
+<p>The first author (NB) conducted all electronic database searches. In addition, crossreferencing of retrieved studies was also conducted to ensure completeness of the search.</p>
+<h3>Study records and selection</h3>
+<p>All studies were imported into RefWorks reference manager (RefWorks v.3, Clarivate, USA). A tsv (tab separated values) file was created to import all studies into Microsoft Excel, and duplicates removed electronically and manually by the first author (NB). A copy of the reference database was then provided to the second author (SA) for dual screening. Screening was conducted independently by the two authors (NB and SA).</p>
+<p>Reviewers were not blinded to the journal titles or study authors/affiliations. Reasons for exclusion were coded based on one or more of the following: (1) inappropriate population, (2) inappropriate intervention, (3) inappropriate comparison(s), 4) inappropriate outcome(s), (5) inappropriate study design or (6) other. On completion, the screeners met to discuss their selections and reconciled any discrepancies by consensus. If an agreement could not be achieved, the fifth author (AM) provided a recommendation. The precision of searches was calculated as the number of studies included divided by the number of studies screened (less duplicates), we then calculated the number-needed-to-screen (NNS) by taking the reciprocal of the precision [17].</p>
+<h3>Data extraction and coding</h3>
+<p>Prior to data extraction, an electronic codebook was developed (Table S5). Data were then independently extracted into a spreadsheet.</p>
+<p>The extracted data were coded based on the following major categories: (1) study characteristics (e.g., author, year, title, journal, funding and conflict of interest statement, aim, study design overview, etc.); (2) participant characteristics (e.g. number, sex, age, height, mass, body mass index, etc.), (3) intervention details (e.g., the exercise or physical activity type, duration, components, frequency, etc.), and (4) outcome characteristics (e.g., biomechanical gait parameters categorised into spatiotemporal, kinematic, and kinetic parameters, along with pain scales used in each study, means and SDs, CIs etc.). Other data points extracted included study length and whether exercise or physical activity produced a positive outcome relative to the comparator group.</p>
+<p>Coding details are available in the accompanying codebook (Table S5). Two reviewers (NB and SA) extracted data independently before meeting to resolve any discrepancies by consensus. If an agreement could not be achieved, the third reviewer (AM) provided a recommendation.</p>
+<h3>Risk of bias assessment</h3>
+<p>Risk of bias and the quality of studies were assessed using The Downs and Black Checklist [18]. All domains of the checklist were assessed for each article including reporting, external validity, internal validity (bias and confounding variables (selection bias)), and power. Two reviewers (NB and SA) undertook the risk of bias assessment independently before meeting to resolve any discrepancies by consensus. Where this could not be achieved, the third reviewer (AM) provided a recommendation.</p>
+<h3>Data synthesis</h3>
+<p>Meta-analysis was performed by each subgroup of biomechanical gait variables that was extracted from each study. Extracted data were transformed into pairwisecontrolled (between-group) standardised mean difference effect sizes. This was achieved by subtracting the comparator mean difference from the intervention mean difference and dividing by the pooled baseline standard deviation. Standard distributional assumptions were used to calculate effect size standard errors.</p>
+<p>In the present meta-analysis, a Bayesian framework was implemented through threelevel hierarchical models with random effects to account for variation in study mean effect, and three-level models included to model covariance of multiple outcomes reported in the same study [19].</p>
+<p>Standard distributional assumptions for effect size standard errors based on pre-and post-intervention data require an estimate of their correlation, which is rarely reported in studies. To account for this uncertainty, a standard value of 0.7 was used to generate an informative prior for the correlation, with variance included to account for correlations ranging from 0.5 to 0.9. Predictive distributions developed for metaanalyses were obtained and transformed into gamma distributions. Inferences were performed on posterior samples generated by Hamiltonian Markov Chain Monte Carlo, with Bayesian 95% and 75% credible intervals (CrIs) used for location and variance parameters, respectively.</p>
+<p>Interpretations were based on visual inspection of the posterior sample, the median value (SMD0.5: 0.5-quantile), CrIs, and the probability that the pooled mean exceeded small (0.2), medium (0.5), and large (0.8) thresholds. Analyses were performed using the R wrapper package brms, which interfaced with Stan to perform sampling. Convergence of parameter estimates was confirmed for all models with Gelman-Rubin R-hat values below 1.1.</p>
+<h3>Results</h3>
+<h3>Study characteristics</h3>
+<p>The search yielded in 2602 records, of which 83 studies were retained for full screening and 18 studies met the eligibility criteria for final inclusion (Figure 1) comprising of 1,102 participants (345 males and 757 females).</p>
+<p>A flow diagram that elicits the search and selection processes is shown in Figure 1. A full list of studies is available in Table S6.</p>
+<p>General description of the studies included can be found in Table 2. All included studies were published in peer-reviewed English-language journals, starting in 1997 and ending in 2023. The studies were conducted in a variety of countries; six in Australia, three in USA and India, two in Iran and China, and one each in Canada and Japan.</p>
+<p>Sixteen studies were randomised controlled trials (RCTs) either single-blind [20-29] or non-open-label [30] [31] [32] [33] [34] [35].</p>
+<p>One clinical trial used a quasi-experimental (non-equivalent pretest-posttest control group) design [36], and one study [37] was a secondary exploratory analysis from the previous RCT study [21].</p>
+<p>One study [38] did not include all data in the manuscript and following emails to the corresponding author there was no response.</p>
+<h3>Participant characteristics.</h3>
+<p>Baseline participant characteristics of included studies are reported in Table 2.</p>
+<h3>Exercise/physical activity intervention characteristics</h3>
+<p>A description of the exercise/physical activity interventions are included in the Table 2. Of these included studies six studies investigated strengthening (hip and knee joint muscles) [21, 22, 24, 30, 36, 37], four resistance training [20, 23, 27, 33], five aerobic; four walking [20, 28, 29, 32] and one cycling [34], two multi-component [32, 35], one aquatic [26], one stretching [31] and one mind-body (Tai Ji Quan) [25] exercise/physical activity interventions as therapeutic strategies to improve gait characteristics (outcome 1) and reduce/relieve pain (outcome 2). The number of interventions exceeded the number of studies as two studies had more than one type of intervention [20, 32].</p>
+<h3>Assessment characteristics</h3>
+<h3>Gait assessment characteristics</h3>
+<p>Thirteen studies assessed spatiotemporal gait parameters [20, [24] [25] [26] [27] [28] [29] [30] [31] [32] [33] [34] [35].</p>
+<p>Six studies assessed kinetic gait parameters [21-23, 33, 36, 37] and five studies assessed kinematic gait parameters [22, 23, 25, 31, 33].</p>
+<p>Three studies [21, 22, 25] and one follow up study [37] used 3D motion analysis system (Vicon, Oxford Metrics, Oxford, UK) with cameras, two studies used three-dimensional motion measurement system (Motion Analysis Corporation, USA) with 10 Eagle video cameras, the Expert Vision Advanced software package (EvaRT5.0) and 2 sets of eight channel force plates (Kistler, Switzerland) [23, 33], one study used threedimensional optical motion capture system with 6 cameras (Mac3D system; Motion Analysis Co., CA) and two force plates [31], while another study used Casio FH20 high-speed camera with Kinovea 0.8.15 software [26]. One study used BTS Smart DX 7000 (Bioengineering Technology System, Milan, Italy) [28], one study used CDG (Computer Dynography) (Infrotronics Medical Industrial Engineering; Netherlands) [24] whilst another study used Lafayette Model 63501 photoelectric control system with VP320 video camera system and walkway with AMTI force platform [20].</p>
+<p>Two studies used either walkway [32] or walking speed test [29] (each 10 meter). One study used a walkway with two Optotrak 3020 optoelectronic motion tracking cameras along with two AMTI forceplates [36], other studies used either 12 ft (3.66 meter) GAITRite instrumented (CIR Systems, Inc, Sparta, NJ) [34] or electric footswitch walkways [30] and gait mat at a self-selected speed (GAITRite; CIR Systems Inc, Havertown, PA) [27] (all 8m long).</p>
+<p>One study did not report the measurement system used for gait assessment [35].</p>
+<h3>Pain assessment characteristics.</h3>
+<p>Apart from one study which used a scale specifically developed for their patients to assess the frequency and intensity of pain [20], all of the studies assessed pain using validated questionnaires including WOMAC, KOOS or numeric pain rating scale such as VAS or NRS.</p>
+<p>Twelve studies used WOMAC [21-25, 28, 30, 33-37], whilst five studies used VAS for assessment of pain [26, 28, 29, 31, 32]. Two studies reported pain using NRS scale [24, 27] and only one study considered KOOS questionnaire [34]. Three studies used a combination of pain assessment tools [24, 28, 34].</p>
+<p>Some studies included participants with mild (Kellgren-Lawrence grades KL 1-2), others severe (KL 3-4) knee osteoarthritis.</p>
+<h3>Risk of bias assessment</h3>
+<p>Methodological quality was assessed using the original Downs and Black checklist, with a maximum possible score of 32 points. Assessment using the Downs and Black Checklist is shown in Table 3.</p>
+<p>Total scores ranged from 19 to 29, indicating variation in methodological quality across the included studies. Strengths were generally observed in the reporting of study characteristics, interventions, outcome measures and statistical analyses. However, methodological limitations were identified, particularly regarding participant blinding, allocation concealment and external validity. The representativeness of study populations and settings was frequently unclear, potentially limiting the generalisability of the findings.</p>
+<h3>Changes in primary outcome measures</h3>
+<h3>Spatiotemporal parameters</h3>
+<p>Changes in spatiotemporal gait parameters are presented in Figure 2.</p>
+<p>The initial meta-analysis conducted on all spatiotemporal outcomes (13 studies, 74 effect sizes and total N = 736) produced a pooled standardised mean difference effect size favouring physical activity intervention (SMD0.5 = 0.67 [95% CrI: 0.27 to 1.05]; between study SD 𝜏 = 0.56 [75% CrI: 0.39 to 0.80]; interclass correlation coefficient ICC = 0.53 [75% CrI: 0.09 to 0.77]).</p>
+<p>The probability that the pooled mean effect size exceeded, zero, small, medium, and large effect sizes was &gt;0.999, 0.978, 0.779, and 0.258, respectively. No meaningful changes, other than reduced precision, were identified when the analysis was split based on outcomes obtained over shorter (≤84 days; SMD0.5 = 0.79 [95% CrI: 0.46 to 1.1] or longer (&gt;84 days; SMD0.5 = 0.62 [95% CrI: -0.36 to 1.5]; Figure 2) time periods.</p>
+<p>Gait velocity was the most assessed spatiotemporal parameter [20, 24, 25, 27-34].</p>
+<p>The cadence (the number of steps taken per minute) [20, 24, 26-28, 30, 32, 35], stride [20, 24, 26, 28-30, 32, 35] and step [24-27, 32, 35] lengths improved from baseline in studies that measured these parameters regardless of the exercise/physical activity intervention types.</p>
+<p>Step width was significantly decreased following multi-component [35] and either concentrically or eccentrically focused resistance exercise interventions [27, 35], while two other studies did not identify improvement in this parameter assessed following the aquatic [26] or aerobic [28] exercise. Furthermore, studies found no significant difference in the swing and stance phase before and after the aerobic and resistance training programs [20, 28].</p>
+<p>Overall, the results suggest that exercise has a moderate-to-large positive effect on gait timing and speed variables.</p>
+<h3>Kinematic parameters</h3>
+<p>Changes in kinematic gait parameters are presented in Figure 3.</p>
+<p>The initial meta-analysis conducted on all kinematic outcomes (5 studies, 13 effect sizes and total N = 279) produced an uncertain pooled standardised mean difference with central distribution close to zero (SMD0.5 = 0.12 [95% CrI: -0.18 to 0.41]; 𝜏 = 0.08 [75% CrI: 0.01 to 0.24]; ICC = 0.85 [75% CrI: 0.21 to 0.99]; Figure 3).</p>
+<p>The probability that the pooled mean effect size exceeded, zero, small, medium, and large effect sizes was 0.809, 0.259, 0.010, and &lt;0.001, respectively. No meaningful changes, other than reduced precision, were identified when the analysis was split based on outcomes obtained over shorter (≤84 days; SMD0.5 = 0.13 [95% CrI: -0.96 to 1.3] or longer (&gt;84 days; SMD0.5 = 0.11 [95% CrI: -0.40 to 0.61]) time periods.</p>
+<p>Overall results suggest that exercise has a minimal effect on joint angles and movement patterns.</p>
+<h3>Kinetic parameters</h3>
+<p>Changes in kinetic gait parameters are presented in Figure 4.</p>
+<p>The initial meta-analysis conducted on all kinetic outcomes (6 studies, 15 effect sizes and total N = 473) produced an uncertain pooled standardised mean difference (SMD0.5 = -0.03 [95% CrI: -0.25 to 0.18]; 𝜏 = 0.15 [75% CrI: 0.04 to 0.29]; ICC = 0.15 [75% CrI: 0.01 to 0.84]; Figure 4).</p>
+<p>The probability that the pooled mean effect size exceeded, zero, small, medium, and large effect sizes was 0.369, 0.018, 0.001, and &lt;0.001, respectively. Potential meaningful changes were identified when the analysis was split based on outcomes obtained over shorter (≤84 days; SMD0.5 = -0.09 [95% CrI: -0.41 to 0.19] but substantial uncertainty for longer (&gt;84 days; SMD0.5 = 0.15 [95% CrI: -0.86 to 1.2]) time periods.</p>
+<p>Overall results suggest that exercise does not reliably change joint-loading mechanics across studies.</p>
+<h3>Changes in secondary outcome measure</h3>
+<h3>Pain</h3>
+<p>Changes in pain are presented in Figure 5.</p>
+<p>The initial meta-analysis conducted on all pain outcomes (17 studies, 38 effect sizes and total N = 1102) produced a pooled standardised mean difference effect size favouring physical activity intervention (SMD0.5 = 0.61 [95% CrI: 0.29 to 0.92]; 𝜏 = 0.26 [75% CrI: 0.06 to 0.52]; ICC = 0.74 [75% CrI: 0.18 to 0.98]; Figure 5).</p>
+<p>The probability that the pooled mean effect size exceeded, zero, small, medium, and large effect sizes was &gt;0.999, 0.993, 0.757, and 0.109, respectively. No meaningful changes, other than reduced precision, were identified when the analysis was split based on outcomes obtained over shorter (≤84 days; SMD0.5 = 0.67 [95% CrI: 0.23 to 1.1] or longer (&gt;84 days; SMD0.5 = 0.48 [95% CrI: -0.15 to 0.92]) time periods.</p>
+<p>Studies revealed that muscle strengthening resistance [21-24, 30, 33, 36, 37], and aerobic [28, 34] exercise interventions reduced pain experienced by participants compared with study control groups. Overall results show moderate improvement in pain, sustained but reduced over time.</p>
+<h3>Discussion</h3>
+<p>This systematic review and meta-analysis synthesised evidence from 18 studies to evaluate the effects of exercise and physical activity on gait biomechanics and pain in individuals with knee osteoarthritis. The principal finding is that exercise interventions produce moderate and clinically meaningful reductions in pain alongside consistent improvements in spatiotemporal gait parameters, while kinematic and kinetic adaptations at the knee joint appear minimal or uncertain. These results reinforce the role of exercise as a first line non-pharmacological strategy shown to play an important role in preserving synovial joint structural integrity by reducing inflammation and protecting articular cartilage [41].</p>
+<p>The most robust effect observed was for pain reduction with a high probability of exceeding a small to moderate clinical threshold. This finding is consistent with OARSI recommendations that identify exercise as a core intervention for the management of knee osteoarthritis. This also aligns with existing clinical guidelines recommending exercise for symptom management in knee osteoarthritis and supports the hypothesis that both peripheral mechanisms including improvements in muscle strength, proprioception and joint stability, and central mechanisms such as exercise-induced pain modulation and alterations in pain processing, contribute to symptom relief [42].</p>
+<p>The Bayesian analysis indicated approximately 76% probability that exercise produces at least a moderate reduction in pain. Notably multi-component and mind-body interventions appeared particularly effective, likely due to their ability to simultaneously target strength, flexibility, balance, and neuromuscular control while also addressing psychosocial aspects such as fear of movement.</p>
+<p>Improvements in spatiotemporal gait parameters were also evident with consistent increases in walking speed, cadence, and step/stride length across studies. These changes suggest enhanced functional mobility and walking efficiency, which are clinically meaningful since the gait speed is an established indicator of physical function, disability status, and health-related quality of life in individuals with knee osteoarthritis [43]. The uniformity of these findings across diverse exercise modalities indicates that general increases in physical capacity, rather than modality-specific adaptations, may underpin these improvements.</p>
+<p>In contrast, kinematic and kinetic outcomes showed negligible or uncertain effects. These findings suggest that while patients walk faster and more efficiently following intervention, the underlying joint mechanics, particularly those linked to disease progression, such as knee adduction moment, remain largely unchanged. This discrepancy may reflect the complexity of modifying joint loading patterns which are influenced not only by muscle strength but also by structural alignment, joint morphology, and long-standing motor patterns.</p>
+<p>Altered gait biomechanics in knee osteoarthritis are characterised by increased knee adduction moments, reduced knee flexion angles and moments during stance, altered hip kinetics, and progressive reductions in lower-limb range of motion as disease severity increases [4, 5]. Furthermore, individuals with knee osteoarthritis commonly exhibit deficits in hip and knee muscle strength, reduced knee extension during gait, and altered frontal-plane mechanics associated with disease severity [44, 45].</p>
+<p>The present findings are consistent with recent systematic reviews demonstrating that exercise may improve pain and physical function in knee osteoarthritis while having limited effects on joint loading metrics such as the knee adduction moment [46, 47] suggesting that traditional strengthening programs alone may be insufficient to alter medial knee joint loading. Unlike previous reviews that primarily focused on pain and function or biomechanics only, the present review examined gait biomechanics, distinguished between spatiotemporal, kinematic and kinetic domains and integrated biomechanical and probabilistic synthesis.</p>
+<p>Emerging literature suggests that targeted biomechanical interventions, such as gait retraining [48, 49], valgus bracing     Table 1. Study eligibility criteria Criteria 1) Study purpose focused on knee osteoarthritis and evaluation of an intervention with a therapeutic effect 2) Published in English 3) Adults with knee osteoarthritis aged 18 years and older from any race, gender or ethnicity 4) Physical activity or exercise intervention compared with either a control group or a SHAM (inactive intervention) 5) Data available for changes in gait parameters and/or pain</p>
+<p>Table 2. Study characteristics Study Country Sample size (%F) Age Mean (SD) -unless otherwise stated BMI Mean (SD) -unless otherwise stated Participants Exercise/physical activity intervention Gait assessment Knee pain assessment Baseline OA severity (KL) %unless otherwise stated Aoki et al., 2009 31 Japan 36 (100) Control 74.4 (6.4) Intervention 72.3 (5.2) 26.2 (2.6) Home-based, participants with severe knee osteoarthritis (KOA) randomly allocated to stretching (n = 17) or control (n = 19) group, age &gt; 70 years Stretching Home-based knee-flexion stretching exercises performed daily for approximately 80 days. Three-dimensional optical motion capture (Mac3D; six cameras) with two force plates; sampling frequency 60 Hz. 100-mm visual analogue scale (VAS), &gt; 4/10 Control Grade IV (IV to IV) Intervention Grade IV (III to IV) Azizi et al., 2020 26 Iran 32 (0) Control 65.5 (3.3) Intervention 63.5 (4.7) &gt; 34 kg/m 2 Community pool, with KOA randomly allocated to aquatic exercise (n = 16) or control (n = 16) group, age &gt; 60 years Aquatic Supervised pool-based exercise three times weekly for 60 minutes per session, incorporating warm-up, strengthening and cool-down exercises, for 8 weeks. High-speed video camera (Casio FH20 with software Kinovea software for gait image analysis. 100-mm VAS &gt; 5/10 Not reported Bennell et al., 2010 22 Australia 89 (48) Control 64.6 (7.6) Intervention 64.5 (9.1) 28 (4.4) Home exercise, with KOA randomly allocated to exercise (n = 45) or control (n = 44) group, age &gt; 50 years, BMI &lt; 35 kg/m 2 Strengthening Home-based hip abductor and adductor strengthening exercises, supplemented by seven physiotherapy sessions over 12 weeks; performed five times per week. Three-dimensional motion analysis using an eight-camera Vicon system (120 Hz) and the Plug-in-Gait marker set. Western Ontario and McMaster Universities Osteoarthritis Index (WOMAC) Control Grade II = 34.1 III = 31.8 IV = 34.1 Intervention Grade II = 33.3 III = 33.3 IV = 33.3 Bhore and Shinde, 2023 35 India 120 (68) 57.7 (7.7) 29.2 (6.4) With bilateral KOA randomly allocated to multicomponent exercise (n = 60) and conventional control group (n = 60), aged 50 -65 years, KL 1 and 3 Multi-component Programme comprising core and lower-limb strengthening, proprioception and balance exercises, performed five times weekly for 45-60 minutes per session over 6 weeks. Not reported. WOMAC Not reported Study Country Sample size (%F) Age Mean (SD) -unless otherwise stated BMI Mean (SD) -unless otherwise stated Participants Exercise/physical activity intervention Gait assessment Knee pain assessment Baseline OA severity (KL) %unless otherwise stated Chen et al., 2021 28 China 18 (72) 59 (8.3) 23.1 (1.3) Recruited from the Department of Rehabilitation Medicine at the Fifth Affiliated Hospital of Guangzhou Medical University with mild-tomoderate KOA, randomly allocated to exercise group with lower body pressure treadmill (n = 8, %F = 75) and conventional control group (n = 10; %F =70), aged 50 -75 years Aerobic Lower-body positivepressure treadmill walking six days weekly for 30 minutes per session over 2 weeks, including 20 minutes of walking at 65% body weight, with warm-up and cool-down periods. Three-dimensional motion analysis using the BTS Smart DX 7000 system, with 22 reflective markers positioned according to the Davis protocol. WOMAC Control Grade II = 72.2 Grade III = 28 Intervention Grade II = 75 Grade III = 100 Fransen et al., 2001 30 Australia 126 (73) Control 66.1 (10.3) Intervention Individual 68.5 (8.7) Group 65.3 (7.1) Control 28.3 (4.5) Intervention Individual 30.0 (4.6) Group 29.9 (5.9) Participants with KOA had knee pain on most days of the past month, and evidence of radiographic disease were randomly allocated to 3 groups: individual treatments (n = 43), group format program (n = 40) and waiting-list control group (n = 43), age &gt; 50 years Strengthening Individualised treatment: Prescribed by a physiotherapist. Group exercise: Supervised sessions twice weekly for 1 hour, supplemented by home exercise three times weekly, incorporating stretching, stationary cycling and lowerlimb strengthening for 8 weeks. Eight-metre electronic footswitch walkway. WOMAC Not reported Foroughi et al., 2011 33 Australia 54 (100) Control 65 (7) Intervention 66 (8) Control 32.7 (8.4) Intervention 31.4 (5.4) Conducted at the University of Sydney under supervision of exercise physiologists, participants with KOA at least in one knee were randomly allocated to progressive resistance training exercise (n = 26) and sham-exercise control group (n = 28), age &gt; 40 years Resistance Supervised, high-intensity progressive resistance training (80% of peak muscle strength), three times weekly for 6 months, targeting the lower-limb muscles. Three-dimensional motion analysis using 10 Eagle cameras (Motion Analysis Corporation), EvaRT software and two sets of eight-channel force plates. WOMAC Modified Outerbridge Classification (Range 1-4; Mild, Moderate, Severe, Very severe) Control Grade I = 39.3 II = 7.1 III = 35.7 IV = 7.1 Intervention Grade I = 34.6 II = 19.2 III = 38.5 IV = 3.8 Study Country Sample size (%F) Age Mean (SD) -unless otherwise stated BMI Mean (SD) -unless otherwise stated Participants Exercise/physical activity intervention Gait assessment Knee pain assessment Baseline OA severity (KL) %unless otherwise stated Foroughi et al., 2011 23 Australia 54 (100) 64 (7) 32.6 (6.9) Conducted at the University of Sydney under supervision of exercise physiologists, participants with KOA at least in one knee were randomly allocated to supervised progressive resistance training exercise group (n = 26) or shamexercise control group (n = 28), age &gt; 40 years Resistance Supervised, high-intensity progressive resistance training (80% of peak muscle strength), three times per week for 6 months, targeting the lower-limb muscles. Three-dimensional motion analysis using 10 Eagle cameras (Motion Analysis Corporation), EvaRT software and two sets of eight-channel force plates. WOMAC Modified Outerbridge Classification (Range 1-4; Mild, Moderate, Severe, Very severe) Control Grade I = 42.9 II = 10.7 III = 25.0 IV = 21.4 Intervention Grade I = 23.1 II = 19.2 III = 19.2 IV = 38.5 Joshi, Singh and Vij, 2019 32 India Control 21 (61.9) Intervention 21 (42.9) Control 54.3 (10.2) Intervention 50.7 (7.3) Control 28.1 (8.9) Intervention 28.6 (10.2) Conducted at the Department of Physiotherapy, Guru Jambheshwar University of Science and Technology. Participants with KOA were randomly allocated to retro walking group and conventional exercise control group, age &gt; 40 years, KL &lt; 4 Multi-component and aerobic Conventional physiotherapy exercises, including rangeof-motion, strengthening and stretching, with the intervention group additionally undertaking treadmill retro-walking for 10 minutes per session, three times weekly for 6 weeks. Footprint method and 10-metre walkway. VAS Not reported Kean et al., 2017 37 Australia Control 48 (56) Intervention 49 (55) Control 63.8 (8.2) Intervention 65.7 (8.2) Control 28.5 (6.7) Intervention 28.6 (4.4) Secondary analysis of a 12week RCT that evaluated the effects of quadriceps strengthening on the knee adduction moment, pain and physical function in people with knee osteoarthritis, age &gt; 60 years, KL 2-4 The sample overlaps with the original trial reported by Lim et al., 2008. Strengthening Home-based quadriceps strengthening programme comprising five non-weightbearing exercises, performed five times weekly for 12 weeks. Three-dimensional motion analysis using an eight-camera Vicon system, the Plug-in-Gait marker set and two force plates. Not reported Control Grade II = 29 III = 27 IV = 44 Intervention Grade II = 28.5 III = 28.5 IV = 43.0 Study Country Sample size (%F) Age Mean (SD) -unless otherwise stated BMI Mean (SD) -unless otherwise stated Participants Exercise/physical activity intervention Gait assessment Knee pain assessment Baseline OA severity (KL) %unless otherwise stated Paul et al., 2016 24 India 40 (55) Control 54.2 (5.8) Intervention 53.1(6.3) Control 25.7 (2.9) Intervention 25.8 (1.6) Interventions were conducted at the department of Physiotherapy, National Institute for the Orthopedically Handicapped, Kolkata, WB, India. Participants with unilateral KOA randomised to receive either hip and knee strengthening exercise (n = 20) or knee muscle strengthening exercise (control) (n = 20), age &gt; 50 years, KL 1-3 Strengthening Supervised hip and knee muscle strengthening compared with knee-only strengthening, performed three times weekly for 45 minutes per session over 6 weeks. Computer Dynography (CDG; Infrotronics Medical Industrial Engineering). The reduced WOMAC and Numeric Rating Scale (NRS) Not reported. Salacinski et al., 2012 34 USA 37 (73) 57.7 (9.8) 23.8 (5.3) Participants were randomly assigned to intervention (n = 19) or control group (n = 18), aged 37 -74 years, KL 1-3 Aerobic Community-based group cycling, with at least two supervised sessions weekly. Sessions progressed from 40 to 60 minutes and included cycling intervals and simulated hill climbs, over 12 weeks. GAITRite instrumented walkway (3.66 m; CIR Systems). Likert-scale WOMAC Knee Injury and Osteoarthritis Outcome Score (KOOS) Visual Analog Pain Scale (VAPS) Not reported Sedaghatnezhad et al., 2021 29 Iran Control 15 (73) Intervention 15 (93) Control 59.6 (7.43) Intervention 53.8 (7.43) Control 27.7 (1.93) Intervention 26.55 (2.08) Participants with KOA were randomly assigned to physical therapy plus uphill treadmill walking (n = 15) or physical therapy (control) group (n=15), aged 45 -60 years, KL 2-3 Aerobic Uphill treadmill walking (8° incline) at 1.1 m/s for 30 minutes per session, five days weekly for 2 weeks, in addition to routine physiotherapy. 10-metre walking speed test: self-selected walking speed measured over the middle 10 m of a 20-m walkway using a stopwatch; three trials, with mean time used to calculate walking speed. VAS Control Grade II= 40 III = 60 Intervention Grade II = 60 III = 40 Sled et al., 2010 36 Canada Control 40 (56) Intervention 40 (56) Control 64.13 (9.04) Intervention 62.98 (9.73) Control 24.04 (3.24) Intervention 27.38 (5.47) Participants with medial KOA were allocated to home strengthening program for the hip abductor muscles (n=40) or control group (n=40), aged &gt; 40 years, KL 1-3 Strengthening Home-based hip abductor strengthening programme, including progressive resistance exercises and single-leg stabilisation activities, performed 3-4 times weekly for 8 weeks. Optoelectronic motion tracking using two Optotrak 3020 cameras and two AMTI force plates along an 8-metre walkway. WOMAC Not reported Study Country Sample size (%F) Age Mean (SD) -unless otherwise stated BMI Mean (SD) -unless otherwise stated Participants Exercise/physical activity intervention Gait assessment Knee pain assessment Baseline OA severity (KL) %unless otherwise stated Vincent and Vincent, 2020 27 USA 88 (67.4) 68.3 (6.4) 30.4 (6.9) Participants from Orthopaedic Clinics KOA with tibiofemoral KOA randomised to either concentrically focused resistance training (CNCRT) (n = 28) or eccentrically focused resistance training (ECCRT) (n = 30) or control group (n = 29), aged 60 -85 years, KL 2 or 3 Resistance Concentric-or eccentricfocused resistance training involving upper-and lowerbody exercises, performed twice weekly for 4 months. GAITRite instrumented gait mat (8 m); walking at a self-selected speed. NRS Not reported Zhu et al., 2016 25 China 46 (100) Control 64.53 (3.43) Intervention 64.61(3.40) Control 25.05(3.42) Intervention 25.23( 3.46) In laboratory at the Shanghai University of Sport participants with KOA randomly allocated to Tai Ji Quan (n = 23) or control (attended one 60 min wellness education lecture bi-weekly) group (n = 23), aged 60 -70 years, KL 1-3 Mind-body Tai Ji Quan training incorporating eight forms, performed three times weekly for 60 minutes per session over 24 weeks. Sixteen-camera infrared motion analysis system (Vicon; Oxford Metrics). WOMAC Control Grade I = 26 II = 61 III = 13 Intervention Grade I = 30 II = 52 III = 17</p>
+<p>Table 3. Risk of bias assessment Study Reporting External validity Internal validitybias Internal validityconfounding Power Total score (out of 32) Aoki et al., 2009 31 9 0 5 2 5 21 Azizi et al., 2020 26 10 1 4 4 5 24 Bennell et al., 2010 22 10 1 6 6 5 28 Bhore and Shinde, 2023 35 7 0 4 3 5 19 Chen et al., 2021 28 10 1 5 4 5 25 Foroughi, Smith, Lange, Baker, et al., 2011 33 10 1 6 5 5 27 Foroughi, Smith, Lange, Singh, et al., 2011 23 11 1 6 5 4 27 Fransen, Crosbie, Edmonds, 2000 30 10 2 6 6 5 29 Joshi, Singh, Vij, 2019 32 7 0 4 3 5 19 Records identified from: PubMed (n = 1026) Scopus (n = 686) SPORTDiscus (n = 143) Web of Science (n = 747) Records removed before screening: Duplicate records removed (n = 815) Records after removal of duplicates (n = 1787) Reports screened (n = 1787) Reports assessed for eligibility (n = 83) Reports excluded (n = 1704) Studies included in review (n = 18) Identification of studies via databases and registers Identification Screening Included Reports excluded: Protocol studies (n = 16) Did not meet inclusion and exclusion criteria (n = 47) Low quality (n = 2)</p>
+<h3>Acknowledgements and affiliations</h3>
+<p>This work was supported by the Anglia Ruskin University (ARU) Vice Chancellor&#x27;s Scholarship (to HJS). The findings were previously presented orally and as posters at</p>
+<h3>Country Sample size (%F)</h3>
+<p>Mean (SD) -unless otherwise stated BMI Mean (SD) -unless otherwise stated Participants Exercise/physical activity intervention Gait assessment Knee pain assessment Baseline OA severity (KL) %unless otherwise stated Lim et al., 2008 21 Australia Control More neutrally aligned 28 (61) More malaligned 26 (46) Intervention More neutrally aligned 27 (63) More malaligned 26 (50) Control More neutrally aligned 60.8 (7.8) More malaligned 66.6 (8.9) Intervention More neutrally aligned 64.1 (9.3) More malaligned 67.2 (6.7) Control More neutrally aligned 28.4 (5) More malaligned 30.3 (5.3) Intervention More neutrally aligned 29.0 (5.2) More malaligned 28.2 (3.7) Participants with tibiofemoral joint KOA in at least one knee, with medial knee pain, medial compartment osteophytes, and medial joint space narrowing greater than lateral joint space narrowing. Participants with &gt; 5 degrees varus malalignment were deemed more malaligned (n = 52), and those with &lt; 5 degrees malalignment (in either direction) were deemed more neutral (n = 55). Each group was then randomised to receive either quadriceps strengthening intervention or no intervention (control) group, KL 2-4 Strengthening Home-based quadriceps strengthening programme, performed five times weekly for 12 weeks, with progressive increases in exercise volume. Three-dimensional motion analysis using an eight-camera Vicon system, the Plug-in-Gait marker set and two force plates. WOMAC Control More neutrally aligned Grade II = 54 III = 36 IV = 11 More malaligned Grade II = 12 III = 15 IV = 73 Intervention More neutrally aligned Grade II = 44 III = 26 IV = 30 More malaligned Grade II = 15 III = 31 IV = 54 Messier, Thomson and Ettinger, 1997 20 USA 103 (74) Control 69.2 (1) Intervention Aerobic 70.3 (1.3) Weight training 67.2 (0.9) Control 32.5 (0.9) Intervention Aerobic 31.4 (1) Weight training 30.1(0.9) Participants with radiographic evidence of KOA randomised to aerobic (n = 33), weight training (n = 34) or health education (control) group (n = 36), age &gt; 60 years Resistance and aerobic Aerobic training: Walking programme, three times weekly, incorporating warmup, 40 minutes of walking at 50-80% heart-rate reserve and cool-down. Weight training: Supervised resistance training involving upper-and lower-body exercises, three times weekly. Both programmes lasted 18 months, with 3 months of facility-based and 15 months of home-based training. Photoelectric timing system (Lafayette Model 63501), VP320 video camera system and walkway incorporating an AMTI force platform. Scale specifically developed for patients with knee osteoarthritis Not reported. Study Reporting External validity Internal validitybias Internal validityconfounding Power Total score (out of 32) Kean et al., 2017 37 9 1 6 5 5 26 Lim et al., 2008 21 11 1 6 6 5 29 Messier, Thomson and Ettinger, 1997 20 8 1 5 5 5 24 Paul et al., 2016 24 9 1 6 4 5 25 Salacinski et al., 2012 34 11 1 5 5 5 27 Sedaghatnezha d et al., 2021 29 9 0 5 4 5 23 Sled et al., 2010 36 9 0 5 3 5 22 Vincent and Vincent, 2020 27 10 1 6 5 5 27 Zhu et al., 2016 25 10 1 6 5 5 27</p>
+<p>All included studies reported gait biomechanics such as spatiotemporal, kinetic, and kinematic parameters. Lower limb biomechanics were extracted from studies that used marker-based motion capture or two-dimensional (2D) video capture from applications such as Kinovea, Vicon or any other method of capturing biomechanical gait parameters. Studies investigating static alignment or non-gait biomechanical metrics were excluded. The secondary outcomes included assessment of pain and mobility following physical activity/exercise intervention through commonly used questionnaires including Western Ontario and McMaster Universities Arthritis Index (WOMAC), knee osteoarthritis outcome score (KOOS), visual analogue scale (VAS), or any other validated pain assessment tool [12-14].</p>
+<p>[39], but also highlight important biomechanical limitations that may inform the future intervention strategies. The cellular mechanisms underlying pathogenesis of osteoarthritis are still not yet fully understood. Previous studies investigated molecular mechanisms underpinning articular cartilage degradation [40], while exercise and physical activity have been [50], or neuromuscular re-education [46] , may be required to meaningfully influence these parameters.</p>
+<p>The modest improvements in some of the kinematic variables such as pelvic control or range of motion observed in individual studies further support the idea that specific, targeted interventions, but not generic exercise programs, are necessary to modify joint mechanics. These findings have several implications for clinical practice. Exercise such as multicomponent and mind-body approaches may be recommended for pain reduction and functional improvement. Improvements in walking speed and related parameters may serve as practical and sensitive clinical indicators of progress. Furthermore, to influence disease progression, clinicians may need to combine exercise with biomechanical interventions such as gait retraining and orthotics. The limited changes in kinetic variables suggest that exercise alone may not substantially modify some biomechanical factors proposed to be associated with disease progression. Programs should be targeted and individualised, considering patient-specific factors such as alignment, severity, and functional limitations. conferences of the International Society of Biomechanics (ISB), the European Calcified Tissue Society (ECTS) and the British Orthopaedic Research Society (BORS). The ECTS 2026 Congress abstract was published in JBMR Plus as part of the Abstracts of the ECTS 2026 Congress supplement (2026;10(Suppl 1):i1-i319; doi:10.1093/jbmrpl/ziag066).</p>
+<h3>Figure 1 .Figure 2.</h3>
+<p>Figure 1. Search flow diagram Figure 2. Forest plot for changes in spatiotemporal parameters (primary outcome). The black dots represent the standardised mean difference (SMD) effect size whilst the left and right extremes of the dots represent the corresponding 95% credible intervals. The overall SMD (pooled mean) with the corresponding credible intervals is also presented in this forest plot.</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Forest plot for changes in kinematic parameters (primary outcome). The black dots represent the standardised mean difference (SMD) effect size whilst the left and right extremes of the dots represent the corresponding 95% credible intervals. The overall SMD (pooled mean) with the corresponding credible intervals is also presented in this forest plot.</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Forest plot for changes in kinetic parameters (primary outcome). The black dots represent the standardised mean difference (SMD) effect size whilst the left and right extremes of the dots represent the corresponding 95% credible intervals. The overall SMD (pooled mean) with the corresponding credible intervals is also presented in this forest plot.</p>
+<h3>Figure 5.</h3>
+<p>Figure 5. Forest plot for changes in pain (secondary outcome). The black dots represent the standardised mean difference (SMD) effect size whilst the left and right extremes of the dots represent the corresponding 95% credible intervals. The overall SMD (pooled mean) with the corresponding credible intervals is also presented in this forest plot.</p>
+<h3>Figure 5</h3>
+<p>Figure 5</p>
+<h3>References</h3>
+<p>Long H, Liu Q, Yin H, et al. Prevalence trends of site-specific osteoarthritis from 1990 to 2019: findings from the Global Burden of Disease Study 2019. Arthritis Rheumatol 2022;74:1172-83. doi: 10.1002/art.42089.</p>
+<p>Hunter DJ, Bierma-Zeinstra S. Osteoarthritis. Lancet 2019;393:1745-59. doi:10.1016/S0140-6736(19)30417-9.</p>
+<p>Moseng T, Vliet Vlieland TPM, Battista S, et al. EULAR recommendations for the non-pharmacological core management of hip and knee osteoarthritis: 2023 update. Ann Rheum Dis. 2024;83:730-40. doi: 10.1136/ard-2023-225041</p>
+<p>Favre J, Jolles BM. Gait analysis of patients with knee osteoarthritis highlights a pathological mechanical pathway and provides a basis for therapeutic interventions. EFORT Open Rev. 2016;1:368-74. doi: 10.1302/2058-5241.1.000051</p>
+<p>Astephen JL, Deluzio KJ, Caldwell GE, et al. Biomechanical changes at the hip, knee, and ankle joints during gait are associated with knee osteoarthritis severity. Journal of Orthopaedic Research. 2008;26:332-41. doi: 10.1002/jor.20496</p>
+<p>Raposo F, Ramos M, Lúcia Cruz A. Effects of exercise on knee osteoarthritis: a systematic review. Musculoskelet Care 2021;19:399-435. doi:10.1002/msc.1538.</p>
+<p>Bartels EM, Juhl CB, Christensen R, et al. Aquatic exercise for the treatment of knee and hip osteoarthritis. Cochrane Database Syst Rev 2016;3:CD005523. doi:10.1002/14651858.CD005523.pub3.</p>
+<p>Arthritis Foundation. Osteoarthritis physical therapy: finding safe, effective activities. Available from: https://www.arthritis.org/health- wellness/treatment/complementary-therapies/physical-therapies/osteoarthritis- physical-therapy (accessed 15 October 2026).</p>
+<p>Sandmeier RH. Osteoarthritis and exercise: does increased activity wear out joints? Perm J 2000;4(4):26-8. doi:10.7812/TPP/00.932.</p>
+<p>Messier SP, Mihalko SL, Beavers DP, et al. Effect of High-Intensity Strength Training on Knee Pain and Knee Joint Compressive Forces Among Adults With Knee Osteoarthritis. JAMA. 2021;325:646. doi: 10.1001/jama.2021.0411</p>
+<p>11 Tanpure S, Phadnis A, Nagda T, et al. Gait variability and biomechanical distinctions in knee osteoarthritis: Insights from a 3D analysis in an adult elderly cohort. J Orthop. 2024;49:172-9. doi: 10.1016/j.jor.2023.12.011</p>
+<p>12 McConnell S, Kolopack P, Davis AM. The Western Ontario and McMaster Universities Osteoarthritis Index (WOMAC): a review of its utility and measurement properties. Arthritis Rheum 2001;45:453-61. doi:10.1002/1529-0131(200110)45:5&lt;453::AID-ART365&gt;3.0.CO;2-W.</p>
+<p>Collins NJ, Misra D, Felson DT, et al. Measures of knee function: International Knee Documentation Committee (IKDC) Subjective Knee Evaluation Form, Knee Injury and Osteoarthritis Outcome Score (KOOS), Knee Injury and Osteoarthritis Outcome Score Physical Function Short Form (KOOS-PS), Knee Outcome Survey Activities of Daily Living Scale (KOS-ADL), Lysholm Knee Scoring Scale, Oxford Knee Score (OKS), Western Ontario and McMaster Universities Osteoarthritis Index (WOMAC), Activity Rating Scale (ARS), and Tegner Activity Score (TAS). Arthritis Care Res (Hoboken) 2011;63(Suppl 11):S208-28. doi:10.1002/acr.20632.</p>
+<p>Delgado DA, Lambert BS, Boutris N, et al. Validation of digital visual analog scale pain scoring with a traditional paper-based visual analog scale in adults. JAAOS Glob Res Rev 2018;2:e088. doi:10.5435/JAAOSGlobal-D-17-00088.</p>
+<p>15 Page MJ, McKenzie JE, Bossuyt PM, et al. The PRISMA 2020 statement: an updated guideline for reporting systematic reviews. Syst Rev. 2021;10:89. doi: 10.1186/s13643-021-01626-4</p>
+<p>Bytheway N, Amor S, Swinton P, et al. A systematic review of the effect of exercise on gait and pain in people with knee osteoarthritis. PROSPERO registration CRD42024565957.2024. Available from: https://www.crd.york.ac.uk/PROSPERO/view/CRD42024565957</p>
+<p>Lee E, Dobbins M, Decorby K, et al. An optimal search filter for retrieving systematic reviews and meta-analyses. BMC Med. Res. Methodol. 2012;12:85.</p>
+<p>Downs SH, Black N. The feasibility of creating a checklist for the assessment of the methodological quality both of randomised and non-randomised studies of health care interventions. J Epidemiol Community Health 1998;52:377-84. doi:10.1136/jech.52.6.377.</p>
+<p>Morris SB, DeShon RP. Combining effect size estimates in meta-analysis with repeated measures and independent-groups designs. Psychol Methods. 2002;7:105-25. doi: 10.1037/1082-989X.7.1.105</p>
+<p>20 Messier SP, Thompson CD, Ettinger WH. Effects of Long-Term Aerobic or Weight Training Regimens on Gait in an Older, Osteoarthritic Population. J Appl Biomech. 1997;13:205-25. doi: 10.1123/jab.13.2.205</p>
+<p>21 Lim BW, Hinman RS, Wrigley T V., et al. Does knee malalignment mediate the effects of quadriceps strengthening on knee adduction moment, pain, and function in medial knee osteoarthritis? A randomized controlled trial. Arthritis Care Res (Hoboken). 2008;59:943-51. doi: 10.1002/art.23823</p>
+<p>22 Bennell KL, Hunt MA, Wrigley T V., et al. Hip strengthening reduces symptoms but not knee load in people with medial knee osteoarthritis and varus malalignment: A randomised controlled trial. Osteoarthritis Cartilage. 2010;18:621-8. doi: 10.1016/j.joca.2010.01.010</p>
+<p>Foroughi N, Smith RM, Lange AK, et al. Progressive resistance training and dynamic alignment in osteoarthritis: A single-blind randomised controlled trial. Clinical Biomechanics. 2011;26:71-7. doi: 10.1016/j.clinbiomech.2010.08.013</p>
+<p>24 Paul AK, Anwer S, Rau SS, et al. Comparison of the combined effects of hip and knee muscle strengthening vs knee muscle strengthening alone on pain, function and gait parameters in knee osteoarthritis. Physikalische Medizin Rehabilitationsmedizin Kurortmedizin. 2016;26:118-23. doi: 10.1055/s-0042-106302</p>
+<p>Zhu Q, Huang L, Wu X, et al. Effects of Tai Ji Quan training on gait kinematics in older Chinese women with knee osteoarthritis: A randomized controlled trial. J Sport Health Sci. 2016;5:297-303. doi: 10.1016/j.jshs.2016.02.003</p>
+<p>26 Azizi S, Dadarkhah A, Rezasoltani Z, et al. Randomized controlled trial of aquatic exercise for treatment of knee osteoarthritis in elderly people. Interv Med Appl Sci. 2020;11:161-7. doi: 10.1556/1646.11.2019.19</p>
+<p>27 Vincent KR, Vincent HK. Concentric and Eccentric Resistance Training Comparison on Physical Function and Functional Pain Outcomes in Knee Osteoarthritis: A Randomized Controlled Trial. American Journal of Physical Medicine and Rehabilitation. Lippincott Williams and Wilkins 2020:932-40.</p>
+<p>Chen HX, Zhan YX, Ou HN, et al. Effects of lower body positive pressure treadmill on functional improvement in knee osteoarthritis: A randomized clinical trial study. World J Clin Cases. 2021;9:10604-15. doi: 10.12998/wjcc.v9.i34.10604</p>
+<p>29 Sedaghatnezhad P, Shams M, Karimi N, et al. Uphill treadmill walking plus physical therapy versus physical therapy alone in the management of individuals with knee osteoarthritis: a randomized clinical trial. Disabil Rehabil. 2021;43:2541-9. doi: 10.1080/09638288.2019.1703146</p>
+<p>30 Fransen M, Crosbie J, Edmonds J. Physical therapy is effective for patients with osteoarthritis of the knee: a randomized controlled clinical trial. J Rheumatol. 2001;28:156-64.</p>
+<p>Aoki O, Tsumura N, Kimura A, et al. Home Stretching Exercise is Effective for Improving Knee Range of Motion and Gait in Patients with Knee Osteoarthritis. J Phys Ther Sci. 2009;21:113-9. doi: 10.1589/jpts.21.113</p>
+<p>Joshi S, Singh SK, Vij JS. Effect of retrowalking, a non-pharmacological treatment on pain, disability, balance and gait in knee osteoarthritis: A randomized controlled trial. Indian J Public Health Res Dev. 2019;10:214-9. doi: 10.5958/0976-5506.2019.00288.2</p>
+<p>Foroughi N, Smith RM, Lange AK, et al. Lower limb muscle strengthening does not change frontal plane moments in women with knee osteoarthritis: A randomized controlled trial. Clinical Biomechanics. 2011;26:167-74. doi: 10.1016/j.clinbiomech.2010.08.011</p>
+<p>34 Salacinski AJ, Krohn K, Lewis SF, et al. The effects of group cycling on gait and pain-related disability in individuals with mild-to-moderate knee osteoarthritis: a randomized controlled trial. J Orthop Sports Phys Ther 2012;42:985-95. doi:10.2519/jospt.2012.3813.</p>
+<p>Bhore P, Shinde S. Effect of multi-component exercises program on pain- related gait adaptations among individuals with osteoarthritis of the knee joint. J Educ Health Promot. 2023;12:138. doi: 10.4103/jehp.jehp_1628_22</p>
+<p>Sled EA, Khoja L, Deluzio KJ, et al. Effect of a home program of hip abductor exercises on knee joint loading, strength, function, and pain in people with knee osteoarthritis: a clinical trial. Phys Ther 2010;90:895-904. doi:10.2522/ptj.20090294.</p>
+<p>Kean CO, Hinman RS, Wrigley T V., et al. Impact loading following quadriceps strength training in individuals with medial knee osteoarthritis and varus alignment. Clinical Biomechanics. 2017;42:20-4. doi: 10.1016/j.clinbiomech.2017.01.002</p>
+<p>38 Kline Mangione K, Gloviak A, Hofmann M. The Effects of High-Intensity and Low-Intensity Cycle Ergometry in Older Adults With Knee Osteoarthritis. Journal of Gerontology: MEDICAL SCIENCES. 1999;54:184-90. doi: 10.1093/gerona/54.4.m184</p>
+<p>39 Bannuru RR, Osani MC, Vaysbrot EE, et al. OARSI guidelines for the non- surgical management of knee, hip, and polyarticular osteoarthritis. Osteoarthritis Cartilage. 2019;27:1578-89. doi: 10.1016/j.joca.2019.06.011</p>
+<p>40 Samvelyan HJ, Madi K, Törnqvist AE, et al. Characterisation of Growth Plate Dynamics in Murine Models of Osteoarthritis. Front Endocrinol (Lausanne). 2021;12:734988-734988. doi: 10.3389/fendo.2021.734988</p>
+<p>Kong H, Wang XQ, Zhang XA. Exercise for Osteoarthritis: A Literature Review of Pathology and Mechanism. Front. Aging Neurosci. 2022;14.</p>
+<p>Susko AM, Kelley Fitzgerald G. The pain-relieving qualities of exercise in knee osteoarthritis. Open Access Rheumatol. 2013;5:81-91.</p>
+<p>Gilbert AL, Song J, Cella D, et al. What Is an Important Difference in Gait Speed in Adults With Knee Osteoarthritis? Arthritis Care Res (Hoboken). 2021;73:559-65. doi: 10.1002/acr.24159</p>
+<p>44 Alnahdi AH, Zeni JA, Snyder-Mackler L. Muscle Impairments in Patients With Knee Osteoarthritis. Sports Health. 2012;4:284-92. doi: 10.1177/1941738112445726</p>
+<p>Park SK, Kobsar D, Ferber R. Relationship between lower limb muscle strength, self-reported pain and function, and frontal plane gait kinematics in knee osteoarthritis. Clinical Biomechanics. 2016;38:68-74. doi: 10.1016/j.clinbiomech.2016.08.009</p>
+<p>46 Cottmeyer DF, Hoang BH, Lyle MA, et al. Can exercise interventions reduce external knee adduction moment during gait? A systematic review and meta- analysis. Clinical Biomechanics. 2023;109:106064. doi: 10.1016/j.clinbiomech.2023.106064</p>
+<p>47 Mo L, Jiang B, Mei T, et al. Exercise Therapy for Knee Osteoarthritis: A Systematic Review and Network Meta-analysis. Orthop J Sports Med. 2023;11. doi: 10.1177/23259671231172773</p>
+<p>Rynne R, Le Tong G, Cheung RTH, et al. Effectiveness of gait retraining interventions in individuals with hip or knee osteoarthritis: A systematic review and meta-analysis. Gait Posture. 2022;95:164-75. doi: 10.1016/j.gaitpost.2022.04.013</p>
+<p>Silva MDC, Perriman DM, Fearon AM, et al. Effects of neuromuscular gait modification strategies on indicators of knee joint load in people with medial knee osteoarthritis: A systematic review and meta-analysis. PLoS One. 2022;17:e0274874. doi: 10.1371/journal.pone.0274874</p>
+<p>50 Holden M, Murphy M, Simkins J, et al. Knee braces for knee osteoarthritis: A scoping review and narrative synthesis of interventions in randomised controlled trials. Osteoarthritis Cartilage. 2024;32:1371-96. doi: 10.1016/j.joca.2024.08.010</p>
 </div>
 </details>
 </div>
