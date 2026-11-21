@@ -198,7 +198,7 @@ signals in healthy older adults: a cross-sectional evaluation and a
 randomised controlled probiotic trial
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.04.26366206
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.04.26366206
 </p>
 </header>
 <div class="mc-main">
@@ -218,7 +218,7 @@ P-Values</span></p>
 <p>What we found</p>
 </div>
 <div class="text">
-<p>We found 2 imprecise <em>p</em> values out of 2 detected <em>p</em>
+<p>We found 2 imprecise <em>p</em> values out of 9 detected <em>p</em>
 values.</p>
 </div>
 </div>
@@ -409,8 +409,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -829,9 +830,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -853,7 +858,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -868,9 +874,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -883,13 +907,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -909,6 +936,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -916,12 +949,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1022,6 +1061,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1041,6 +1100,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1296,19 +1390,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1418,6 +1594,132 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Despite increasing interest in the gut-brain axis, the role of the autonomic nervous system and the brainstem in human gut-brain signalling remain largely unknown.</p>
+<p>Objective: To characterise resting state functional connectivity (FC) of the brainstem in healthy older adults and to examine its association with a variety of factors relevant to ageing and the gut-brain axis, and to assess if brainstem FC is altered by probiotic intervention.</p>
+<p>Design: Randomised, double-blinded, placebo-controlled trial in 60-80-year-olds (55 women/28 men) with six-weeks Lacticaseibacillus rhamnosus HN001 intervention in a non-encapsulated and microencapsulated formulation. Brainstem-optimised functional magnetic resonance imaging was performed before and after intervention.</p>
+<p>Results: At baseline, age correlated positively with FC of locus coeruleus (LC) and dorsal raphe nucleus (DRN) with pre-/postcentral gyrus, as well as of periaqueductal gray (PAG) with temporal/supramarginal gyrus and planum temporale. FC of PAG with precuneus cortex and cingulate gyrus correlated with cognitive status and mood. Perceived stress correlated with FC between nucleus tractus solitarius and occipital cortex, angular/temporal gyrus. FC of DRN differed between men and women. All p&lt;0.0063.</p>
+<p>Following probiotic intervention, a significant time*group interaction and main time effect were observed for FC of LC and ventral tegmental area. FC of both with occipital pole/cortex and cerebellum, and of LC with pre-/postcentral gyrus, superior parietal lobule, insular/opercular cortex, putamen, and planum polare showed within-group changes (non-encapsulated), no between-group differences were observed (all p&lt;0.0056).</p>
+<p>Conclusion: Brainstem-to-cortex FC at rest correlates with several phenotypic characteristics implicated in healthy ageing and may be modifiable by probiotic supplementation.</p>
+<h3>INTRODUCTION</h3>
+<p>The brainstem plays a key role in integrating peripheral physiological signals 1 . This is especially interesting when considering the gut-brain axis, as gut-derived signals along the enteric and autonomic nervous systems, including those associated with dietary compounds or gut microbiota modulations, are integrated within the brainstem 1 . While research on the gut-brain axis has been growing extensively, the role of the brainstem in mediating communication along this axis remains relatively unexplored 2.</p>
+<p>Functional brain imaging has predominantly focused on evaluations of the cortex. However, advancements in neuroimaging techniques, including functional magnetic resonance imaging (fMRI), have made concurrent investigations of brainstem and cerebrum in humans more feasible.</p>
+<p>Recent studies typically assessed resting state brainstem functional connectivity (FC) in healthy young to middle-aged cohorts in cross-sectional studies. In these populations, brainstem-to-cortex FC has been shown to correlate with age 3 , depression symptom scores 4 , cognitive performance 5 and working memory 6 , as well as to differ by sex 3 . Intriguingly, brainstem FC of older adults (55-80 years of age) has been reported to differ from 20-40-year-old adults 6 . This is especially relevant, because brainstem regions have been identified as connector hubs linking multiple brain networks, including default mode and executive control 7 , which both are known to undergo ageing-related alterations 8.</p>
+<p>Very few studies have assessed brainstem FC at more than one timepoint, and those that have typically focused on short-term changes following acute challenges.</p>
+<p>In terms of gastrointestinal tract-to-brainstem signalling and activation of brainstem nuclei, gastric stimuli received the most attention so far. Studies assessing FC of the brainstem have done so in relation to gastric motility 9 , stomach-brain coupling 10 , acute stimulation through duodenal capsaicin 11 and oral intake of low or high-fat yoghurt 12 or sucrose 13 . Consistent with its involvement in gut-brain signalling, altered brainstemcortex resting state FC has been reported in individuals with irritable bowel syndrome 14 15.</p>
+<p>Intervention studies specifically assessing brainstem FC, to the best of our knowledge, have not yet been conducted. A well-controlled, gut-targeted intervention that has been shown to affect brain function is probiotic supplementation 16 . Prolonged (four to six weeks) regular intake of probiotics affected (cortical) resting state FC in healthy young/middle-aged populations [17] [18] [19] as well as in elderly 20 . Tillisch et al. even reported altered FC of a network including the midbrain during resting state and an emotional attention task 19 . However, these studies examined broad patterns of brain FC rather than specifically examining brainstem FC.</p>
+<p>Thus, the herein presented study investigated two underexplored aims: i) to characterise baseline FC of the brainstem in healthy older adults and to determine association with a variety of factors relevant to ageing and the gut-brain axis, such as age, sex, cognition, mental health, stress perception, sleep, gastrointestinal symptoms, and inflammation; ii) to determine if resting state brainstem FC is altered by a probiotic intervention which consisted of six-weeks daily supplementation with Lacticaseibacillus rhamnosus HN001.</p>
+<h3>METHODS</h3>
+<p>Brainstem-optimised functional magnetic resonance imaging (fMRI) examinations were performed in an elderly community-dwelling population before and after a six-weeks randomised, double-blinded, placebo-controlled daily probiotic intervention study with three parallel arms: micro-encapsulated or non-encapsulated Lacticaseibacillus rhamnosus HN001 or placebo.</p>
+<h3>Intervention study</h3>
+<p>Participants of both sexes were recruited through local advertisement, screened at the study site and included if 60-80 years of age, body mass index 18.5-31.9 kg/m 2 , willing to abstain from regular consumption of probiotic supplements or food products containing probiotic bacteria (including fermented food/beverages) and supplements/medications known to alter gastrointestinal function or inflammatory status, and self-reported healthy (e.g. lacking a metabolic, gastrointestinal, psychiatric, neurodegenerative diagnosis). Participants were phenotypically characterised (and intervention effects were assessed 20 ) by researcher-administered tests (Montreal Cognitive Assessment (MoCA) 21 ), self-administered questionnaires assessing mental health and sleep quality (Hospital Anxiety and Depression Scale (HADS) 22 , Perceived Stress Scale (PSS) 23 , Pittsburgh Sleep Quality Index (PSQI) 24 , Gastrointestinal Symptom Rating Scale (GSRS) 25 ) and blood markers (high sensitivity C-reactive protein (hsCRP), Supplementary Information 1). Block (size three and six) randomisation was performed, and participants were stratified by sex and age (born 1954 or later, born 1953 or earlier). Randomisation and allocation (ratio 1:1:1) were performed by colleagues not involved in the study, resulting in a sequentially numbered list. The study was blinded, and allocation sequence was inaccessible (digitally stored) to participants, caregivers, researchers and analysts until primary and some secondary/exploratory outcome analyses were complete. The analyses presented herein were performed unblinded as this was an exploratory analysis of the original study. For the same reason, the concrete statistical analyses had not been predefined. A priori sample size calculation was based on the primary outcome, i.e. intervention effects on cortical functional connectivity (FC) at resting state, requiring n=30 participants per arm (total n=90), allowing for a 10% drop-out rate. Participants were instructed to consume the study product daily, together with breakfast, dissolved in 200 ml of cold or room temperature water or milk. All three study products were provided as indistinguishable maltodextrin-based powders (5 g), packed in identical sachets and provided by AnaBio Technologies. The probiotic products contained 6x10 9 CFU Lacticaseibacillus rhamnosus HN001 with or without food-grade plant-based protein coating (i.e. microencapsulation). Consumption compliance was higher than 90% in all groups 20 . Adverse events were fewer in the probiotic groups compared to placebo 20 . Participants were asked to maintain their lifestyle, diet, medications, physical activity and sleep habits throughout the study. The study visits took place at Örebro University, Örebro, Sweden, in two cohorts from March to November 2023. For further details on the intervention study, including questionnaires and missing data handling, please refer to Rode&amp;Hutchinson et al. 2025 20.</p>
+<h3>Brainstem-optimised fMRI</h3>
+<p>Resting state fMRI examinations were conducted with brainstem-optimised protocols for acquisition and analyses. Only full MRI datasets (including data from both before and after intervention of the same participant) were analysed, namely total n=83: placebo (n = 27), encapsulated probiotic (n = 26), and non-encapsulated probiotic (n = 30). A participant flow chart (including reasons for missing data) can be found in Supplementary Figure 1.</p>
+<p>Research questions focused on i) within-brainstem FC (ROI-to-ROI connectivity, RRC), and ii) brainstem-to-cortex/subcortex/cerebellum FC (RRC, and seed-based connectivity, SBC). Cortex-to-brainstem FC was not of interest, since the hypothesis was that probiotic effects modulate within-brainstem FC and are transmitted via brainstem to cortex, not vice versa.</p>
+<p>A priori hypothesis-driven selected seeds of interest were: the nucleus tractus solitarius (NTS), as a major integrator of information along the gut-brain afferent pathway 26 ; the locus coeruleus (LC), given its connections with the NTS and involvement in the hypothalamic-pituitary-adrenal axis and norepinephrine system 26 ; the dorsal raphe nucleus (DRN), as a major serotonergic hub 26 ; the ventral tegmental area (VTA), as a key dopaminergic nucleus 26 ; and the periaqueductal gray (PAG), as a region shown to be associated with probiotic intervention effects 19 , irritable bowel syndrome 27 , visceral pain 28 and stress regulation 29 . Other included brainstem regions were: red nucleus (RN), substantia nigra (SN), and subthalamic nucleus (STN). Masks were obtained bilaterally or split into hemispheres as fit.</p>
+<p>Baseline resting state brainstem FC was assessed in all n=83 participants and tested for Pearson&#x27;s correlation with participant continuous characteristics (age, MoCA, HADS, PSS, PSQI, GSRS, hsCRP); furthermore, FC of male versus female participants was contrasted. Additional multiplicity correction by Bonferroni was applied for the number of covariates (eight) tested, resulting in cluster size p-FDR&lt;0.0063 being regarded as significant.</p>
+<p>Probiotic effects on resting state brainstem FC were assessed in factorial designs. First, interaction effects, main group and main time effects were assessed. If any of those was significant (p-FDR-corrected&lt;0.05), within-group (before versus after intervention) and between-group (before and after intervention) posthoc comparisons were evaluated. Posthoc comparisons (nine) were additionally Bonferroni-corrected for multiple testing, resulting in cluster size p-FDR&lt;0.0056 being regarded as significant.</p>
+<p>For details, see Supplementary Information 2.</p>
+<h3>RESULTS</h3>
+<h3>Study population</h3>
+<p>Detailed phenotypic participant characterisation, including concomitant medications, is reported in Rode&amp;Hutchinson et al. 2025 20 . In brief, sex, age, physical activity and habitual diet at baseline did not differ between groups. Also, cognitive and psychological status (anxiety, depression, stress), sleep quality, gastrointestinal symptoms and inflammatory status did not differ significantly between groups. A shortened summary, specific for the n=83 participants with full datasets, is presented in Table 1.</p>
+<h3>Baseline resting state brainstem functional connectivity</h3>
+<p>Within-brainstem functional connectivity (FC) at baseline was assessed between all 13 included brainstem structures using ROI-to-ROI connectivity (RRC) (Figure 1A). Overall brainstem-to-cortex/subcortex/cerebellum FC at baseline is presented as a full RRC matrix (Figure 1B) and as region-based connectivity with seeds (Figure 1C). The brainstem FC pattern loaded most strongly and most significantly onto the cerebellum and loaded on all customised networks, except the thalamocortical network (here comprised of bilateral thalamus). For statistical results reporting, see Supplementary Table 3.</p>
+<p>Functional connectivity of the ventral tegmental area (VTA), periaqueductal gray (PAG), dorsal raphe nucleus (DRN), locus coeruleus (LC), and nucleus tractus solitarius (NTS) was furthermore assessed with seed-based connectivity (SBC) (Supplementary Figure 4).  2.</p>
+<h3>Factors influencing baseline resting state brainstem functional connectivity</h3>
+<p>Within-brainstem and overall brainstem-to-cortex/subcortex/cerebellum FC (assessed as RRC) was not affected by any of the assessed covariates (age, sex, Montreal Cognitive Assessment (MoCA), Hospital Anxiety and Depression Scale (HADS), Perceived Stress Scale (PSS), Pittsburgh Sleep Quality Inventory (PSQI), Gastrointestinal Symptom Rating Scale (GSRS), high-sensitivity C-reactive protein (hsCRP)).</p>
+<p>Age correlated significantly with the FC of PAG, DRN and LC. Both MoCA and HADS correlated significantly with FC of PAG. PSS correlated significantly with FC of NTS. Furthermore, female and male participants presented significantly different FC of DRN (all SBC with cluster size p-FDR&lt;0.0063 for additional multiplicity correction) (Table 2).</p>
+<p>None of the assessed baseline factors correlated with FC of VTA. PSQI, GSRS, and hsCRP did not correlate with FC of any of the brainstem seeds.</p>
+<h3>Probiotic intervention effects on resting state brainstem functional connectivity</h3>
+<p>Within-brainstem and brainstem-to-cortex/subcortex/cerebellum RRC did not show any significant intervention effects (i.e. no main group, main time, or time*group interaction effects).</p>
+<p>Assessing FC of the VTA (with SBC), a significant time*group interaction effect was observed with a target cluster covering precuneus, right intra-and supracalcarine cortex and lingual gyrus (Table 3). Posthoc analysis revealed that there was a significant withingroup change from before to after intervention in the non-encapsulated probiotic group with a target cluster covering left occipital fusiform gyrus, temporal occipital fusiform cortex, lateral occipital cortex inferior division and cerebellum 6 and crus1. No significant within-group effects were observed in the placebo or encapsulated probiotic groups, and no significant between-group differences were observed before or after intervention. When assessing FC of the LC (left and right, with SBC) a significant main time effect was observed (Table 4). Posthoc analyses revealed that there were significant within-group changes from before to after intervention in the non-encapsulated probiotic group. Those within-group changes were dominated by FC of the right LC with a largely identical target cluster covering right insular cortex, central opercular cortex, putamen, precentral gyrus and planum polare and frontal operculum cortex and another largely identical target cluster in the left insular cortex and Heschl&#x27;s gyrus, although not significant after multiplicity correction. Also, within-group changes of only the right LC were observed with a target cluster covering left pre-and postcentral gyrus and superior parietal lobule, largely overlapping with the main time effect, as well as with a target cluster of the left and right LC (though the latter did not remain significant after additional multiplicity correction). Also, the right LC&#x27;s target cluster covering left occipital pole and occipital fusiform gyrus, lingual gyrus, and cerebellum crus1 and crus2 overlapped largely with a target cluster of the left and right LC that did not remain significant after additional multiplicity correction. Functional connectivity of the left LC was not affected by the intervention. No significant within-group effects were observed in the placebo or encapsulated probiotic groups, and no significant between-group differences were observed before or after intervention. Functional connectivity of DRN, PAG, and NTS was not affected by the probiotic intervention (no significant main time, main group, or time*group interaction effects in SBC analyses; hence, no posthoc tests were performed).</p>
+<h3>DISCUSSION</h3>
+<p>This work is the first to assess probiotic intervention effects with brainstem-optimised functional magnetic resonance imaging (fMRI) acquisition and analysis. Furthermore, it is one of the first to assess functional connectivity (FC) of the brainstem in a resting state condition in an elderly cohort and, to the best of our knowledge, with the largest sample size thus far. Given the anatomical and functional complexity and heterogeneity of the brainstem, the investigation focused on distinct brainstem nuclei/regions. This study investigated FC patterns among various brainstem regions as well as between brainstem regions and cortical, subcortical and cerebellar regions.</p>
+<p>At baseline, FC of the periaqueductal gray (PAG), dorsal raphe nucleus (DRN), locus coeruleus (LC) and nucleus tractus solitarius (NTS) to cortical, but not cerebellar, regions correlated with several phenotypic characteristics. As such, age correlated positively with FC of LC (predominantly left LC) and DRN with pre-and postcentral gyrus (i.e. sensorimotor regions), as well as of PAG with temporal gyrus, supramarginal gyrus and planum temporale. These findings are consistent with previous evidence from adults up to the age of 49 years demonstrating age-related alterations in LC connectivity, including increased FC with frontoparietal and cerebellar regions, as well as decreased FC with visual regions 3 . Similarly, ageing has also been shown to play a potential role in weakening brainstem-cortical synchronisation, which was also associated with poorer working memory performance 6 . In addition to correlations with age, in the present study, FC of PAG with precuneus cortex and cingulate gyrus correlated negatively with higher cognitive status (high Montreal Cognitive Assessment (MoCA) score) and better mood (low Hospital and Anxiety Scale (HADS) score), suggesting that brainstem-cortical FC may also vary due to individual differences in cognitive performance and psychological state (Figure 2). Of note, altered FC between midbrain/brainstem nuclei and cortical regions involved in affective processing have been reported in major depressive disorder, including reduced VTA-dorsal anterior cingulate cortex FC, which was associated with greater depressive symptom burden 30 . Moreover, here, perceived stress correlated positively with the FC between NTS (predominantly right NTS) and occipital cortex, angular gyrus and temporal gyrus. Functional connectivity of the DRN differed between men and women. Sleep quality, gastrointestinal symptoms and inflammatory status seemed not to influence brainstem FC. Although the baseline associations of the present study suggest that FC of the brainstem and cortical networks may vary with several phenotypic characteristics implicated in healthy ageing, these cross-sectional associations do not establish conclusions on causality, and hence potential relationships should be further explored in future studies.</p>
+<p>While the brainstem, and more specifically brainstem nuclei such as the NTS, are known as integrators of information along the gut-brain sensory pathway 26 , few studies have assessed this pathway in humans. In the presented study, surprisingly, probiotic intervention did not affect FC of NTS, DRN or PAG. Instead, resting state FC of LC and ventral tegmental area (VTA), were affected. Interestingly, none of the within-group nonencapsulated probiotic intervention effects were simple changes in magnitude of FC but mostly changes from anti-correlated to correlated activation patterns. Both LC and VTA showed altered FC with a cluster covering occipital pole and cortex, amongst others. This cluster includes regions that are involved in high order visual and integrative processing and has also previously shown altered FC with the inferior frontal gyrus and supramarginal gyrus, notably following the same probiotic intervention 20 . Hence, the herein presented findings extend those previously reported by identifying a brainstemrelated component possibly contributing to the integration of probiotic-gut-brain signalling. Furthermore, FC of LC with left pre-and postcentral gyrus and superior parietal lobule -a pattern that was also correlated with age (Figure 3) -was affected, together suggesting that the observed intervention effects may be relevant to understanding brainstem-cortical changes during healthy ageing. Also, FC of LC with a cluster covering insular and opercular cortex, putamen and planum polare (i.e. regions involved in interoception, emotions, and language processing) was altered following probiotic intervention. This may suggest that probiotic effects and the integration of related gut-derived signals to upstream cortical processes are specific rather than widespread.</p>
+<p>To date, there are no published studies explicitly assessing the functional integration of probiotic effects via the brainstem 16 . The first probiotics fMRI study investigating a fourweeks intervention with a fermented milk multi-strain product containing Bifidobacterium animalis subsp lactis, Streptococcus thermophilus, Lactobacillus bulgaricus, and Lactococcus lactis subsp lactis observed altered FC in a network including the PAG 19 . However, it is unclear whether the entire brainstem or solely midbrain/upper brainstem was acquired, and the study seems not to have employed brainstem-specific acquisition and processing techniques 19 . Also, the inclusion of one large brainstem region as per the Harvard-Oxford atlas in our previous whole-brain analyses did not reveal any significant probiotic intervention effects 20 . However, this atlas brainstem region is large and characterised by functional heterogeneity and does not cover the entire brainstem, which may have diluted the findings -hence those findings do not contradict the herein reported ones. Apart from human studies, interestingly, a four-weeks probiotic intervention with Lactobacillus acidophilus and Bifidobacterium bifidum reduced iron deposition in the substantia nigra of a Parkinson&#x27;s disease rat model 31.</p>
+<p>Several animal studies have investigated how anatomical location and type of intestinal stimuli influence which brainstem regions are involved in gut-brain communication. In the small intestine, specialised enteroendocrine cells, referred to as neuropod cells, form synaptic connections with vagal sensory neurons and can rapidly transmit information from the intestinal lumen to the brain; these vagal sensory neurons in turn project to the NTS 32 . Also, sensory and motor pathways from the small intestine substantially overlap in neurons of multiple brain regions, including the NTS and the dorsal vagal complex 33 . This evidence suggests that nutrient sensing in the small intestine involves communication along fast neural synapses rather than solely relying on slower signalling via gut hormones 32 . Also, vagal afferents are densest in the small intestine and contribute strongly to nutrient sensing and sensory signalling 34 35 . Furthermore, signals from the small intestine seem to be integrated via a widespread network rather than a single neural pathway. In the distal colon and rectum, splanchnic and pelvic afferents communicate gut-derived information via distinct pathways and brainstem regions 36 . Surgical removal of splanchnic afferent neurons reduced responses to colorectal distension in the caudal and rostral ventromedial medulla and the lateral parabrachial nucleus, whereas removal of pelvic afferent neurons reduced responses in the rostral ventromedial medulla, lateral parabrachial nucleus, LC, Barrington&#x27;s nucleus, and PAG 36 . Taken together, these findings indicate that the brainstem regions involved in processing gut-derived information may depend on both the location of the intestinal signal and the type of sensory information (nutrient sensing, noxious stimuli, etc.) being transmitted. This is especially important since the two probiotic product formulations may act via different mechanisms, with the microencapsulation intended (but not measured in this study) to support gastrointestinal survival and reach to more distal parts of the gastrointestinal tract. While no betweengroup differences were observed, the within-group changes may indicate that the nonencapsulated probiotic may act via neuronal gut-brain signalling and the encapsulated probiotic via other pathways.</p>
+<p>In addition, human studies have also examined the pathways by which location and type of intestinal stimuli differentially engage brainstem regions. For example, duodenal infusion of capsaicin, an intestinal chemonociceptive stimulus, resulted in increased activation in the NTS compared to placebo; this activation was independent of reported pain 11 . In another study, ingestion of high-versus low-fat yogurt altered NTS connectivity with regions involved in reward and gustatory networks, including insula, temporal cortex, caudate, putamen, frontal operculum, and globus pallidus 12 . Also, a highsucrose beverage increased power in the highest frequency band (slow-3) in the NTS and reduced low frequency power (slow-5) in several brainstem regions, including the LC, PAG, and pontine/trigeminal nuclei compared to a low-sucrose beverage with identical sweetness 13 , providing evidence that nutrient ingestion can affect both the NTS as well as other brainstem regions. This distinction is relevant to the herein presented study in which Lacticaseibacillus rhamnosus HN001 was associated with changes in FC involving the LC and VTA. The NTS acts as a brainstem relay for visceral sensory information, particularly signals via vagal afferents. However, the absence of intervention-related changes in NTS connectivity does not necessarily preclude effects on other brain circuits. The changes in LC connectivity following Lacticaseibacillus rhamnosus HN001 supplementation may instead reflect modulation of brainstem pathways beyond the NTS. However, the present findings cannot determine whether the LC was influenced through the NTS, through other visceral sensory pathways, or through indirect gut-brain signalling mechanisms.</p>
+<p>Importantly, interpretation of findings should be within the context of methodological complexity. We employed a brainstem-optimised fMRI acquisition with complete coverage of brain and brainstem, hence a larger field of view, enabled by integrated utilisation of head and bed coils. Simultaneously, high temporal resolution was maintained, using simultaneous multi-slice sampling. Our usual approach for motion minimisation, involving mild immobilisation with foam pads performed by experienced nurses, has previously been shown effective 20.</p>
+<p>Subsequently, we employed brainstem-optimised analyses. Effects of physiological noise (e.g. cardiac and respiratory), including effects of their aliased signals, were reduced i) by using bandpass filtering, and ii) based on signals from the eroded white and cerebrospinal fluid (CSF) maps, especially important due to their anatomical proximity to brainstem regions, by denoising including aCompCor. Cardiac and respiratory recordings have not been collected, and while its inclusion as covariates could have improved signal-to-noise ratio (SNR), its exclusion can be regarded as more conservative by underestimating rather than overestimating FC 37 . Nonetheless, future studies should consider collecting simultaneous physiological recordings (e.g. heart and breathing rate) in order to assess organ response to autonomic signalling. Also, scrubbing has been applied, including removal of nearby volumes. Brainstem regions have been masked for grey matter and have been analysed at their acquired voxel size.</p>
+<p>Resampling into smaller voxel sizes has been deemed obsolete since it simply would have divided the signal into a smaller grid. Smoothing has not been applied for brainstem regions in order to preserve their small volumes, although at the likely cost of a lower SNR. The resulting 2.5 mm 3 voxel size is comparable with other studies 6 9 11 30 . Some newer studies with smaller voxel sizes are performed at 7T, which however comes with its own challenges; moreover, findings are often confirmed at 3T [38] [39] [40] (as also used in the presented setting).</p>
+<p>Standard FDR-based multiplicity correction approaches have been applied per analysis. Furthermore, the cross-sectional analyses have been additionally multiplicity-corrected for the evaluation of multiple correlations, and the intervention effect posthoc analyses were additionally multiplicity-corrected for the number of comparisons as standard for ANOVAs, both using Bonferroni correction. Exact p-values were reported, allowing the reader to apply further correction if desired. This approach aligns well with the exploratory character of the presented work.</p>
+<p>The herein investigated elderly cohort presented a variation in cognitive status, sleep quality, and inflammatory status, all with their medians clustering around the cut-off values that indicate mild cognitive impairment (MoCA&lt;26), impaired sleep (PSQI&gt;5), or increased inflammation (hsCRP&gt;1 mg/l). The cohort also presented variation in mood and perceived stress, with the scores reaching beyond the cut-offs (HADS&gt;11, PSS&gt;13), but the median remained within the normal range. Participants presented variation on the GSRS with none to mild gastrointestinal symptoms (GSRS&lt;4). Also, age spanned across the entire inclusion range of 60-80 years of age, with a median of69 years of age. All in all, this supports the external validity and generalisability of the results, although confirmation in a larger sample is warranted. Furthermore, the included baseline characteristics were suitable for correlation analyses which require some degree of variation. Importantly, none of the characteristics differed between groups at baseline, confirming that the randomisation to the intervention arms was successful. Therefore, none of the baseline factors was corrected for during intervention effect analyses. Given the strong age effect, age distribution and stratification should be kept in mind also in future studies. The herein presented findings further provide rational to investigate individuals with mental health issues, cognitive impairment or disorders of gut-brain interactions.</p>
+<p>The presented study employed a probiotic intervention as a physiological model. From a gut-brain perspective, imaging the brainstem adds to the understanding of (patho-)physiological processes and modes-of-action of intervention effects, and may hence have clinical implications especially in the perspective of neurodegenerative disorders. Functional connectivity of the brainstem and cortical networks may vary with individual phenotypic characteristics implicated in healthy ageing and may be further modified by probiotics. -0.4 -0.2 0.0 0.2 0.4 60 70 80 FC DRN to cluster -40 -20 +42 Age -0.4 -0.2 0.0 0.2 0.4 60 70 80 FC DRN to cluster +12 -26 +70 Age -0.4 -0.2 0.0 0.2 0.4 60 70 80 FC PAG to cluster +50 -32 +06 Age -0.4 -0.2 0.0 0.2 0.4 60 70 80 FC LC (left) to cluster -34 -20 +48 Age b e f o r e p r o b i o t i c a f t e r p r o b i o t i c -0.4 -0.2 0.0 0.2 0.4 FC LC (right) to cluster -28 -32 +60 b e f o r e p r o b i o t i c a f t e r p r o b i o t i c -0.4 -0.2 0.0 0.2 0.4 FC LC (right) to cluster -08 -92 -14 b e f o r e p r o b i o t i c a f t e r p r o b i o t i c -0.4 -0.2 0.0 0.2 0.4 FC LC (right) to cluster +42 +06 +08 A B C D E F G H I J Figure 3. Brainstem-to-cortex functional connectivity (FC) at rest correlated with age and was affected by probiotic intervention healthy elderly. A) Axial, B) coronal, and C) sagittal view of brain regions superimposed on a standard brain template in Montreal Neurological Institute (MNI) space. Functional connectivity of D) the periaqueductal gray (PAG) with the right superior temporal gyrus posterior division, middle temporal gyrus temporooccipital part and posterior division, supramarginal gyrus posterior division, planum temporale (light blue), E and F) the dorsal raphe nucleus (DRN) and bilateral pre-, postcentral gyrus (middle blue), and G) left locus coeruleus (LC) with left pre-, postcentral gyrus (dark blue) correlated with age. H) A largely overlapping cluster covering left pre-, postcentral gyrus, superior parietal lobule (red) showed FC with right LC impacted by non-encapsulated probiotic intervention (illustration of the posthoc within-group effect, for visualisation of the main time effect please refer to Supplementary Figure 5). I and J) show intervention-related changes in FC of the right LC with two other clusters, namely one covering left occipital pole, occipital fusiform gyrus, lingual gyrus, cerebellum crus1 and 2, and the other covering right insular cortex, central opercular cortex, putamen, precentral gyrus, planum polare, frontal operculum cortex (both are not visual in this view). The solid line in the graphs represents the best-fit line of a simple linear regression, the doted lines indicate its 95% confidence bands. n=83 participants totally, n=27 participants received the placebo, n=26 the encapsulated and n=30 the non-encapsulated probiotic intervention. Seed-to-voxel analyses (SBC) performed in CONN Toolbox version 25.b. Brainstem seeds are not visual in this view (see Supplementary Figure 2 and 3). Figure created in MRIcroGL and GraphPad Prism.</p>
+<h3>ACKNOWLEDGEMENTS</h3>
+<p>We thank the staff at the Center for Experimental and Biomedical Imaging in Örebro (CEBIO) for the conductance of MRI investigations, Myrto Chatzopoulou and other former and current colleagues at the Nutrition-Gut-Brain Interactions Research Centre for assistance during data collection. The authors acknowledge AnaBio Technologies for development, manufacture and provision of the probiotic and placebo study products and for technical support relating to the study formulations.</p>
+<h3>FUNDING</h3>
+<p>This study was supported by AnaBio Technologies, Dublin, Ireland. Study team and sponsor have been in regular exchange, yet, the sponsor did not have any influence on the analyses nor interpretation. This study was furthermore conducted within the Responsive Nutrition Profile Rosetta@ORU, funded by the Swedish Knowledge Foundation (grant number KKS 20230004-H-01).</p>
+<h3>DATA AVAILABILITY STATEMENT</h3>
+<p>The data are pseudonymised, and the key variable may not be destroyed. According to Swedish ethics regulations, the raw data cannot be shared without an approved ethics application from the National Swedish Ethics Authority. An ethical permit can only be obtained for research being conducted within Sweden. Data can be requested as a public document via forskningsdata@oru.se and will have to undergo a confidentiality assessment to determine what can be released.</p>
+<h3>PUBLIC AND PATIENT INVOLVEMENT</h3>
+<p>Participants have not been involved in design and study execution, yet apprehensible results of the main study have been disseminated to them. Part of the group-level results have been presented to healthcare professionals and scientific audiences.</p>
+<h3>COMPETING INTERESTS</h3>
+<p>None of the authors have any conflicts of interest to declare.</p>
+<h3>Julia</h3>
+<p>Rode: Writing -review &amp; editing, Writing -original draft, Visualisation, Validation, Supervision, Project administration, Methodology, Investigation, Formal analysis, Data curation, Software, Conceptualisation. Ashley N Hutchinson: Writing -review &amp; editing, Writing -original draft, Visualisation, Validation, Supervision, Project administration, Investigation, Conceptualisation. Per Thunberg: Writing -review &amp; editing, Writing -original draft, Validation, Methodology, Investigation, Software, Resources, Conceptualisation. Robert J Brummer: Writing -review &amp; editing, Supervision, Resources, Investigation, Funding acquisition, Conceptualisation.</p>
+<h3>ETHICS STATEMENT</h3>
+<p>The study was performed according to the Declaration of Helsinki and its revisions, approved by the Swedish Ethical Review Authorities (original approval on date 2023-01-30, registration number 2022-06042-01, and amendment 2025-02584-02) and registered at ClinicalTrials.gov under ID: NCT05801042 (submission date 2023-02-10). All participants received written and verbal information and provided written informed consent before any study-related activity. Participation was voluntary and could be withdrawn at any time for any reason without needing to disclose the reason. Study participants received 2000 SEK (taxable income), compensating for time and potential discomfort.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. ROI-to-ROI connectivity (RRC) matrix of n=83 healthy elderly at baseline. A within-brainstem functional connectivity (FC), B overall brainstem-to-cortex/subcortex/cerebellum FC, and C region-based brainstem-tocortex/subcortex/cerebellum FC with brainstem seeds. B and C share the same colour bar. Abbreviations: NTSnucleus tractus solitarius, LC -locus coeruleus, DRN -dorsal raphe nucleus, RN -red nucleus, PAG -periaqueductal gray, VTA -ventral tegmental area, SN -substantia nigra, STN -subthalamic nucleus, l -left, r -right. For details on groupings of cortical, subcortical and cerebellar regions and explanations of their abbreviations please refer to Supplementary Table2.</p>
+<h3>Figure 2 .Figure 3.</h3>
+<p>Figure 2. Brainstem-to-cortex functional connectivity (FC) at rest correlated with cognitive performance and psychological symptoms in healthy elderly. A) Axial, B) coronal, and C) sagittal view of brain regions superimposed on a standard brain template in Montreal Neurological Institute (MNI) space. White regions show brainstem seeds. Functional connectivity of the periaqueductal gray (PAG, dorsal white) with the precuneus cortex, right cuneal cortex, cingulate gyrus posterior division (yellow) and the precuneus cortex, cingulate gyrus posterior division (brown) correlated with D) cognitive performance assessed by the Montreal Cognitive Assessment (MoCA) and E) mood assessed by the Hospital Anxiety and Depression Scale (HADS). Functional connectivity of the right nucleus tractus solitarius (NTS, ventral white) with the left lateral occipital cortex superior and inferior division, angular gyrus, middle temporal gyrus temporooccipital part (orange) correlated with stress assessed by the Perceived Stress Scale (PSS). For MoCA the higher the score, the better the cognitive performance, for HADS and PSS the lower the score the better the mood and lower the stress perception. The solid line in the graphs represents the best-fit line of a simple linear regression, the doted lines indicate its 95% confidence bands. n=83 participants. Seed-to-voxel analyses (SBC) performed in CONN Toolbox version 25.b. Figure created in MRIcroGL and GraphPad Prism.</p>
+<h3>Table 1.</h3>
+<p>Study participant&#x27;s baseline characteristicsStatistical comparisons between the groups with Chi-square test (sex), one-way ANOVA (age), or Kruskal-Wallis test (MoCA, HADS, PSS, PSQI, GSRS, hsCRP) in GraphPad Prism, version 10.2.2. # sum rating of all items, ## average rating of all items.</p>
+<h3>Table 2.</h3>
+<p>Baseline factors (age, sex, Montreal Cognitive Assessment (MoCA), Hospital Anxiety and Depression Scale (HADS), Perceived Stress Scale (PSS), Pittsburgh Sleep Quality Index (PSQI), Gastrointestinal Symptom Rating Scale,</p>
+<h3>Table 3.</h3>
+<p>Functional connectivity of one a priori selected brainstem region of interest, namely ventral tegmental area (VTA). Results of seed-based connectivity (SBC); 2x3 factorial design results (i.e. main group, main time, or time*group interaction effects) reported if cluster size p-FDR&lt;0.05, posthoc test results reported if cluster size p-FDR&lt;0.0056 due to additional multiplicity correction for the number of multiple comparisons tested.</p>
+<h3>Table 4.</h3>
+<p>Functional connectivity of one a priori selected brainstem region of interest, namely locus coeruleus (LC). Results of seed-based connectivity (SBC); 2x3 factorial design results (i.e. main group, main time, or time*group interaction effects) reported if cluster size p-FDR&lt;0.05, posthoc test results reported if cluster size p-FDR&lt;0.0056 due to additional multiplicity correction for the number of multiple comparisons tested.</p>
+<h3>References</h3>
+<p>Ran C, Boettcher JC, Kaye JA, et al. A brainstem map for visceral sensations. Nature 2022;609(7926):320-26. doi: 10.1038/s41586-022-05139-5 [published Online First: 20220831]</p>
+<p>Dong TS, Jann K, Wang DJJ, Church A. Understanding whole person systems in brain- gut-microbiome research through ultra-high-field MRI imaging. Neuroimage 2025;317:121360. doi: 10.1016/j.neuroimage.2025.121360 [published Online First: 20250702]</p>
+<p>Zhang S, Hu S, Chao HH, Li CS. Resting-State Functional Connectivity of the Locus Coeruleus in Humans: In Comparison with the Ventral Tegmental Area/Substantia Nigra Pars Compacta and the Effects of Age. Cereb Cortex 2016;26(8):3413-27. doi: 10.1093/cercor/bhv172 [published Online First: 20150728]</p>
+<p>Gaspert A, Schulke R, Houjaije Z, et al. Increased functional connectivity between brainstem substructures and cortex in treatment resistant depression. Psychiatry Res Neuroimaging 2025;348:111957. doi: 10.1016/j.pscychresns.2025.111957 [published Online First: 20250127]</p>
+<p>Vytlacil J, Kayser A, Miyakawa A, D&#x27;Esposito M. An approach for identifying brainstem dopaminergic pathways using resting state functional MRI. PLoS One 2014;9(1):e87109. doi: 10.1371/journal.pone.0087109 [published Online First: 20140131]</p>
+<p>Mueller SG, Muller AM. Brainstem Dysfunction in Healthy Aging. Neuroimage 2021;238:118241. doi: 10.1016/j.neuroimage.2021.118241 [published Online First: 20210608]</p>
+<p>Bar KJ, de la Cruz F, Schumann A, et al. Functional connectivity and network analysis of midbrain and brainstem nuclei. Neuroimage 2016;134:53-63. doi: 10.1016/j.neuroimage.2016.03.071 [published Online First: 20160401]</p>
+<p>Deery HA, Di Paolo R, Moran C, et al. The older adult brain is less modular, more integrated, and less efficient at rest: A systematic review of large-scale resting- state functional brain networks in aging. Psychophysiology 2023;60(1):e14159. doi: 10.1111/psyp.14159 [published Online First: 20220915]</p>
+<p>Sclocco R, Fisher H, Staley R, et al. Cine gastric MRI reveals altered Gut-Brain Axis in Functional Dyspepsia: gastric motility is linked with brainstem-cortical fMRI connectivity. Neurogastroenterol Motil 2022;34(10):e14396. doi: 10.1111/nmo.14396 [published Online First: 20220513]</p>
+<p>Muller SJ, Teckentrup V, Rebollo I, et al. Vagus nerve stimulation increases stomach- brain coupling via a vagal afferent pathway. Brain Stimul 2022;15(5):1279-89. doi: 10.1016/j.brs.2022.08.019 [published Online First: 20220905]</p>
+<p>Beckers AB, van Oudenhove L, Weerts Z, et al. Evidence for engagement of the nucleus of the solitary tract in processing intestinal chemonociceptive input irrespective of conscious pain response in healthy humans. Pain 2022;163(8):1520-29. doi: 10.1097/j.pain.0000000000002538 [published Online First: 20211115]</p>
+<p>Frank-Podlech S, Heinze JM, Machann J, et al. Functional Connectivity Within the Gustatory Network Is Altered by Fat Content and Oral Fat Sensitivity -A Pilot Study. Front Neurosci 2019;13:725. doi: 10.3389/fnins.2019.00725 [published Online First: 20190710]</p>
+<p>Kilpatrick LA, Coveleskie K, Connolly L, et al. Influence of sucrose ingestion on brainstem and hypothalamic intrinsic oscillations in lean and obese women. Gastroenterology 2014;146(5):1212-21. doi: 10.1053/j.gastro.2014.01.023 [published Online First: 20140128]</p>
+<p>Qi R, Liu C, Ke J, et al. Abnormal Amygdala Resting-State Functional Connectivity in Irritable Bowel Syndrome. AJNR Am J Neuroradiol 2016;37(6):1139-45. doi: 10.3174/ajnr.A4655 [published Online First: 20160114]</p>
+<p>Mao CP, Chen FR, Huo JH, et al. Altered resting-state functional connectivity and effective connectivity of the habenula in irritable bowel syndrome: A cross- sectional and machine learning study. Hum Brain Mapp 2020;41(13):3655-66. doi: 10.1002/hbm.25038 [published Online First: 20200603]</p>
+<p>Hutchinson ANA, E. A.; Forsgård, R. A.; König, J.; Ganda Mall, JP.; Rode. J. The effects of oral probiotic intervention on brain structure and function in human adults: a systematic review. npj biofilms and microbiomes 2025;in press</p>
+<p>Bagga D, Aigner CS, Reichert JL, et al. Influence of 4-week multi-strain probiotic administration on resting-state functional connectivity in healthy volunteers. Eur J Nutr 2019;58(5):1821-27. doi: 10.1007/s00394-018-1732-z[published Online First:20180530]</p>
+<p>Rode J, Edebol Carlman HMT, Konig J, et al. Multi-Strain Probiotic Mixture Affects Brain Morphology and Resting State Brain Function in Healthy Subjects: An RCT. Cells 2022;11(18) doi: 10.3390/cells11182922 [published Online First: 20220919]</p>
+<p>Tillisch K, Labus J, Kilpatrick L, et al. Consumption of fermented milk product with probiotic modulates brain activity. Gastroenterology 2013;144(7):1394-401, 401 e1-4. doi: 10.1053/j.gastro.2013.02.043 [published Online First: 20130306]</p>
+<p>Rode J, Hutchinson AN, Chatzopoulou MS, et al. Micro-encapsulation differentially impacts probiotic effects on brain structure and function in an elderly population -A randomised placebo-controlled trial. Brain Behav Immun 2025;130:106113. doi: 10.1016/j.bbi.2025.106113 [published Online First: 20250919]</p>
+<p>Nasreddine ZS, Phillips NA, Bedirian V, et al. The Montreal Cognitive Assessment, MoCA: a brief screening tool for mild cognitive impairment. J Am Geriatr Soc 2005;53(4):695-9. doi: 10.1111/j.1532-5415.2005.53221.x</p>
+<p>Zigmond AS, Snaith RP. The hospital anxiety and depression scale. Acta Psychiatr Scand 1983;67(6):361-70. doi: 10.1111/j.1600-0447.1983.tb09716.x</p>
+<p>Cohen S, Kamarck T, Mermelstein R. A global measure of perceived stress. J Health Soc Behav 1983;24(4):385-96.</p>
+<p>Buysse DJ, Reynolds CF, 3rd, Monk TH, et al. The Pittsburgh Sleep Quality Index: a new instrument for psychiatric practice and research. Psychiatry Res 1989;28(2):193-213. doi: 10.1016/0165-1781(89)90047-4</p>
+<p>Svedlund J, Sjodin I, Dotevall G. GSRS--a clinical rating scale for gastrointestinal symptoms in patients with irritable bowel syndrome and peptic ulcer disease. Dig Dis Sci 1988;33(2):129-34. doi: 10.1007/BF01535722</p>
+<p>Levinson S, Miller M, Iftekhar A, et al. A structural connectivity atlas of limbic brainstem nuclei. Front Neuroimaging 2022;1:1009399. doi: 10.3389/fnimg.2022.1009399 [published Online First: 20230112]</p>
+<p>Wilder-Smith CH, Schindler D, Lovblad K, et al. Brain functional magnetic resonance imaging of rectal pain and activation of endogenous inhibitory mechanisms in irritable bowel syndrome patient subgroups and healthy controls. Gut 2004;53(11):1595-601. doi: 10.1136/gut.2003.028514</p>
+<p>Dunckley P, Wise RG, Fairhurst M, et al. A comparison of visceral and somatic pain processing in the human brainstem using functional magnetic resonance imaging. J Neurosci 2005;25(32):7333-41. doi: 10.1523/JNEUROSCI.1100-05.2005</p>
+<p>Rosenberger C, Elsenbruch S, Scholle A, et al. Effects of psychological stress on the cerebral processing of visceral stimuli in healthy women. Neurogastroenterol Motil 2009;21(7):740-e45. doi: 10.1111/j.1365-2982.2009.01295.x[published Online First:20090408]</p>
+<p>Wagner G, de la Cruz F, Kohler S, Bar KJ. Treatment Associated Changes of Functional Connectivity of Midbrain/Brainstem Nuclei in Major Depressive Disorder. Sci Rep 2017;7(1):8675. doi: 10.1038/s41598-017-09077-5 [published Online First: 20170817]</p>
+<p>Su Y, Dong Y, Feng J, et al. Evaluating the efficacy of probiotics in treating Parkinson&#x27;s disease model rats using magnetic resonance enhanced gradient echo T2- weighted angiography sequence. Front Neurosci 2025;19:1662530. doi: 10.3389/fnins.2025.1662530 [published Online First: 20251001]</p>
+<p>Kaelberer MM, Buchanan KL, Klein ME, et al. A gut-brain neural circuit for nutrient sensory transduction. Science 2018;361(6408) doi: 10.1126/science.aat5236</p>
+<p>Parker CG, Dailey MJ, Phillips H, Davis EA. Central sensory-motor crosstalk in the neural gut-brain axis. Auton Neurosci 2020;225:102656. doi: 10.1016/j.autneu.2020.102656 [published Online First: 20200215]</p>
+<p>Berthoud HR, Blackshaw LA, Brookes SJ, Grundy D. Neuroanatomy of extrinsic afferents supplying the gastrointestinal tract. Neurogastroenterol Motil 2004;16 Suppl 1:28-33. doi: 10.1111/j.1743-3150.2004.00471.x</p>
+<p>Osman S, Tashtush A, Reed DE, Lomax AE. Analysis of the spinal and vagal afferent innervation of the mouse colon using neuronal retrograde tracers. Cell Tissue Res 2023;392(3):659-70. doi: 10.1007/s00441-023-03769-3 [published Online First: 20230401]</p>
+<p>Wang Q, McGovern AE, Kyloh M, et al. Splanchnic and Pelvic Spinal Afferent Pathways Relay Sensory Information From the Mouse Colorectum Into Distinct Brainstem Circuits. J Neurochem 2025;169(9):e70211. doi: 10.1111/jnc.70211</p>
+<p>Harita S, Stroman PW. Confirmation of resting-state BOLD fluctuations in the human brainstem and spinal cord after identification and removal of physiological noise. Magn Reson Med 2017;78(6):2149-56. doi: 10.1002/mrm.26606 [published Online First: 20170111]</p>
+<p>Cauzzo S, Singh K, Stauder M, et al. Functional connectome of brainstem nuclei involved in autonomic, limbic, pain and sensory processing in living humans from 7 Tesla resting state fMRI. Neuroimage 2022;250:118925. doi: 10.1016/j.neuroimage.2022.118925 [published Online First: 20220121]</p>
+<p>Hansen JY, Cauzzo S, Singh K, et al. Integrating brainstem and cortical functional architectures. Res Sq 2023 doi: 10.21203/rs.3.rs-3569352/v1 [published Online First: 20231128]</p>
+<p>Singh K, Cauzzo S, Garcia-Gomar MG, et al. Functional connectome of arousal and motor brainstem nuclei in living humans by 7 Tesla resting-state fMRI. Neuroimage 2022;249:118865. doi: 10.1016/j.neuroimage.2021.118865 [published Online First: 20220112]</p>
 </div>
 </details>
 </div>
