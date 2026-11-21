@@ -197,7 +197,7 @@ Determinants of early child development among children aged 24-59 months
 in Ethiopia: 2024-25 Demographic and Health Survey
 </p>
 <p class="meta">
-2026-11-12 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.10.26367725
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.10.26367725
 </p>
 </header>
 <div class="mc-main">
@@ -420,8 +420,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -791,9 +794,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -815,7 +822,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -830,9 +838,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -845,13 +871,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -871,6 +900,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -878,12 +913,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -984,6 +1025,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1003,6 +1064,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1258,19 +1354,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1380,6 +1558,114 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: The 2024-25 Ethiopia Demographic and Health Survey (EDHS) is the first national survey in Ethiopia to measure early childhood development using UNICEF&#x27;s Early Childhood Development Index 2030 (ECDI2030). This provides a national estimate for Sustainable Development Goal (SDG) indicator 4.2.1, the proportion of children aged 24-59 months who are developmentally on track. We estimated the prevalence of being developmentally on track and examined its child, maternal, household and community determinants in Ethiopia.</p>
+<p>Methods: This cross-sectional study analysed 3,731 children aged 24-59 months (weighted n = 3,514) of 3,232 mothers in 771 clusters. Children were on track if they achieved the age-specific minimum number of the 20 ECDI2030 milestones. Prevalence was estimated with design-based methods. Four three-level mixed-effects logistic regression models (children within mothers within clusters) were fitted, and interviewer effects were assessed.</p>
+<p>Results: Overall, 36.3% (95% CI 33.4-39.3) of children were developmentally on track.</p>
+<p>Prevalence ranged from 23.3% in Southwest Regional State, Ethiopia, to 77.7% in Addis Ababa.</p>
+<p>In the null model, 21.5% of the variation lay between clusters (median odds ratio 3.24). In the final model, the odds of being on track were lower at 36-47 months (adjusted odds ratio [AOR] 0.57, 95% CI 0.44-0.74) and 48-59 months (AOR 0.39, 0.30-0.51) than at 24-35 months. They were also lower after a preceding birth interval under 24 months (AOR 0.75, 0.57-0.99), after recent diarrhoea, fever or cough (AOR 0.59, 0.45-0.77), and where distance to a health facility was a big problem (AOR 0.61, 0.48-0.79). Odds were higher for girls (AOR 1.38, 1.12-1.70), with maternal education (more than secondary vs none: AOR 2.08, 1.19-3.63) and with weekly media exposure (AOR 2.15, 1.51-3.06). The covariates explained 55.9% of the between-cluster variance.</p>
+<p>Conclusions: Nearly two in three Ethiopian children aged 24-59 months are not developmentally on track, and children fall further behind as they age. Interventions should target maternal education, access to information and health services, birth spacing and childhood illness, with priority for the lowest-performing regions and communities.</p>
+<h3>Background</h3>
+<p>The first years of life are a period of rapid brain development in which motor, language, cognitive, socio-emotional and self-regulatory capacities are built. Development in these years predicts later schooling, health and earnings, and early deficits tend to widen over the life course [1, 2]. An estimated 250 million children under five years in low-and middle-income countries (LMICs) were at risk of not reaching their developmental potential because of stunting or extreme poverty, and this risk is concentrated in sub-Saharan Africa [3, 4]. The Nurturing Care Framework identifies good health, adequate nutrition, responsive caregiving, opportunities for early learning, and security and safety as the inputs young children need [5, 6]. Sustainable Development Goal target 4.2 commits countries to ensuring that all children have access to quality early childhood development, care and pre-primary education. Indicator 4.2.1 is the proportion of children aged 24-59 months who are developmentally on track in health, learning, and psychosocial well-being [7]. Earlier surveys used the 10-item Early Childhood Development Index for children aged 36-59 months, which had ceiling and floor effects and limited content validity. In 2020, UNICEF released the ECDI2030, a 20-item caregiver-reported measure for children aged 24-59 months with age-specific performance standards [7]. ECDI2030 estimates are not comparable with those from the original index.</p>
+<p>Ethiopia has adopted a revised policy framework for early childhood development, care and education, along with a national early childhood development strategy [8]. The Ethiopian government has implemented numerous initiatives to improve early childhood development, including daycares in all government offices, community playgrounds, school meals, and other measures. However, population-level evidence on early development remains limited. Multicountry DHS analyses have linked child development to maternal education, household wealth, women&#x27;s empowerment and anaemia [9, 10]. A recent analysis of three East African surveys using the ECDI2030 identified child age, maternal education, wealth and access to early learning as leading predictors [11]. Children within the same community share services, infrastructure and norms, and siblings share a caregiver who reports on them. Multilevel models are therefore needed to separate individual from contextual variation [12, 13].</p>
+<p>With the 2024-25 EDHS, Ethiopia has, for the first time, nationally representative ECDI2030 data [8]. This study aimed to estimate the prevalence and multilevel determinants of being developmentally on track among Ethiopian children aged 24-59 months.</p>
+<h3>Methods</h3>
+<h3>Study design, setting and data source</h3>
+<p>This analysis draws on the 2024-25 EDHS, a nationally representative household survey carried out by the Ethiopian Statistical Service with technical support from ICF; fieldwork ran from August 2024 to April 2025 [8]. Households were sampled in two stages. First, 805 enumeration areas were drawn with probability proportional to size within 27 strata formed by crossing region with urban or rural residence; second, 28 households were picked systematically from each area. Security problems prevented fieldwork in eight clusters in Amhara, leaving 797. Interviews were completed in 21,241 of 21,494 occupied households (98.8%) and with 21,395 of 22,231 eligible women aged 15-49 years (96.2%) [8]. Our reporting follows the STROBE checklist for crosssectional studies [14] (Additional file 3).</p>
+<h3>Study population</h3>
+<p>The ECDI2030 questions sat within the Woman&#x27;s Questionnaire and were asked in a random half of the sampled households. In those households, each mother reported on every biological child aged 24-59 months who lived with her [8]. Each ECDI2030 record in the women&#x27;s file carries an index (idxecd) pointing to the child&#x27;s entry in the birth history, and all 3,731 records matched a living child of the right age. Our sample therefore consisted of 3,731 children (weighted n = 3,514) born to 3,232 mothers in 771 clusters, the same denominator as in the survey report [8].</p>
+<p>None of the covariates had missing values.</p>
+<h3>Outcome: developmentally on track</h3>
+<p>The ECDI2030 consists of 20 questions on milestones and behaviours in three domains. The health domain covers gross motor, fine motor and self-care. The learning domain covers expressive language, early literacy, numeracy, pre-writing and executive functioning. The psychosocial domain covers emotional and social skills and internalising and externalising behaviour [7]. Items 1-18 are yes/no questions and were scored 1 for &quot;yes&quot;; &quot;no&quot; and &quot;don&#x27;t know&quot; were scored 0. Item 19, how often the child seems very sad or depressed, was scored 1 unless the answer was &quot;daily&quot; or &quot;don&#x27;t know&quot;. Item 20, how much the child kicks, bites or hits other children compared with peers, was scored 1 for &quot;not at all&quot; or &quot;the same or less&quot; [7]. A child was classified as developmentally on track if the summed score reached at least 7 (24-29 months), 9 (30-35), 11 (36-41), 13 (42-47) or 15 (48-59 months) [7, 8]. Because the ECDI2030 is designed to give a single summary indicator, domain-specific estimates were not computed; item-level results are shown in Additional file 1. Our coding reproduced the published national estimate (36.3%) and all published subgroup estimates exactly [8].</p>
+<h3>Covariates</h3>
+<p>Covariate variables were selected a priori from the Nurturing Care Framework and previous DHS-based studies [5, [9] [10] [11].</p>
+<p>Child-level variables were age (24-35, 36-47, 48-59 months), sex, birth order (1, 2-3, 4-5, ≥6), a preceding birth interval of less than 24 months, receipt of vitamin A in the past six months, and diarrhoea, fever or cough in the two weeks before the survey.</p>
+<p>Maternal variables were age (15-24, 25-34, 35-49 years), highest education, marital status, current work, at least weekly exposure to a newspaper, radio or television, and ever use of the internet.</p>
+<p>Household and community variables were sex of the household head, household size (≤4, 5-7, ≥8 members), wealth quintile, whether distance to a health facility was a big problem when seeking care, place of residence and region. &quot;Don&#x27;t know&quot; responses for vitamin A and illness were coded as &quot;no&quot;. Anthropometric measurements were taken in the other half of households and were therefore unavailable for these children.</p>
+<h3>Statistical analysis</h3>
+<p>All analyses were carried out in Stata version 18 [15]. For national and subgroup prevalence, we declared the survey design (svyset) using the women&#x27;s sampling weight, the 771 clusters as primary sampling units and the 27 sampling strata. Standard errors came from Taylor linearisation, and 95% confidence intervals (CI) were computed on the logit scale. Differences in prevalence across categories were judged with the design-adjusted Wald F test.</p>
+<p>To study determinants, we treated the data as three nested levels, children (level 1) within mothers (level 2) within clusters (level 3), and fitted random-intercept logistic models with melogit, using mean-variance adaptive Gauss-Hermite quadrature with 25 integration points.</p>
+<p>The models were built in four steps: an empty model (Model 0); child and maternal characteristics (Model 1); household and community characteristics alone (Model 2); and all characteristics together (Model 3). Region and residence, which define the sampling strata, were entered as fixed effects, and each covariate was also fitted on its own to give crude odds ratios (COR). Clustering was summarised with the intraclass correlation (ICC = σ²(cluster)/[σ²(cluster) + σ²(mother) + π²/3]); the cluster variance was expressed as a median odds ratio (MOR = exp[0.954√σ²(cluster)]); and the share of it explained by each set of covariates was given by the proportional change in variance (PCV) [12, 13]. We retained the model with the lowest Akaike information criterion (AIC), using the Bayesian information criterion and log-likelihood as secondary guides. Because level-specific weights are not released with DHS data, the multilevel models were fitted without weights, as discussed in DHS methodological guidance [16]; as a check, we also fitted a design-weighted single-level logistic regression, which gives populationaveraged odds ratios. Associations are reported as adjusted odds ratios (AOR) with 95% CIs, and p &lt; 0.05 was taken as statistically significant.</p>
+<p>ECDI2030 answers come from mothers but are recorded by interviewers, so differences in how interviewers asked or coded the questions could look like community variation. We examined this in two ways. First, we compared a two-level model with a cluster random intercept with one that had an interviewer random intercept instead. Second, for each of the 161 interviewers, we compared the number of children recorded as on track with the number expected from colleagues working in the same clusters (Mantel-Haenszel test stratified by cluster), flagging interviewers whose two-sided p-value fell below the Bonferroni threshold (0.05/161). The full model was then refitted without the children these interviewers had assessed. Claude (Anthropic), an AI model, helped with data management and with writing the analysis code; we checked every step and every result ourselves. The complete Stata code is given in Additional file 2.</p>
+<h3>Ethical considerations</h3>
+<p>We used de-identified data that the DHS Program makes available to registered researchers, and we had no contact with survey participants. The DHS Program approved our request to use the 2024-25 EDHS datasets, which we downloaded from https://dhsprogram.com/data/available-datasets.cfm. Because this was a secondary analysis, we did not seek further ethical review. The survey itself was approved by the Ethiopian Public Health Institute Institutional Review Board and the ICF Institutional Review Board, and every respondent gave informed consent before being interviewed [8].</p>
+<h3>Results</h3>
+<h3>Characteristics of the study population</h3>
+<p>Of the 3,731 children (weighted n = 3,514), 52.7% were boys and 72.4% lived in rural areas.</p>
+<p>Nearly half (45.8%) had mothers with no formal education, 27.9% had mothers with weekly media exposure and 10.0% had mothers who had used the internet. One in five (20.7%) were born less than 24 months after a previous birth, and 19.9% had diarrhoea, fever or cough in the previous two weeks (Table 1).</p>
+<h3>Prevalence of being developmentally on track</h3>
+<p>Overall, 36.3% (95% CI 33.4-39.3) of children were developmentally on track (Table 1).</p>
+<p>Prevalence was 42.6% at 24-35 months and about one third at 36-47 (33.6%) and 48-59 months (33.4%; p = 0.007). Milestones in early literacy and numeracy were achieved by few children, even at 48-59 months: 26.5% recognised five letters, 20.2% recognised the numbers 1-5 and 8.7% could write their name (Additional file 1, Table S1). Prevalence rose with mother&#x27;s education, from 28.6% (no education) to 62.9% (more than secondary), and with household wealth, from 27.2% in the lowest to 53.9% in the highest quintile. It was higher among children whose mothers had weekly media exposure (54.5% vs 29.3%) or had used the internet (64.9% vs 33.1%), and in urban than in rural areas (50.8% vs 30.8%). Prevalence was lower where distance to a health facility was a big problem (30.5% vs 41.2%) and after a short preceding birth interval (30.2% vs 37.9%). By region, it ranged from 23.3% in Southwest Regional State and 29.0% in Amhara Regional State to 62.3% in Harari Regional State and 77.7% in Addis Ababa City Administration.</p>
+<h3>Between-cluster variation and model fit</h3>
+<p>In the null model, the variance was 1.52 between clusters and 2.25 between mothers. This gave a cluster ICC of 21.5%, a sibling correlation of 53.4% and a MOR of 3.24 (Table 2). A two-level model fitted much better than a single-level model (likelihood-ratio χ² = 152, p &lt; 0.001). Child and maternal variables reduced the cluster variance by 32.9% (Model 1) and household and community variables by 54.0% (Model 2). The full model (Model 3) explained 55.9% of the cluster variance, had the lowest AIC (4,472) and was retained. Residual clustering remained substantial (ICC 10.8%; MOR 2.18).</p>
+<h3>Factors associated with being developmentally on track</h3>
+<p>In the final model (Table 3), the odds of being on track were lower among children aged 36-47 months (AOR 0.57, 95% CI 0.44-0.74) and 48-59 months (AOR 0.39, 0.30-0.51) than among those aged 24-35 months. Girls had higher odds than boys (AOR 1.38, 1.12-1.70). Odds were lower among children born less than 24 months after a previous birth (AOR 0.75, 0.57-0.99) and those with diarrhoea, fever or cough in the previous two weeks (AOR 0.59, 0.45-0.77).</p>
+<p>Compared with children of mothers with no education, odds were higher for those whose mothers had primary (AOR 1.37, 1.02-1.82), secondary (AOR 1.86, 1.22-2.83) or more than secondary education (AOR 2.08, 1.19-3.63). Maternal weekly media exposure was associated with higher odds (AOR 2.15, 1.51-3.06). Children in households where distance to a health facility was a big problem had lower odds (AOR 0.61, 0.48-0.79), and those in the middle wealth quintile had higher odds than the poorest (AOR 1.62, 1.09-2.41). Compared with Addis Ababa, odds were lower in most regions, most markedly in South West Ethiopia (AOR 0.12, 0.05-0.29), Amhara (AOR 0.16, 0.07-0.36), Benishangul-Gumuz (AOR 0.17, 0.07-0.41) and Tigray (AOR 0.18, 0.08-0.40); Harari, Somali and Sidama did not differ significantly. Large crude associations with residence (COR 0.26), wealth (highest vs lowest COR 8.13) and internet use (COR 5.62) were largely explained by the other variables. Birth order, vitamin A, mother&#x27;s age, marital status and work, sex of household head and household size were not independently associated.</p>
+<h3>Interviewer effects and sensitivity analyses</h3>
+<p>Replacing the cluster random intercept with an interviewer random intercept improved model fit (AIC 4,197 vs 4,502) and raised the ICC from 12.1% to 25.2%, so some of the apparent clustering reflects differences between interviewers rather than between communities. Seven of 161 interviewers were flagged: four recorded more and three fewer children on track than other interviewers in the same clusters (Additional file 1, Table S3). These seven interviewers had interviewed 2.7% of the weighted sample. Excluding them changed the national prevalence only slightly, to 35.8% (32.8-38.9). Associations with age, sex, recent illness, maternal education and media exposure were unchanged; those with distance to a health facility (AOR 0.80, 0.62-1.02) and short birth interval (AOR 0.79, 0.60-1.04) were weaker and no longer significant, whereas internet use (AOR 1.60, 1.01-2.52) and the highest wealth quintile (AOR 1.88, 1.01-3.51) became significant (Additional file 1, Table S2). In design-based single-level models, the associations with age and media exposure remained significant, whereas those with maternal education, recent illness and distance were smaller and not significant, as expected for population-averaged estimates.</p>
+<h3>Discussion</h3>
+<p>This study provides the first national estimate of SDG indicator 4.2.1 for Ethiopia using the ECDI2030, and the first multilevel analysis of its determinants. Only about one in three children aged 24-59 months (36.3%) was developmentally on track. Children were more likely to be on track if they were younger, female, born after an adequate birth interval and recently free of illness, if their mothers were educated and exposed to media, if their households were within reach of health services, and if they lived in better-performing regions. Development was strongly clustered within families and communities, and partly within interviewers.</p>
+<p>The national prevalence is similar to recent ECDI2030 estimates for Mozambique (39%) and lower than those for Tanzania (47%) and Kenya (78%) [11]. Because the ECDI2030 uses different items, ages and scoring from the original index, these estimates should not be compared with earlier figures based on the 10-item ECDI or used to infer trends [7].</p>
+<p>The age-specific standards are designed so that a similar share of children would be on track at each age in a reference population. The decline from 42.6% at 24-35 months to about one third at older ages, and the strong age gradient after adjustment, therefore suggest that Ethiopian children fall further behind as expectations shift towards language, early literacy and numeracy. Item-level data support this: at 48-59 months, only about a quarter of children recognised letters or counted to ten, and fewer than one in ten could write their name. These findings point to the importance of early learning opportunities at home and of expanding pre-primary education before school entry [1, 2, 8].</p>
+<p>Maternal education showed a clear gradient that persisted after adjustment for wealth, residence and region, in agreement with multi-country evidence [3, 9, 17]. Educated mothers are more likely to provide responsive care and learning opportunities and to use health services [2, 17].</p>
+<p>Weekly exposure to media was among the strongest independent correlates. It may provide parenting and health information, but in cross-sectional data it also marks household resources and engagement, so it should not be interpreted as causal. The large crude wealth and urban-rural gradients were mostly explained by maternal education, media exposure, access to services and region. This suggests that these more proximal factors carry much of the socioeconomic disadvantage.</p>
+<p>Recent illness and short birth intervals were independently associated with lower odds of being on track. Both are consistent with the Nurturing Care Framework, in which good health and adequate caregiver time and resources support development [5]. Recent illness may reduce a child&#x27;s activity and opportunities for learning, and may also mark recurrent illness and undernutrition, which we could not measure. The association with illness was seen only in comparisons within communities and families: weighted prevalence did not differ by recent illness (36.4% vs 36.3%), and the population-averaged odds ratio (0.80) was not significant, so this finding should be interpreted with caution. Short birth intervals may dilute maternal attention and household resources. Distance to health facilities, a marker of service access, was also associated with poorer development, although this association weakened when outlying interviewers were excluded, which supports integrating developmental monitoring and caregiver counselling into routine child health contacts and the Health Extension Programme. Girls had higher odds of being on track than boys, consistent with sex differences in early language and social development reported in other settings.</p>
+<p>Regional differences remained large after adjustment. South West Ethiopia, Amhara, Benishangul-Gumuz and Tigray had the lowest odds; Amhara and Tigray have been affected by conflict, and South West Ethiopia and Benishangul-Gumuz have limited services. Somali and Sidama had higher prevalence than expected from their socioeconomic profile. This may reflect real differences in caregiving but could also reflect how milestones were interpreted and reported in different languages; measurement invariance of the ECDI2030 across Ethiopian languages has not been established. The substantial interviewer variance supports this caution. Interviewer effects did not bias the national estimate, which changed by less than one percentage point when outlying interviewers were excluded, but they add uncertainty to comparisons between small areas. Residual between-cluster variation (MOR 2.18) indicates that unmeasured community factors, such as availability of pre-primary classes, quality of health services, conflict exposure and child-rearing norms, also matter. This supports area-based targeting of nurturing-care interventions.</p>
+<h3>Strengths and limitations</h3>
+<p>This study has several strengths. It uses the most recent nationally representative data, applies the internationally agreed SDG 4.2.1 measure, reproduces the official estimates exactly, separates family from community variation with three-level models, and checks explicitly for interviewer effects. It also has limitations. Being cross-sectional, it cannot establish causation, and covariates such as recent illness and media exposure may stand in for other, unmeasured factors. The ECDI2030 relies on what mothers report and is designed to describe populations, not to identify individual children with developmental delay [7]. Children who were not living with their mothers were not assessed. We could not adjust for nutritional status or home stimulation, which were not measured for these children, or for early childhood education, which was recorded only from age 4 years. Finally, the multilevel models were unweighted, and some associations were weaker in the population-averaged models.</p>
+<h3>Conclusions</h3>
+<p>Only about one in three Ethiopian children aged 24-59 months is developmentally on track, and children fall further behind as they approach school age. Maternal education, media exposure, access to health services, adequate birth spacing and freedom from illness are associated with better development, and large regional and community differences remain. Achieving SDG target 4.2 will require scaling up nurturing-care and early-learning interventions, with priority for lesseducated households, areas far from health services and the lowest-performing regions.</p>
+<p>The 2024-25 EDHS was approved by the Ethiopian Public Health Institute Institutional Review Board and the ICF Institutional Review Board, and the survey team obtained informed consent from all respondents [8].</p>
+<h3>Consent for publication: Not applicable.</h3>
+<h3>Responsible AI use:</h3>
+<p>Claude (Anthropic) was used to support data management, coding and the preparation of draft text. The authors checked all outputs against the source data and the survey report and are responsible for the content of this article. Table S1. Weighted percentage of children achieving each ECDI2030 milestone, by age group, Ethiopia DHS 2024-25 Item Domain 24-35 months 36-47 months 48-59 months All 1. Walks on an uneven surface without falling Health 55.9 65.3 80.0 67.2 2. Jumps with both feet Health 52.8 70.3 83.7 69.3 3. Dresses self without help Health 22.6 46.8 71.8 47.6 4. Fastens and unfastens buttons Health 16.9 38.5 66.7 41.1 5. Says 10 or more words Learning 64.6 70.8 83.0 72.9 6. Speaks in 3-word sentences Learning 57.0 74.7 84.0 72.3 7. Speaks in 5-word sentences Learning 31.1 57.9 75.2 55.3 8. Uses I/you/she/he correctly Learning 46.2 68.4 82.4 66.1 9. Names a familiar object Learning 46.6 66.6 79.3 64.6 10. Recognises 5+ letters Learning 5.7 13.5 26.5 15.4 11. Writes own name Learning 0.9 1.6 8.7 3.7 12. Recognises numbers 1-5 Learning 2.4 7.0 20.2 9.9 13. Gives 3 objects when asked Learning 7.8 22.5 43.8 24.9 14. Counts 10 objects Learning 3.8 11.5 24.6 13.4 15. Persists in activity without help Learning 8.3 17.7 28.5 18.4 16. Asks about familiar people Psychosocial 24.8 41.5 58.3 41.9 17. Offers to help Psychosocial 30.2 42.6 57.8 43.7 18. Gets along with other children Psychosocial 60.2 70.7 80.4 70.6 19. Not sad/depressed daily Psychosocial 79.8 80.7 86.0 82.2 20. Kicks/bites/hits no more than peers Psychosocial 72.1 71.5 75.0 72.8 Mean number of milestones achieved 6.9 9.4 12.2 Age-specific threshold for &quot;on track&quot; 7 / 9 (24-29 / 30-35) 11 / 13 (36-41 / 42-47) 15</p>
+<p>Items 1-18: &quot;yes&quot;; item 19: sad or depressed less often than daily; item 20: kicks, bites or hits not at all or the same or less than peers. &quot;Don&#x27;t know&quot; scored as not achieved.</p>
+<p>. Additional file 1, Table S2. Sensitivity analyses: conditional (three-level) and population-averaged (design-based) odds ratios, and three-level model excluding flagged interviewers (selected variables)</p>
+<p>Variable Main model AOR (95% CI) Design-based single-level OR (95% CI) Excluding 7 flagged interviewers AOR (95% CI) Child&#x27;s age (months) 24-35 (ref) 1.00 1.00 1.00 36-47 0.57 (0.44-0.74)*** 0.70 (0.52-0.93)* 0.57 (0.44-0.74)*** 48-59 0.39 (0.30-0.51)*** 0.64 (0.48-0.84)** 0.39 (0.30-0.52)*** Child&#x27;s sex Male (ref) 1.00 1.00 1.00 Female 1.38 (1.12-1.70)** 1.17 (0.95-1.45) 1.40 (1.14-1.73)** Preceding birth interval ≥24 months or first birth (ref) 1.00 1.00 1.00 &lt;24 months 0.75 (0.57-0.99)* 0.74 (0.54-1.01) 0.79 (0.60-1.04) Diarrhoea, fever or cough in last 2 weeks No (ref) 1.00 1.00 1.00 Yes 0.59 (0.45-0.77)*** 0.80 (0.62-1.05) 0.66 (0.51-0.87)** Mother&#x27;s education No education (ref) 1.00 1.00 1.00 Primary 1.37 (1.02-1.82)* 1.23 (0.89-1.71) 1.37 (1.03-1.83)* Secondary 1.86 (1.22-2.83)** 1.17 (0.76-1.80) 1.74 (1.14-2.65)** More than secondary 2.08 (1.19-3.63)* 1.67 (0.74-3.74) 2.20 (1.25-3.87)** Weekly exposure to newspaper, radio or TV No (ref) 1.00 1.00 1.00 Yes 2.15 (1.51-3.06)*** 2.13 (1.47-3.08)*** 1.99 (1.40-2.82)*** Mother ever used the internet No (ref) 1.00 1.00 1.00 Yes 1.40 (0.89-2.20) 1.82 (1.03-3.22)* 1.60 (1.01-2.52)* Wealth quintile Lowest (ref) 1.00 1.00 1.00 Second 1.40 (0.99-1.99) 1.19 (0.79-1.80) 1.26 (0.89-1.78) Variable Main model AOR (95% CI) Design-based single-level OR (95% CI) Excluding 7 flagged interviewers AOR (95% CI) Middle 1.62 (1.09-2.41)* 1.25 (0.80-1.96) 1.62 (1.08-2.42)* Fourth 1.44 (0.93-2.25) 1.13 (0.70-1.82) 1.61 (1.03-2.51)* Highest 1.65 (0.89-3.08) 0.66 (0.30-1.43) 1.88 (1.01-3.51)* Distance to health facility Not a big problem (ref) 1.00 1.00 1.00 Big problem 0.61 (0.48-0.79)*** 0.85 (0.64-1.12) 0.80 (0.62-1.02) Residence Urban (ref) 1.00 1.00 1.00 Rural 0.99 (0.66-1.48) 0.70 (0.41-1.19) 1.02 (0.68-1.54) All models include all covariates in Table 3. Excluding flagged interviewers: n = 3,523; national prevalence 35.8% (32.8-38.9). * p &lt; 0.05; ** p &lt; 0.01; *** p &lt; 0.001. Additional file 1, Table S3. Interviewers flagged for outlying proportions of children on track (clusterstratified Mantel-Haenszel test, two-sided Bonferroni p &lt; 0.05/161) Interviewer ID (v028) Region Children (n) % on track Expected a Observed z 3007 Harari 20 5.0 9.1 1 -4.5 3706 Dire Dawa 25 16.0 10.9 4 -3.9 2207 Central Ethiopia 41 7.3 11.0 3 -3.8 2306 Central Ethiopia 38 89.5 25.6 34 3.8 1205 South Ethiopia 29 65.5 9.8 17 3.9 3707 Dire Dawa 31 87.1 10.1 18 4.4 3307 South West Ethiopia 24 83.3 9.1 18 5.0 a Expected number on track based on other interviewers working in the same clusters. Additional_file_2_ECDI2030 /*/*================================================================== ============ Additional file 2. Stata code Determinants of early child development among children aged 24-59 months in Ethiopia: 2024-25 Demographic and Health Survey Outcome: developmentally on track (ECDI2030, SDG indicator 4.2.1) Stata 18 Data (DHS Program, ETxx8AFL): ETIR8AFL.dta women&#x27;s file -ECDI2030 items ecd21_k ... ecd40_k (k = 1..4), linked to the child by idxecd_k (= bidx) ETBR8AFL.dta births file -child, mother and household covariates Expected results (check before modelling): N = 3,731 children; weighted N = 3,514; 3,232 mothers; 771 clusters On track 36.3%; 24-35 m 42.6%, 36-47 m 33.6%, 48-59 m 33.4% ===================================================================== =========*/ version 18 clear all set more off set maxvar 10000 // only needed in Stata SE/MP global ir &quot;C:\Awoke\EDHS and STEPS\ETIR8ADT\ETIR8AFL.dta&quot; global br &quot;C:\Awoke\EDHS and STEPS\ETBR8ADT\ETBR8AFL.dta&quot; global out &quot;C:\Awoke\EDHS and STEPS\ECD Manuscript&quot; capture log close log using &quot;$out\ECDI2030_analysis.log&quot;, replace text *==================================================================== ==========* * 1. Build the child-level file *==================================================================== ==========* * 1a. ECDI2030 records from the women&#x27;s file (one row per child) use caseid idxecd_* ecd21_* ecd22_* ecd23_* ecd24_* ecd25_* ecd26_* ecd27_* /// ecd28_* ecd29_* ecd30_* ecd31_* ecd32_* ecd33_* ecd34_* ecd35_* ecd36_* /// ecd37_* ecd38_* ecd39_* ecd40_* using &quot;$ir&quot;, clear reshape long idxecd_ ecd21_ ecd22_ ecd23_ ecd24_ ecd25_ ecd26_ ecd27_ ecd28_ /// ecd29_ ecd30_ ecd31_ ecd32_ ecd33_ ecd34_ ecd35_ ecd36_ ecd37_ ecd38_ /// ecd39_ ecd40_, i(caseid) j(slot) drop if missing(idxecd_) rename *_ * rename idxecd bidx count // expect 3,731 * 1b. Covariates from the births file merge 1:1 caseid bidx using &quot;$br&quot;, keep(master match) /// keepusing(v001 v002 v005 v012 v021 v022 v024 v025 v028 v106 v136 v151 /// v157 v158 v159 v171a v190 v467d v501 v714 b4 b11 b19 bord /// h11 h22 h31 h34) tab _merge // all should be matched (3) drop _merge gen double wt = v005/1000000 egen mother = group(caseid) *==================================================================== ==========* * 2. Outcome: developmentally on track (UNICEF ECDI2030 scoring) *==================================================================== ==========* * Items 1-18 (ecd21 -ecd38):1 = yes; no / don&#x27;t know / missing = 0 * Item 19 (ecd39, sad/depressed): achieved unless &quot;daily&quot; or &quot;don&#x27;t know&quot; * Item 20 (ecd40, kicks/bites/hits): achieved if &quot;not at all&quot; or &quot;same or less&quot; forvalues i = 21/38 { gen byte m`i&#x27; = (ecd`i&#x27; == 1) } gen byte m39 = inrange(ecd39, 2, 5) gen byte m40 = inlist(ecd40, 1, 2) egen score = rowtotal(m21-m40) label var femhead &quot;Female household head&quot; label var hhsize &quot;Household size&quot; label var v190 &quot;Wealth quintile&quot; label var distprob &quot;Distance to facility a big problem&quot; label var rural &quot;Rural residence&quot; label var v024 &quot;Region&quot; save &quot;$out\ecd_24_59_analysis.dta&quot;, replace *==================================================================== ==========* * 4.</p>
+<p>Validation and Table 1 (design-based) *==================================================================== ==========* svyset v021 [pw=wt], strata(v022) singleunit(centered) count // 3,731 total wt // 3,514 codebook mother v001, compact // 3,232 mothers, 771 clusters svy: proportion ontrack // 36.3% (logit 95% CI) global t1vars agegrp female border pbi24 vita ill mage v106 notunion work /// media internet femhead hhsize v190 distprob rural v024 foreach v of global t1vars { di _n as result &quot;==================== `v&#x27; ====================&quot; tab `v&#x27; // unweighted n tab `v&#x27; [iw=wt] // weighted % svy: proportion ontrack, over(`v&#x27;) // % on track, 95% CI svy: tab `v&#x27; ontrack, row wald // design-adjusted Wald F test } *==================================================================== ==========* * 5. Additional file 1, Table S1: milestones achieved, by age group *==================================================================== ==========* svy: mean m21-m40, over(agegrp) svy: mean m21-m40 svy: mean score, over(agegrp) *==================================================================== ==========* * 6. Three-level mixed-effects logistic regression (Tables 2 and 3)</p>
+<h3>Acknowledgements:</h3>
+<p>We are grateful to the Ethiopian Statistical Service and the DHS Program for making the data available, and to the mothers who shared information about their children.</p>
+<h3>Funding: None</h3>
+<p>Authors&#x27; contributions: AM conceived the study and drafted the manuscript. MD conducted the data analysis and interpretation. Both authors read and approved the final manuscript.</p>
+<h3>Availability of data and materials:</h3>
+<p>The 2024-25 EDHS datasets can be requested free of charge from the DHS Program (https://dhsprogram.com). The Stata code used for this analysis is provided in Additional file 2.</p>
+<h3>Competing interests:</h3>
+<p>The authors declare that they have no competing interests.</p>
+<p>gen byte internet = inlist(v171a, 1, 2) gen byte femhead = (v151 == 2) recode v136 (1/4=1 &quot;&lt;=4&quot;) (5/7=2 &quot;5-7&quot;) (8/max=3 &quot;&gt;=8&quot;), gen(hhsize) gen byte distprob = (v467d == 1) gen byte rural = (v025 == 2) label var agegrp &quot;Child&#x27;s age (months)&quot; label var female &quot;Female child&quot; label var border &quot;Birth order&quot; label var pbi24 &quot;Preceding birth interval &lt;24 months&quot; label var vita &quot;Vitamin A in last 6 months&quot; label var ill &quot;Diarrhoea, fever or cough in last 2 weeks&quot; label var mage &quot;Mother&#x27;s age&quot; label var v106 &quot;Mother&#x27;s education&quot; label var notunion &quot;Mother not in union&quot; label var work &quot;Mother currently working&quot; label var media &quot;Weekly media exposure&quot; label var internet &quot;Mother ever used internet&quot;</p>
+<p>* children (level 1) within mothers (level 2) within clusters (level 3) *==================================================================== ==========* global ind i.agegrp i.female i.border i.pbi24 i.vita i.ill i.mage i.v106 /// i.notunion i.work i.media i.internet global hh i.femhead i.hhsize i.v190 i.distprob i.rural ib14.v024 // ref: Addis Ababa * ---Crude odds ratios (each variable alone; Table 3, column 1) foreach v in agegrp female border pbi24 vita ill mage v106 notunion work /// media internet femhead hhsize v190 distprob rural { melogit ontrack i.`v&#x27; || v001: || mother:, or intpoints(25) } melogit ontrack ib14.v024 || v001: || mother:, or intpoints(25) * ---Model 0 (null) melogit ontrack || v001: || mother:, or intpoints(25) estimates store m0 estat icc estat ic scalar v0 = _b[/var(_cons[v001])] * ---Model 1 (child + maternal) melogit ontrack $ind || v001: || mother:, or intpoints(25) estimates store m1 estat icc estat ic scalar v1 = _b[/var(_cons[v001])] * ---Model 2 (household + community) melogit ontrack $hh || v001: || mother:, or intpoints(25) estimates store m2 estat icc estat ic scalar v2 = _b[/var(_cons[v001])] * ---Model 3 (full) melogit ontrack $ind $hh || v001: || mother:, or intpoints(25) estimates store m3 estat icc estat ic scalar v3 = _b[/var(_cons[v001])] * ---MOR and PCV for the cluster level (Table 2) foreach k in 0 1 2 3 { di as result &quot;Model `k&#x27;: cluster variance = &quot; %6.3f v`k&#x27; /// &quot; MOR = &quot; %5.2f exp(0.954*sqrt(v`k&#x27;)) /// &quot; PCV = &quot; %5.1f 100*(v0 -v`k&#x27;)/v0 &quot;%&quot; } * (If _b[/var(_cons[v001])] is not found, type -matrix list e(b)-after melogit * and use the name shown for the cluster variance.) *==================================================================== ==========* * 7. Sensitivity analyses (Additional file 1, Table S2) *==================================================================== ==========* * 7a. Population-averaged (design-based, single-level) odds ratios svy: logistic ontrack $ind $hh * 7b. Interviewer effects: cluster vs interviewer random intercept melogit ontrack $ind $hh || v001:, or intpoints(20) estat ic estat icc melogit ontrack $ind $hh || v028:, or intpoints(20) estat ic estat icc *==================================================================== ==========* * 8. Outlying interviewers (Additional file 1, Table S3) * Cluster-stratified Mantel-Haenszel comparison of each interviewer with the * other interviewers working in the same clusters; two-sided Bonferroni * p &lt; 0.05/number of interviewers *==================================================================== ==========* tempfile base flags save `base&#x27; levelsof v028, local(ints) local nint : word count `ints&#x27; postfile ph int_id n rate O E z p using `flags&#x27;, replace foreach i of local ints { use `base&#x27;, clear bysort v001: egen byte has = max(v028 == `i&#x27;) keep if has gen byte a = (v028 == `i&#x27;) bysort v001: egen n1 = total(a) bysort v001: egen N = count(ontrack) bysort v001: egen m1 = total(ontrack) bysort v001: egen oa = total(ontrack * a) gen n0 = N -n1 bysort v001: gen byte first = (_n == 1) gen e = n1*m1/N if first &amp; n1&gt;0 &amp; n0&gt;0 gen v = n1*n0*m1*(N-m1)/(N^2*(N-1)) if first &amp; n1&gt;0 &amp; n0&gt;0 &amp; N&gt;1 quietly summarize oa if first &amp; n1&gt;0 &amp; n0&gt;0 scalar O = r(sum) quietly summarize e scalar E = r(sum) quietly summarize v scalar V = r(sum) quietly summarize ontrack if a scalar nn = r(N) scalar rt = r(mean) scalar zz = cond(V &gt; 0, (O -E)/sqrt(V), .) post ph (`i&#x27;) (nn) (rt) (O) (E) (zz) (2*normal(-abs(zz))) } postclose ph use `flags&#x27;, clear gen byte flag = p &lt; 0.05/`nint&#x27; list if flag, noobs // expect 7 interviewers: // 3007 3706 2207 2306 1205 3707 3307 levelsof int_id if flag, local(flagged) use `base&#x27;, clear * 7c / 8b. Repeat estimation excluding flagged interviewers gen byte excl = 0 foreach i of local flagged { replace excl = 1 if v028 == `i&#x27; } tab excl // 208 children excluded svy, subpop(if excl == 0): proportion ontrack // 35.8% melogit ontrack $ind $hh if excl == 0 || v001: || mother:, or intpoints(25) log close</p>
+<h3>Table 1.</h3>
+<p>Characteristics of children aged 24-59 months and weighted prevalence of being developmentally on track (ECDI2030), Ethiopia DHS 2024-25 (n = 3,731)</p>
+<h3>Table 2.</h3>
+<p>Random-effects parameters and model fit of the three-level logistic regression models for being developmentally on track, Ethiopia DHS 2024-25</p>
+<h3>Table 3.</h3>
+<p>Factors associated with being developmentally on track among children aged 24-59 months: three-level mixed-effects logistic regression (children within mothers within clusters), Ethiopia DHS 2024-25 (n = 3,731)</p>
+<h3>AbbreviationsAIC:</h3>
+<p>Akaike information criterion; AOR: adjusted odds ratio; CI: confidence interval; COR: crude odds ratio; DHS: Demographic and Health Survey; ECDI2030: Early Childhood Development Index 2030; EDHS: Ethiopia Demographic and Health Survey; ICC: intraclass correlation coefficient; MOR: median odds ratio; PCV: proportional change in variance; SDG: Sustainable Development Goal. Declarations Ethics approval and consent to participate: Not applicable. We analysed de-identified secondary data with the permission of the DHS Program and had no contact with participants. gen byte ontrack = 0 replace ontrack = 1 if inrange(b19,24,29) &amp; score &gt;= 7 replace ontrack = 1 if inrange(b19,30,35) &amp; score &gt;= 9 replace ontrack = 1 if inrange(b19,36,41) &amp; score &gt;= 11 replace ontrack = 1 if inrange(b19,42,47) &amp; score &gt;= 13 replace ontrack = 1 if inrange(b19,48,59) &amp; score &gt;= 15 label define ot 0 &quot;Not on track&quot; 1 &quot;On track&quot; label values ontrack ot *==================================================================== ==========* * 3. Explanatory variables *==================================================================== ==========* recode b19 (24/35=1 &quot;24-35&quot;) (36/47=2 &quot;36-47&quot;) (48/59=3 &quot;48-59&quot;), gen(agegrp) gen byte female = (b4 == 2) recode bord (1=1 &quot;1&quot;) (2/3=2 &quot;2-3&quot;) (4/5=3 &quot;4-5&quot;) (6/max=4 &quot;6+&quot;), gen(border) gen byte pbi24 = (b11 &lt; 24) // first births (b11 missing) = 0 gen byte vita = (h34 == 1) // don&#x27;t know = no gen byte ill = (h11 == 2 | h22 == 1 | h31 == 2) // diarrhoea, fever or cough, 2 weeks recode v012 (15/24=1 &quot;15-24&quot;) (25/34=2 &quot;25-34&quot;) (35/49=3 &quot;35-49&quot;), gen(mage) gen byte notunion = ! inlist(v501, 1, 2) gen byte work = (v714 == 1) gen byte media = (v157 &gt;= 2 &amp; v157 &lt; 8) | (v158 &gt;= 2 &amp; v158 &lt; 8) | (v159 &gt;= 2 &amp; v159 &lt; 8)</p>
+<h3>References</h3>
+<p>Black MM, Walker SP, Fernald LCH, Andersen CT, DiGirolamo AM, Lu C, et al. Early childhood development coming of age: science through the life course. Lancet. 2017;389(10064):77-90.</p>
+<p>Grantham-McGregor S, Cheung YB, Cueto S, Glewwe P, Richter L, Strupp B, et al. Developmental potential in the first 5 years for children in developing countries. Lancet. 2007;369(9555):60-70.</p>
+<p>Lu C, Black MM, Richter LM. Risk of poor development in young children in low-income and middle-income countries: an estimation and analysis at the global, regional, and country level. Lancet Glob Health. 2016;4(12):e916-22.</p>
+<p>McCoy DC, Peet ED, Ezzati M, Danaei G, Black MM, Sudfeld CR, et al. Early childhood developmental status in low-and middle-income countries: national, regional, and global prevalence estimates using predictive modeling. PLoS Med. 2016;13(6):e1002034.</p>
+<p>Britto PR, Lye SJ, Proulx K, Yousafzai AK, Matthews SG, Vaivada T, et al. Nurturing care: promoting early childhood development. Lancet. 2017;389(10064):91-102.</p>
+<p>World Health Organization, United Nations Children&#x27;s Fund, World Bank Group. Nurturing care for early childhood development: a framework for helping children survive and thrive to transform health and human potential. Geneva: WHO; 2018.</p>
+<p>United Nations Children&#x27;s Fund. The Early Childhood Development Index 2030: a new measure of early childhood development. New York: UNICEF; 2023.</p>
+<p>Ethiopian Statistical Service (ESS), ICF. Ethiopia Demographic and Health Survey 2024-25. Addis Ababa and Rockville, Maryland: ESS and ICF; 2026.</p>
+<p>Bliznashka L, Udo IE, Sudfeld CR, Fawzi WW, Yousafzai AK. Associations between women&#x27;s empowerment and child development, growth, and nurturing care practices in sub-Saharan Africa: a cross-sectional analysis of demographic and health survey data. PLoS Med. 2021;18(9):e1003781.</p>
+<p>Benedict RK, Pullum TW, Riese S, Milner E. Is child anemia associated with early childhood development? A cross-sectional analysis of nine Demographic and Health Surveys. PLoS One. 2024;19(2):e0298967.</p>
+<p>Tebeje TM, Tesfaye SH, Sisay G, Seboka BT, Tesfa GA, Sisay D, et al. Application of machine learning algorithms to predict early childhood development in children aged 24-59 months across three East African countries. PLoS One. 2025;20(9):e0332023.</p>
+<p>Merlo J, Chaix B, Ohlsson H, Beckman A, Johnell K, Hjerpe P, et al. A brief conceptual tutorial of multilevel analysis in social epidemiology: using measures of clustering in multilevel logistic regression to investigate contextual phenomena. J Epidemiol Community Health. 2006;60(4):290-7.</p>
+<p>Larsen K, Merlo J. Appropriate assessment of neighborhood effects on individual health: integrating random and fixed effects in multilevel logistic regression. Am J Epidemiol. 2005;161(1):81-8.</p>
+<p>von Elm E, Altman DG, Egger M, Pocock SJ, Gøtzsche PC, Vandenbroucke JP. The Strengthening the Reporting of Observational Studies in Epidemiology (STROBE) statement: guidelines for reporting observational studies. Lancet. 2007;370(9596):1453-7.</p>
+<p>StataCorp. Stata statistical software: release 18. College Station, TX: StataCorp LLC; 2023.</p>
+<p>Elkasabi M, Ren R, Pullum TW. Multilevel modeling using DHS surveys: a framework to approximate level-weights. DHS Methodological Reports No. 27. Rockville, Maryland: ICF; 2020.</p>
+<p>Walker SP, Wachs TD, Grantham-McGregor S, Black MM, Nelson CA, Huffman SL, et al. Inequality in early childhood: risk and protective factors for early child development. Lancet. 2011;378(9799):1325-38.</p>
 </div>
 </details>
 </div>
