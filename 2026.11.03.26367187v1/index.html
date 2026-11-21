@@ -198,7 +198,7 @@ Biomarker Burden and Clinical Progression in Amnestic Mild Cognitive
 Impairment
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.03.26367187
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.03.26367187
 </p>
 </header>
 <div class="mc-main">
@@ -313,8 +313,8 @@ ethics approval statement.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 18 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 18 detected.</p>
 </div>
 </div>
 </div>
@@ -399,8 +399,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -760,9 +761,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -784,7 +789,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -799,9 +805,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -814,13 +838,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -840,6 +867,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -847,12 +880,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -953,6 +992,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -972,6 +1031,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1227,19 +1321,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1349,6 +1525,128 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Altered memory self-awareness is common in mild cognitive impairment (MCI), but its relationship to Alzheimer&#x27;s disease (AD) pathology and progression remains unclear.</p>
+<p>Methods: Using 590 amnestic MCI ADNI participants, memory self-awareness was derived from participant-informant discrepancies on the memory subdomain of the Everyday Cognition questionnaire. Heightened awareness and unawareness subscores were calculated, and k-means clustering identified four phenotypes. Associations with cerebrospinal fluid (CSF) and positron emission tomography (PET) were examined, and clinical progression was assessed using Cox models.</p>
+<p>Results: Aware and Unaware groups showed lower CSF amyloid-β, and higher CSF phosphorylated tau and PET amyloid. The Unaware phenotype was associated with increased progression risk (hazard ratio 2.41, 95% CI 1.48-3.92), whereas the Worried Well phenotype showed reduced risk (hazard ratio 0.58, 95% CI 0.34-0.99).</p>
+<p>Conclusions: Multidimensional assessment of memory self-awareness identifies biologically and prognostically distinct subgroups within MCI and may improve risk stratification in prodromal AD.</p>
+<h3>BACKGROUND</h3>
+<p>Alzheimer&#x27;s disease (AD) is the leading cause of cognitive impairment among older adults and is frequently accompanied by altered awareness of cognitive decline. Self-awareness of cognitive function is commonly assessed by examining discrepancies between participant-and study partner-reported cognitive complaints [1, 2]. Heightened awareness, self-perceived decline not corroborated by an informant [3], has often been observed in preclinical stages, whereas unawareness (anosognosia), defined as greater informant-reported than self-reported decline, is characteristic of AD dementia [4, 5]. In mild cognitive impairment (MCI), awareness is heterogeneous, with individuals ranging from intact insight to marked unawareness [4] [5] [6]. Estimates of anosognosia in MCI vary widely [1, [7] [8] [9] [10] [11] [12] [13] [14] [15], underscoring uncertainty regarding its clinical and biological significance. This heterogeneity has important implications. Reliance on participant-reported subjective cognitive decline alone may be misleading when awareness is impaired, highlighting the importance of incorporating study partner reports in early disease stages [5]. Because episodic memory impairment is the defining clinical feature of amnestic MCI, and one of the earliest cognitive manifestations of AD, memory self-awareness represents a clinically and biologically relevant construct for investigating heterogeneity in disease progression. As efforts intensify to identify individuals at highest risk of progression, particularly in the era of disease-modifying therapies, the pathological and prognostic relevance of altered self-awareness in MCI has become increasingly important. Despite these efforts, methods to effectively stratify individuals within the MCI stage remain limited -a gap that may be addressed by leveraging heterogeneity of memory self-awareness.</p>
+<p>Traditional discrepancy scores average differences across questionnaire items, potentially obscuring distinct patterns of heightened awareness and unawareness within individuals. A recently proposed approach separates these dimensions by independently quantifying unawareness and heightened awareness based on item-level discrepancies [16]. For each questionnaire item, discrepancies are calculated between participant and study partner ratings; items on which the study partner reports greater decline contribute to an unawareness subscore, whereas items on which the participant reports greater decline contribute to a heightened awareness subscore. By isolating these directional discrepancies rather than averaging them into a single summary score, this approach yields a two-dimensional construct that distinguishes loss of awareness from increased concern. In cognitively normal older adults from the Alzheimer&#x27;s Disease Neuroimaging Initiative (ADNI), only the unawareness subscore, rather than the traditional discrepancy score or the heightened awareness subscore, was associated with future clinical progression [16]. These findings are consistent with prior studies demonstrating that reduced awareness, but not heightened concern, is linked to greater clinical decline [17, 18], suggesting that directional measures of self-awareness may capture clinically meaningful risk. Importantly, these studies have primarily focused on memory self-awareness, reflecting the central role of episodic memory impairment across the AD continuum and providing the rationale for the present study&#x27;s focus on memory selfawareness. However, whether these constructs reflect underlying AD pathology or predict progression once cognitive impairment is present remains unknown. Moreover, traditional discrepancy measures do not account for the overall magnitude of participant and informant complaints. For example, a discrepancy score of zero may reflect either low complaints from both individuals or high but concordant complaints (i.e. when the participant and informant report similar levels of decline), potentially obscuring clinically meaningful differences in risk [19, 20].</p>
+<p>Data-driven approaches may offer greater sensitivity for identifying distinct self-awareness profiles.</p>
+<p>Unsupervised clustering methods allow integration of participant-reported complaints, study partnerreported complaints, and independent measures of unawareness and heightened awareness to derive clinically interpretable phenotypes [21, 22].</p>
+<p>In this study, we sought to characterize memory self-awareness phenotypes in individuals with amnestic MCI using a clustering approach and to examine their associations with cerebrospinal fluid (CSF) biomarkers of amyloid and tau and with longitudinal progression to AD dementia. Because amnestic MCI is defined by impairment in episodic memory, the cognitive domain most closely linked to the earliest stages of AD pathology, and previous studies of altered self-awareness in Alzheimer&#x27;s disease have primarily focused on memory function, we examined memory self-awareness as our primary construct of interest. We hypothesized that phenotypes characterized by greater study partner-reported decline would demonstrate higher AD biomarker burden and increased risk of clinical progression [18].</p>
+<h3>METHODS</h3>
+<h3>Participants</h3>
+<p>All participants (N = 590) used in the preparation of this article were MCI at baseline and were obtained from the ADNI database (adni.loni.usc.edu). ADNI was launched in 2003 as a public-private partnership, led by Principal Investigator Michael W. Weiner, MD, and includes the extensions ADNI-GO (launched 2009), ADNI-2 (2011), and ADNI-3 (2016). The original goal of ADNI was to test whether serial magnetic resonance imaging (MRI), positron emission tomography (PET), other biological markers, and clinical and neuropsychological assessments can be combined to measure the progression of MCI and AD dementia. The current goals include validating biomarkers for clinical trials, improving the generalizability of ADNI data by increasing diversity in the participant cohort, and providing data concerning the diagnosis and progression of AD to the scientific community. For up-to-date information, see adni.loni.usc.edu. Exclusion criteria included a history of alcoholism, drug abuse, and head trauma, as well as serious medical or psychiatric conditions. Cholinesterase inhibitors and memantine were only allowed in participants if they were stable for 3 months before screening. Moreover, antidepressants were allowed if participants were not significantly depressed at the time of screening and did not have a history of major depressive disorder within the past year. Institutional review board approvals and informed consent were obtained prior to all procedures. This manuscript conforms to the Strengthening the Reporting of Observational Studies in Epidemiology (http://www.equator-network.org/reporting-guidelines/strobe/) reporting guidelines for cohort studies.</p>
+<p>The selection criteria for this study required both a participant and study partner response on the memory component of the ECog questionnaire from the same time point, as well as a clinical examination and a lumbar puncture to collect CSF occurring within a year of ECog completion. Their clinical diagnosis was used as a diagnostic criterion for amnestic MCI, determined by a Clinical Dementia Rating (CDR) Scale global score of 0.5, with a Memory Box score of at least 0.5, a Mini-Mental State Exam (MMSE) score between 24 and 30 inclusive, and performance below education-adjusted cutoffs on the Wechsler Logical Memory II subscale. For the survival analyses, a diagnosis of AD dementia was assigned to participants with a CDR global score of ≥ 0.5, an MMSE score between 20 and 24, performance below educationadjusted cutoffs on the Wechsler Logical Memory II subscale, and a probable AD label according to NINCDS/ADRDA criteria. The participants included individuals sampled from the ADNI-GO, ADNI-2, and ADNI-3 phases, spanning from 2010 to 2022. ADNI-1 was not included in the sample since the ECog questionnaire was administered starting in the ADNI-GO phase in 2010. Any individuals with missing baseline ECog questionnaire and CSF biomarker data were removed from the analysis, and any longitudinal observations without clinical diagnosis data were removed. For the survival analysis, we created a subset that included participants with at least two follow-up clinical diagnosis time points (N = 492). For more information on ADNI, see the ADNI database (adni.loni.usc.edu).</p>
+<h3>Self-awareness measure</h3>
+<p>Memory self-awareness was measured using the memory subsection of the ECog Questionnaire. The ECog is comprised of 39 items, 8 of which specifically focus on memory [23, 24]. The memory subsection primarily evaluates episodic memory, with participants and their study partners independently assessing the participant&#x27;s ability to accomplish everyday memory tasks compared to 10 years earlier, such as remembering a few shopping items without a list, or if there has been any change in repeating stories and/or questions. Responses were recorded on a Likert scale, where 1 indicated improvement or no change, 2 reflected occasional or questionable decline, 3 denoted consistent mild decline, and 4 signified consistent significant decline. An &quot;I do not know&quot; option was also available and treated as missing data when selected.</p>
+<p>A two-step approach was used to assess self-awareness. First, an unawareness sub-score and a heightened awareness sub-score for the ECog Questionnaire, originally published in [16] were calculated for each participant. The unawareness sub-score was calculated by subtracting the study partner&#x27;s ratings from the participant&#x27;s ratings for each item, setting all positive differences to zero, and averaging the results (including the zeros derived from the positive differences). Similarly, the heightened awareness sub-score was calculated by capping all negative differences at zero and taking the mean, again including the zeroes derived from negative differences in the mean computation. Second, k-means clustering (with Euclidian distance) using the kmeans package was used to categorize participants into four distinct clusters, with 25 random initializations to ensure stability and the seed set to 42. K-means was chosen due to the continuous nature of the ECog questionnaire. Additionally, k-means clustering is uniquely fast, scalable, and intuitive by assigning all individuals into discrete clusters (unlike probabilistic methods such as Latent Profile Analysis). These factors make k-means easy to integrate into clinical settings for risk stratification. Prior to clustering, all four features were z-scored, and nine outliers based on the four awareness measures were discovered using Mahalanobis distance and excluded from clustering.</p>
+<p>Mahalanobis distance was used due to its ability to check for multivariate outliers. Assumptions of sphericity for k-means clustering were checked visually using principal component analysis. The choice of using four clusters was determined with the elbow method and the Davies-Bouldin Index (DBI; see eFigures 1 and 2), along with prior literature, which has used both participant and study partner scores from the ECog questionnaire at a cut off of 2.5 for both measures to classify individuals into the following awareness quadrant profiles: 1) Low Complaints, 2) Worried Well, 3) Aware, and 4) Unaware [25]. Four measures were used as clustering features: the unawareness sub-score, the heightened awareness sub-score, the mean study partner complaints, and the mean participant complaints. We evaluated the quality of clustering using the Davies-Bouldin Index (eFigure 2) and silhouette scores. These metrics were chosen as they are shown to be more informative and reliable compared to alternatives (e.g. Shannon entropy, Dunn index) in biomedical contexts [26]. The Davies-Bouldin Index (DBI) is a measure of the average ratio of within-cluster scatter and between-cluster separation. Scores on the DBI range from zero to positive infinity, with lower scores indicating more compact, well-separated clusters [27]. Meanwhile, the silhouette score measures how similar each point is in Euclidean space to other clusters. Silhouette scores range from -1 to +1, with scores closer to +1 indicating better clustering quality [28]. Silhouette scores were computed for each cluster to capture inter-cluster variability in cluster quality that can be masked when looking at a global silhouette score. Due to the multicollinearity of our features, we also used these four measures in principal component analysis (PCA) to create clusters with orthogonal features. This PCA found that two components accounted for 90.1% of the variance between our features.</p>
+<h3>CSF Measurements of AD Core Biomarkers</h3>
+<p>Lumbar punctures were performed as part of the ADNI protocols and CSF was collected, centrifuged, subpackaged, and stocked in polypropylene tubes in a refrigerator at -80 °C. ADNI used the Roche Elecsys immunoassay to assess AD biomarkers, including total tau (t-tau), phosphorylated tau (p-tau) (181P) and Aβ (1-42). A single lot of reagents for each of the three measured biomarkers was collected (provided in UPENNBIOMK9.csv file available at http://adni.loni.usc.edu). CSF was collected both at baseline and follow-up visits. The following procedure only used p-tau and Aβ1-42 as measures for tau and amyloid, respectively. CSF was chosen over other measures due to PET, blood-based, and plasma measures only becoming standard in ADNI, which would have limited statistical power and follow-up duration for many participants. However, supplemental analyses were performed in a subsample (N = 114) with PET inferior temporal tau standard uptake value ratios (SUVR), entorhinal tau SUVR, and amyloid centiloids.</p>
+<h3>Statistical Analyses</h3>
+<p>All analyses were conducted in R version 4.4.1 (R Project for Statistical Computing). The threshold for statistical significance was p &lt; .05.</p>
+<p>Given the non-linear distributions of both CSF biomarkers, we utilized Kruskal-Wallis tests to assess cross-sectional differences in CSF biomarkers among the four awareness phenotypes. Significant omnibus effects were followed by post hoc pairwise Wilcoxon rank sum tests to identify specific group differences. To control for multiple comparisons, p-values were adjusted using the Benjamini-Hochberg procedure for false discovery rate correction where applicable. To account for age, sex, and education, we conducted confirmatory Rank-Based analyses of covariance (ANCOVAs) using the Rfit packages, using CSF measures in two separate tests as predictors and with cluster, age, sex, and education as covariates.</p>
+<p>We used post hoc Wilcoxon rank sum tests on the residuals of the covariates to look for specific group differences. Supplemental analyses also performed these tests with PET tau (inferior temporal and entorhinal) and amyloid centiloids as predictors.</p>
+<p>Survival analyses were run using Cox regression models using the survival package to examine the longitudinal associations of each awareness phenotype at baseline and time to progression (measured in years from baseline). Outcome variables were progression status and (1) time to progression, for progressors, and (2) total time observed, for stable (i.e., censored) individuals. Progression from MCI to AD dementia was determined using progression by clinical diagnosis. The model was run with phenotype membership of each participant as the primary predictor, and the model adjusted for baseline age, sex, and education. The Cox proportional-hazard model was used to find correlation among the factors, and hazard ratio (HR) and 95% confidence interval (CI) were calculated. To assess the fit of these progression analyses, Uno&#x27;s C-index, time-dependent AUC values at times 1, 2, and 4 (corresponding to each quartile of the proportion of progression events), and the inverse probability of censoring weighted (IPCW) Brier scores were computed. To ensure that any clinical or biological differences in phenotypes were not due to underlying clinical impact severity, supplemental sensitivity analyses were also controlled for MMSE.</p>
+<h3>RESULTS</h3>
+<h3>Clustering and Demographics</h3>
+<p>Overall, four phenotypes were created (Figure 1). Cluster one, the &quot;Low Complaints&quot; phenotype, had low scores in all measures. Cluster two, the &quot;Unaware&quot; phenotype, was characterized by a high unawareness sub-score and high complaints from the study partner, along with low scores in heightened awareness and low complaints from the participant. Cluster three, the &quot;Aware&quot; phenotype, had low heightened awareness and unawareness scores, and high complaint magnitude from both the participant and study partner. Finally, cluster four, the &quot;Worried Well&quot; phenotype, had high heightened awareness, low unawareness, high participant complaints, and low study partner complaints. See Figure 1 for the direction and magnitude of all four awareness measures used to construct the phenotypes. With a DBI score of 0.936, the clustering was a good statistical fit for the data (eFigure 2), and all assumptions for kmeans clustering were met. The per-cluster mean silhouette scores ranged from 0.293 for the Aware phenotype and 0.422 for the Unaware phenotype, indicating modest cluster separation. Legend: Radar map and scatter plots for (A) the means of the measures used to cluster, (B) the distribution of clusters by the unawareness and heightened awareness subscores, and (C) the distribution by study partner and participant complaints. For the radar map, SP is an abbreviation for study partner, and all means are on a 0-1 scale, where 1 represents the maximum mean for each measure.</p>
+<p>The sample was comprised of 260 females (43%) and 339 males (57%), with a mean (SD) age of 72.0 (7.6) and years of education of 16.22 (2.6). The sample consisted primarily of White individuals (93%) and included 19 Hispanic or Latino individuals (3.2%). The mean (SD) for the MMSE was 28.0 (2.0), and depression (as assessed with the Geriatric Depression Scale) was low (mean (SD) of 1.8 (1.5)). The rate of progression to AD dementia significantly differed by cluster (p &lt; 0.001), with the highest proportion in the Unaware phenotype (29%) and the lowest in the Worried Well phenotype (5.2%). Years to progression also differed significantly across phenotypes (p = 0.04), with the Unaware group having the least years observed, and the Worried Well phenotype having the most (Table 1). Among the 114 participants in the PET subsample, 34 were classified as Low Complaints, 15 as Unaware, 36 as Aware, and 29 as Worried Well, with demographic and clinical means in this subsample closely resembling those of the entire sample. and PET Pathology Across Memory Self-Awareness Phenotypes To investigate the association between each memory self-awareness phenotype and CSF biomarkers of amyloid and tau, Kruskal-Wallis tests were conducted. Both CSF Aβ1-42 (H(3) = 13.59; p = 0.004) and p-tau (H(3) = 13.09; p = 0.004), as well as PET amyloid centiloids (H(3) = 19.26, p &lt; 0.001), were significant independent predictors among the clusters (Table 2). However, no such significance was found for either PET entorhinal or inferior temporal tau (Table 2; eFigure3b and eFigure3c). For between-group differences for CSF Aβ1-42, post hoc Wilcoxon Rank-Sum tests revealed that both the Unaware and Aware phenotypes had significantly lower Aβ1-42values compared to the Worried Well (p = 0.037 for both phenotypes) and Low Complaints phenotypes (p = 0.020 for both phenotypes, eFigure 4a). Meanwhile, for p-tau (eFigure 4b), the Unaware phenotypes had significantly greater p-tau values than the Worried Well (p = 0.030) and Low Complaints phenotypes (p = 0.007), but the Aware phenotype was only significantly greater than the Low Complaints phenotype (p = 0.030). For both CSF measures, non-significant p-values were found between the Unaware and Aware phenotypes, or the Worried Well and Low Complaints phenotypes. For PET amyloid centiloids (eFigure 3a), the Aware phenotype was found to have significantly greater centiloid values compared to the Low Complaints (p = 0.013) and the Worried Well (p &lt; 0.001) phenotypes, while the Unaware phenotype was only significantly greater than the Low Complaints phenotype (p = 0.012). Confirmatory Rank-Based ANCOVA results, correcting for sex, age, and education, found similar findings to the Kruskal-Wallis tests. Similar findings were observed after controlling for cognitive performance and when PCA-derived clusters were used.</p>
+<h3>Survival Analysis Across Clusters</h3>
+<p>To analyze the effect of each memory self-awareness phenotype on clinical progression in individuals who had an MCI diagnosis at baseline, we performed Cox regression analyses, correcting for age, gender, and education. All clusters were found to be significant when compared to the Low Complaints cluster as a reference (Table 3; Figure 2). The Worried Well phenotype, compared to the Low Complaints phenotype, was associated with a 42% decrease in progression hazard (HR ratio = 0.58, 95% CI: 0.34, 0.99; p = 0.044). Meanwhile, the Aware and Unaware phenotypes were associated with increased progression, with the Aware phenotype being associated with a 64% increase in progression hazard (HR ratio = 1.64, 95% CI: 1.06, 2.52; p = 0.026), and the Unaware phenotype being associated with a 141% increase in progression hazard as compared to the Low Complaints phenotype (HR ratio = 2.41, 95% CI: 1.48, 3.92; p &lt; 0.001).</p>
+<p>However, when controlling for cognitive performance, the Aware phenotype was no longer significantly associated with an increase in progression risk (HR ratio = 1.48, 95% CI: 0.95, 2.31; p = 0.083). All other associations remained when controlling for MMSE. Furthermore, similar results were found when performing these analyses on PCA-derived clusters.</p>
+<p>All three groups met the proportional hazard assumptions. Uno&#x27;s C-index was computed to be 0.621 (95% CI: 0.565, 0.667), suggesting moderate discrimination. AUC&#x27;s were computed to be 0.769 at year 1, 0.753 at year 2, and 0.758 at year 4, and IPCW Brier score for our model was lower than that of the null model at all three time points (0.058 vs. 0.065 at 1 year, 0.108 vs. 0.124 at 2 years, and 0.150 vs. 0.179 at 4 years). Legend: Kaplan-Meier curve (above) and risk table by cluster (below). The Unaware phenotype is in green, and progressed the fastest of all phenotypes, followed by the Aware phenotype (in blue), the Low Complaints phenotype (in red), and the Worried Well phenotype (in purple).</p>
+<h3>DISCUSSION</h3>
+<p>In this cohort of individuals with MCI, distinct memory awareness phenotypes were associated with differential Alzheimer&#x27;s disease biomarker burden and markedly different risks of progression to dementia. Phenotypes characterized by greater study partner-reported decline, particularly the Unaware phenotype, demonstrated higher phosphorylated tau, lower amyloid-β concentrations, and substantially increased progression risk. In contrast, the Worried Well phenotype, marked by heightened self-reported concern without informant corroboration, was associated with lower risk of progression. These findings suggest that structured assessment of memory self-awareness using patient-informant discrepancies may provide clinically meaningful prognostic information during the prodromal stages of AD. Importantly, these findings should be interpreted within the context of memory awareness in amnestic MCI rather than as evidence that awareness operates uniformly across all cognitive domains.</p>
+<p>Our results extend prior work demonstrating that unawareness predicts clinical decline in cognitively normal individuals [17, 18] by showing that directional measures of awareness remain informative once cognitive impairment is present. Notably, although the Unaware and Aware phenotypes did not significantly differ in cross-sectional biomarker burden, the Unaware phenotype conferred a substantially greater hazard of progression. This dissociation suggests that loss of awareness may capture aspects of disease vulnerability not fully reflected by baseline pathology alone. Importantly, informant reports alone would not distinguish between these two groups; rather, the interaction between self-and informantreported decline appears to convey additional prognostic value above and beyond only informant report, which would be unable to separate the Unaware and Aware phenotypes.</p>
+<p>Interestingly, age as a covariate was not found to have an association with risk progression. While this goes against most literature suggesting older age as a risk factor, we believe that, given the Unaware phenotype had the oldest mean age as well as the highest risk of progression, the risk that would have come with age might have been already captured via our phenotypes. Additionally, there is some literature using age as a covariate to find predictors of risk progression in the MCI stage that has found similar null findings for age [29, 30].</p>
+<p>Additionally, our findings support a growing body of research demonstrating an association between loss of memory self-awareness and increased AD biomarker burden [3, 18, [31] [32] [33] [34] [35] [36] [37] [38] [39], reinforcing the biological relevance of unawareness across the disease continuum. The present study focused on memory selfawareness because participants met criteria for amnestic MCI, a syndrome defined by impairment in episodic memory, which represents the earliest and most prominent cognitive manifestation of AD.</p>
+<p>Consequently, memory self-awareness was selected as the primary construct of interest rather than multidomain awareness. Whether the observed prognostic associations reflect a particular relevance of memory awareness in amnestic MCI or broader differences across cognitive domains remains an important question for future investigation and will require direct comparisons of domain-specific awareness measures.</p>
+<h3>The dissociation between cross-sectional biomarker burden and longitudinal progression risk in the</h3>
+<p>Unaware phenotype raises important mechanistic considerations. Self-awareness of cognitive function depends on distributed neural networks involving medial prefrontal, anterior cingulate, and default mode regions [40] [41] [42], areas that are vulnerable in early AD [43] [44] [45] [46] [47] [48] [49] [50]. Loss of awareness may therefore reflect network-level dysfunction or impaired metacognitive processing that is not fully captured by global cerebrospinal fluid biomarker concentrations or clinical decline as shown via our sensitivity analyses. In this context, unawareness may represent a behavioral manifestation of emerging network disintegration, signaling reduced compensatory capacity and increased vulnerability to clinical decline.</p>
+<p>From a clinical standpoint, these findings underscore the potential value of incorporating structured informant-based assessments into routine evaluation of MCI. As MCI-stage disease-modifying therapies, such as lecanemab and donanemab, increasingly require accurate prognostication and biomarker confirmation, scalable behavioral markers that help identify individuals at highest risk of progression are critically needed. Awareness phenotyping derived from brief questionnaires may provide complementary information alongside fluid and imaging biomarkers. Future studies are needed to determine its incremental value and clinical utility in diverse populations and clinical settings.</p>
+<p>The reduced progression risk observed in the Worried Well phenotype further underscores the clinical relevance of distinguishing directional awareness patterns. Despite comparable biomarker levels to the Low Complaints phenotype, individuals with heightened but uncorroborated concern demonstrated lower progression risk. Heightened awareness may reflect non-Alzheimer-related factors such as anxiety, affective symptoms, or heightened health vigilance rather than underlying neurodegenerative pathology, consistent with prior reports that exaggerated concern is not specific to AD processes [5, 17, 18, 32].</p>
+<p>Together, these findings suggest that unawareness may be more closely linked to AD pathology than heightened awareness in MCI.</p>
+<p>Several limitations warrant consideration. Although the present study focused on memory self-awareness in individuals with amnestic MCI, future studies should directly compare awareness across memory, executive, language, visuospatial, and other cognitive domains to determine whether the observed associations are specific to memory self-awareness or reflect a broader phenomenon across cognitive domains. Given that validation of the ECog memory subset remains limited outside of ADNI, future work should also establish the clinical validity and generalizability of this measure in independent cohorts. The cohort was predominantly White and highly educated, potentially limiting generalizability. Additionally, only 14% of participants progressed to AD dementia during the follow-up period. Participants who progressed were observed over longer follow-up periods than non-progressors. Additionally, non-random attrition may have influenced the observed progression rates. For example, participants with non-Alzheimer neurodegenerative syndromes, such as frontotemporal dementia, may have been more likely to discontinue follow-up, potentially introducing informative censoring. As with any data-driven clustering approach, replication in independent cohorts will be important to establish the robustness, reproducibility, and generalizability of the identified phenotypes. Although the present study demonstrated consistent associations between memory self-awareness phenotypes, AD biomarkers, and longitudinal clinical progression within ADNI, future work should determine whether these phenotypes can be reproduced in independent cohorts. Regarding the use of ECog, each question asks how the participant&#x27;s memory performance compares to 10 years before. The extended recall interval may introduce recall bias if either the participant or the informant inaccurately recalls functioning over the preceding decade, potentially influencing estimates of self-awareness. Additionally, literature has shown that informant scores can be influenced by informant mood, anxiety, and caregiver burden e.g. [51]. That is, if caregiver burden or distress inflates informant-reported complaints, some individuals classified as &quot;Unaware&quot; in our framework may instead reflect elevated caregiver-reported concern driven partly by caregiver factors rather than patient unawareness. Measures of caregiver burden and mood were not available in ADNI and therefore could not be incorporated into the present analyses. Subsequently, it would be important for future studies to incorporate informant-level psychological measures to disambiguate patient unawareness from informant-driven over-reporting. Furthermore, in the unawareness and heightened awareness subscores, individuals with deep complaints (complaints on few questions but high complaints on those questions) can be indistinguishable to individuals with broad complaints (complaints on many questions though low complaint magnitude on each). Future studies should determine whether the breadth and depth of participant-informant discrepancies contribute differentially to disease progression and whether these characteristics should be incorporated into future clustering approaches. Finally, replication in more diverse populations and validation using additional biomarkers, including PET, plasma, and blood-based measures, will be important to establish the robustness, generalizability, and potential clinical utility of these findings.</p>
+<p>In conclusion, memory self-awareness phenotypes defined by patient-informant discrepancies were associated with Alzheimer&#x27;s disease biomarker burden and differential progression risk in individuals with amnestic MCI. These findings support the biological relevance of memory self-awareness as a marker of clinically meaningful disease heterogeneity while highlighting the need for future studies to determine how awareness across different cognitive domains relates to AD pathology and clinical progression.</p>
+<p>Data collection and sharing for this project was funded by the Alzheimer&#x27;s Disease Neuroimaging Initiative (ADNI) (National Institutes of Health Grant U01 AG024904) and DOD ADNI (Department of Defense award number W81XWH-12-2-0012). NES had full access to all the data in the study and takes responsibility for the integrity of the data and the accuracy of the data analysis.</p>
+<h3>Consent Statement</h3>
+<p>All human subjects provided informed consent.</p>
+<h3>Keywords: Alzheimer&#x27;s disease; mild cognitive impairment; anosognosia; subjective cognitive decline;</h3>
+<p>cerebrospinal fluid biomarkers; disease progression</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Mean and Distribution of the Clustering Parameters by Cluster.</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Kaplan-Meier Curves for Each Awareness Cluster</p>
+<h3>Table 1.</h3>
+<p>Demographics and clinical characteristics for the sample.</p>
+<h3>Table 2.</h3>
+<p>Means (SD) and Association of awareness phenotype with CSF Aβ1-42 and p-tau for MCI individuals.</p>
+<h3>Table 3.</h3>
+<p>Survival Analysis Results for MCI individuals, with the Low Complaints cluster as the reference</p>
+<p>ADNI is funded by the National Institute on Aging, the National Institute of Biomedical Imaging and Bioengineering, and through generous contributions from the following: AbbVie, Alzheimer&#x27;s Association; Alzheimer&#x27;s Drug Discovery Foundation; Araclon Biotech; BioClinica, Inc. ; Biogen; Bristol-Myers Squibb Company; CereSpir, Inc. ; Cogstate; Eisai Inc. ; Elan Pharmaceuticals, Inc. ; Eli Lilly and Company; EuroImmun; F. Hoffmann-La Roche Ltd and its affiliated company Genentech, Inc. ; Fujirebio; GE Healthcare; IXICO Ltd. ;Janssen Alzheimer Immunotherapy Research &amp; Development, LLC. ; Johnson &amp; Johnson Pharmaceutical Research &amp; Development LLC. ; Lumosity; Lundbeck; Merck &amp; Co., Inc. ; Meso Scale Diagnostics, LLC. ; NeuroRx Research; Neurotrack Technologies; Novartis Pharmaceuticals Corporation; Pfizer Inc. ; Piramal Imaging; Servier; Takeda Pharmaceutical Company; and Transition Therapeutics. The Canadian Institutes of Health Research is providing funds to support ADNI clinical sites in Canada. Private sector contributions are facilitated by the Foundation for the National Institutes of Health (www.fnih.org). The grantee organization is the Northern California Institute for Research and Education, and the study is coordinated by the Alzheimer&#x27;s Therapeutic Research Institute at the University of Southern California. ADNI data are disseminated by the Laboratory for Neuro Imaging at the University of Southern California. PV was supported by the US National Institute of Aging-NIH grants (R01AG061083, PI: PV).</p>
+<h3>References</h3>
+<p>Starkstein, S.E., Anosognosia in Alzheimer&#x27;s disease: Diagnosis, frequency, mechanism and clinical correlates. Cortex, 2014.61: p. 64-73</p>
+<p>Clare, L., I.S. Marková, I. Roth, and R.G. Morris, Awareness in Alzheimer&#x27;s disease and associated dementias: theoretical framework and clinical implications. Aging Ment Health, 2011.15(8): p. 936-44</p>
+<p>Vannini, P., R. Amariglio, B. Hanseeuw, K.A. Johnson, D.G. McLaren, J. Chhatwal, A. Pascual-Leone, D.M. Rentz, and R.A. Sperling, Memory self-awareness in the preclinical and prodromal stages of Alzheimer&#x27;s disease. Neuropsychologia, 2017.99: p. 343- 349.PMC5473166</p>
+<p>Galeone, F., S. Pappalardo, S. Chieffi, A. Iavarone, and S. Carlomagno, Anosognosia for memory deficit in amnestic mild cognitive impairment and Alzheimer&#x27;s disease. International Journal of Geriatric Psychiatry, 2011.26(7): p. 695-701</p>
+<p>Edmonds, E.C., L. Delano-Wood, D.R. Galasko, D.P. Salmon, M.W. Bondi, and T.A.s.D.N. Initiative, Subjective Cognitive Complaints Contribute to Misdiagnosis of Mild Cognitive Impairment. J Int Neuropsychol Soc., 2014 20(8): p. 836-847</p>
+<p>Kalbe, E., E. Salmon, D. Perani, V. Holthoff, S. Sorbi, and A. Elsner, Anosognosia in very mild Alzheimer&#x27;s disease but not in mild cognitive impairment. Dem Geriatr Cogn Disord, 2005.19: p. 349-356</p>
+<p>Feher, E.P., R.K. Mahurin, S.B. Inbody, T.H. Crook, and F.J. Pirozzolo, Anosognosia in Alzheimer&#x27;s disease. Cognitive and Behavioral Neurology, 1991.4(2): p. 136-146</p>
+<p>Migliorelli, R., A. Tesón, L. Sabe, G. Petracca, M. Petracchi, R. Leiguarda, and S.E. Starkstein, Anosognosia in Alzheimer&#x27;s disease: a study of associated factors. The Journal of Neuropsychiatry and Clinical Neurosciences, 1995.7(3): p. 338-344</p>
+<p>Migliorelli, R., A. Teson, L. Sabe, M. Petracchi, R. Leiguarda, and S.E. Starkstein, Prevalence and correlates of dysthymia and major depression among patients with Alzheimer&#x27;s disease. The American journal of psychiatry, 1995.152(1): p. 37-44</p>
+<p>Reed, B.R., W.J. Jagust, and L. Coulter, Anosognosia in Alzheimer&#x27;s disease: relationships to depression, cognitive function, and cerebral perfusion. Journal of clinical and experimental neuropsychology, 1993.15(2): p. 231-244</p>
+<p>Sevush, S. and N. Leve, Denial of memory deficit in Alzheimer&#x27;s disease. The American journal of psychiatry, 1993.150(5): p. 748-751</p>
+<p>Starkstein, S.E., R. Jorge, R. Mizrahi, and R.G. Robinson, A diagnostic formulation for anosognosia in Alzheimer&#x27;s disease. Journal of Neurology, Neurosurgery &amp; Psychiatry, 2006.77(6): p. 719-725</p>
+<p>Vogel, A., S.G. Hasselbalch, A. Gade, M. Ziebell, and G. Waldemar, Cognitive and functional neuroimaging correlate for anosognosia in mild cognitive impairment and Alzheimer&#x27;s disease. Int J Geriatr Psychiatry, 2005.20(3): p. 238-46</p>
+<p>Greenop, K.R., J. Xiao, O.P. Almeida, L. Flicker, C. Beer, J.K. Foster, F.M. van Bockxmeer, and N.T. Lautenschlager, Awareness of cognitive deficits in older adults with cognitive-impairment-no-dementia (CIND): comparison with informant report. Alzheimer Dis Assoc Disord, 2011.25(1): p. 24-33</p>
+<p>Sunderaraman, P. and S. Cosentino, Integrating the Constructs of Anosognosia and Metacognition: a review of recent findings in dementia. Curr Neurol Neurosci Rep, 2017: p. 17-27</p>
+<p>Mimmack, K.J., G.P. Gagliardi, G.A. Marshall, and P. Vannini, Measurement of Dimensions of Self-awareness of Memory Function and Their Association With Clinical Progression in Cognitively Normal Older Adults. JAMA Netw Open, 2023.6(4): p. e239964.PMC10130951</p>
+<p>Vannini, P., B.J. Hanseeuw, J.R. Gatchel, S.A.M. Sikkes, D. Alzate, Y. Zuluaga, S. Moreno, L. Mendez, A. Baena, P. Ospina-Lopera, V. Tirado, E. Henao, N. Acosta-Baena, M. Giraldo, F. Lopera, and Y.T. Quiroz, Trajectory of Unawareness of Memory Decline in Individuals With Autosomal Dominant Alzheimer Disease. JAMA Netw Open, 2020.3(12): p. e2027472.PMC7711319</p>
+<p>Hanseeuw, B.J., B. Scott, M.R, S.A.M. Sikkes, M. Properzi, J.R. Gatchel, E. Salmon, G.A. Marshall, P. Vannini, and A.s.D.N. Initiative, Evolution of Anosognosia in Alzheimer&#x27;s Disease and Its Relationship to Amyloid. Annals Neurol, 2020.00: p. 1-14</p>
+<p>Rueda, A.D., K.M. Lau, N. Saito, D. Harvey, S.L. Risacher, P.S. Aisen, R.C. Petersen, A.J. Saykin, and S.T. Farias, Self-rated and informant-rated everyday function in comparison to objective markers of Alzheimer&#x27;s disease. Alzheimers Dement, 2015.11(9): p. 1080-9.PMC4433437</p>
+<p>Kuhn, E., A. Perrotin, R. La Joie, E. Touron, S. Dautricourt, M. Vanhoutte, D. Vivien, V. de La Sayette, and G. Chételat, Association of the Informant-Reported Memory Decline With Cognitive and Brain Deterioration Through the Alzheimer Clinical Continuum. Neurology, 2023.100(24): p. e2454-e2465.PMC10264050</p>
+<p>Alashwal, H., M. El Halaby, J.J. Crouse, A. Abdalla, and A.A. Moustafa, The Application of Unsupervised Clustering Methods to Alzheimer&#x27;s Disease. Front Comput Neurosci, 2019.13: p. 31.PMC6543980</p>
+<p>Mitelpunkt, A., T. Galili, T. Kozlovski, N. Bregman, N. Shachar, M. Markus-Kalish, and Y. Benjamini, Novel Alzheimer&#x27;s disease subtypes identified using a data and knowledge driven strategy. Sci Rep, 2020.10(1): p. 1327.PMC6987140</p>
+<p>Farias, S.T., D. Mungas, and W. Jagust, Degree of discrepancy between self and other- reported everyday functioning by cognitive status: dementia, mild cognitive impairment, and health elders. . Int J Geriatr Psychiatry, 2005.20: p. 827-834.PMC2872134</p>
+<p>Farias, S.T., D. Mungas, B.R. Reed, D. Cahn-Weiner, W.J. Jagust, K. Baynes, and C. DeCarli, The measurement of everyday cognition (ECog): scale development and psychometric properties. Neuropsychology, 2008.22: p. 531-544.PMC2877034</p>
+<p>Wang, S., K. Mimmack, F. Cacciamani, M. Elnemais Fawzy, C. Munro, J. Gatchel, G.A. Marshall, G. Gagliardi, and P. Vannini, Anosognosia is associated with increased prevalence and faster development of neuropsychiatric symptoms in mild cognitive impairment. Front Aging Neurosci, 2024.16: p. 1335878.PMC10950916</p>
+<p>Chicco, D., A. Campagner, A. Spagnolo, D. Ciucci, and G. Jurman, The Silhouette coefficient and the Davies-Bouldin index are more informative than Dunn index, Calinski-Harabasz index, Shannon entropy, and Gap statistic for unsupervised clustering internal evaluation of two convex clusters. PeerJ Computer Science, 2025.11: p. e3309</p>
+<p>Davies, D.L. and D.W. Bouldin, A cluster separation measure. IEEE Trans Pattern Anal Mach Intell, 1979.1(2): p. 224-7</p>
+<p>Rousseeuw, P.J., Silhouettes: A graphical aid to the interpretation and validation of cluster analysis. Journal of Computational and Applied Mathematics, 1987.20: p. 53-65</p>
+<p>Gao, J., L. Liu, Z. Yang, J. Fan, and I. For The Alzheimer&#x27;s Disease Neuroimaging, Predictors of Transition from Mild Cognitive Impairment to Normal Cognition and Dementia. Behav Sci (Basel), 2025.15(11).PMC12649382</p>
+<p>Mallo, S.C., O. Juncos-Rabadán, C. Lojo-Seoane, L. Pérez-Blanco, A. Felpete, M.J. Moreno-Carretero, Á. Rojo-Pantoja, A. Nieto-Vieites, and A.X.P. Rozas, Can MBI-C scores predict time-to-cognitive worsening in CU, SCD, and MCI participants? Evidence from the CompAS study. Alzheimers Dement., 2024.20(Suppl 3): p. e091582. doi: 10.1002/alz.091582. eCollection 2024 Dec.</p>
+<p>Munro, C.E., R. Buckley, P. Vannini, C. DeMuro, R. Sperling, D.M. Rentz, K. Johnson, J.R. Gatchel, and R. Amariglio, Longitudinal Trajectories of Participant-and Study Partner-Rated Cognitive Decline, in Relation to Alzheimer&#x27;s Disease Biomarkers and Mood Symptoms. Front Aging Neurosci, 2021.13: p. 806432.PMC8841868</p>
+<p>Cacciamani, F., C. Tandetnik, G. Gagliardi, H. Bertin, M. Habert, H. Hampel, L. Boukadida, M. Révillon, S. Epelbaum, B. Dubois, and I.-P.s. group., Low Cognitive Awareness, but Not Complaint, is a Good Marker of Preclinical Alzheimer&#x27;s Disease. Journal of Alzheimer&#x27;s Disease, 2017.59(2): p. 753-762</p>
+<p>Gagliardi, G., M. Houot, F. Cacciamani, M.-O. Habert, B. Dubois, S. Epelbaum, ADNI, and I.-p.s. group, The meta-memory ratio: a new cohort-independent way to measure cognitive awareness in asymptomatic individuals at risk for Alzheimer&#x27;s disease. Alzheimer&#x27;s Research &amp; Therapy 2020.12: p. 57</p>
+<p>Gagliardi, G., M. Kuppe, C. Lois, B. Hanseeuw, P. Vannini, and A.s.D.N. Initiative, Pathological correlates of impaired self-awareness of memory function in Alzheimer&#x27;s disease. . Alzheimer&#x27;s Research &amp; Therapy, 2021.13(1).PMC8234669</p>
+<p>Wilson, R.S., P.A. Boyle, L. Yu, L.L. Barnes, J. Sytsma, A.S. Buckman, D.A. Bennet, and J.A. Schneider, Temporal course and pathologic basis of unawareness of memory loss in dementia. Neurology, 2015.85: p. 984-991</p>
+<p>Marshall, G., D.I. Kaufer, O.L. Lopez, G.R. Rao, R.L. Hamilton, and S.T. DeKosky, Right subiculum amyloid plaque density correlates with anosognosia in Alzheimer&#x27;s disease. Journal of neurology, neurosurgery and psychiatry, 2004.75(10): p. 1396- 1400.PMC1738763</p>
+<p>Zamboni, G. and G. Wilcock, Lack of awareness of symptoms in people with dementia: the structural and functional basis. Int J Geriatr Psychiatry., 2011.26: p. 783-792</p>
+<p>López-Martos, D., M. Suárez-Calvet, M. Milà-Alomà, J.D. Gispert, C. Minguillon, C. Quijano-Rubio, G. Kollmorgen, H. Zetterberg, K. Blennow, O. Grau-Rivera, and G. Sánchez-Benavides, Awareness of episodic memory and meta-cognitive profiles: associations with cerebrospinal fluid biomarkers at the preclinical stage of the Alzheimer&#x27;s continuum. Front Aging Neurosci, 2024.16: p. 1394460.PMC11169691</p>
+<p>Flores-Vázquez, J.F., G. Ramírez-García, O.R. Marrufo-Meléndez, R. Alcalá-Lozano, M.P. Lietz, Y. Rodríguez-Agudelo, G.I. Acosta-Castillo, R.J. Renken, A. Aleman, S. Enriquez-Geppert, and A.L. Sosa-Ortiz, Anosognosia in Amnestic Mild Cognitive Impairment Is Related to Diminished Hippocampal Volume Comparable to Alzheimer&#x27;s Disease Dementia: Preliminary MRI Findings. Front Aging Neurosci, 2021.13: p. 739422.PMC8581404</p>
+<p>Ries, M.L., D.G. McLaren, B.B. Bendlin, GuofanXu, H.A. Rowley, R. Birn, E.K. Kastman, M.A. Sager, S. Asthana, and S.C. Johnson, Medial prefrontal functional connectivity -Relation to memory self-appraisal accuracy in older adults with and without memory disorders. Neuropsychologia, 2012.50: p. 603-611</p>
+<p>Vannini, P., B. Hanseeuw, C.E. Munro, R.E. Amariglio, G.A. Marshall, D.M. Rentz, A. Pascual-Leone, K.A. Johnson, and R.A. Sperling, Anosognosia for memory deficits in mild cognitive impairment. Insight into the neural mechanism using functional and molecular imaging. Neuroimage Clinical, 2017.15: p. 408-414.PMC5458095</p>
+<p>Perrotin, A., B. Desgranges, B. Landeau, F. Mezenge, R. La Joie, S. Egret, P. A, V. de la Sayette, F. Eustache, and G. Chatelat, Anosognosia in Alzheimer Disease: disconnection between memory and self-related brain networks. Annals Neurol, 2015.78: p. 477-486</p>
+<p>Braak, H. and E. Braak, Staging of Alzheimer´s disease-related neurofibrillary changes. Neurobiology of aging, 1995.16: p. 271-284</p>
+<p>Braak, H. and E. Braak, Neuropathological stageing of Alzheimer-related changes. Acta Neuropathologica, 1991.82: p. 239-259</p>
+<p>Klunk, W.E., H. Engler, A. Nordberg, Y. Wang, G. Blomqvist, D.P. Holt, M. Bergström, I. Savitcheva, G.-F. Huang, S. Estrada, B. Ausén, M.L. Debnath, J. Barletta, J.C. Price, J. Sandell, B.J. Lopresti, A. Wall, P. Koivisto, G. Antoni, C.A. Mathis, and B. Långström, Imaging brain amyloid in Alzheimer&#x27;s disease with Pittsburgh Compound-B. Annals of Neurology, 2004.55(3): p. 306-319</p>
+<p>Engler, H., A. Forsberg, O. Almkvist, G. Blomquist, E. Larsson, I. Savitcheva, A. Wall, A. Ringheim, B. Langstrom, and A. Nordberg, Two-year follow-up of amyloid deposition in patients with Alzheimer&#x27;s disease. Brain, 2006.129(11): p. 2856-2866</p>
+<p>Kemppainen, N.M.M.D.P., S.M. Aalto, I.A.P. Wilson, K.P. Nagren, S.M. Helin, A.M.D.P. Bruck, V.M. Oikonen, M.M.D.P. Kailajarvi, M.M.D.P. Scheinin, M.M.D.P. Viitanen, R.M.D.P. Parkkola, and J.O.M.D.P. Rinne, Voxel-based analysis of PET amyloid ligand [11C]PIB uptake in Alzheimer disease. Neurology, 2006.67(9): p. 1575- 1580</p>
+<p>Mintun, M.A., G.N. LaRossa, Y.I. Sheline, C.S. Dence, S.Y. Lee, R.H. Mach, W.E. Klunk, C.A. Mathis, S.T. DeKosky, and J.C. Morris, [11C]PIB in a nondemented population: Potential antecedent marker of Alzheimer disease. Neurology, 2006.67(3): p. 446-452</p>
+<p>Edison, P.M., H.A.M. Archer, R.P. Hinz, A.P. Hammers, N.M. Pavese, Y.F.M. Tai, G.M. Hotton, D.B. Cutler, N.P. Fox, A.M. Kennedy, M.M.D.D. Rossor, and D.J.M.D.D. Brooks, Amyloid, hypometabolism, and cognition in Alzheimer disease: An [11C]PIB and [18F]FDG PET study. Neurology, 2007.68(7): p. 501-508</p>
+<p>Forsberg, A., H. Engler, O. Almkvist, G. Blomquist, G. Hagman, A. Wall, A. Ringheim, B. Långström, and A. Nordberg, PET imaging of amyloid deposition in patients with mild cognitive impairment. Neurobiology of aging, 2008.29(10): p. 1456-1465</p>
+<p>Simone, S.M., M. McKniff, M. Kaplan, K. Halberstadter, M.B. Tassoni, S.L. Holmqvist, and T. Giovannetti, The Influence of Caregiver Burden and Mood Symptoms on Informant-Reported Functional Abilities in Community-Dwelling Older Adults. Alzheimers Dement, 2025.21(Suppl 3).PMC12739532</p>
 </div>
 </details>
 </div>
