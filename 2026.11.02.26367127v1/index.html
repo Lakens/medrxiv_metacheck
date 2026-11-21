@@ -198,7 +198,7 @@ Randomized, Placebo-Controlled Trial of Oral and Vaporized
 Δ9-Tetrahydrocannabinol
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.02.26367127
+2026-11-21 · Metacheck 0.4.4.29 · DOI 10.64898/2026.11.02.26367127
 </p>
 </header>
 <div class="mc-main">
@@ -596,8 +596,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -991,9 +992,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -1015,7 +1020,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -1030,9 +1036,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -1045,13 +1069,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1071,6 +1098,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -1078,12 +1111,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1184,6 +1223,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1203,6 +1262,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1458,19 +1552,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1580,6 +1756,154 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Cannabis use is rising fastest among older adults in the U.S., and pain is among the most common reasons they use it. No trial, however, has measured the trade-off between the analgesic and abuse-related effects of Δ9-tetrahydrocannabinol (Δ9-THC) in this population. In a randomized, double-blind, placebo-controlled trial, 20 adults aged 65 and older were assigned to oral Δ9-THC (placebo, 5, 10 mg) or vaporized Δ9-THC (placebo, 2, 4 mg) across three eighthour sessions in counterbalanced order. We assessed laboratory-evoked pain sensitivity using quantitative sensory testing, abuse liability using subjective drug effects and reinforcement value, and also sampled plasma Δ9-THC and 11-OH-THC. Analgesia and abuse liability outcomes were measured repeatedly within each session. On a pain sensitivity index, oral 5 mg relieved pain relative to placebo (p=.040), although the oral arm&#x27;s overall dose effect was not significant (p=.108); oral 10 mg and both vaporized doses did not differ from placebo. Subjective effects increased with dose and were greatest after vaporization, whereas reinforcement value increased only after vaporized 4 mg. After oral 5 mg, analgesia exceeded placebo at every assessment (60-360 min), while its pleasurable effects peaked at 150 min. Vaporized Δ9-THC produced pleasurable effects within 30 min but did not significantly change thermal pain sensitivity. While abuse liability tracked Δ9-THC exposure, analgesia showed no significant association, and all adverse events occurred at vaporized 4 mg. These findings suggest dose and route selection may help maximize Δ9-THC analgesia while minimizing abuse liability, a strategy that warrants evaluation in clinical populations.</p>
+<h3>1. Introduction</h3>
+<p>Chronic pain affects over a third of adults aged 65 and older [33], and many older adults have turned to cannabis to relieve their pain. Older adults are now the fastest-growing group of people who use cannabis: past-year use has risen 20-fold in two decades [22, 23, 40, 47], and more than half of older adults who use cannabis cite pain as a reason [6, 44, 47, 55]. Between 2015 and 2019, the share of older adults who see regular use as a great risk fell from 53% to 43% [21]. Chronic pain is also a risk factor for cannabis use disorder (CUD), and CUD diagnoses are rising fast among older adults [25].</p>
+<p>Δ9-tetrahydrocannabinol (Δ9-THC) is a partial agonist at cannabinoid type 1 (CB1) receptors [46] and reliably produces analgesia in preclinical models [24, 35, 36]. Clinically, however, cannabis and Δ9-THC relieve chronic pain modestly: a minimally important improvement in 10% more patients than placebo [54]. Laboratory findings from quantitative sensory testing (QST), which evokes pain with calibrated stimuli [48], are inconsistent. A systematic review of 39 placebo-controlled QST studies of inhaled cannabis, dronabinol, nabilone, Δ9-THC:CBD formulations, and other cannabinoid agonists, almost all in younger adults, found them too heterogeneous to pool [42]. Controlled studies have evaluated the pharmacokinetics, tolerability, or dementia-related agitation associated with cannabis in older adults, but no studies have evaluated analgesia [2, 3].</p>
+<p>Aging reshapes both the nociceptive system and the pharmacokinetics and pharmacodynamics of Δ9-THC [15]. Pain thresholds tend to increase with age, whereas pain tolerance changes are more modest [34]. CB1 receptor availability declines with age in preclinical models [19], and in human frontal cortex post mortem, receptor density and function fall by roughly 10% per decade [39]. Emerging data indicate that the cognitive effects of acute Δ9-THC are blunted in older adults [15]. Greater adiposity and reduced hepatic blood flow also prolong exposure to Δ9-THC and its active metabolite 11-OH-THC [14, 30, 38]. These changes may attenuate, potentiate, or leave unchanged Δ9-THC&#x27;s analgesic and abuse-related effects, and not necessarily in the same direction for each [15].</p>
+<p>Dose and route can also affect analgesia and abuse liability differently [13]. Δ9-THC&#x27;s dose-response relationship is non-linear and often U-shaped [9]: in healthy volunteers, an intermediate dose of smoked cannabis reduced capsaicin-induced pain, whereas a higher dose increased it [53]. In contrast, abuse liability, tends to increase with dose [50] and with the speed at which a drug reaches the brain [1]. Route sets that speed: among older adults, vaporized Δ9-THC produced peak concentrations roughly nine-fold higher than matched oral doses, at 3 minutes rather than 60 to 90 minutes [14]. Taken together, these results suggest the benefit-risk profile of cannabis in older adults could favor lower doses (i.e., greater analgesia and lower abuse liability).</p>
+<p>Both outcomes therefore have to be measured together. To identify this trade-off in older adults, we conducted a randomized, double-blind, placebo-controlled trial of oral (5 and 10 mg) and vaporized (2 and 4 mg) Δ9-THC, measuring both outcomes repeatedly in each session. We hypothesized an inverted-U dose-response for analgesia, placing the most favorable benefit-risk balance at the lower dose of each route. We also asked whether analgesia tracks total exposure while abuse liability tracks peak concentration.</p>
+<h3>2. Methods</h3>
+<p>We prospectively registered this study (ClinicalTrials.gov NCT05906511) and the protocol was approved by the Yale University and VA Connecticut Healthcare System Institutional Review Boards. The study was conducted at the Biological Studies Unit of the VA Connecticut Healthcare System (West Haven, CT). All participants provided written informed consent before any study procedure, and reporting follows the Consolidated Standards of Reporting Trials (CONSORT) 2025 statement [27]. This report covers laboratory-evoked pain and its balance against abuse liability. All other outcomes are reported in the companion manuscript [14].</p>
+<h3>2.1 Study Design</h3>
+<p>The trial design is described in full in the companion manuscript [14]. Briefly, participants were randomized to one route of Δ9-THC, oral or vaporized, and within that arm completed three eight-hour test sessions, one per dose (oral: placebo, 5 mg, 10 mg; vaporized: placebo, 2 mg, 4 mg). Dose order was randomized and counterbalanced, and sessions were separated by at least 72 hours to mitigate carryover.</p>
+<h3>2.2 Participants</h3>
+<p>Participants were healthy adults aged 65 years or older who had prior lifetime cannabis exposure and no DSM-5 psychiatric or substance use disorder, other than tobacco use disorder, in the past year. We required lifetime cannabis exposure to enhance the safety and tolerability of the study. Because the present analyses depend on intact nociception, eligibility excluded conditions that alter pain sensation or balance (for example, stroke or peripheral neuropathy identified on a neuro-sensory examination), contraindications to nociceptive stimulation such as untreated hypertension, and regular use of analgesics or of strong CYP2C9, CYP3A4, or UGT1A9 modulators. A negative urine test for THC-COOH (50 ng/mL cutoff) was required for enrollment. Medical exclusions included hepatic enzyme elevation and renal dysfunction.</p>
+<p>Psychiatric exclusions included a personal or family history of primary psychotic or mood disorders with psychotic features. Full eligibility criteria are listed in Supplementary Section S1.</p>
+<h3>2.3 Study Medication and Administration</h3>
+<p>Oral Δ9-THC was administered as dronabinol (synthetic Δ9-THC; McKesson Corporation, Irving, TX), an FDA-approved Schedule III oral formulation, in capsules containing 0, 5, or 10 mg. Vaporized Δ9-THC was delivered as pharmaceutical-grade Δ9-THC (99% purity, compounded as a 10 mg/mL ethanolic solution) using the Volcano Hybrid® vaporizer (Storz &amp; Bickel, Tuttlingen, Germany) [32] with a standardized paced-puffing procedure [8, 17] described in the companion manuscript. Active vaporized doses of 2 and 4 mg were selected to approximate the systemic exposure of the oral 5 and 10 mg doses (Supplementary Section S3). The research pharmacy held the randomization sequence and dispensed visually identical placebo and active preparations, maintaining the blind for participants, raters, and investigators (Supplementary Section S2); blinding procedures and integrity are reported in the companion manuscript [14].</p>
+<h3>2.4 Pharmacokinetic Assessments</h3>
+<p>Plasma Δ9-THC and its metabolites were sampled serially and quantified by liquid chromatography-tandem mass spectrometry; the full pharmacokinetic characterization is reported in the companion manuscript [14].</p>
+<h3>2.5 Quantitative Sensory Testing</h3>
+<p>Laboratory-evoked pain sensitivity was assessed by a multimodal quantitative sensory testing (QST) battery based on the standardized protocol of the German Research Network on Neuropathic Pain (DFNS) [48]. The QST battery comprised seven threshold and tolerance measures across three stimulus modalities: heat pain threshold (HTH), heat pain tolerance (HTO), cold pain threshold (CTH), and cold pain tolerance (CTO), delivered by contact thermode (TSA-II; Medoc, Ramat Yishai, Israel); pressure pain threshold (PTH) and pressure pain tolerance (PTO), by computer-controlled algometer (AlgoMed; Medoc); and mechanical pain threshold (MTH), by calibrated pinprick stimulators (MRC Systems, Germany). Each measure was obtained twice and averaged. QST was administered at a pre-dose baseline and at five post-dose timepoints (oral arm: 60, 120, 180, 240, and 360 min; vaporized arm: 5, 60, 120, 180, and 360 min). The DFNS protocol governed stimulus application and threshold determination; the tolerance measures and the summary measures defined below were specific to this study. Baseline clinical pain, which was not an eligibility criterion, was characterized at screening with the Brief Pain Inventory-Short Form (BPI-SF) [10].</p>
+<p>For each measure, the effect of Δ9-THC was summarized two ways: the session peak change from baseline (the maximum signed deviation across the session) and the session AUC, the area under the change-from-baseline curve integrated by the trapezoidal rule across the post-dose observation window (oral 60-360 min; vaporized 5-360 min). For individual QST measures, session-AUC estimates and confidence intervals were divided by the window duration and are reported as mean changes from baseline in each measure&#x27;s original units. For the cold measures (CTH, CTO), the change score was sign-inverted so that positive values denote analgesia (greater cold tolerated) across every measure.</p>
+<h3>2.6 Pain Sensitivity Index</h3>
+<p>As a data reduction strategy, we combined the four thermal QST measures (HTH, HTO, CTH, CTO) into a single pain sensitivity index. This approach is not only consistent with previous integration of QST measures into composite indices [7, 26], but it also limits multiplicity across correlated measures and averages out measurement noise. The combined measures all share a transduction substrate: noxious heat and cold are detected by TRP channels on Aδ and C nociceptors [28]. CB1 receptors are co-expressed with TRPV1 on those same afferents, where a locally applied CB1 agonist attenuates thermal hyperalgesia [5]. We built the pain sensitivity index on session AUCs rather than peak changes because, in laboratory-evoked pain models, analgesic effects are detected more robustly by the area under the pain curve than by peak pain intensity [51]. For each session, the four session AUCs were sign-inverted for the cold measures so that positive values denote analgesia, standardized within measure as z-scores across all sessions of both arms. The pain sensitivity index is therefore in SD units, one unit being an average change of one standard deviation across its four component measures. All QST measures are also reported separately.</p>
+<h3>2.7 Abuse Liability</h3>
+<p>Subjective drug effects were the primary measure of abuse liability and behavioral reinforcement value served as a secondary measure. To assess subjective drug effects, we used the Pleasurable composite of the Drug Effects Questionnaire (DEQ), a visual analog scale with established psychometric properties [41]. The Pleasurable composite was the mean of three items (like the drug effects, feel good effects, want more drug), which map onto measures named in the FDA guidance Assessment of Abuse Potential of Drugs [52], and was summarized as the peak change from baseline (E max ), the summary that guidance recommends for primary analyses of abuse potential, and as AUC 0-8h , parallel to the QST outcomes.</p>
+<p>To assess reinforcement value, we administered the Multiple-Choice Procedure once per session, at 480 min after dosing. Participants made a series of choices between a repeat of that session&#x27;s dose and increasing amounts of money, and the outcome was the crossover point: the lowest amount of money chosen over the assigned dose for that test session [20].</p>
+<h3>2.8 Statistical Analysis</h3>
+<p>QST outcomes were summarized as the area under the change-from-baseline curve across the session and analyzed using linear mixed models. The oral and vaporized arms were analyzed separately. Dose and period (first, second or third session) were fixed effects, the latter to account for practice effects, and dose was a within-participant repeated factor under an unstructured variance-covariance matrix. Denominator degrees of freedom used the Kenward-Roger approximation [29]. The pain sensitivity index was analyzed identically. For peak DEQ Pleasurable and the Multiple-Choice Procedure crossover point, we report the companion manuscript&#x27;s estimates, from the same model under a heterogeneous compound-symmetry variance-covariance matrix. Pairwise dose contrasts are reported as least-squares mean differences with 95% confidence intervals in original units, accompanied by Hedges&#x27; g computed from the model-estimated standard deviations (SDs) of the two doses compared [31].</p>
+<p>A within-arm low-versus-high contrast tested the biphasic-dose hypothesis. Given the exploratory, proof-of-concept design, pairwise contrasts are reported for every outcome regardless of the omnibus test, and p-values were not corrected for multiple comparisons [49].</p>
+<p>Analyses were performed in R version 4.5.2 with two-sided α = 0.05.</p>
+<p>Additionally, we asked whether analgesia and abuse liability track drug exposure rather than administered dose. We related both outcomes to each session&#x27;s peak concentration (C max ) and total exposure (AUC 0-8h ) of Δ9-THC plus 11-OH-THC [12, 57], using linear mixed models with a random intercept for participant, which accounts for the correlation among each participant&#x27;s sessions (Supplementary Section S8).</p>
+<p>Finally, we compared the conditions of both routes on their model-estimated analgesia and abuse liability using a benefit-risk Pareto frontier, an approach that has guided dose selection in tuberculosis [37] and cancer combination therapy [18]. We refer to our application as the Analgesia-Abuse Liability Frontier (AALF; Supplementary Section S5). Time courses are shown descriptively and were not tested statistically (Supplementary Section S9).</p>
+<h3>3. Results</h3>
+<p> &gt;Results</p>
+<h3>3.1 Participants</h3>
+<p>Twenty older adults were enrolled, 10 per arm (Table 1). Overall, mean age was 70.0 (SD: 5.1) years, 30% (n=6) were female, and mean body mass index (BMI) was 28.6 (SD: 4.2) kg/m². Baseline clinical pain was low on the BPI-SF: mean severity 1.5 (SD: 1.6) and interference 1.1 (SD: 2.0). The two arms were balanced on demographic, baseline pain, and cannabis use characteristics (Table 1, all p≥.20). In the oral arm, 20% (n=2) were female, mean age was 70.5 (SD: 4.7) years, and mean BMI was 27.6 (SD: 4.2) kg/m². In the vaporized arm, 40% (n=4) were female, mean age was 69.5 (SD: 5.7) years, and mean BMI was 29.6 (SD: 4.2) kg/m². One vaporized-arm participant was withdrawn after a vasovagal episode during the first test session.</p>
+<h3>3.2 Pain Thresholds and Tolerance</h3>
+<p>We observed a dose effect of Δ9-THC on four of the seven QST measures. In the oral arm, dose significantly affected heat pain threshold (p=.025) and pressure pain threshold (p=.020; Table 2, Figure 1). The 5 mg dose raised heat pain threshold above both placebo (g=0.75, p=.041) and 10 mg (g=0.57, p=.046), and pressure pain threshold above 10 mg (g=0.86, p=.018). In the vaporized arm, dose significantly affected heat pain tolerance (p=.017) and mechanical pain threshold (p=.011). The 2 mg dose raised heat pain tolerance above 4 mg (g=0.55, p=.006) and mechanical pain threshold above placebo (g=1.25, p=.010). Across both arms, all five significant pairwise contrasts favored the lower doses, and neither higher dose differed significantly from placebo on any measure.</p>
+<h3>3.3 Pain Sensitivity Index</h3>
+<p>We observed no significant overall dose effect on the pain sensitivity index in either arm (oral p=.108; vaporized p=.800; Figure 2). Within the oral arm, however, the pairwise contrast of 5 mg against placebo was significant (mean difference: 0.44 SD, 95% CI 0.03 to 0.86; g=0.71, p=.040), whereas 10 mg did not differ from placebo (0.05 SD; g=0.07, p=.885). Neither vaporized dose differed from placebo (2 mg: g=-0.18, p=.611; 4 mg: g=-0.15, p=.763).</p>
+<h3>3.4 Abuse Liability</h3>
+<p>The dose effect on peak DEQ Pleasurable was significant in both arms (oral p=.038; vaporized p=.019; Supplementary Figure S2). In the oral arm, both doses raised it above placebo (5 mg: +19.1 points, 95% CI 3.4 to 34.8; g=0.84, p=.021; 10 mg: +22.8, 95% CI 2.0 to 43.6; g=0.77, p=.034). In the vaporized arm, 2 mg did not differ significantly from placebo (+21.0, 95% CI -9.1 to 51.0; g=0.68, p=.153), whereas 4 mg did (+35.1, 95% CI 12.2 to 58.1; g=1.49, p=.007). DEQ Pleasurable rose faster and higher after vaporization than after oral administration (Figure 3). Reinforcement value showed the same route asymmetry. In the oral arm, neither the dose effect (p=.670) nor contrast against placebo (5 mg: -$0.4, p=.911; 10 mg: +$2.1, p=.533) was significant. In the vaporized arm, the dose effect was significant (p=.018): 2 mg did not differ significantly from placebo (+$4.8, 95% CI -0.1 to 9.7; g=0.70, p=.052), whereas 4 mg raised the crossover point above placebo by $9.0 (95% CI 3.6 to 14.5; g=1.05, p=.004). When both outcomes were considered together, no other condition produced more analgesia than oral 5 mg at no greater abuse liability (Supplementary Section S5).</p>
+<h3>3.5 Time Course of Analgesia and Subjective Effects</h3>
+<p>After oral 5 mg, the pain sensitivity index showed more analgesia than placebo at every assessment from 60 to 360 min (by 0.39 to 0.73 SD; Figure 3). DEQ Pleasurable peaked at 150 min and was 4.5 points above placebo at 360 min. After oral 10 mg, the pain sensitivity index showed more analgesia than placebo through 180 min (by 0.09 to 0.29 SD) and less thereafter (by 0.17 and 0.09 SD). DEQ Pleasurable peaked at 90 min and was 10.1 points above placebo at 360 min. After vaporized 2 mg, the pain sensitivity index showed less analgesia than placebo at every assessment (by 0.02 to 0.33 SD). DEQ Pleasurable peaked at 30 min and was 0.5 points below placebo at 360 min. After vaporized 4 mg, the pain sensitivity index differed from placebo by -0.28 to +0.08 SD. DEQ Pleasurable peaked at 30 min and was 10.9 points above placebo at 360 min.</p>
+<h3>3.6 Relationships Between Exposure, Analgesia, and Abuse Liability</h3>
+<p>Both abuse liability measures increased with combined Δ9-THC and 11-OH-THC exposure. DEQ Pleasurable increased by 14.5 points per SD of C max (p&lt;.001) and by 10.6 points per SD of AUC 0-8h (p=.003). Reinforcement value increased by $1.97 per SD of C max (p=.045) and by $1.98 per SD of AUC 0-8h (p=.044). No significant association between analgesia and either exposure metric was detected (p=.585 and p=.903; Supplementary Section S8).</p>
+<h3>3.7 General Safety and Adverse Events</h3>
+<p>Adverse events occurred only at vaporized 4 mg. Five events were recorded in two participants, including a severe vasovagal episode that prompted withdrawal. No adverse events were recorded across the 30 oral sessions. Detailed safety, cardiovascular, and tolerability outcomes are reported in the companion manuscript [14].</p>
+<h3>4. Discussion</h3>
+<p>In this randomized, double-blind, placebo-controlled trial in adults aged 65 and older, analgesic effects were detected on selected QST measures at the lower dose of each route.</p>
+<p>Oral 5 mg increased heat pain threshold and the pain sensitivity index relative to placebo, whereas vaporized 2 mg increased mechanical pain threshold. Neither higher dose, oral or vaporized, differed significantly from placebo on any QST measure. Subjective pleasurable drug effects increased at both oral doses and at vaporized 4 mg, whereas reinforcement value increased significantly only after vaporized 4 mg. Oral 5 mg showed the most favorable observed balance between analgesia and abuse liability. It was the only condition whose pain sensitivity index showed more analgesia than placebo at every assessment, and its peak pleasurable response was the smallest of any active condition. It was also the only active condition on the benefit-risk Pareto frontier, which needs no weighting of one outcome against the other (Supplementary Section S5). This result highlights the relative advantage of the oral 5 mg compared to the other tested dose-route conditions, but should not be viewed as evidence of an optimal dose. All recorded adverse events occurred after vaporized 4 mg.</p>
+<h3>4.1 Implications for Understanding the Analgesic Effects and Abuse Liability of Δ9-THC</h3>
+<h3>Among Older Adults</h3>
+<p>The analgesic response pattern was suggestive of an inverted U, rather than a monotonic increase with dose. Every significant low-versus-high contrast favored the lower dose: oral 5 mg over 10 mg on heat and pressure pain thresholds, and vaporized 2 mg over 4 mg on heat pain tolerance. Biphasic dose-response has been documented for Δ9-THC&#x27;s anxiety-related effects: in healthy young adults, 7.5 mg of oral Δ9-THC reduced subjective distress after a psychosocial stressor, whereas 12.5 mg increased anxiety and negative mood [9]. For analgesia, the evidence is sparser but suggests a similar relationship. In healthy volunteers, smoked cannabis containing 4% Δ9-THC reduced capsaicin-induced pain, whereas 8% increased it and 2% had no effect [53]. A single 20 mg oral dose of Δ9-THC likewise produced hyperalgesia rather than analgesia on heat and cold testing [43].</p>
+<p>The abuse liability of Δ9-THC among older adults is contingent not only on dose, but also on route of administration. Vaporization produced the faster and larger subjective response in this trial and, at 4 mg, the only increase in reinforcement value. In a laboratory study of adults with a mean age of 68.7 years, smoked cannabis likewise kept subjective ratings elevated for five hours [16]. A review of cannabis and aging found few and inconsistent studies in older adults [56], and no prior controlled study in adults aged 65 and older had assessed analgesia and abuse liability together across doses and routes. Taken together, these findings demonstrate measurable abuse liability of Δ9-THC and cannabis in older adults, and support jointly assessing analgesia and abuse liability of cannabinoids in this population.</p>
+<h3>4.2 Comparing Doses and Routes on Analgesia and Abuse Liability</h3>
+<p>After oral Δ9-THC, the duration of analgesia extended beyond the peak of abuse-related effects. Pleasurable effects after oral 5 mg peaked at 150 min and had nearly returned to placebo levels by 360 min. The pain sensitivity index, by contrast, showed more analgesia than placebo from 60 through 360 min, and the difference was largest at 180 min. An earlier study that compared oral and smoked Δ9-THC on both outcomes in 30 adults who used cannabis daily (mean age 27 years) found the same pattern [13]. In that study, abuse-related ratings after oral dronabinol peaked at 60 to 90 min, whereas analgesia peaked at 180 min. Peak analgesia on the cold pressor test was similar for oral dronabinol and smoked cannabis, but dronabinol&#x27;s analgesia lasted longer and its abuse-related ratings were lower [13].</p>
+<p>Our results differed from those of the earlier study on dose. Both outcomes changed at a lower oral dose in our study: 5 mg raised pleasurable effects and produced analgesia. In the earlier study, dronabinol raised abuse-related ratings and reduced pain sensitivity only at 20 mg [13]. Tolerance from daily cannabis use [11] and age-related changes in the pharmacokinetics and pharmacodynamics of Δ9-THC [15] may both contribute. The pain tests also differed. The earlier study measured pain while participants held one hand in 4 °C water (the cold pressor test). Our pain sensitivity index combined heat and cold pain thresholds and tolerances measured with a contact thermode.</p>
+<h3>4.3 Implications for Understanding the Relationship Between Exposure to Δ9-THC,</h3>
+<h3>Analgesia, and Abuse Liability Outcomes</h3>
+<p>Both abuse liability measures tracked peak and total exposure to Δ9-THC and its active metabolite, whereas no significant association between analgesia and either exposure metric was detected. A significant association for abuse liability and a null for analgesia do not establish that the two outcomes depend on different features of the concentration-time profile: the analgesic estimates were imprecise, and the study was not designed to separate peak (C max ) from total (AUC 0-8h ) exposure, which co-vary within each route and participant. The data show only that the active condition with the lowest C max , oral 5 mg, was associated with the most analgesia, while abuse liability rose with exposure. Whether analgesic effects are relatively insensitive to exposure differences within this range may be evaluated in a trial designed to dissociate peak from total exposure, for example by varying the rate of delivery at a fixed dose.</p>
+<h3>4.4 Limitations</h3>
+<p>Several limitations bound our results. First, the sample was small, predominantly male and White, and composed entirely of healthy volunteers with prior cannabis exposure, although all tested negative for recent use at enrollment; generalizability to cannabis-naive older adults is therefore limited. Second, the pain model: evoked pain thresholds may not always translate into relief of chronic pain [45], although a systematic review found broadly similar cannabinoid response patterns in healthy volunteers and patients with chronic non-cancer pain [42]. Third, the design: between-participant variability may confound cross-route comparisons, and singledose sessions cannot establish sustained efficacy or characterize tolerance [11]. In the earlier study, smoked cannabis produced analgesia that peaked at 15 min [13]. The QST schedule here had no assessment between 5 and 60 min after vaporization, so it could have missed an effect this brief. Finally, the analysis: with seven QST measures and multiple contrasts, some significant results may be chance findings, because analyses were exploratory and uncorrected for multiplicity; the consistent direction of effects across measures, rather than any single pvalue, is the finding to weigh.</p>
+<h3>4.5 Future Directions</h3>
+<p>These findings support evaluating oral 5 mg Δ9-THC in repeated-dose trials involving older adults with chronic pain. Such trials should determine whether the observed laboratory analgesic effects translate into sustained improvements in clinical pain and function, while assessing how abuse-related responses change with continued treatment and how they differ between cannabis-naive and cannabis-experienced older adults. Given the association between chronic pain and CUD [25], such trials should also measure the emergence of problematic use alongside analgesia and tolerability. Additional doses below and around 5 mg would help determine whether the favorable observed balance extends across a dose range. Studies that distinguish the contributions of peak and total exposure could also guide delivery strategies. If analgesia is preserved while abuse liability is reduced by lowering peak concentration independently of total exposure, a delivery profile that maintains total exposure while limiting peaks could improve the benefit-risk balance. Repeated low doses of inhaled Δ9-THC could, in principle, approximate the profile of oral 5 mg where rapid onset matters, as in breakthrough pain [4]; whether they would preserve analgesia is unknown. The benefit-risk frontier could also be applied to other cannabinoids and to balanced Δ9-THC:CBD formulations.</p>
+<h3>5. Conclusion</h3>
+<p>In this randomized, double-blind, placebo-controlled trial in adults aged 65 and older, we compared two doses each of oral and vaporized Δ9-THC on laboratory-evoked pain and abuse liability, measured together across each session. Significant analgesic effects were confined to the lower dose of each route, consistent with the hypothesized inverted-U dose-response; oral 5 mg offered the most analgesia for the least abuse liability; and adverse events occurred only at vaporized 4 mg. These exploratory findings make oral 5 mg the priority for trials in older adults with chronic pain that assess analgesia, abuse liability, and tolerability together. Table 2. Dose effects on quantitative sensory testing, by arm and measure. Measure Dose effect F (df1, df2) p Lower dose vs placebo Δ (95% CI) g (p) Higher dose vs placebo Δ (95% CI) g (p) Lower vs higher dose Δ (95% CI) g (p) Oral arm: placebo, lower dose 5 mg, higher dose 10 mg Heat pain threshold (°C) 5.88 (2, 8.6) .025 +1.41 (+0.07, +2.75) +0.75 (.041) +0.10 (-1.81, +2.00) +0.05 (.910) +1.31 (+0.03, +2.60) +0.57 (.046) Heat pain tolerance (°C) 0.28 (2, 7.8) .765 +0.58 (-1.23, +2.40) +0.30 (.479) +0.42 (-1.85, +2.69) +0.21 (.685) +0.16 (-1.73, +2.06) +0.08 (.847) Cold pain threshold (°C) 1.46 (2, 8.7) .284 +1.96 (-1.28, +5.20) +0.51 (.204) -0.56 (-2.74, +1.61) -0.23 (.569) +2.52 (-0.82, +5.87) +0.77 (.122) Cold pain tolerance (°C) 0.51 (2, 8.2) .618 +1.09 (-1.63, +3.81) +0.29 (.383) +0.02 (-3.54, +3.58) 0.00 (.992) +1.08 (-2.41, +4.56) +0.27 (.497) Pain sensitivity index (SD) 2.90 (2, 8.8) .108 +0.44 (+0.03, +0.86) +0.71 (.040) +0.05 (-0.67, +0.76) +0.07 (.885) +0.39 (-0.41, +1.20) +0.50 (.297) Pressure pain threshold (kPa) 6.80 (2, 7.5) .020 +59.4 (-9.1, +127.9) +0.46 (.081) -33.5 (-138.2, +71.2) -0.31 (.478) +92.9 (+20.8, +165.1) +0.86 (.018) Pressure pain tolerance (kPa) 1.29 (2, 7.8) .327 -36.5 (-110.2, +37.2) -0.22 (.285) -48.1 (-165.3, +69.1) -0.37 (.376) +11.6 (-134.9, +158.0) +0.07 (.862) Mechanical pain threshold (mN) 2.98 (2, 7.0) .116 -66.8 (-232.5, +98.8) -0.48 (.384) -93.4 (-216.8, +30.1) -0.81 (.117) +26.5 (-50.6, +103.6) +0.17 (.453) Vaporized arm: placebo, lower dose 2 mg, higher dose 4 mg Heat pain threshold (°C) 0.49 (2, 7.9) .632 +0.38 (-2.28, +3.04) +0.11 (.750) -0.31 (-3.08, +2.45) -0.12 (.799) +0.69 (-0.94, +2.33) +0.28 (.355) Heat pain tolerance (°C) 7.49 (2, 7.4) .017 +0.82 (-0.63, +2.27) +0.51 (.226) 0.00 (-1.30, +1.30) 0.00 (.998) +0.82 (+0.32, +1.32) +0.55 (.006) Cold pain threshold (°C) 0.08 (2, 7.8) .924 -1.25 (-8.51, +6.02) -0.17 (.702) -0.59 (-5.59, +4.41) -0.10 (.793) -0.66 (-5.51, +4.19) -0.14 (.759) Cold pain tolerance (°C) 1.01 (2, 7.4) .408 -1.17 (-3.09, +0.75) -0.58 (.196) +0.22 (-0.73, +1.16) +0.15 (.605) -1.39 (-3.88, +1.11) -0.66 (.236) Pain sensitivity index (SD) 0.23 (2, 6.5) .800 -0.19 (-1.05, +0.66) -0.18 (.611) -0.15 (-1.34, +1.03) -0.15 (.763) -0.04 (-0.54, +0.46) -0.05 (.859) Pressure pain threshold (kPa) 1.34 (2, 4.9) .344 -54.0 (-183.4, +75.4) -0.49 (.361) -89.7 (-233.2, +53.8) -0.65 (.168) +35.7 (-68.0, +139.3) +0.27 (.435) Figure 1. Effects of Δ9-THC on laboratory-evoked pain, by measure and route. Points are Hedges&#x27; g for each dose against placebo, and bars are the 95% confidence intervals of the model-estimated mean differences, expressed in g units (Table 2). Blue triangles, lower dose; orange squares, higher dose. Positive values denote analgesia; cold thresholds and tolerances are sign-inverted. Filled symbols mark contrasts significant at p &lt; .05. The four thermal measures (top) are combined into the pain sensitivity index (diamonds, shaded row); the  values denote analgesia. Bottom, change from baseline in the Drug Effects Questionnaire</p>
+<h3>Acknowledgments</h3>
+<p>We thank Christina Riggione, Jocelyn Ra, Enoch Ofori, Mayte A. Cerezo-Matias, and Becky Suh for their contributions to data collection. We are grateful to Susan Gray, BSN, RN, Angelina Genovese, RNC, BSN, MBA, and Vanessa Hurley, RN, for nursing support. We also thank the participants and the staff of the Biological Studies Unit at the VA Connecticut Healthcare System. Funding. This work was supported by grant R21DA057240 from the National Institute on Drug Abuse (NIDA) to Dr. De Aquino. The other authors received no specific funding for this work.</p>
+<p>Figure 2. Pain sensitivity index by dose and route. Values are summarized as the area under the change-from-baseline curve across the session and expressed in SD units. Bars,</p>
+<h3>Data and code availability.</h3>
+<p>De-identified data and the R code used for all analyses are available from the corresponding author upon reasonable request, under a data use agreement.</p>
+<p>Use of generative AI. Claude (Anthropic) was used to assist with the data analysis code and to proofread parts of the manuscript. The authors reviewed all output and take full responsibility for the content.</p>
+<h3>Conflicts of interest.</h3>
+<p>Dr. De Aquino has received research support from Jazz Pharmaceuticals and Ananda Scientific and has served as a paid consultant for Boehringer Ingelheim. The other authors have no conflicts of interest to declare.</p>
+<h3>FiguresFigure 1.</h3>
+<p>Figures</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Pain sensitivity index and subjective drug effects over time, by route and dose.Top, the pain sensitivity index at each assessment, on the same SD scale as Figure2; positive ) for categorical variables.</p>
+<h3>Table 1 . Participant characteristics by treatment arm.</h3>
+<p>Between-arm tests are Welch&#x27;s two-sample t-test for continuous variables and Fisher&#x27;s exact test for categorical variables, without multiplicity correction (balance check, exploratory). Body fat percentage was available for 12 of 20 person-arms (oral, 5 of 10; vaporized, 7 of 10) and is summarized on available data. BPI-SF, Brief Pain Inventory-Short Form.</p>
+<h3>References</h3>
+<p>Abreu ME, Bigelow GE, Fleisher L, Walsh SL. Effect of intravenous injection speed on responses to cocaine and hydromorphone in humans. Psychopharmacology (Berl) 2001;154:76-84. doi:10.1007/s002130000624</p>
+<p>Ahmed AIA, van den Elsen GAH, Colbers A, Kramers C, Burger DM, van der Marck MA, Olde Rikkert MGM. Safety, pharmacodynamics, and pharmacokinetics of multiple oral doses of delta-9-tetrahydrocannabinol in older persons with dementia. Psychopharmacology (Berl) 2015;232:2587-2595. doi:10.1007/s00213-015-3889-y</p>
+<p>Ahmed AIA, van den Elsen GAH, Colbers A, van der Marck MA, Burger DM, Feuth TB, Rikkert MGMO, Kramers C. Safety and pharmacokinetics of oral delta-9- tetrahydrocannabinol in healthy older subjects: A randomized controlled trial. Eur Neuropsychopharmacol 2014;24:1475-1482. doi:10.1016/j.euroneuro.2014.06.007</p>
+<p>Almog S, Aharon-Peretz J, Vulfsons S, Ogintz M, Abalia H, Lupo T, Hayon Y, Eisenberg E. The pharmacokinetics, efficacy, and safety of a novel selective-dose cannabis inhaler in patients with chronic pain: A randomized, double-blinded, placebo-controlled trial. Eur J Pain 2020;24:1505-1516. doi:10.1002/ejp.1605</p>
+<p>Amaya F, Shimosato G, Kawasaki Y, Hashimoto S, Tanaka Y, Ji RR, Tanaka M. Induction of CB1 cannabinoid receptor by inflammation in primary afferent neurons facilitates antihyperalgesic effect of peripheral CB1 agonist. Pain 2006;124:175-183. doi:10.1016/j.pain.2006.04.001</p>
+<p>Bonar EE, Strunk S, Singer D, Box N, Solway E, Roberts S, Malani P, Smith E, Kullgren J. How Older Adults Use, Think About, and Discuss Cannabis. University of Michigan National Poll on Healthy Aging: University of Michigan Institute for Healthcare Policy &amp; Innovation, 2024. https://dx.doi.org/10.7302/24238</p>
+<p>Cardoso JS, Riley JL 3rd, Glover T, Sibille KT, Bartley EJ, Goodin BR, Bulls HW, Herbert M, Addison AS, Staud R, Redden DT, Bradley LA, Fillingim RB, Cruz-Almeida Y. Experimental pain phenotyping in community-dwelling individuals with knee osteoarthritis. Pain 2016;157:2104-2114. doi:10.1097/j.pain.0000000000000625</p>
+<p>Chait LD, Corwin RL, Johanson CE. A cumulative dosing procedure for administering marijuana smoke to humans. Pharmacol Biochem Behav 1988;29:553-557. doi:10.1016/0091-3057(88)90019-6</p>
+<p>Childs E, Lutz JA, de Wit H. Dose-related effects of delta-9-THC on emotional responses to acute psychosocial stress. Drug Alcohol Depend 2017;177:136-144. doi:10.1016/j.drugalcdep.2017.03.030</p>
+<p>Cleeland CS, Ryan KM. Pain assessment: global use of the Brief Pain Inventory. Ann Acad Med Singap 1994;23:129-138.</p>
+<p>Colizzi M, Bhattacharyya S. Cannabis use and the development of tolerance: a systematic review of human evidence. Neurosci Biobehav Rev 2018;93:1-25. doi:10.1016/j.neubiorev.2018.07.014</p>
+<p>Compton DR, Rice KC, De Costa BR, Razdan RK, Melvin LS, Johnson MR, Martin BR. Cannabinoid structure-activity relationships: correlation of receptor binding and in vivo activities. J Pharmacol Exp Ther 1993;265:218-226.</p>
+<p>Cooper ZD, Comer SD, Haney M. Comparison of the analgesic effects of dronabinol and smoked marijuana in daily marijuana smokers. Neuropsychopharmacology 2013;38:1984-1992. doi:10.1038/npp.2013.97</p>
+<p>Costa GPA, Asnes S, Meyerovich J, Eid T, Nadim H, Dwy S, Gueorguieva R, Riggs MM, Sofuoglu M, Matthews S, Nunes JC, De Aquino JP. Pharmacokinetics and Pharmacodynamics of Oral and Vaporized Δ9-Tetrahydrocannabinol in Older Adults. medRxiv 2026. doi:10.64898/2026.08.18.26360706</p>
+<p>Costa GPA, De Aquino JP. Cannabinoid neuropharmacology across the lifespan: how aging recalibrates risk and benefit. Neuropsychopharmacology 2026. doi:10.1038/s41386-026-02511-1</p>
+<p>Di Ciano P, Rajji TK, Hong L, Zhao S, Byrne P, Elzohairy Y, Brubacher JR, McGrath M, Brands B, Chen S, Wang W, Hasan OSM, Wickens CM, Kaduri P, Le Foll B. Cannabis and Driving in Older Adults. JAMA Netw Open 2024;7:e2352233. doi:10.1001/jamanetworkopen.2023.52233</p>
+<p>Foltin RW, Fischman MW, Pedroso JJ, Pearlson GD. Marijuana and cocaine interactions in humans: cardiovascular consequences. Pharmacol Biochem Behav 1987;28:459-464. doi:10.1016/0091-3057(87)90506-5</p>
+<p>Gevertz JL, Kareva I. Guiding model-driven combination dose selection using multi- objective synergy optimization. CPT Pharmacometrics Syst Pharmacol 2023;12:1698- 1713. doi:10.1002/psp4.12997</p>
+<p>Ginsburg BC, Hensler JG. Age-related changes in CB1 receptor expression and function and the behavioral effects of cannabinoid receptor ligands. Pharmacol Biochem Behav 2022;213:173339. doi:10.1016/j.pbb.2022.173339</p>
+<p>Griffiths RR, Troisi JR, Silverman K, Mumford GK. Multiple-choice procedure: an efficient approach for investigating drug reinforcement in humans. Behav Pharmacol 1993;4:3- 13.</p>
+<p>Han BH, Funk-White M, Ko R, Al-Rousan T, Palamar JJ. Decreasing perceived risk associated with regular cannabis use among older adults in the United States from 2015 to 2019. J Am Geriatr Soc 2021;69:2591-2597. doi:10.1111/jgs.17213</p>
+<p>Han BH, Palamar JJ. Trends in Cannabis Use Among Older Adults in the United States, 2015-2018. JAMA Intern Med 2020;180:609-611. doi:10.1001/jamainternmed.2019.7517</p>
+<p>Han BH, Sherman S, Mauro PM, Martins SS, Rotenberg J, Palamar JJ. Demographic trends among older cannabis users in the United States, 2006-13. Addiction 2017;112:516-525. doi:10.1111/add.13670</p>
+<p>Harris HM, Moore CF, Jenkins BW, Bedillion MF, Weerts EM, Arout CA. Delta-9- tetrahydrocannabinol and Cannabidiol for Pain: Preclinical and Clinical Models. In: Cooper ZD, Patel S, Alexander SPH, editors. Behavioral Impact of Cannabinoids. Cham: Springer Nature Switzerland, 2026. pp. 389-431. doi:10.1007/7854_2025_604</p>
+<p>Hasin DS, Wall MM, Alschuler DM, Mannes ZL, Malte C, Olfson M, Keyes KM, Gradus JL, Cerdá M, Maynard CC, Keyhani S, Martins SS, Fink DS, Livne O, McDowell Y, Sherman S, Saxon AJ. Chronic pain, cannabis legalisation, and cannabis use disorder among patients in the US Veterans Health Administration system, 2005 to 2019: a repeated, cross-sectional study. Lancet Psychiatry 2023;10:877-886. doi:10.1016/s2215-0366(23)00268-7</p>
+<p>Hastie BA, Riley JL 3rd, Robinson ME, Glover T, Campbell CM, Staud R, Fillingim RB. Cluster analysis of multiple experimental pain modalities. Pain 2005;116:227-237. doi:10.1016/j.pain.2005.04.016</p>
+<p>Hopewell S, Chan AW, Collins GS, Hróbjartsson A, Moher D, Schulz KF, Tunn R, Aggarwal R, Berkwits M, Berlin JA, Bhandari N, Butcher NJ, Campbell MK, Chidebe RCW, Elbourne D, Farmer A, Fergusson DA, Golub RM, Goodman SN, Hoffmann TC, Ioannidis JPA, Kahan BC, Knowles RL, Lamb SE, Lewis S, Loder E, Offringa M, Ravaud P, Richards DP, Rockhold FW, Schriger DL, Siegfried NL, Staniszewska S, Taylor RS, Thabane L, Torgerson D, Vohra S, White IR, Boutron I. CONSORT 2025 statement: updated guideline for reporting randomized trials. Nat Med 2025;31:1776-1783. doi:10.1038/s41591-025-03635-5</p>
+<p>Julius D. TRP channels and pain. Annu Rev Cell Dev Biol 2013;29:355-384. doi:10.1146/annurev-cellbio-101011-155833</p>
+<p>Kenward MG, Roger JH. Small sample inference for fixed effects from restricted maximum likelihood. Biometrics 1997;53:983-997.</p>
+<p>Klotz U. Pharmacokinetics and drug metabolism in the elderly. Drug Metab Rev 2009;41:67-76. doi:10.1080/03602530902722679</p>
+<p>Lakens D. Calculating and reporting effect sizes to facilitate cumulative science: a practical primer for t-tests and ANOVAs. Front Psychol 2013;4:863. doi:10.3389/fpsyg.2013.00863</p>
+<p>Lanz C, Mattsson J, Soydaner U, Brenneisen R. Medicinal Cannabis: In Vitro Validation of Vaporizers for the Smoke-Free Inhalation of Cannabis. PLoS One 2016;11:e0147286. doi:10.1371/journal.pone.0147286</p>
+<p>LaRowe LR, Miaskowski C, Miller A, Mayfield A, Keefe FJ, Smith AK, Cooper BA, Wei LJ, Ritchie CS. Prevalence and Sociodemographic Correlates of Chronic Pain Among a Nationally Representative Sample of Older Adults in the United States. J Pain 2024;25:104614. doi:10.1016/j.jpain.2024.104614</p>
+<p>Lautenbacher S, Peters JH, Heesen M, Scheel J, Kunz M. Age changes in pain perception: A systematic-review and meta-analysis of age effects on pain and tolerance thresholds. Neurosci Biobehav Rev 2017;75:104-113. doi:10.1016/j.neubiorev.2017.01.039</p>
+<p>Lichtman AH, Martin BR. Spinal and supraspinal components of cannabinoid-induced antinociception. J Pharmacol Exp Ther 1991;258:517-523.</p>
+<p>Lichtman AH, Martin BR. The Selective Cannabinoid Antagonist SR 141716A Blocks Cannabinoid-Induced Antinociception in Rats. Pharmacol Biochem Behav 1997;57:7-12. doi:10.1016/S0091-3057(96)00121-9</p>
+<p>Lyons MA. Pretomanid dose selection for pulmonary tuberculosis: An application of multi- objective optimization to dosage regimen design. CPT Pharmacometrics Syst Pharmacol 2021;10:211-219. doi:10.1002/psp4.12591</p>
+<p>Mangoni AA, Jackson SHD. Age-related changes in pharmacokinetics and pharmacodynamics: basic principles and practical applications. Br J Clin Pharmacol 2004;57:6-14. doi:10.1046/j.1365-2125.2003.02007.x</p>
+<p>Mato S, Pazos A. Influence of age, postmortem delay and freezing storage period on cannabinoid receptor density and functionality in human brain. Neuropharmacology 2004;46:716-726. doi:10.1016/j.neuropharm.2003.11.004</p>
+<p>Mattingly DT, Richardson MK, Hart JL. Prevalence of and trends in current cannabis use among US youth and adults, 2013-2022. Drug Alcohol Depend Rep 2024;12:100253. doi:10.1016/j.dadr.2024.100253</p>
+<p>Morean ME, de Wit H, King AC, Sofuoglu M, Rueger SY, O&#x27;Malley SS. The drug effects questionnaire: psychometric support across three drug types. Psychopharmacology (Berl) 2013;227:177-192. doi:10.1007/s00213-012-2954-z</p>
+<p>Mun CJ, Letzen JE, Peters EN, Campbell CM, Vandrey R, Gajewski-Nemes J, DiRenzo D, Caufield-Noll C, Finan PH. Cannabinoid effects on responses to quantitative sensory testing among individuals with and without clinical pain: a systematic review. Pain 2020;161:244-260. doi:10.1097/j.pain.0000000000001720</p>
+<p>Naef M, Curatolo M, Petersen-Felix S, Arendt-Nielsen L, Zbinden A, Brenneisen R. The analgesic effect of oral delta-9-tetrahydrocannabinol (THC), morphine, and a THC- morphine combination in healthy subjects under experimental pain conditions. Pain 2003;105:79-88. doi:10.1016/s0304-3959(03)00163-5</p>
+<p>Nguyen N, Cruz Rivera PN, Abu Baker D, Narasimhan R, Tibiriçá L, Kepner W, O&#x27;Malley P, Zhao L, Nguyen AL, Moore AA. Behaviors Related to Medical Cannabis Use in Older Adults: A Qualitative Study. J Psychoactive Drugs 2026:1-9. doi:10.1080/02791072.2026.2644852</p>
+<p>Olesen AE, Andresen T, Staahl C, Drewes AM. Human experimental pain models for assessing the therapeutic efficacy of analgesic drugs. Pharmacol Rev 2012;64:722-779. doi:10.1124/pr.111.005447</p>
+<p>Pertwee RG. The diverse CB1 and CB2 receptor pharmacology of three plant cannabinoids: delta9-tetrahydrocannabinol, cannabidiol and delta9- tetrahydrocannabivarin. Br J Pharmacol 2008;153:199-215. doi:10.1038/sj.bjp.0707442</p>
+<p>Pravosud V, Lum E, Vali M, Cohen BE, Hoggatt KJ, Byers AL, Austin PC, Walter LC, Hasin D, Zaman T, Keyhani S. Cannabis Use Among Older Adults. JAMA Netw Open 2025;8:e2510173. doi:10.1001/jamanetworkopen.2025.10173</p>
+<p>Rolke R, Magerl W, Campbell KA, Schalber C, Caspari S, Birklein F, Treede RD. Quantitative sensory testing: a comprehensive protocol for clinical trials. Eur J Pain 2006;10:77-88. doi:10.1016/j.ejpain.2005.02.003</p>
+<p>Rothman KJ. No adjustments are needed for multiple comparisons. Epidemiology 1990;1:43-46.</p>
+<p>Spindle TR, Martin EL, Grabenauer M, Woodward T, Milburn MA, Vandrey R. Assessment of cognitive and psychomotor impairment, subjective effects, and blood THC concentrations following acute administration of oral and vaporized cannabis. J Psychopharmacol 2021;35:786-803. doi:10.1177/02698811211021583</p>
+<p>Staahl C, Olesen AE, Andresen T, Arendt-Nielsen L, Drewes AM. Assessing efficacy of non-opioid analgesics in experimental pain models in healthy volunteers: an updated review. Br J Clin Pharmacol 2009;68:322-341. doi:10.1111/j.1365-2125.2009.03433.x</p>
+<p>U.S. Food and Drug Administration. Assessment of Abuse Potential of Drugs: Guidance for Industry. Silver Spring, MD: U.S. Food and Drug Administration, 2017. https://www.fda.gov/regulatory-information/search-fda-guidance- documents/assessment-abuse-potential-drugs</p>
+<p>Wallace M, Schulteis G, Atkinson JH, Wolfson T, Lazzaretto D, Bentley H, Gouaux B, Abramson I. Dose-dependent effects of smoked cannabis on capsaicin-induced pain and hyperalgesia in healthy volunteers. Anesthesiology 2007;107:785-796. doi:10.1097/01.anes.0000286986.92475.b7</p>
+<p>Wang L, Hong PJ, May C, Rehman Y, Oparin Y, Hong CJ, Hong BY, AminiLari M, Gallo L, Kaushal A, Craigie S, Couban RJ, Kum E, Shanthanna H, Price I, Upadhye S, Ware MA, Campbell F, Buchbinder R, Agoritsas T, Busse JW. Medical cannabis or cannabinoids for chronic non-cancer and cancer related pain: a systematic review and meta-analysis of randomised clinical trials. BMJ 2021;374:n1034. doi:10.1136/bmj.n1034</p>
+<p>Yang KH, Kaufmann CN, Nafsu R, Lifset ET, Nguyen K, Sexton M, Han BH, Kim A, Moore AA. Cannabis: An Emerging Treatment for Common Symptoms in Older Adults. J Am Geriatr Soc 2021;69:91-97. doi:10.1111/jgs.16833</p>
+<p>Yoo HB, DiMuzio J, Filbey FM. Interaction of Cannabis Use and Aging: From Molecule to Mind. J Dual Diagn 2020;16:140-176. doi:10.1080/15504263.2019.1665218</p>
+<p>Zagzoog A, Halter K, Jones AM, Bannatyne N, Cline J, Wilcox A, Smolyakova AM, Laprairie RB. The Intoxication Equivalency of 11-Hydroxy-Δ(9)-Tetrahydrocannabinol Relative to Δ(9)-Tetrahydrocannabinol. J Pharmacol Exp Ther 2024;391:194-205. doi:10.1124/jpet.123.001998</p>
+<p>Δ is the mean change from baseline across the observation window (oral 60-360 min; vaporized 5-360 min), in each measure&#x27;s units, clinically signed so that positive values denote analgesia. g is Hedges&#x27; g. The pain sensitivity index is in SD units. Bold marks p &lt; .05.</p>
 </div>
 </details>
 </div>
