@@ -198,7 +198,7 @@ Children with Physical Disabili%es and Professionals through Co-design:
 A Workshop Study Authors
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.10.26367483
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.10.26367483
 </p>
 </header>
 <div class="mc-main">
@@ -323,8 +323,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -683,9 +686,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -707,7 +714,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -722,9 +730,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -737,13 +763,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -763,6 +792,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -770,12 +805,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -876,6 +917,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -895,6 +956,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1150,19 +1246,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1272,6 +1450,337 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Caregivers of children with disabili=es act as intermediaries between professionals due to fragmented communica=on and informa=on sharing across sectors. The use of shared digital communica=on may support integrated care. Therefore, this study explored challenges and needs among caregivers and professionals and how an exis=ng shared digital communica=on interven=on could be adapted to support communica=on and coordina=on in this context.</p>
+<p>Three future workshops involved 26 co-designers: caregivers (n=8), professionals across sectors (n=14), and sobware developers (n=4). Caregiver and professional data were analysed thema=cally, followed by matrix analysis to iden=fy convergences, tensions, and design principles. In workshop with sobware developers, design principles were translated into design specifica=ons.</p>
+<p>Both caregivers and professionals described how caregivers become de facto care coordinators. Clear responsibili=es, con=nuity, and shared knowledge were iden=fied as essen=al for improving communica=on and coordina=on. Shared digital communica=on was considered promising, but tensions emerged between accessibility and workload, and between transparency and confiden=ality. The adapted interven=on incorporated structured communica=on, shared responsibility, rela=onal con=nuity, a shared overview, and a human digital coordina=on func=on.</p>
+<p>The adapted interven=on provides a founda=on for cross-sector communica=on between caregivers and professionals and adds to the evidence base of communica=on solu=ons that may strengthen integrated care.</p>
+<h3>1. Introduc6on</h3>
+<p>Caring for a child with disability requires con=nuous involvement of professionals across health, social, and educa=onal sectors, making effec=ve communica=on and coordina=on essen=al. However, discon=nui=es in communica=on and limited informa=on sharing oben leave caregivers ac=ng as intermediaries (Kouther et al., 2022; Pousada et al., 2013; Raina et al., 2005; Vadivelan et al., 2020). Limited caregiver access to professionals&#x27; electronic records further exacerbates this challenge. Studies describe caregivers as &quot;semi-professional coordinators&quot;, adding to their substan=al burden (Gulmans et al., 2009; Jensen et al., 2024a).</p>
+<p>Communica=on and coordina=on also challenge professionals collabora=ng across disciplines and sectors (Jensen et al., 2024b; Styczen et al., 2025), and a key contribu=ng factor is the fragmented organisa=on of services (Ghannam et al., 2025). Despite co-financing and close collabora=on between regional and municipal levels, professionals operate under different legisla=ve frameworks and use separate electronic records. This system fragmenta=on undermines integrated care in complex pathways requiring sustained cross-sector collabora=on, and may increase caregiver burden by shibing responsibility for coordina=on onto families. Suppor=ve and preven=ve integrated care interven=ons are therefore needed to strengthen collabora=on across sectors and alleviate this burden.</p>
+<p>In previous studies, we have explored a shared digital communica=on interven=on connec=ng pa=ents with healthcare professionals across sectors in an orthopaedic context. The benefits included real-=me informa=on sharing aber surgery, interprofessional learning (Jensen et al., 2024a (Jensen et al., , 2024b)), improved access to relevant professionals, and greater con=nuity of care around discharge (Jensen et al., 2024a). A randomised controlled trial also demonstrated that providing pa=ents with access to the interven=on significantly reduced hospital phone calls aber discharge (Høpfner Jensen et al., 2024). However, complex interven=ons cannot automa=cally be assumed to be feasible or effec=ve across context without adapta=on (Moore et al., 2021a; Skivington et al., 2024 Skivington et al., , 2021)). In the context of children with physical disabili=es, the interven=on would need to accommodate caregivers and a broader mul=disciplinary network across health, social and educa=onal sectors, including public and private providers, requiring changes to professional prac=ces, workflows, and organisa=ons. This complexity necessitates careful adapta=on (Skivington et al., 2024 (Skivington et al., , 2021)). S=rman et al. (2013) dis=nguish between adapta=ons to interven=on content, including components, procedures, materials, and delivery methods, and adapta=ons to context, including implementa=on condi=ons, semngs, formats, and delivery personnel (S=rman et al., 2013). Co-design can support adapta=on of a complex interven=on by iden=fying end users&#x27; needs and prac=cal challenges, such as workflow, communica=on, and organisa=onal contraints (Vargas et al., 2022). It can also foster stakeholder ownership and commitment, suppor=ng integra=on into rou=ne prac=ce and strengthening implementa=on and scalability (Moore et al., 2021a).</p>
+<p>The aim of this workshop study was twofold. Firstly, we aimed to explore the challenges and needs related to communica=on and coordina=on among caregivers of children with physical disabili=es and the professionals involved in the child&#x27;s care across sectors, and secondly, we aimed to adapt a shared digital communica=on interven=on for this context through co-design.</p>
+<h3>2. Methods</h3>
+<p> &gt;Methods</p>
+<h3>2.1 Study Design</h3>
+<p>This study is a part of a larger research project with the overall aim of reducing the communica=on and coordina=on burden for caregivers of children with physical disabili=es (SHARE IT project: file:///C:/Users/skjohansen/AppData/Local/Microsoft/Olk/Attachments/ooa-5c0fa60e-70ec-4d21-b325-db33ce3e792c/03b69fdfb3938f06028d21ef9b16e432979dcf9fe47aae7352f259390d7b6e33/shareitproject.dk). The project builds upon the framework for developing and evalua=ng complex interven=ons as defined by the Bri=sh Medical Research Council (MRC), and involves four overall phases; adapta=on of the interven=on, feasibility tes=ng, evalua=on, and prepara=on for implementa=on (Skivington et al., 2024 (Skivington et al., , 2021) ) (Figure 1). The study reported in this paper is a part of the adapta&gt;on phase (highlighted with bold). During all phases of the project, the research group engages in discussions with the advisory board consis&gt;ng of caregivers, researchers, clinicians, managers and legal experts. The advisory board also func&gt;ons as an adapta&gt;on team and supports con&gt;nuous reflec&gt;on, and decision-making to facilitate progress, organisa&gt;onal anchoring, and alignment of the interven&gt;on with the contexts.</p>
+<p>This study was informed by the ADAPT guidance for transferring complex interven=ons to new contexts (Moore et al., 2021a), and co-design as an early-phase collabora=ve process in which stakeholders jointly shape interven=on development or adapta=on (Vargas et al., 2022). We report on par=cipatory workshops conducted with caregivers, professionals across health, social, and educa=onal systems, and sobware developers to explore challenges and needs, and to co-design and adapt the interven=on to support shared digital communica=on between caregivers and professionals.</p>
+<p>The adapta=on process was informed by the GUIDED framework to support a systema=c and transparent approach to interven=on adapta=on, including stakeholder involvement, decision-making, and considera=on of contextual factors (Duncan et al., 2020) (Appendix 1a). Adapta=ons to the interven=on were subsequently documented and reported using the FRAME framework (Wiltsey S=rman et al., 2019) (Appendix 1b).</p>
+<h3>2.2 Se&lt;ng</h3>
+<p>The workshops with caregivers and professionals were held at a conference venue close to Aalborg University Hospital on October 28, 2024 and January 29, 2025, respec=vely. This neutral semng was chosen instead of the hospital to avoid ac=va=ng underlying power dynamics that could be counterproduc=ve for the workshops (Tremn et al., 2025). The workshop with sobware developers took place at their facili=es and was conducted March 3, 2025.</p>
+<h3>2.3 Par(cipants as co-designers</h3>
+<p>In this study, we regard all par=cipants as co-designers, recognizing their different knowledge and exper=se as essen=al resources in the adapta=on process (Vargas et al., 2022). Par=cipants were sampled by convenience, based on availability, which is a common strategy in workshop-based research, par=cularly when engaging lead users, that are typically proac=ve and mo=vated to contribute, making them valuable for driving the development of novel product concepts (Tremn et al., 2025; von Hippel, 1986).</p>
+<p>Caregivers were invited to par=cipate by distribu=ng flyers in the Department of Pediatrics and the Department of Orthopaedics at Aalborg University Hospital, and via social media. Par=cipa=on was not limited to specific diagnoses or physical disabili=es in the child as there may be comparable communica=on and coordina=on needs across groups.</p>
+<p>Key inclusion criteria for caregivers were that the child was &lt; 18 years and required assistance from and interacted with mul=ple ins=tu=ons and professionals across sectors, such as hospitals, municipal departments, and/or specialized day care and school facili=es. This ensured that the caregivers had experiences with the complex challenges that exist in cross-disciplinary and cross-sector communica=on and coordina=on.</p>
+<p>Professionals were invited through phone calls to managers at various ins=tu=ons in the North Denmark Region and sampled to represent different disciplines and sectors. Eligible professionals worked with children with physical disabili=es in their daily prac=ce and had more than two years of experience. This ensured, that they had sufficient knowledge of communica=on and coordina=on prac=ces in the context of children with disability.</p>
+<p>In the third workshop, employees from the company providing the communica=on tool for the interven=on, par=cipated. They represented different competencies including management, sobware developer, mul=media designer and account manager. This group is collec=vely referred to as sobware developers throughout the paper.</p>
+<h3>2.4 Data collec(on</h3>
+<p>The ini=al planning of the workshops was guided by discussions in the project group and advisory board, and data collec=on was performed in three consecu=ve workshops. While the first two workshops with caregivers and professionals focused on gaining deeper insights into their challenges and needs, valida=ng the relevance of the interven=on in the given context, and collabora=vely developing design principles for adap=ng the interven=on with end users, the third workshop focused on transla=ng these design principles into concrete design specifica=ons for the communica=on tool. Therefore, a period of =me elapsed between the first two workshops and the third, during which we analysed the data. We an=cipated that this process would contribute to the overall co-design of the interven=on (Figure 2). Details of the workshops were planned by LWHJ in collabora=on with KDL and SKJ, who have previous experiences in planning and conduc=ng workshops as a method for gathering qualita=ve user-experience data. LWHJ facilitated the workshops with assistance from KDL and SKJ. All workshops were audio recorded.</p>
+<h3>Structure of the workshops with caregivers and professionals</h3>
+<p>The workshop with caregivers and professionals followed the same structure in order to get comparable insights into their percep=ons of challenges, needs and visions for the adapta=on of the shared digital communica=on interven=on. Both workshops were organized based on the principles of The Future Workshop (Jungk and Müllert, 1984) in three phases: a cri=que phase, a fantasy phase, and an implementa=on phase (Jungk and Müllert, 1984; Vidal, 2005) (Appendix 2) and using ar=facts including a case, ac=vity cards and posters to increase reflec=on and idea=on (Appendix 3).</p>
+<p>Caregivers and professionals were divided into groups of three to four individuals to make room for in-depth discussions. Groups were based on maximum diversity to ensure a broad range of perspec=ves, experiences, and competencies were represented within each group. In the workshop with caregivers this meant that caregivers were grouped with other caregivers who had children with different physical disabili=es, and in the workshop with professionals, they were grouped with professionals from different disciplines and sectors. The workshops lasted approximately three hours each.</p>
+<h3>Structure of the workshop with so6ware developers</h3>
+<p>The workshop was conducted using Design Thinking principles and guiding ques=ons created by the concept of &quot;How Might We&quot; (Cross, 2011). Design Thinking is a human-centered, itera=ve problem-solving approach that focuses on understanding user needs to create innova=ve solu=ons that improve services, experiences, and outcomes. It was considered relevant for the purpose of the third workshop, as it emphasizes empathy, collabora=on, and experimenta=on to address complex challenges (Cross, 2011).</p>
+<p>At the outset of the workshop, LWHJ presented findings from the workshops with caregivers and professionals and a matrix analysis (see data analysis sec=on), along with quotes illustra=ng the challenges encountered by caregivers and professionals. This aimed to provide sobware developers with a deeper understanding of the end users&#x27; needs, context and the specific difficul=es they face. Based on this, &quot;How might We&quot; ques=ons were created and served as a prac=cal guide for the sobware developers in developing sugges=ons for the proposed challenges (Siemon, 2018). The group brainstormed collabora=vely to iden=fy ideas for adap=ons of the exis=ng design of the messenger-like tool and how it could be used. The workshop lasted approximately 3,5 hours.</p>
+<h3>2.5 Data analysis</h3>
+<p>Data analysis was conducted in three overall phases as illustrated in Figure 3. Phase 1: Thema&lt;c analysis of workshops with caregivers and professionals The workshops with caregivers and professionals were transcribed verba=m og analysed separately using induc=ve thema=c analysis guided by Kvale &amp; Brinkmann to iden=fy common themes and insights from each group (Brinkmann and Kvale, 2015). Field notes and ar=facts created during the workshops were also collected and coded. This was for example, notes wriwen by caregivers and professionals about problems they have encountered related to communica=on and coordina=on, and ideas for adapta=on of the interven=on. Coding was conducted in Nvivo (QSR Interna=onal, version 1.7.2) and following three overall steps (Appendix 4).</p>
+<h3>Phase 2: Matrix analysis</h3>
+<p>Aber the separated analyses of the workshops with caregivers and professionals, themes were combined and synthesized in a matrix analysis (Averill, 2002). This was a complementary analy=c strategy to iden=fy, display and interpret similari=es and differences between the experiences and visions for the shared digital communica=on interven=on as expressed by caregivers and professionals, respec=vely (Averill, 2002). Codes and themes from the thema=c analysis was entered into a structured table, alongside relevant quota=ons from caregivers and professionals, and in this way the matrix enabled mapping and comparison (Averill, 2002). On one hand, similari=es in themes from the workshop with caregivers and the workshop with professionals could highlight key steps in the subsequent design process (adapta=ons that are definitely needed), and on the other hand differences in themes between the groups could reveal tensions that were crucial to consider when adap=ng the interven=on to the context. This approach ul=mately helped iden=fy and generate design principles (Fu et al., 2016 (Fu et al., , 2015)).</p>
+<h3>Phase 3: Transla&lt;on of findings into design specifica&lt;ons</h3>
+<p>The design principles generated through the matrix analysis served as ini=al design requirements during the subsequent workshop with the sobware developers. The developers translated these requirements into concrete design specifica=ons while considering technical feasibility, plazorm architecture, and user workflows. In this way, the workshops with caregivers and professionals formed the basis of the development process with the sobware developers. The workshop with sobware developers was transcribed using only summary transcrip=on, capturing the main points and key discussions and analysed using a design-oriented directed content analysis (Assarroudi et al., 2018; Elo and Kyngäs, 2008).</p>
+<h3>2.6 Involvement of people with lived experiences</h3>
+<p>People with lived experience is ac=vely involved in the SHARE IT project, where both caregivers and professionals are represented in the advisory board and in a user panel. They contribute to defining the overall direc=on and purpose of the project, and we engage in ongoing dialogue to ensure that their input maintains the relevance of the project to real-world integrated care challenges. This study was conducted as a co-design process in which caregivers and professionals iden=fied needs, challenges, and generated ideas for adap=ng the shared digital communica=on interven=on to their context. The workshops were highly par=cipatory, with the majority of =me devoted to group work and shared dialogue. We chose to conduct separate workshops for caregivers and professionals to create a safe space in which each group could express their respec=ve challenges and needs. During the subsequent data analysis, we paid par=cular awen=on to ensuring that the needs and ideas of both groups were given equal weight. The findings from the workshops were also discussed at a subsequent advisory board mee=ng awended by both caregivers and professionals. In this way, the contribu=ons from people with lived experience truly informed the adapta=on of the interven=on and its alignment with everyday life and prac=ce.</p>
+<h3>3. Ethical Considera6ons</h3>
+<p>Upon inquiry to the local ethics commiwee (North Denmark Region), the study did not require ethical approval; however, it was registered at the Research Database of North Denmark Region with journal number: F2024-178. The par=cipa=on of caregivers, professionals and sobware developers was voluntary and informed consent was obtained prior to the workshops. Data collec=on, storage and management was conducted in concordance with the General Data Protec=on Regula=on (GDPR).</p>
+<h3>4. Results</h3>
+<p> &gt;Results</p>
+<h3>4.1 Characteris(cs of co-designers</h3>
+<p>Characteris=cs of caregivers (n=8), professionals (n=14) and sobware developers (n=4) awending the three workshops are presented in Table 3. The workshop with caregivers was ini=ally planned to include 12 caregivers, however; one caregiver canceled par=cipa=on the day before the workshop, two caregivers (a couple) cancelled on the day of the workshop due to their child&#x27;s illness, and one caregiver did not show up. None of the caregivers who awended the workshop were caregivers of the same child, meaning that each caregiver contributed experiences from a unique case.</p>
+<h3>Co-designers C/P Caregivers (workshop one)</h3>
+<p>Professionals (workshop two) So:ware developers (workshop three) 1 Parent (f) of a child with cerebral palsy; nonverbal, uses wheelchair.</p>
+<p>Nurse (f) from hospital with 10 years of experience*.</p>
+<p>So,ware developer (m) with 13 years of experience in company. 2 Parent (m) of a child with a syndrome; heart disease and severe scoliosis.</p>
+<p>Physiotherapist (f) from hospital with 23 years of experience.</p>
+<p>Mul7media designer (m) with three years of experience in company.</p>
+<p>3 Parent (f) of a child with a gene&gt;c condi&gt;on; deaf, blind, organ anomaly, and physical impairment.</p>
+<p>Occupa7onal therapist (f) from hospital with 18 years of experience.</p>
+<p>Head of department and so,ware developer (m) with 23 years of experience in company. 4 Parent (f) of a child with congenital virus infec&gt;on; severe brain damage, reduced mobility, and impaired speech.</p>
+<p>Social worker (f) from the municipality with 15 years of experience.</p>
+<p>Account manager (f) with five years of experience in company.</p>
+<p>5 Parent (f) of a child with cerebral palsy; nonverbal, uses wheelchair.</p>
+<p>Social worker (f) from the municipality with six years of experience. 6 Parent (m) of a child with a rare gene&gt;c disorder; delayed development, immune problems, etc. Physiotherapist and department manager (f) in the Danish Educa&gt;onal-Psychological Counselling service (PPR) with 21 years of experience. 7 Parent (f) of a child with cerebral palsy and epilepsy; reduced mobility, vision and speech. Occupa7onal therapist (f) in the PPR with 13 years of experience. 8 Parent (m) of a child born with limb defect; reduced mobility Teacher (f) at a preschool for children with special needs with seven years of experience. 9 Educa7onal leader (f) at a preschool for children with special needs with 10 years of experience. 10 Private prac7ce physiotherapist (m) with two years of experience. 11 Private prac7ce physiotherapist (f) with six years of experience. 12 Teacher (f) at a school for children with special needs with four years of experience. 13 Occupa7onal therapist (f) from municipality with 13 years of experience. 14 Physiotherapist (f) from municipality with four years of experience. Table 3. Characteris&gt;cs of co-designers in the three workshops. C = Caregiver (number), P = Professional (number), f = female, m = male. *By experience is meant number of years working with children with physical disabili&gt;es (professionals).</p>
+<h3>4.2 Results of the data analysis from the workshop with caregivers</h3>
+<p>Analysis of data from the workshop with caregivers generated four overall themes and addi=onal subthemes highlighted in Figure 4 and elaborated in a narra=ve descrip=on with quotes. Theme 1: Struggling to access support Caregivers experience that support is oben dependent on the child&#x27;s needs being formally recognized by the system. This is par=cularly evident among caregivers of children with rare diseases, for whom a diagnosis serves as a gateway to accessing services, communica=on with relevant professionals and interven=ons.</p>
+<h3>&#x27;When the child does not have a diagnosis, you are just le6 in an open box (…) You become a ping-pong ball being passed around, and it&#x27;s exhausAng.&#x27; (C4)</h3>
+<p>However, in everyday life when new assis=ve devices or specialized services from the municipality are needed, it is also described as an uphill bawle, requiring caregivers to develop extensive knowledge of regula=ons, available services, and professional terminology. Caregivers feel they have to persistently argue their child&#x27;s case, provide documenta=on, and know what support to request. Moreover, support is not always experienced as stable, but can be reduced or removed, requiring families to repeatedly jus=fy their needs.</p>
+<p>Caregivers also describe considerable varia=on in access to support depending on municipal prac=ces, individual professionals, and families&#x27; own resources and networks. As such, caregivers with greater knowledge, economic opportuni=es, professional backgrounds, or suppor=ve networks are perceived as bewer equipped to navigate the system, crea=ng a sense of inequity in access to care and support.</p>
+<p>&#x27;And then having to fight to actually secure a place in a specialized insAtuAon for your child, because the municipality, which has never met him, decides that this is not what he needs. It becomes this endless struggle.&#x27; (C3) Caregivers&#x27; experiences suggest that access to support is shaped not only by the child&#x27;s needs, but also by the individual family&#x27;s capacity to navigate a fragmented and complex system.</p>
+<p>Theme 2: Caregivers as de facto care coordinators Caregivers describe taking responsibility for maintaining an overview of their child&#x27;s needs across fragmented services. Due to insufficient informa=on sharing between professionals, they repeatedly recount their child&#x27;s history, transfer documenta=on, and communicate relevant knowledge across organisa=onal boundaries. Although caregivers recognize the need to take the lead and are willing to do so, they describe carrying a responsibility they have neither formally chosen nor been prepared for.</p>
+<p>&#x27;As parents, we need to know everything about our children, including the problems and challenges that we cannot necessarily describe using professional language.&#x27; (C1) Caregivers also highlight that no single professional or service consistently assumes responsibility for the child&#x27;s overall care pathway. Instead, services are experienced as organized around separate professional domains, while caregivers experience their child&#x27;s needs as interconnected and requiring a holis=c approach. The involvement of mul=ple actors, unclear responsibili=es, and limited communica=on across sectors contribute to caregivers&#x27; percep=on that they have to create the necessary links between services themselves.</p>
+<h3>&#x27;I think the issue is that I am the one responsible for passing on the informaAon, and also for physically sending the documentaAon.&#x27; (C5)</h3>
+<p>This coordina=on role has substan=al consequences for family life. Caregivers describe the prac=cal and emo=onal demands of managing communica=on, appointments, documenta=on, and follow-up ac=vi=es alongside their everyday responsibili=es as caregivers. The =me and energy spent naviga=ng the system reduces their opportunity to focus on being present with their child and family and contributes to feelings of exhaus=on and frustra=on.</p>
+<p>&#x27;You spend so much Ame on all of this, and that Ame has to come from somewhere else -from your other children, for example (…) I had more than a year where I was not working. The amount of Ame I spent managing everything related to our son was enormous. There was always something happening: first a surgery, and then he developed epilepsy and so on. The amount of Ame spent on communicaAon and coordinaAon would never would have been possible if I had been working full Ame.&#x27; (C7) Several caregivers express a profound longing to simply be able to focus on being a parent.</p>
+<p>Thus, caregivers&#x27; experiences suggest that the absence of integrated coordina=on mechanisms results in a transfer of organisa=onal work to families, giving caregivers responsibility for maintaining con=nuity across a fragmented system.</p>
+<p>Theme 3: When the system works Despite describing a fragmented system, caregivers also highlight how commiwed professionals can create a sense of coherence and support. Professionals who understand the child and family, recognize the child beyond their diagnosis, and ac=vely seek solu=ons provide reassurance and reduce caregivers&#x27; sense of having to navigate the system alone. One caregiver describes the difference a par=cular doctor has made: &#x27;He has relieved a huge burden for us, parAcularly in relaAon to our daughter&#x27;s condiAon. He has been curious, he has supported us, and whenever challenges have arisen, he has been there. He is the first person we have encountered within the system who has been like that.&#x27; (C4) Con=nuity in professional rela=onships is also important for building trust and security. Caregivers value professionals who know their child&#x27;s history and individual needs, sparing them from repeatedly explaining their situa=on. Conversely, frequent changes in professionals can lead to loss of knowledge, uncertainty, and the need to rebuild trust. When communica=on and coordina=on work well, caregivers oben describe this as a mawer of &#x27;luck&#x27;, sugges=ng that such support is incidental rather than a reliable feature of the system.</p>
+<p>&#x27;We have been fortunate that the social worker we were assigned when she was X years old is sAll our social worker today. That is quite extraordinary; it is not the norm. It has made a huge difference.&#x27; (C3) These experiences suggest that integrated care is not experienced solely as a result of organisa=onal structures or formal coordina=on mechanisms, but is oben dependent on individual professionals who take responsibility and demonstrate commitment.</p>
+<p>Theme 4: The promise and precondi&lt;ons for shared digital communica&lt;on Caregivers view shared digital communica=on as a poten=al way to reduce the burden of informa=on management and improve cross-sector coordina=on. However, its value depends on whether it addresses exis=ng challenges related to coordina=on, informa=on sharing and responsibility.</p>
+<p>&#x27;I can think of a specific situaAon in our family... (where it would have been helpful). Our daughter had just started school, and the hospital recommended that she should aSend school for a certain number of hours, but the municipality quesAoned that recommendaAon. In that situaAon, it would have been incredibly helpful. It would have made so much sense because I would not have had to sit there and &#x27;play doctor&#x27; when talking to the municipality. That is where I can really see this working.&#x27; (C6) Caregivers describe that direct communica=on between professionals and the sharing of videos, plans, and documents may reduce caregivers&#x27; role as informa=on brokers, support their par=cipa=on in care, and, in som cases, poten=ally avoid unnecessary appointments.</p>
+<p>&#x27;Going to an appointment is always an all-day project for us. The only thing they wanted to assess was how he was walking. I could have recorded a video and sent it to them.&#x27; (C7) However, caregivers&#x27; express concerns that the interven=on might place addi=onal demands on professionals and ques=on whether professionals will have the capacity and willingness to engage. They therefore emphasize the need for clear roles, responsibili=es, and expecta=ons to prevent addi=onal demands and avoid the plazorm becoming an open consulta=on service. &#x27;If, for example, a doctor suddenly has all their paAents (on this plaUorm), who may normally only be seen twice a year, starAng to send pictures several Ames a month and expecAng a response, then there needs to be clear expectaAon-seVng with parents. This should not become an open consultaAon where parents can ask informaAon every Ame, they are uncertain.&#x27; (C6) Caregivers also want dialogues to focus on clearly defined tasks, with influence over their purpose and par=cipants. This reflects concerns that informa=on shared across professional contexts may be interpreted differently and have unintended consequences. &#x27;I would like to have a say in defining the topic, or at least ensure that it is clearly delimited. I have experienced several Ames that doctors, with the best intenAons, write something in the medical record and forward it to the municipality to help us obtain a support aid or resolve a specific problem. However, the outcome can be the opposite of what was intended, because the informaAon is interpreted differently (…).&#x27; (C2) Finally, caregivers emphasize that wriwen dialogues should be structured and have a clear endpoint. Overall, shared digital communica=on is considered promising, provided that it reduces rather than shibs the coordina=on burden onto families.</p>
+<h3>4.3 Results of the data analysis from the workshop with professionals</h3>
+<p>Analysis of data from the workshop with professionals produced five overall themes and addi=onal subthemes highlighted in Figure 5 and further elaborated in a narra=ve descrip=on with quotes from professionals. Theme 1: The challenge of crea&lt;ng a shared understanding Professionals emphasize that suppor=ng children with physical disabili=es requires a holis=c understanding of the child&#x27;s abili=es, development, treatment goals, and everyday needs. However, this is difficult to achieve when knowledge is distributed across professionals, organisa=ons, and informa=on systems, crea=ng uncertainty about how best to support the child.</p>
+<p>&#x27;You can easily feel uncertain and start quesAoning whether you are doing something that could be harmful (when you lack informaAon). Is there something I should avoid doing? When is he allowed to do that and that (a6er surgery)?&#x27; (P6) Limited access to shared informa=on also means that professionals rely on caregivers to relay informa=on, hindering =mely and coordinated support as the child&#x27;s needs evolve. Furthermore, professionals may have different priori=es based on their professional perspec=ves. Without a shared overarching goal, these differences can leave caregivers responsible for naviga=ng compe=ng perspec=ves and maintaining an overview of the child&#x27;s needs.</p>
+<p>&#x27;There are so many (professionals) involved, and so many professionals who genuinely want the best for the child and the family. I recognize that this can be a posiAve thing, but it also becomes problemaAc because they represent different views on what is important for the child and family (…) and the family somehow has to navigate these. We lack an overall overview.&#x27; (P7) These findings highlight the need for structures that enable shared understanding and alignment across professional and organisa=onal boundaries.</p>
+<p>Theme 2: Coordina&lt;on without clear ownership Professionals describe coordina=on across professionals, sectors, and services as lacking clear responsibility. Although individual actors coordinate within their own areas, no one has overall responsibility for ensuring con=nuity across the child&#x27;s care pathway. Consequently, professionals who have frequent contact with families or are easily accessible oben assume an informal coordina=ng role by connec=ng actors, following up, and sharing informa=on.</p>
+<p>&#x27;In the specialized preschool seVng, we o6en take on a coordinaAng role, although it is not formally defined or explicitly assigned. This becomes parAcularly evident when children transiAon into the school system. We try to establish a network around the child and support families in idenAfying where to seek help, and for some families, we acAvely assist in making those contacts.&#x27; (P9) From the perspec=ve of private providers, addi=onal barriers to communica=on and coordina=on arise from the lack of financial incen=ves to par=cipate in cross-sector collabora=on.</p>
+<p>&#x27;Many forms of communicaAon do not fit into the exisAng economic framework, such as informal conversaAons, text messages, or phone calls from parents. I experience this as a significant challenge. As a result, I someAmes limit my communicaAon with parents, keeping it to a need-to-know basis or the absolute minimum required to ensure an appropriate course of care with the informaAon available to me. I rely on parents to provide the informaAon I need, for example during consultaAons, rather than having to seek it out myself outside of working hours.&#x27; (P10) As a result, professionals and caregivers oben fill coordina=on gaps by transferring informa=on themselves, placing an addi=onal burden on families. Professionals also point to a growing private market for social workers, which may widen inequali=es as access to such support depends on families&#x27; financial resources.</p>
+<h3>Theme 3: Interprofessional collabora&lt;on reliant on personal rela&lt;onships is vulnerable</h3>
+<p>Professionals describe established rela=onships between colleagues, including knowledge of each other&#x27;s roles and contact pathways, as important facilitators of interprofessional collabora=on. However, access to these informal networks may depend on professional experience and personal connec=ons, leaving newer professionals at a disadvantage. &#x27;I have developed certain lifelines within the system. I know that I can contact him or her if needed. However, this also makes the process somewhat dependent on chance, because it relies on the people I happen to know.&#x27; (P4) Although formal network mee=ngs support shared understanding, professionals consider them insufficient due to their infrequency and limited ability to support ongoing communica=on. They may also be experienced by caregivers as overwhelming or insufficiently informa=ve and inclusive.</p>
+<p>Professionals further point to exis=ng coordina=on structures and projects that are not available to all children. For example, children with acquired brain injuries or cancer may have access to dedicated cross-sector coordina=on, unlike most children with physical disabili=es. &#x27;In these cases, parents know that, unAl their child turns 18, there is a brain injury centre that has a coordinaAng role and can be contacted for support. However, this only applies to a small group of children, and one could argue that a similar structure would be equally relevant for many other groups of children.&#x27; (P2) Overall, interpersonal rela=onships are an important source of coherence, but reliance on individual networks makes collabora=on vulnerable to staff turnover and organisa=onal differences. Exis=ng coordina=on structures in other care pathways may offer valuable lessons for improving support for a broader group of children.</p>
+<h3>Theme 4: A digital plaIorm may support coordina&lt;on but requires new shared prac&lt;ces</h3>
+<p>Professionals see a shared digital plazorm as an opportunity to improve coordina=on through task-specific communica=on, informa=on sharing, and follow-up across caregivers and professional and organisa=onal boundaries. They consider it par=cularly relevant during transi=ons and when introducing new interven=ons.</p>
+<p>&#x27;I think it can be useful in relaAon to more clearly defined and specific intervenAons or pathways (…) Because these are very much centered around the physical aspects. And beyond this, it may also be relevant during transiAons, such as when a child is referred to a specialized educaAonal seVng or moves from preschool to school, points where mulAple actors become involved.&#x27; (P8) However, professionals emphasize that a plazorm alone cannot resolve coordina=on challenges. Clear agreements are needed regarding who par=cipates, what informa=on is shared, who responds, and within what =meframe. Without these, increased transparency may add to caregivers&#x27; responsibility for monitoring communica=on rather than relieve their burden.</p>
+<p>&#x27;We talked about the pros and cons of parents being able to read along with what is being wriSen between professionals, because we also have to be mindful of them. If it was intended as a way of relieving some of their burden, by allowing us to use it as a means of communicaAon, but then they suddenly find themselves thinking, &quot;Oh, now they (professionals) have wriSen to each other again, and now I have to keep track of what they have wriSen.&quot; Then we might actually end up placing an addiAonal burden on them.&#x27; (P1) Professionals also an=cipate that easier access to communica=on may increase their workload. They therefore stress the need to allocate dedicated =me for plazorm-related communica=on, referred to as &#x27;app =me&#x27;.</p>
+<p>Finally, informa=on sharing raises concerns about privacy, consent, and GDPR, par=cularly as repeated parental consent is oben required before professionals can communicate or share informa=on. Overall, professionals emphasize the need to balance accessibility and transparency with appropriate boundaries for sensi=ve informa=on, supported by shared communica=on prac=ces and organisa=onal agreements.</p>
+<h3>Theme 5: Combining digital infrastructure and human coordina&lt;on</h3>
+<p>Professionals highlight the need to combine technological support with human coordina=on. In the workshops, they developed the concepts of &#x27;Preben&#x27; and &#x27;Sonja&#x27; (Danish names) to represent two complementary forms of support: an automated digital overview and a human coordina=ng func=on. &#x27;Preben&#x27; represents a vision of an intelligent, shared plazorm providing an updated overview of the child&#x27;s situa=on, involved professionals, ongoing ac=vi=es, and relevant informa=on. Through secure, consent-based informa=on sharing, such a system could facilitate access to informa=on, reduce duplicate documenta=on, and ensure con=nuity across transi=ons and organisa=onal boundaries.</p>
+<p>&#x27;The idea was that &quot;Preben&quot; would collect data from different sources and create a shared overview. For example, if a rehabilitaAon plan for hand training was created for a child, professionals could access informaAon about the hand, including previous assessments, clinical notes, and relevant documentaAon. This would provide a basis for deciding the next steps.. (…). Parents could also be included in this overview, allowing professionals to consider the wider context of the child&#x27;s life, including siblings, school experiences, and potenAal needs for addiAonal support.&#x27; (P3) However, professionals emphasize that technology alone cannot fulfill the coordina=ng role. &#x27;Sonja&#x27; represents a human coordinator who ensures that relevant professionals are involved and addresses the rela=onal and emo=onal aspects that cannot be captured through digital informa=on alone.</p>
+<p>&#x27;So, in order to prevent the parents from ending up being the ones who take on the coordinaAng role a6er all, &quot;Sonja&quot; steps in and takes on that role instead.&#x27; (P1) Thus, professionals see effec=ve coordina=on as requiring both shared digital infrastructure and human responsibility.</p>
+<h3>4.3 Matrix analysis</h3>
+<p>The matrix analysis iden=fied key tensions and opportuni=es related to the shared digital communica=on interven=on. Across the workshops with caregivers and professionals, both groups iden=fied fragmented coordina=on and insufficient informa=on sharing as central challenges, while responsibility for managing these challenges was oben placed on caregivers and individual professionals rather than being structurally embedded within the care system. Caregivers described the burden of collec=ng, interpre=ng, and transferring informa=on across services, while professionals viewed this as a consequence of lacking formal coordina=on structures.</p>
+<p>A related finding concerned the need for a shared understanding of the child across professional and organisa=onal boundaries. Caregivers emphasized the importance of professionals having access to the child&#x27;s history, needs, and everyday circumstances without requiring families to repeatedly provide this informa=on. Professionals similarly described difficul=es in developing a holis=c understanding when knowledge is distributed across mul=ple actors and systems. The matrix thus iden=fied a shared need for a common overview to support con=nuity and alignment, while highligh=ng that shared knowledge requires not only access to informa=on but also agreement on its relevance, interpreta=on, and associated responsibili=es.</p>
+<p>The matrix analysis also revealed tensions regarding the poten=al role of digital communica=on. Both groups saw opportuni=es for improved informa=on exchange, con=nuity, transparency, and reduced repe==on, but expressed concerns about crea=ng addi=onal demands. Caregivers worried about overburdening professionals, while professionals worried about overburdening caregivers. Moreover, they were concerned that shared digital communica=on could add to documenta=on and communica=on demands and create uncertainty about responsibili=es and response expecta=ons. Finally, both groups emphasized that digital infrastructure alone cannot resolve the complexity of coordina=ng support. Caregivers highlighted the importance of professionals who know the child and family, while professionals emphasized the need for a coordina=ng func=on that ensures that relevant actors are involved.</p>
+<p>The matrix analysis iden=fied several design principles for a shared digital communica=on interven=on including 1) a shared child overview, 2) shared communica=on with transparent roles and responsibili=es, 3) to ensure equitable access to support, 4) to support con=nuity across professionals, 5) structured communica=on divided in specific tasks, 6) role-based access and consent management (caregiver control), 7) to use the tool as transi=ons support and, 8) to combine the digital plazorm with human coordinator support (Appendix 5).</p>
+<h3>4.4 Transla(on of findings into design specifica(ons through workshop with soMware developers</h3>
+<p>The workshop with sobware developers translated the needs and tensions iden=fied among caregivers and professionals into design specifica=ons, ensuring alignment with clinical prac=ce, the exis=ng messenger-like plazorm, and its future development possibili=es. This involved priori=zing features and making compromises.</p>
+<p>For example, the analysis iden=fied a need for a more comprehensive cross-system overview of the child, corresponding to the &#x27;Preben&#x27; concept developed by professionals. However, as the messenger-like tool is primarily a secure communica=on plazorm rather than an integrated clinical informa=on system, this was considered beyond the scope of the current interven=on. The adapted interven=on therefore focused on shared communica=on and coordina=on within the exis=ng system, while cross-system data integra=on was retained as a poten=al direc=on for future development.</p>
+<p>Furthermore, based on the design principles of &#x27;shared communica=on with transparent roles and responsibili=es&#x27; and &#x27;structured communica=on divided into specific tasks&#x27;, a dis=nc=on was made between primary professionals and professionals with sporadic or one-off involvement. This dis=nc=on highlighted the need for a shared coordina=on dialogue involving primary professionals who have ongoing and repeated contact with the child or caregivers, such as physicians, physiotherapists, social workers, and teachers. In addi=on, taskspecific dialogues were iden=fied as necessary to accommodate structured communica=on divided into specific tasks and to be able to include professionals with more sporadic involvement.</p>
+<p>Finally, the integra=on of a messenger-like tool with a human digital coordinator was further developed and specified. Establishing a professionally qualified coordinator role was beyond the scope of this project, as such a func=on would be resource-intensive and raise ques=ons regarding which organisa=on or sector, regional, municipal, or private providers should assume responsibility for the role. Instead, a human digital coordinator role was proposed as a feasible solu=on within the current project. The human digital coordinator could be a project staff member responsible for ensuring that relevant professionals were included in the communica=on, based on caregivers&#x27; preferences, establish and close dialogues and clarify expecta=ons regarding plazorm use, par=cularly during the ini=al phase.</p>
+<p>Overall, the iden=fied design specifica=ons covered the following areas related to content and context: interven=on content and func=onality, condi=ons for access, delivery, coordina=on, and organisa=onal support (Appendix 6).</p>
+<h3>5. The adapted shared digital communica6on interven6on</h3>
+<p>The adapted interven=on comprises five interrelated elements to support shared digital communica=on (Figure 6). Together, these elements are designed to support shared knowledge, distribute coordina=on responsibili=es, and structure communica=on around the child&#x27;s specific needs and processes.</p>
+<h3>6. Discussion</h3>
+<p> &gt;Discussion</p>
+<h3>6.1 Primary results and comparison to previous literature</h3>
+<p>This study explored how an exis=ng shared digital communica=on interven=on could be adapted to support communica=on and coordina=on between caregivers of children with physical disabili=es and professionals across sectors. Both groups described fragmented coordina=on and distributed knowledge, leaving caregivers as de facto coordinators of their child&#x27;s care. Experiences of integrated care were closely linked to whether someone took responsibility for crea=ng coherence across the care pathway. Although shared digital communica=on was seen as a way to redistribute this responsibility, it could also create addi=onal workload. The adapted interven=on therefore incorporated shared responsibility, con=nuity, structured communica=on, a shared overview, and a human digital coordina=ng func=on.</p>
+<h3>Responsibility for coordina&lt;on and con&lt;nuity</h3>
+<p>A central finding was that caregivers frequently assumed responsibility for coordina=ng care by collec=ng and transferring informa=on, interpre=ng professional assessments, following up on decisions, and connec=ng professionals. Professionals similarly described relying on caregivers to transfer informa=on between services. Thus, caregivers became an informal mechanism through which the system achieved con=nuity.</p>
+<p>This finding relates to family-centred care, which posi=ons caregivers as ac=ve partners and recognizes their knowledge of their child&#x27;s needs and everyday life life (King and Chiarello, 2014). However, our findings highlight an important dis=nc=on between caregiver par=cipa=on and caregiver responsibility. Caregivers wanted to par=cipate in communica=on and decisions but did not want to be responsible for coordina=ng fragmented services. Family-centred care should therefore not imply transferring more responsibility to families. Meaningful partnership requires professionals and organisa=ons to provide structures that enable par=cipa=on without making families compensate for system fragmenta=on.</p>
+<p>This finding aligns with literature documen=ng the substan=al coordina=on work undertaken by families of children with complex or long-term condi=ons (Gulmans et al., 2009). However, when integrated care depends on families&#x27; ability to navigate professional and organiza=onal boundaries, access may depend on family resources. Families with greater knowledge, financial resources, professional experience, or social networks may be bewer posi=oned to advocate for support (Bøwcher and Dammeyer, 2025), raising concerns about equity.</p>
+<p>Professionals described a parallel challenge: coordina=on was valued but insufficiently anchored in formal responsibili=es, leaving individual professionals to act as informal coordinators. This contrasted with caregivers&#x27; accounts of when the system worked well, where professionals who knew the child, responded when needed, and took responsibility beyond their immediate roles provided relief, trust, and security. Together, these findings suggest that integrated care depends on someone taking responsibility for crea=ng coherence across the care pathway.</p>
+<p>This has implica=ons for digital interven=ons. A communica=on tool can facilitate informa=on sharing but cannot create integra=on if responsibility for interpre=ng informa=on, ini=a=ng collabora=on, and following up remains unclear. Technology-supported care depends on the interac=on between technology, users, and organiza=onal contexts (Greenhalgh et al., 2017). Shared digital communica=on should therefore support the rela=onal and organiza=onal work of coordina=on while reducing reliance on individual goodwill, personal networks, and families&#x27; capacity to compensate for gaps in the system.</p>
+<h3>Digital communica&lt;on and the distribu&lt;on of responsibility</h3>
+<p>Caregivers and professionals highlighted a poten=al in direct communica=on and shared access to informa=on, including documents, photographs, and videos, to reduce repe==on and support collabora=on, par=cularly during transi=ons and when several professionals work towards a shared goal. This aligns with literature sugges=ng the need for ongoing communica=on and collabora=on between families and service providers (Almasri et al., 2018 (Almasri et al., , 2011)).</p>
+<p>However, our findings reveal a poten=al paradox. Caregivers wanted greater access to professionals but were concerned about increasing their workload, while professionals welcomed bewer access to informa=on but an=cipated increased communica=on, documenta=on, and expecta=ons of responsiveness. Thus, an interven=on intended to reduce the burden could instead redistribute it. This reflects evidence that health technologies may create addi=onal workload and require changes to exis=ng workflows if not adequately integrated into organiza=onal prac=ce (Grossi et al., 2021).</p>
+<p>The relevant ques=on is therefore not simply whether communica=on can be made easier, but what communica=on is necessary, for whom, and who is responsible for ac=ng on it. This informed the decision to structure communica=on around specific tasks, with clear objec=ves, defined par=cipants, response expecta=ons, and closure of dialogues.</p>
+<h3>Digital infrastructure needs to be combined with human coordina&lt;on</h3>
+<p>The co-design process highlighted that digital infrastructure needs to be supported by human coordina=on. Professionals&#x27; conceptualisa=ons of &#x27;Preben&#x27; and &#x27;Sonja&#x27; captured two complementary needs: a shared overview of relevant informa=on and a coordinator who ensures that relevant actors are involved in mee=ng the family&#x27;s needs.</p>
+<p>Although the comprehensive cross-system overview envisioned through &#x27;Preben&#x27; was beyond the scope of this study, the underlying need informed the interven=on adapta=on. Similarly, alloca=ng a dedicated care coordinator to all families, as envisioned through &#x27;Sonja&#x27;, was beyond the project&#x27;s scope due to the resources required. Instead, the concept was adapted into a human digital coordinator role. This was considered a feasible way to support shared digital communica=on within exis=ng legal and organiza=onal frameworks, while ensuring that communica=on remained purposeful and coordina=on did not default to the family.</p>
+<p>The interven=on thus combined digital and rela=onal coordina=on where relevant professionals could par=cipate in dialogues, caregivers could influence who was involved, and a human digital coordinator could establish and support the communica=on structure. This reflects literature conceptualising digital technologies as embedded within wider organiza=onal and rela=onal infrastructures (Greenhalgh et al., 2019). It also addresses the vulnerability of relying on personal rela=onships and knowing &#x27;the right person&#x27;. Although rela=onal con=nuity is important, it also requires organiza=onal structures and shared responsibility across professional boundaries (Ljungholm et al., 2022).</p>
+<h3>The co-design process revealed tensions that shaped the adap&lt;on of the interven&lt;on</h3>
+<p>This study illustrates the value of involving different stakeholder groups in interven=on adapta=on. Although caregivers and professionals shared concerns about fragmenta=on and the lack of a holis=c understanding of the child, their perspec=ves on the digital solu=on differed. Caregivers emphasized accessibility and transparency, whereas professionals highlighted workload, boundaries, and responsibility. The matrix analysis helped iden=fy the interdependence of these perspec=ves rather than trea=ng them as compe=ng requirements. This is par=cularly relevant to par=cipatory approaches to integrated care, where co-design brings together different forms of knowledge and requires dialogue and nego=a=on across stakeholders (Masterson et al., 2024). Par=cipa=on therefore did not simply generate desired func=ons but revealed tensions requiring design compromises, including balancing accessibility with workload and transparency with informa=on boundaries. The adapta=on consequently addressed not only the technology but also the prac=ces and condi=ons in which it would operate. This reflects S=rman et al.&#x27;s (2013) conceptualisa=on of interven=on adapta=on, which encompasses changes to both interven=on content and implementa=on context (S=rman et al., 2013). Further adapta=on will be made based on a feasibility study.</p>
+<h3>6.2 Strengths and limita(ons</h3>
+<p>A key strength of this study is its par=cipatory approach, which enabled caregivers&#x27; and professionals&#x27; experien=al knowledge, alongside sobware developers&#x27; prac=cal considera=ons, to inform interven=on adapta=on from an early stage (Moore et al., 2021b). Early user involvement can improve the relevance and usability of digital health interven=ons by ensuring that solu=ons reflect users&#x27; needs and contexts (Baines et al., 2022; Masterson et al., 2024). The matrix analysis also enabled examina=on of both convergence and tensions between stakeholder perspec=ves rather than trea=ng either group as homogeneous (Averill, 2002).</p>
+<p>The study also has limita=ons. Recruitment was primarily based on convenience sampling, which may have limited varia=on in perspec=ves and underrepresented experiences that more deliberate sampling could have iden=fied (Malterud et al., 2016). Although convenience sampling may require a larger sample to achieve sufficient breadth, the specificity and diversity of experiences within an available sample cannot always be predicted (Malterud et al., 2016). Furthermore, organiza=onal decision-makers were represented on the SHARE IT project&#x27;s advisory board, however their more direct involvement in the early adapta=on process may have facilitated future implementa=on.</p>
+<p>The caregiver group in the first workshop was rela=vely small (n = 8). However, the discussions generated rich and diverse insights, and groups of eight to 16 par=cipants are considered appropriate for facilita=ng dialogue and co-construc=ng knowledge (Kanstrup and Bertelsen, 2011). No physicians par=cipated in the professional workshop, although professionals working closely with physicians provided insights into their communica=on workflows. Nevertheless, this limits the breadth of professional perspec=ves represented.</p>
+<h3>7. Conclusion</h3>
+<p>This study suggests that challenges in communica=on and coordina=on for children with physical disabili=es are closely related to a lack of structures suppor=ng shared knowledge, con=nuity, and responsibility across organisa=onal boundaries. A shared digital communica=on interven=on should be embedded within clear roles, shared responsibility and human coordina=on. Further research is needed to assess its feasibility, acceptability, impact on caregivers and professional workload, and organiza=onal implica=ons.</p>
+<h3>Appendix 1a: GUIDED repor6ng guideline</h3>
+<h3>GUIDED -a guideline for repor4ng for interven4on development studies.</h3>
+<h3>Supplementary File 1: Blank Checklist</h3>
+<h3>Item descrip,on Explana,on Page in manuscript where item is located</h3>
+<p>Other* 1. Report the context for which the interven2on was developed.</p>
+<p>Understanding the context in which an interven2on was developed informs readers about the suitability and transferability of the interven2on to the context in which they are considering evalua2ng, adap2ng or using the interven2on. Context here can include place, organisa2onal and wider sociopoli2cal factors that may influence the development and/or delivery of the interven2on (15).</p>
+<p>Page 1-2 2. Report the purpose of the interven2on development process.</p>
+<p>Clearly describing the purpose of the interven2on specifies what it sets out to achieve. The purpose may be informed by research priori2es, for example those iden2fied in systema2c reviews, evidence gaps set out in prac2ce guidance such as The Na2onal Ins2tute for Health and Care Excellence or specific priori2sa2on exercises such as those undertaken with pa2ents and prac22oners through the James Lind Alliance.</p>
+<p>Page 1-2 3. Report the target popula2on for the interven2on development process.</p>
+<p>The target popula2on is the popula2on that will poten2ally benefit from the interven2on -this may include pa2ents, clinicians, and/or members of the public. If the target popula2on is clearly described then readers will be able to understand the relevance of the interven2on to their own research or prac2ce. Health inequali2es, gender and ethnicity are features of the target popula2on that may be relevant to interven2on development processes.</p>
+<p>Page 2 4. Report how any published interven2on development approach contributed to the development process Many formal interven2on development approaches exist and are used to guide the interven2on development process (e.g. 6Squid (16) or The Person Based Approach to Interven2on Development ( 17)). Where a formal interven2on development approach is used, it is helpful to describe the process that was followed, including any devia2ons. More general approaches to interven2on development also exist and have been categorised as follows (3):-Target Popula2on-centred interven2on development; evidence and theory-based interven2on development; partnership interven2on development; implementa2on-based interven2on development; efficacy-based interven2on development; step or phased-based interven2on development; and interven2on-specific interven2on development (3). These approaches do not always have specific guidance that describe their use. Nevertheless, it is helpful to give a rich descrip2on of how any published approach was opera2onalised Page 1 5. Report how evidence from different sources informed the interven2on development process.</p>
+<p>Interven2on development is o`en based on published evidence and/or primary data that has been collected to inform the interven2on development process. It is useful to describe and reference all forms of evidence and data that have informed the development of the interven2on because evidence bases can change rapidly, and to explain the manner in which the evidence and/or data was used. Understanding what evidence was and was not available at the 2me of interven2on development can help readers to assess transferability to their current situa2on.</p>
+<p>Page 1-2 6. Report how/if published theory informed the interven2on development process.</p>
+<p>Repor2ng whether and how theory informed the interven2on development process aids the reader&#x27;s understanding of the theore2cal ra2onale that underpins the interven2on. Though not men2oned in the e-Delphi or consensus mee2ng, it became increasingly apparent through the development of our guidance that this theory item could relate to either exis2ng published theory or programme theory Page 1 7. Report any use of components from an exis2ng interven2on in the current interven2on development process.</p>
+<p>Some interven2ons are developed with components that have been adopted from exis2ng interven2ons. Clearly iden2fying components that have been adopted or adapted and acknowledging their original source helps the reader to understand and dis2nguish between the novel and adopted components of the new interven2on.</p>
+<p>Page 1 + Appendix 6 8. Report any guiding principles, people or factors that were priori2sed when making decisions during the interven2on development process.</p>
+<p>Repor2ng any guiding principles that governed the development of the applica2on helps the reader to understand the authors&#x27; reasoning behind the decisions that were made. These could include the examples of par2cular popula2ons who views are being considered when designing the interven2on, the modality that is viewed as being most appropriate, design features considered important for the target popula2on, or the poten2al for the interven2on to be scaled up.</p>
+<p>Page 6-12 9. Report how Poten2al stakeholders can include pa2ent and community representa2ves, stakeholders local and na2onal policy makers, health care providers and those paying for or contributed to the commissioning health care. Each of these groups may influence the interven2on development process in different ways. Specifying how differing development process. groups of stakeholders contributed to the interven2on development process helps the reader to understand how stakeholders were involved and the degree of influence they had on the overall process. Further detail on how to integrate stakeholder contribu2ons within interven2on repor2ng are available (19).</p>
+<p>Page 2 + 4 10. Report how the interven2on changed in content and format from the start of the interven2on development process.</p>
+<p>Interven2on development is frequently an itera2ve process. The conclusion of the ini2al phase of interven2on development does not necessarily mean that all uncertain2es have been addressed. It is helpful to list remaining uncertain2es such as the interven2on intensity, mode of delivery, materials, procedures, or type of loca2on that the interven2on is most suitable for. This can guide other researchers to poten2al future areas of research and prac22oners about uncertain2es relevant to their healthcare context.</p>
+<p>Appendix 6 11. Report any changes to interven2ons required or likely to be required for subgroups.</p>
+<p>Specifying any changes that the interven2on development team perceive are required for the interven2on to be delivered or tailored to specific sub groups enables readers to understand the applicability of the interven2on to their target popula2on or context. These changes could include changes to personnel delivering the interven2on, to the content of the interven2on, or to the mode of delivery of the interven2on.</p>
+<p>-12.</p>
+<p>Report important uncertain2es at the end of the interven2on development process.</p>
+<p>Interven2on development is frequently an itera2ve process. The conclusion of the ini2al phase of interven2on development does not necessarily mean that all uncertain2es have been addressed. It is helpful to list remaining uncertain2es such as the interven2on intensity, mode of delivery, materials, procedures, or type of loca2on that the interven2on is most suitable for. This can guide other researchers to poten2al future areas of research and prac22oners about uncertain2es relevant to their healthcare context. Page 15 13. Follow TIDieR guidance when describing the developed interven2on.</p>
+<p>Interven2ons have been poorly reported for a number of years. In response to this, interna2onally recognized guidance has been published to support the highquality repor2ng of health care? interven2ons 5 and public health interven2ons 14 . This guidance should therefore be followed when describing a developed interven2on.</p>
+<p>We followed The FRAME instead because this was an adapta2on (see Appendix 1b) 14. Report the interven2on development process in an open access format.</p>
+<p>Unless reports of interven2on development are available people considering using an interven2on cannot understand the process that was undertaken and make a judgement about its appropriateness to their context. It also limits cumula2ve learning about interven2on development methodology and observed consequences at later evalua2on, transla2on and implementa2on stages. Repor2ng interven2on development in an open access (Gold or Green) publishing format increases the accessibility and visibility of interven2on development research and makes it more likely to be read and used. Poten2al plakorms for open access publica2on of interven2on development include open access journal publica2ons, freely accessible funder reports or a study web-page that details the interven2on development process.</p>
+<p>Yes *e.g. if item is reported elsewhere, then the loca2on of this informa2on can be stated here.</p>
+<h3>Reference:</h3>
+<p>Duncan E, et al. BMJ Open 2020; 10:e033516. doi: 10.1136/bmjopen-2019-033516 1. Human digital coordinator: A human coordinator establishes the coordination dialogue and identifies relevant participants, supports participants in using the platform, helps define the purpose and scope of dialogues, supports communication when needed, and closes dialogues when tasks have been completed.</p>
+<p>2. Shared responsibility: Each dialogue is named after a specific task or need to create a shared overview of ongoing processes. Relevant participants join the dialogue and thereby share responsibility for the task. Participants receive written and verbal guidance on using the platform and their responsibilities within it.</p>
+<p>3. Continuity and coordinated access: The platform is used for specific tasks, transitions and follow-up. Relevant professionals involved with the child are listed in the coordination dialogue, and participants can initiate new taskspecific dialogues when needed. Caregivers are included in all dialogues and can approve participants and new dialogues through digital consent. Only professionals relevant to the individual task participate in each task-specific dialogue. Participants can also indicate periods of absence and specify expected response times.</p>
+<h3>4. Structured communication:</h3>
+<p>A coordination dialogue is established for each child, with relevant primary professionals invited to participate. Participants can initiate additional dialogues for specific tasks or needs. Each task-specific dialogue has a clearly defined purpose, and communication is restricted to the task defined within that dialogue. Completed dialogues are closed. 5. Shared overview: Dialogues can be used to share goals, plans, files, photographs and videos relevant to the child&#x27;s ongoing support. Information shared within a dialogue remains accessible to relevant participants, who can see who has access, including participants&#x27; names and professional roles. The overview focuses on relevant and active processes rather than creating a comprehensive shared record.</p>
+<h3>5. Level of delivery</h3>
+<p>Level at which the modification was made</p>
+<p>The modifications were made at the intervention-delivery level, with implications for coordination across organizational and professional boundaries. The adapted intervention was designed for use by caregivers and relevant professionals involved in a child&#x27;s support across sectors. The modifications were not intended as individual adaptations for particular caregivers or professionals, but as features of the intervention&#x27;s overall structure and delivery. 6. Nature of modifications</p>
+<h3>Content-level and context-level modifications</h3>
+<p>The adaptations involved both changes to intervention content and changes to the way the intervention was intended to be delivered and used in its new context.</p>
+<p>At the content level, the adapted intervention specified five interrelated elements: a human digital coordinator, shared responsibility, continuity and coordinated access, structured communication, and a shared overview. These elements introduced or specified functions and procedures for establishing, organizing, facilitating and closing taskspecific dialogues, as well as sharing and accessing relevant information.</p>
+<p>At the context and delivery level, the intervention was adapted to support collaboration between caregivers and professionals across different sectors. This included clarifying participants&#x27; roles and responsibilities, giving caregivers control over participation through digital consent, and structuring communication around specific tasks and relevant participants. The adaptations also addressed the need for human support alongside the digital platform. 7. Fidelity consistency Fidelity-consistent / fidelity-inconsistent / unknown</p>
+<p>The adaptations were intended to retain the overall purpose of the original intervention as a shared digital communication tool while modifying its content and delivery to fit the needs and context of caregivers and professionals supporting children with physical disabilities. The study did not include a formal assessment of intervention fidelity or explicitly establish which components of the original intervention were considered essential to its effectiveness. Consequently, the extent to which the modifications were consistent with intervention fidelity cannot be determined conclusively.</p>
+<h3>8. Reasons for modifications</h3>
+<p>Intent and contextual factors</p>
+<p>The modifications aimed to improve the intervention&#x27;s relevance, acceptability and feasibility in a context characterized by fragmented communication and coordination across health, social care and educational services. The co-design process identified challenges relating to information sharing, continuity, unclear responsibilities and the coordination work undertaken by caregivers and professionals.</p>
+<p>The five elements were developed to address these challenges by supporting shared responsibility, making communication more structured and task-specific, facilitating continuity across tasks and transitions, and providing access to relevant information for those involved. The human digital coordinator was included to support participants and help ensure that dialogues were established, purposeful and closed when tasks were completed.</p>
+<p>The adaptations also sought to address the risk that a shared digital communication platform could create additional communication demands without adequately supporting coordination. By defining the purpose and scope of dialogues, clarifying responsibilities, limiting participation to relevant individuals and specifying expectations regarding availability and response times, the adapted intervention aimed to support purposeful communication while taking account of the different roles and working conditions of caregivers and professionals.</p>
+<p>The contextual factors informing the adaptations included the involvement of multiple professional groups and organizational settings, differences in professional responsibilities and workflows, the need to protect information and manage access, and the practical and technical conditions for using a shared digital platform.</p>
+<p>Appendix 2: Summary of the ac6on plan used for the workshops with caregivers and professionals</p>
+<h3>CriGque phase Fantasy phase ImplementaGon phase Aim</h3>
+<p>IntroducGon and problem framing in a creaGve process where caregivers and professionals were guided to reflect on current challenges.</p>
+<p>Co-design and ideaGon where caregivers and professionals could express their unreserved wished for the future.</p>
+<p>Refinement and feedback with consideraGon of how the challenges and wishes could be merged into pracGcal soluGons that can be implemented.</p>
+<p>AcGviGes The facilitator set the stage, introduced the topic, and explained the course of the workshop. Next, group discussions were facilitated to explore challenges related to communica&gt;on and coordina&gt;on in the care of the children.</p>
+<p>Brainstorming and group ac&gt;vi&gt;es were facilitated to generate solu&gt;ons for the challenges described in the cri&gt;que phase. Facilitators emphasized horizontal thinking to welcome unconven&gt;onal and out-ofthe-box ideas (Halskov and Dalsgård, 2006; Lucero et al., 2016) (Appendix 3).</p>
+<p>The facilitators presented the messenger-like placorm (LetDialog, VISMA) as a tool for the shared digital communica&gt;on interven&gt;on between caregivers and professionals. Co-designers were asked to consider how this may be used in their context. In subsequent group discussions, they were asked to validate and refine ideas generated in earlier phases and consider how challenges and ideas may be met/merged within the messenger-like tool.</p>
+<h3>ArGfacts</h3>
+<p>A case descrip&gt;on and addi&gt;onal poster with a &gt;meline of the life of 10-year-old girl was presented as a common star&gt;ng point for discussions in the groups (Appendix 3). Co-designers were encouraged to write notes regarding challenges on post-its and place them on the &gt;meline. This aimed to understand the broader context of communica&gt;on and coordina&gt;on challenges experienced by parents.</p>
+<p>Ac&gt;vity cards were introduced to s&gt;mulate horizontal thinking in the group discussions (Appendix 3).</p>
+<p>A poster with the messenger-like tool was presented for visualiza&gt;on and co-designers were encouraged to write notes on post-its and place them on the poster (Appendix 3). Ac&gt;vity cards were s&gt;ll available to s&gt;mulate crea&gt;ve thinking in the group discussions.</p>
+<p>Poster used in cri(que and fantasy phases</p>
+<p>The poster was used during the criAque and fantasy phases of the workshops with caregivers and professionals.</p>
+<p>ParAcipants were asked to write or illustrate challenges (criAque phase) and potenAal soluAons (visions phase), placing them along Liv&#x27;s life Ameline. This aimed to pinpoint criAcal moments where challenges emerged and idenAfy opportuniAes for intervenAon based on parAcipants&#x27; insights.</p>
+<h3>Poster used in implementa(on phase</h3>
+<p>The poster was used during the implementaAon phase of the workshops with caregivers and professionals. This aimed to generate concrete ideas for adapAng the tool to the new context.</p>
+<h3>Appendix 6: From design principles to design specifica6ons</h3>
+<p>The table shows how we moved from design principles to design specifica=ons, the specifica=on domain and the status of the adapta=on (if it was an adapta=on of interven=on, an exis=ng func=onality, extension of use, or a newly specified feature).</p>
+<h3>Design principle SpecificaGon domain</h3>
+<h3>Design specificaGon Status</h3>
+<h3>Shared child overview</h3>
+<p>Content and func&gt;onality • Dialogues are structured around the individual child&#x27;s needs and ongoing processes (task-specific dialogues), reducing the need to repeatedly transfer existing knowledge.</p>
+<p>•</p>
+<p>Caregivers have an overview of all dialogues, while professionals can view dialogues in which they participate.</p>
+<h3>Adapta&gt;on of how the placorm is used</h3>
+<h3>Shared communica7on with transparent roles and responsibili7es</h3>
+<p>Content and func&gt;onality • A shared coordination dialogue is provided for each child, involving caregivers and relevant primary professionals.</p>
+<p>•</p>
+<p>In the coordination dialogue, participants names and professional roles are visible, and participants can ask new task-specific dialogues as needs arise.</p>
+<p>Newly specified feature • Professionals can indicate periods of absence and expected response times, visible to other participants. • Notifications are sent to participants in the relevant dialogue. Exis&gt;ng func&gt;onality Ensure equitable access to support Access and delivery • The platform is highly usable, intuitive, and easy to navigate. Exis&gt;ng func&gt;onality • It provides a low-threshold pathway to relevant support, communication, and coordination, reducing reliance on fragmented communication channels across organizations. • Participation in digital communication is voluntary.</p>
+<h3>Extension of use</h3>
+<h3>Support con7nuity across professionals</h3>
+<p>Delivery and coordina&gt;on • Only relevant, known professionals working with the child participate in dialogues, supporting relation continuity.</p>
+<p>• Multiple professionals from the same team may participate when needed, subject to caregiver approval, reducing vulnerability related to absence or staff turnover.</p>
+<h3>Extension of use</h3>
+<h3>Structured communica7on divided in specific tasks</h3>
+<p>Content and func&gt;onality • Communication is structured around clearly defined topics, tasks, or actions rather than open-ended communication.</p>
+<p>• Task-based dialogues can be created and closed, supporting purposeful coordination while limiting unnecessary communication and information overload.</p>
+<h3>Adap&gt;on of how the placorm is used</h3>
+<p>Role-based access and consent management (caregiver control) Func&gt;onality and governance • Caregivers are included in all dialogues concerning their child and can control participation and access to shared information through digital consent.</p>
+<p>• Roles and access are clearly visible and assigned to named professionals rather than entire departments or organizations.</p>
+<p>• Caregivers identify relevant professionals during an initial mapping process.</p>
+<p>•</p>
+<p>The approach supports appropriate consent management and GDPR compliance.</p>
+<h3>Adap&gt;on of how the placorm is used</h3>
+<h3>Used as transi7ons support and when</h3>
+<p>Context and &gt;ming of use • Texts, photos, documents can be shared.</p>
+<p>Exis&gt;ng func&gt;onality shared planning is needed • Use of the platform is particularly relevant during transitions and when coordination or shared planning across caregivers and professionals is needed.</p>
+<p>• Shared information is accessible to relevant participants, reducing repetition and information transfer.</p>
+<h3>Extension of use</h3>
+<p>• Video can be recorded and shared directly in the platform.</p>
+<p>• Introductory messages clarify the purpose and appropriate use of each dialogue, including that it is not for urgent or acute matters.</p>
+<p>•</p>
+<h3>New func&gt;onali&gt;es</h3>
+<h3>Combine digital plaOorm with human coordinator support</h3>
+<p>Delivery and organiza&gt;onal support</p>
+<h3>•</h3>
+<p>A human digital coordinator establishes and maintains the overall coordination structure, ensures relevant actors are included, and supports agreement on the purpose and use of the communication space.</p>
+<p>•</p>
+<p>The human digital coordinator establishes and closes task-based dialogues and clarifies expectations for using the platform, particularly at initiation.</p>
+<p>New feature</p>
+<h3>Acknowledgements</h3>
+<p>We are grateful to the caregivers, professionals, and sobware developers who par=cipated in the workshops and contributed their experiences, perspec=ves, and exper=se to the co-design and adapta=on of the interven=on. We would also like to acknowledge Rikke Emilie Kildahl Lauritsen for her contribu=on to the data analysis process.</p>
+<p>Ac(vity cards for workshop with caregivers and professionals Ac=vity cards aimed to represent visualiza=ons within &quot;stakeholders&quot;, &quot;system&quot; and &quot;technology&quot; to promote horizontal thinking during the workshops fantasy phase. Each picture or graphic was printed individually on separate cards and placed at each table (group) and used by facilitators to boost crea=vity with par=cipants.</p>
+<h3>Funding Informa6on</h3>
+<p>This study is funded by The Novo Nordisk Founda=on (grant number: NNF23OC0083703) and Karen Elise Jensens Fond (grant number: 500043) as a part of the SHARE IT project.</p>
+<h3>FRAME dimension</h3>
+<p>Reporting category Description of adaptation in this study 1. When and how Timing and process The modifications were made during the adaptation phase preceding feasibility testing, evaluation and implementation, as part of an iterative co-design process. This process involved three workshops with family caregivers, professionals from various sectors, and software developers. During these workshops, participants explored experiences and challenges related to communication and coordination, identified needs and design principles, and translated these into specifications for the adapted intervention. The research team facilitated the process and supported the incorporation of input from the involved parties into the adapted intervention. 2. Planned or unplanned Planned / proactive or unplanned / reactive The modifications were planned and proactive. They were developed through a structured co-design process before the adapted intervention was implemented for feasibility testing in the new context. The adaptations were therefore not reactive responses to unforeseen implementation barriers.</p>
+<h3>3. Who determined the modification Decision-makers and contributors</h3>
+<p>The modifications were informed by the perspectives and contributions of caregivers, professionals from different sectors and software developers. The research team facilitated the co-design process, analyzed and synthesized the input, and supported the translation of identified needs into intervention specifications. The adaptations thus resulted from a collaborative process. The study does not specify a single decision-maker with final authority over each individual modification. However, the advisory board was consulted during the adaptation process. 4. What was modified</p>
+<h3>Content and components</h3>
+<p>The existing shared digital communication intervention was adapted to support coordination and communication between caregivers and relevant professionals involved in the support of children with physical disabilities. The adapted intervention comprises five interrelated core elements:</p>
+<h3>Appendix 3: Ar6facts used during workshops with caregivers and professionals</h3>
+<p>IniAally, a ficAve case is presented to parAcipants showing only the black text, creaAng the impression that the child had received adequate support and that her needs were met. Aeer parAcipants read the black text, the red text is introduced to provide addiAonal context, facilitate a sense of understanding of all the challenges caregivers meet and framing the shared case for collaboraAve discussion in the three phases of the workshop.</p>
+<p>The case Liv was born on March 18, 2015, at Rigshospitalet in Copenhagen. The birth was complicated, and Liv was diagnosed with cerebral palsy (CP) shortly aeer birth. Aeer birth, Liv and her family spent ten weeks in the neonatal department. In the first years, Liv received a rehabilitaAon plan, but there were long waiAng Ames for permanent therapists. ApplicaAons for assisAve devices and support were delayed due to bureaucracy and poor communicaAon. Liv started in a special kindergarten, but resources were limited. The caregivers had to find external help themselves, which was Ame-consuming and expensive. Liv started in a public school with a special class, but the transiAon was chaoAc due to lack of communicaAon and coordinaAon. The necessary assisAve devices were not in place, and her support teachers were oeen replaced. The annual evaluaAons were marked by a lack of coordinaAon and disagreements on goals and methods, which resulted in Liv&#x27;s needs not always being met. The family had difficulty receiving adequate help at home and respite care, which led to the caregivers oeen feeling overwhelmed and burned out. There were few services tailored to Liv&#x27;s needs, and caregivers had to spend a lot of Ame and money finding relevant leisure acAviAes. The family struggled to build a support network due to distance and waiAng lists, which led to isolaAon for both Liv and the family. By the age of ten, Liv is a brave and curious girl, but her development has been marked by many challenges within the system. Her motor skills could have been beSer with more effecAve physiotherapy. She thrives in school, but has experienced many changes and uncertainAes, which have affected her learning and social development. The family conAnues to fight to receive the necessary support.</p>
+<h3>Aim AcGons 1. Meaning coding</h3>
+<p>To reflect meanings expressed Coding of recordings from one group from both the workshop with caregivers and the workshop with professionals was conducted individually by the first author (LWHJ) and a research assistant with experiences in conduc&gt;ng thema&gt;c analysis. This ensured intersubjec&gt;vity of the coding process and helped form the ini&gt;al coding tree. First, the whole transcript of the individual workshop was read and notes were made for ini&gt;al ideas for codes for each data set. Second, coders met to compare and discuss ini&gt;al codes un&gt;l agreement.</p>
+<p>Following this, LWHJ proceeded with the coding. Any doubts were resolved in discussion with the research assistant, SKJ or KDL. The ini&gt;al coding resulted in 60 codes for the workshop with caregivers and 63 codes for the workshop with professionals.</p>
+<h3>2. Meaning condensa&gt;on</h3>
+<p>To reduce the volume of the text while retaining the essen&gt;al meaning All codes were then reread and condensed by the two coders through several itera&gt;ons un&gt;l agreement. AMer several rounds of coding, this reduced codes to 12 codes for the workshop with caregivers and 13 codes for the workshop with professionals. These codes were then discussed to achieve further condensa&gt;on and to define and name themes and subthemes that would capture the essence of data from the workshop with caregivers and professionals, respec&gt;vely.</p>
+<h3>3. Meaning interpreta&gt;on</h3>
+<p>Developing a deeper understanding of the coded data and condensed themes Four overall themes were defined for the workshop with caregivers and five themes for the workshop with professionals. They were described narra&gt;vely and relevant quotes were chosen for presenta&gt;on in the manuscript. Finally, this paper was wriien.</p>
+<h3>Appendix 5: Matrix analysis</h3>
+<p>The matrix analysis showed similari=es, differences and tensions between the needs, challenges and visions for a shared digital communica=on interven=on as perceived by caregivers and professionals. The table presents an abbreviated version of the matrix.</p>
+<p>InteracGonal issue Caregiver perspecGve Professional perspecGve Matrix analysis (overlap/tension) Design principle Fragmented knowledge about the child Repeatedly transfer informa&gt;on between services (want professionals to known the whole child/situa&gt;on) Lack access to comprehensive informa&gt;on (desire holis&gt;c understanding of the child) Shared informa&gt;on gap: responsibility shiMed to caregivers Shared child overview Caregivers as informal coordinators Coordinate communica&gt;on and services Coordina&gt;on lacks formal ownership Coordina&gt;on depends on caregivers and individual professionals Shared communica7on with transparent roles and responsibili7es Unequal access to support Support depends on family resources Caregivers compensate for system gaps Shared concerns about inequality Ensure equitable access to support CommunicaGon depends on relaGonships Trusted professionals reduce burden Collabora&gt;on relies on personal networks Effec&gt;ve but vulnerable coordina&gt;on Support con7nuity across professionals Accessibility versus work load Want direct communica&gt;on (easy accessibility) but fear overload for professionals involved Want more informa&gt;on but fear increased workload and informa&gt;on overload Beier communica&gt;on must not create more work Structured communica7on divided in specific tasks Transparency and parGcipaGon Want ac&gt;ve involvement in all communica&gt;on Need clear boundaries and consent Shared communica&gt;on requires defined roles Role-based access and consent management (caregiver control) TransiGons between services Informa&gt;on is especially lost during transi&gt;ons Transi&gt;ons require increased coordina&gt;on High risk points for fragmenta&gt;on Used as transi7ons support and when shared planning is needed CoordinaGon beyond technology Digital communica&gt;on should reduce caregiver burden Technology cannot replace human coordina&gt;on Digital solu&gt;ons require human responsibility Combine digital plaOorm with human coordinator support</p>
+<h3>Figure 1.</h3>
+<p>Figure1. The four overall phases of the SHARE IT project include adapta&gt;on, feasibility, evalua&gt;on and implementa&gt;on. The study reported in this paper is a part of the adapta&gt;on phase (highlighted with bold). During all phases of the project, the research group engages in discussions with the advisory board consis&gt;ng of caregivers, researchers, clinicians, managers and legal experts. The advisory board also func&gt;ons as an adapta&gt;on team and supports con&gt;nuous reflec&gt;on, and decision-making to facilitate progress, organisa&gt;onal anchoring, and alignment of the interven&gt;on with the contexts.</p>
+<h3>Figure 2.</h3>
+<p>Figure2. Data was collected through three workshops with co-designers: caregivers, professionals and soMware developers.</p>
+<h3>Figure 3.</h3>
+<p>Figure3. Overview of the data analysis process leading to the adapta&gt;on of the shared digital communica&gt;on interven&gt;on.</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Themes and subthemes from analysis of data from the workshop with caregivers.</p>
+<h3>Figure 5.</h3>
+<p>Figure 5. Themes and subthemes from analysis of data from the workshop with professionals.</p>
+<h3>Figure 6.</h3>
+<p>Figure 6. An overview of the adapted interven&gt;on for shared digital communica&gt;on between caregivers of children with physical disabili&gt;es and professionals across disciplines and sectors.</p>
+<h3>References</h3>
+<p>Almasri, N.A., An, M., Palisano, R.J., 2018. Parents&#x27; PercepAon of Receiving Family-Centered Care for Their Children with Physical DisabiliAes: A Meta-Analysis. Phys. Occup. Ther. Pediatr. 38, 427-443. hSps://doi.org/10.1080/01942638.2017.1337664</p>
+<p>Almasri, N.A., Palisano, R.J., Dunst, C.J., Chiarello, L.A., O&#x27;Neil, M.E., Polansky, M., 2011. Determinants of Needs of Families of Children and Youth With Cerebral Palsy. Children&#x27;s Health Care 40, 130-154. hSps://doi.org/10.1080/02739615.2011.564568</p>
+<p>Assarroudi, A., HeshmaA Nabavi, F., Armat, M.R., Ebadi, A., Vaismoradi, M., 2018. Directed qualitaAve content analysis: the descripAon and elaboraAon of its underpinning methods and data analysis process. Journal of Research in Nursing 23, 42-55. hSps://doi.org/10.1177/1744987117741667</p>
+<p>Averill, J.B., 2002. Matrix Analysis as a Complementary AnalyAc Strategy in QualitaAve Inquiry. Qual. Health Res. 12, 855-866. hSps://doi.org/10.1177/104973230201200611</p>
+<p>Baines, R., Bradwell, H., Edwards, K., Stevens, S., Prime, S., Tredinnick-Rowe, J., Sibley, M., ChaSerjee, A., 2022. Meaningful paAent and public involvement in digital health innovaAon, implementaAon and evaluaAon: A systemaAc review. Health ExpectaAons 25, 1232-1245. hSps://doi.org/10.1111/hex.13506</p>
+<p>BøScher, L., Dammeyer, J., 2025. Parents&#x27; Strategies for Taking Care of Their Child with Disability: The Challenges of Being Parents of a Child with Cerebral Palsy in the Danish Social Welfare System. Scandinavian Journal of Disability Research 27, 1-14. hSps://doi.org/10.16993/sjdr.1154</p>
+<p>Brinkmann, S., Kvale, S., 2015. Interviews: Learning the Crae of QualitaAve Research Interviewing, Third EdiAon. ed. SAGE PublicaAons, København.</p>
+<p>Cross, N., 2011. Design Thinking. Berg Publishing Plc. hSps://doi.org/10.5040/9781474293884</p>
+<p>Duncan, E., O&#x27;Cathain, A., Rousseau, N., Croot, L., Sworn, K., Turner, K.M., Yardley, L., HoddinoS, P., 2020. Guidance for reporAng intervenAon development studies in health research (GUIDED): an evidence-based consensus study. BMJ Open 10, e033516. hSps://doi.org/10.1136/bmjopen-2019-033516</p>
+<p>Elo, S., Kyngäs, H., 2008. The qualitaAve content analysis process. J. Adv. Nurs. 62, 107-115. hSps://doi.org/10.1111/j.1365-2648.2007.04569.x</p>
+<p>Fu, K.K., Yang, M.C., Wood, K.L., 2016. Design Principles: Literature Review, Analysis, and Future DirecAons. Journal of Mechanical Design 138. hSps://doi.org/10.1115/1.4034105</p>
+<p>Fu, K.K., Yang, M.C., Wood, K.L., 2015. Design Principles: The FoundaAon of Design, in: Volume 7: 27th InternaAonal Conference on Design Theory and Methodology. American Society of Mechanical Engineers. hSps://doi.org/10.1115/DETC2015-46157</p>
+<p>Ghannam, D., Angelé-Halgand, N., Kosremelli-Asmar, M., 2025. FragmentaAon of healthcare systems: challenges through paAents&#x27; eyes. Int. J. Qual. Stud. Health Well-being 20, 2598719. hSps://doi.org/10.1080/17482631.2025.2598719</p>
+<p>Greenhalgh, T., Wherton, J., Papoutsi, C., Lynch, J., Hughes, G., A&#x27;Court, C., Hinder, S., Fahy, N., Procter, R., Shaw, S., 2017. Beyond AdopAon: A New Framework for Theorizing and EvaluaAng NonadopAon, Abandonment, and Challenges to the Scale-Up, Spread, and Sustainability of Health and Care Technologies. J. Med. Internet Res. 19, e367. hSps://doi.org/10.2196/jmir.8775</p>
+<p>Greenhalgh, T., Wherton, J., Shaw, S., Papoutsi, C., Vijayaraghavan, S., Stones, R., 2019. Infrastructure Revisited: An Ethnographic Case Study of how Health InformaAon Infrastructure Shapes and Constrains Technological InnovaAon. J. Med. Internet Res. 21, e16093. hSps://doi.org/10.2196/16093</p>
+<p>Grossi, A., Hoxhaj, I., Gabum, I., Specchia, M.L., Cicchem, A., Boccia, S., de Waure, C., 2021. Hospital contextual factors affecAng the implementaAon of health technologies: a systemaAc review. BMC Health Serv. Res. 21, 407. hSps://doi.org/10.1186/s12913-021-06423-2</p>
+<p>Gulmans, J., Vollenbroek-HuSen, M.M.R., Van Gemert-Pijnen, J.E.W.C., Van Harten, W.H., 2009. EvaluaAng paAent care communicaAon in integrated care semngs: applicaAon of a mixed method approach in cerebral palsy programs&#x27;, InternaAonal Journal for Quality in Health Care, 21, pp. 58-65. InternaAonal Journal for Quality in Health Care 21, 58-65.</p>
+<p>Høpfner Jensen, L.W., Kold, S., Dinesen, B., Husum, H.-C., Skals, R.G., Eiskjær, S.P., Elsøe, R., Rahbek, O., 2024. Team- based digital communicaAon reduced paAent-iniAated phone calls to the hospital and improved paAent saAsfacAon aeer orthopedic surgery: a randomized controlled trial in 70 paAents. Acta Orthop. 95, 225-232. hSps://doi.org/10.2340/17453674.2024.40707</p>
+<p>Jensen, L.W.H., Rahbek, O., Lauritsen, R.E.K., Kold, S., Dinesen, B., 2024a. PaAent PerspecAves on CommunicaAon Pathways Aeer Orthopedic Surgery and Discharge and EvaluaAon of Team-Based Digital CommunicaAon: QualitaAve Exploratory Study. JMIR Hum. Factors 11, e49696. hSps://doi.org/10.2196/49696</p>
+<p>Jensen, L.W.H., Rahbek, O., Lauritsen, R.E.K., Kold, S., Dinesen, B., 2024b. Health Care Professionals&#x27; PerspecAves Before and Aeer Use of eDialogue for Team-Based Digital CommunicaAon Across Semngs: QualitaAve Study. JMIR Hum. Factors 11, e53391. hSps://doi.org/10.2196/53391</p>
+<p>Jungk, R., Müllert, N.R., 1984. Handbook of future workshops. PoliAsk Revy, Viborg.</p>
+<p>Kanstrup, A.M., Bertelsen, P., 2011. User InnovaAon Management: a handbook. . Aalborg Universitetsforlag.</p>
+<p>King, G., Chiarello, L., 2014. Family-Centered Care for Children With Cerebral Palsy. J. Child Neurol. 29, 1046-1054. hSps://doi.org/10.1177/0883073814533009</p>
+<p>Kouther, D.A., Shakir, M.O., Alhumaidah, R.A., Jamaluddin, H.A., Jaha, A.Y., Alshumrani, M.J., Hakami, A.Y., 2022. Factors influencing the mental health of caregivers of children with cerebral palsy. Front. Pediatr. 10. hSps://doi.org/10.3389/fped.2022.920744</p>
+<p>Ljungholm, L., Edin-Liljegren, A., Ekstedt, M., Klinga, C., 2022. What is needed for conAnuity of care and how can we achieve it? -PercepAons among mulAprofessionals on the chronic care trajectory. BMC Health Serv. Res. 22, 686. hSps://doi.org/10.1186/s12913-022-08023-0</p>
+<p>Malterud, K., Siersma, V.D., Guassora, A.D., 2016. Sample Size in QualitaAve Interview Studies: Guided by InformaAon Power. Qual. Health Res. 26, 1753-1760. hSps://doi.org/10.1177/1049732315617444</p>
+<p>Masterson, D., Lindenfalk, B., Kjellström, S., Robert, G., Ockander, M., 2024. Mechanisms for co-designing and co- producing health and social care: a realist synthesis. Res. Involv. Engagem. 10, 103. hSps://doi.org/10.1186/s40900-024-00638-3</p>
+<p>Moore, G., Campbell, M., Copeland, L., Craig, P., Movsisyan, A., HoddinoS, P., LiSlecoS, H., O&#x27;Cathain, A., Pfadenhauer, L., Rehfuess, E., SegroS, J., Hawe, P., Kee, F., Couturiaux, D., Hallingberg, B., Evans, R., 2021a. AdapAng intervenAons to new contexts-the ADAPT guidance. BMJ n1679. hSps://doi.org/10.1136/bmj.n1679</p>
+<p>Moore, G., Campbell, M., Copeland, L., Craig, P., Movsisyan, A., HoddinoS, P., LiSlecoS, H., O&#x27;Cathain, A., Pfadenhauer, L., Rehfuess, E., SegroS, J., Hawe, P., Kee, F., Couturiaux, D., Hallingberg, B., Evans, R., 2021b. AdapAng intervenAons to new contexts-the ADAPT guidance. BMJ n1679. hSps://doi.org/10.1136/bmj.n1679</p>
+<p>Pousada, M., Guillamón, N., Hernández-Encuentra, E., Muñoz, E., Redolar, D., Boixadós, M., Gómez-Zúñiga, B., 2013. Impact of Caring for a Child with Cerebral Palsy on the Quality of Life of Parents: A SystemaAc Review of the Literature. J. Dev. Phys. Disabil. 25, 545-577. hSps://doi.org/10.1007/s10882-013-9332-6</p>
+<p>Raina, P., O&#x27;Donnell, M., Rosenbaum, P., Brehaut, J., Walter, S.D., Russell, D., Swinton, M., Zhu, B., Wood, E., 2005. The Health and Well-Being of Caregivers of Children With Cerebral Palsy. Pediatrics 115, e626-e636. hSps://doi.org/10.1542/peds.2004-1689</p>
+<p>Siemon, D., 2018. Using &quot;How Might We&quot; QuesAons to Ideate on the Right Problems [WWW Document]. The Nielsen Normann Group. URL hSps://www.nngroup.com/arAcles/how-might-we-quesAons/ (accessed 2.26.26).</p>
+<p>Skivington, K., MaShews, L., Simpson, S.A., Craig, P., Baird, J., Blazeby, J.M., Boyd, K.A., Craig, N., French, D.P., McIntosh, E., Pemcrew, M., Rycroe-Malone, J., White, M., Moore, L., 2024. A new framework for developing and evaluaAng complex intervenAons: update of Medical Research Council guidance. Int. J. Nurs. Stud. 154, 104705. hSps://doi.org/10.1016/j.ijnurstu.2024.104705</p>
+<p>Skivington, K., MaShews, L., Simpson, S.A., Craig, P., Baird, J., Blazeby, J.M., Boyd, K.A., Craig, N., French, D.P., McIntosh, E., Pemcrew, M., Rycroe-Malone, J., White, M., Moore, L., 2021. A new framework for developing and evaluaAng complex intervenAons: update of Medical Research Council guidance. BMJ n2061. hSps://doi.org/10.1136/bmj.n2061</p>
+<p>SArman, S.W., Miller, C.J., Toder, K., Calloway, A., 2013. Development of a framework and coding system for modificaAons and adaptaAons of evidence-based intervenAons. ImplementaAon Science 8, 65. hSps://doi.org/10.1186/1748-5908-8-65</p>
+<p>Styczen, L.M., Helseth, S., Groven, K.S., Hauge, M.-I., Dahl-Michelsen, T., 2025. Interprofessional collaboraAon for children with physical disabiliAes: a scoping review. J. Interprof. Care 39, 1036-1052. hSps://doi.org/10.1080/13561820.2023.2295922</p>
+<p>Tremn, B., Agerskov, H., Lehmkuhl, L., Rothmann, M.J., Jensen, C.M., Nielsen, C., 2025. Workshops as a Research Method in Health Science: Epistemological and Methodological PerspecAves. J. Adv. Nurs. hSps://doi.org/10.1111/jan.17050</p>
+<p>Vadivelan, K., Sekar, P., Sruthi, S.S., Gopichandran, V., 2020. Burden of caregivers of children with cerebral palsy: an intersecAonal analysis of gender, poverty, sAgma, and public policy. BMC Public Health 20, 645. hSps://doi.org/10.1186/s12889-020-08808-0</p>
+<p>Vargas, C., Whelan, J., Brimblecombe, J., Allender, S., 2022. Co-creaAon, co-design, co-producAon for public health -a perspecAve on definiAon and disAncAons. Public Health Res. Pract. 32. hSps://doi.org/10.17061/phrp3222211</p>
+<p>Vidal, R., 2005. The Future Workshop: DemocraAc problem solving [WWW Document]. URL hSps://www2.imm.dtu.dk/pubdb/pubs/4095-full.html (accessed 2.16.26).</p>
+<p>Hippel, E., 1986. Lead Users: A Source of Novel Product Concepts. Manage. Sci. 32, 791-805. hSps://doi.org/10.1287/mnsc.32.7.791</p>
+<p>Wiltsey SArman, S., Baumann, A.A., Miller, C.J., 2019. The FRAME: an expanded framework for reporAng adaptaAons and modificaAons to evidence-based intervenAons. ImplementaAon Science 14, 58. hSps://doi.org/10.1186/s13012-019-0898-y</p>
 </div>
 </details>
 </div>
