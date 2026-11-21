@@ -197,7 +197,7 @@ Phenome-wide and proteomic analysis of APOE alleles across different
 ancestries in the All of Us Research Program
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.1 · DOI 10.64898/2026.09.26.26364080
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.09.26.26364080
 </p>
 </header>
 <div class="mc-main">
@@ -219,7 +219,7 @@ P-Values</span></p>
 <p>What we found</p>
 </div>
 <div class="text">
-<p>We found 6 imprecise <em>p</em> values out of 48 detected <em>p</em>
+<p>We found 6 imprecise <em>p</em> values out of 49 detected <em>p</em>
 values.</p>
 </div>
 </div>
@@ -962,8 +962,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -1313,9 +1314,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -1337,7 +1342,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -1352,9 +1358,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -1367,13 +1391,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1393,6 +1420,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -1400,12 +1433,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1506,6 +1545,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1525,6 +1584,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1780,19 +1874,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1902,6 +2078,184 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>ε4 is the strongest common genetic risk factor for Alzheimer&#x27;s disease and a determinant of cardiometabolic risk, yet studies of APOE genotypes with disease associations and plasma proteomic signatures have been primarily restricted to European-ancestry cohorts.</p>
+<p>Methods: We performed a phenome-wide association study of APOE genotype in 367,757 All of Us participants across six genetic ancestry groups. APOE alleles were tested against 2,632 phenotypes using an ordinal Alzheimer&#x27;s-disease-risk hierarchy ), adjusted for age, sex at birth, EHR length, and 16 genetic principal components.</p>
+<p>Sex-and ancestry-stratified analyses used Cochran&#x27;s Q for heterogeneity. We evaluated ε2 and ε4 dosage effects on plasma protein levels in 9,132 participants across five ancestries.</p>
+<p>. Findings: We identified 27 phenotypes associated with APOE, mainly in neurological and lipid-related traits. Five lipid-related traits showed sex heterogeneity, with larger effects in females. Nine associations showed ancestry-specific effects. APOE ε4 showed stronger protection against fatty liver disease in East Asians with lack of protection in African ancestry; and larger dementia risk for Europeans. Finally, SNAP25 was identified as positively associated with APOE ε4 dosage across ancestries, and CDC42EP1, APOA1 and ITGB5 shown associations with APOE ε2/ε4 specifically in non-European populations.</p>
+<p>Interpretation: Ancestry-heterogeneous APOE effects, particularly for liver and dementia phenotypes, argue for ancestry-aware interpretation of APOE-based risk.</p>
+<p>Plasma SNAP25 is a candidate ancestry-portable biomarker of APOE-ε4 effects, and ancestry-specific proteins nominate mechanisms for the observed phenotypic heterogeneity.</p>
+<h3>[div-01]</h3>
+<p>preliminary evidence of ancestry heterogeneity for hyperlipidemia and mild cognitive impairment, but statistical power in non-European groups limited systematic characterization of ancestry-specific effects. Recent plasma proteomic studies have described APOE-associated protein signatures shared with neurodegenerative diseases, but these were confined to European-ancestry participants, leaving open whether such signatures generalize across ancestries.</p>
+<h3>Added value of this study</h3>
+<p>Using the All of Us v9 release, we approximately doubled the sample size of the prior APOE PheWAS in this cohort (n = 367,757 across six ancestry groups, including ~146,000 non-European participants), enabling the first well-powered assessment of ancestry heterogeneity of APOE effects. We identify 27 Bonferroni-significant phecodes, 11 novel compared to the previous APOE PheWAS in All of Us -including vascular dementia, dementia with Lewy bodies, and angina pectoris. We detect significant sex heterogeneity for five lipid-related phecodes and significant ancestry heterogeneity for nine phecodes, including stronger protection against fatty liver and chronic liver disease in East Asian participants and larger dementia risk in European participants.</p>
+<p>Complementing the phenotypic analysis, we present the first ancestry-stratified plasma proteomic characterization of APOE genotypes (n = 9,132), identifying SNAP25 as a robust APOE-ε4-associated protein across ancestries and ancestry-specific signals for IL32, CDC42EP1, APOA1, and ITGB5.</p>
+<h3>Implications of all the available evidence Introduction</h3>
+<p>Apolipoprotein E (APOE) is a lipid-binding protein with a central role in lipid metabolism through its interaction with the low-density lipoprotein receptor (LDLR) and related receptors 1 . Three common APOE alleles have been described -ε2, ε3, and ε4defined by two single-nucleotide polymorphisms (rs429358 and rs7412) that alter amino acids at positions 112 and 158 of the mature protein 2 . These substitutions alter the interaction of each isoform with the LDL receptor. APOE ε2 binds LDLR with less affinity, impairing clearance of APOE-containing remnant lipoproteins, resulting in the compensatory upregulation of hepatic LDLR, which lowers plasma LDL-C 3 promotes faster catabolism of triglyceride-rich remnants, driving downregulation of LDLR and higher plasma LDL-C 4.</p>
+<h3>. APOE ε4</h3>
+<p>The ε4 allele is the strongest common genetic risk factor for late-onset Alzheimer&#x27;s disease (AD) 5, 6 , with each additional copy associated with earlier age of onset and increased dementia risk, whereas ε2 is considered protective [7] [8] [9] . Beyond neurological outcomes, APOE variation has been linked to atherosclerosis, stroke, hyperlipidemia, and non-alcoholic fatty liver disease, among other conditions 4, [10] [11] [12] [13] [14] . Ancestry-specific allele frequency patterns are well documented: ε4 frequency is highest in Africanancestry populations 11 , consistent with evolutionary evidence that ε4 is the ancestral allele and that ε3 and ε2 emerged and rose in frequency under positive selection during human population expansion 15, 16 . However, whether APOE confers the same phenotypic and molecular risk across ancestries -a prerequisite for equitable clinical use -remains largely unknown, because the vast majority of APOE studies have been conducted in European-ancestry cohorts.</p>
+<p>Phenome-wide association studies (PheWAS) provide a systematic framework for characterizing the pleiotropic effects of APOE alleles across electronic health record (EHR)-derived phenotypes and enable stratified analyses by sex and ancestry. Khajouei   et al. (2025) recently reported a PheWAS of APOE in 181,880 All of Us participants from six different ancestries, identifying 17 Bonferroni-significant associations and providing evidence for ancestry heterogeneity in hyperlipidemia and mild cognitive impairment 11 . However, their findings in non-European ancestry groups were limited by sample size.</p>
+<p>Whether APOE risk transfers across populations for the disease outcomes most relevant to clinical use remains unresolved.</p>
+<p>Recent large-scale proteomic studies also characterized the blood proteomic signatures of APOE variation. Lu et al. (2026) performed a multi-cohort, multi-platform analysis in five cohorts mainly from European participants (GNPC, BioFINDER-2, ADNI, UK Biobank, PPMI), integrating SomaLogic and Olink Explore plasma and CSF data to identify ε4-and ε2-associated protein signatures spanning lipid metabolism, immune regulation, and pathways shared across neurodegenerative diseases 17 . A parallel study reported that APOE ε4 carriers share immune-related proteomic changes across neurodegenerative conditions 18 . APOE-associated protein alterations can be detected before amyloid-β pathology and remain stable across age and disease progression, supporting their utility as early biomarkers 17 . However, both studies consisted of mainly This study aims to address abovementioned gaps by testing whether APOE-related risk generalizes across ancestries at both the phenotypic and blood proteomic level, leveraging the recent released data from All of Us. We will (i) replicate and extend prior APOE PheWAS findings across 367,757 participants and 2,632 phecodes from All of Us Research Program v9 release, (ii) test effect heterogeneity across sex and ancestry with increased power, and (iii) characterize the ancestry-stratified plasma proteomic signature of APOE variation as a step toward mechanistic understanding. We hypothesize that the expanded sample size and multi-ancestry design will reveal ancestry-heterogeneous APOE effects at both the phenotypic and plasma proteomic level that are undetectable in prior European-ancestry-dominated studies.</p>
+<h3>Methods</h3>
+<h3>The All of Us research program:</h3>
+<p>The All of Us Research Program (AoU) is a diverse cohort of individuals from different ancestry groups, including Europeans, Africans, admixed Americans (Latin Americans) and Asians (South and East Asians) 19 . All participants consented to be part of the study and provided access to their electronic health record (EHR).</p>
+<h3>Ethics</h3>
+<h3>Access to All of Us received institutional approval by McGill University (IRB: 2107073).</h3>
+<p>This study did not directly involve the recruitment of human participants. We accessed data from All of Us participants using the cloud Workbench 2.0. We followed all the guidelines and restrictions given by the All of Us team.</p>
+<h3>Study cohort.</h3>
+<p>We analyzed participants of the All of Us Research Program (v9 Curated Data Repository release) with short-read whole-genome sequencing (srWGS) data, EHR and inferred genetic ancestry. Sex at birth was restricted to Male or Female. This yielded a primary analytic cohort of 367,757 participants across six ancestry groups: European (EUR), African (AFR), Admixed American (AMR), East Asian (EAS), South Asian (SAS), and Middle Eastern (MID) as defined by All of Us gnomAD-based ancestry inference.</p>
+<h3>Genetic ancestry estimation: Genetic ancestry groups were predicted by the Data and</h3>
+<p>Research Center (DRC) with a random forest classifier trained on 16 genetic principal components (PCs), using the 1000 genomes project and Human Genome Diversity Project (HGDP) as reference 19 . In detail, shared sites between the All of Us cohort and the reference panel (1KG and HGDP) were used. Only autosomal and biallelic SNPs with a frequency &gt; 0.1% and a call rate &gt; 99% were kept. An R² = 0.1 was used to determine variants in linkage disequilibrium, keeping 130,660 independent SNPs. Genetic PCs were then derived using the hwe_normalized_pca function in the Hail Python package. After, a random forest classifier was trained on the reference panel using this set of high-quality variants and 16 genetic PCs 19.</p>
+<p>APOE genotyping: APOE genotypes were determined from Whole-genome sequencing (WGS) at rs429358 and rs7412. SNP data was retrieved from the All of Us WGS, specifically from the Exome subset (extracted from the whole genome) which contains only coding variants for 535,000 participants. Genotype extraction was performed using PLINK 2.0. APOE genotypes were assigned based on allele combinations on these two SNPs and an in-house Python script (Supplementary Table 1). Allele and genotype frequencies were estimated for the whole cohort and by ancestry and sex.</p>
+<p>Phenotype ascertainment: Phenotypes (phecodes) were generated from ICD-9-CM and ICD-10-CM codes in the AoU OMOP database using the PheWAS ToolKit (PheTK) v.0.3.3, applying phecodeX (3,517 phecodes) and requiring ≥2 code occurrences for a case-positive definition. This yielded 32,108,019 person-phecode events across 367,,757 participants.</p>
+<p>PheWAS: A logistic regression was performed for each phecode with the ordinal APOE variable as the exposure of interest, using the following order given by Khajouei et al.   2025 based on Alzheimer&#x27;s disease risk hierarchy: ε2/ε2 (0) &lt; ε2/ε3 (1) &lt; ε3/ε3 (2) &lt; ε2/ε4 (3) &lt; ε3/ε4 (4) &lt; ε4/ε4 (5). The PheWAS ToolKit (PheTK) package was utilized in the All of Us Researcher Workbench (https://workbench.researchallofus.org). Covariates were added using the add.covariates function in the PheTK package. Analysis was adjusted for age, sex at birth, EHR length (duration between first and last EHR event), and the first 16 genetic principal components (PCs). A final cohort of 367,757 was retained after removing missing values for covariates. Phecodes with fewer than 50 cases were excluded, yielding 2,632 tested phecodes and a Bonferroni-corrected significance threshold of α = 0.05/2,632 = 1.90×10⁻.</p>
+<h3>Sex-stratified PheWAS:</h3>
+<p>To evaluate if the associations were consistent across sexes, we repeated the primary analysis but stratified by sex: male (n=142,841) and female (n=224,916) participants. APOE effect heterogeneity was tested per significant phecode from the primary analysis using a Cochran&#x27;s Q test as implemented in the statsmodels python package. To confirm sex heterogeneity, we applied a logistic regression adding an interaction term: APOE*Sex.</p>
+<h3>Ancestry-stratified PheWAS:</h3>
+<p>To evaluate the strength of the associations per ancestry group, we performed a PheWAS stratified by ancestry using the ancestry labels provided by All of Us. After removing individuals with missing covariates, the following sample sizes were retained for each ancestry group: EUR n=221,901, AMR n=66,856, AFR n=64,261, EAS n=9,549. Cross-ancestry effect heterogeneity was tested per significant phecode using Cochran&#x27;s Q statistic, computed using the statsmodels Python package. We performed the analysis using the four largest (EUR/AFR/AMR/EAS), and the three largest (EUR/AFR/AMR) as sensitivity, to rule out that low sample size from EAS was driving the heterogeneity. Phecodes with a false discovery rate (FDR)significant heterogeneity in both analyses were considered robust.</p>
+<p>Plasma proteomics. Plasma proteomic profiles from AoU v9 Olink HT (batchnormalized, replicates removed; n=9,841 individuals and 5,416 proteins) were used to test APOE allele dosage effects on plasma protein levels. Regression analyses of plasma protein inverse-rank normalized NPX values and ε4 and ε2 allele dosage were performed in a joint model adjusted for age, sex at birth, plate ID, mean NPX value per participant and the first 16 genetic PCs. A final cohort of 9,132 individuals with all covariates was included, and 5,415 proteins were retained (excluding APOE). We analyzed the APOE protein as a positive control, as variants to define APOE genotypes have been shown to alter protein levels 17 . We then performed ancestry stratified analysis using the same joint model and covariates for EUR (n=2,648), AFR (n=1,439), AMR (n=2,033), EAS (n=1,374) and SAS (n=1,187). We excluded MID ancestry (n= 451) due to low sample size. For each protein that was only significant in one ancestry, we performed a heterogeneity test between the five ancestries as a sensitivity analysis.</p>
+<p>Selected proteins were also tested for their association with risk for relevant diseases.</p>
+<p>Statistics: Using the PheTK Python package v.0.3.3 in the All of Us Workbench, we applied a logistic regression using APOE genotype as an ordinal variable as previously described. For this model, each OR should be interpreted as an increase in this ordinal order. APOE allelic variation was the independent variable for each available Phecode adjusted by age, sex, and EHR length. In addition, we included 16 genetic PCs generated by All of Us to account for population structure. Stratified analysis by sex and ancestry included the same design and covariate adjustment. In addition, we performed analysis in the overall cohort but with increasing copies of ε2 (ε3/ε3, ε2/ε3, ε2/ε2) and ε4 (ε3/ε3, ε3/ε4, ε4/ε4). To compare with previous literature, we performed an additional analysis by diplotypes (ε2/ε3, ε2/ε2, ε3/ε4, ε4/ε4), comparing against ε3/ε3 (reference).</p>
+<p>As a sensitivity analysis, we performed the overall PheWAS but including social determinants of health (SDOH) variables such as education levels and social deprivation index (SDI). Heterogeneity testing between sex and ancestry was performed using a Cochran&#x27;s Q test, as implemented in the statsmodels package v. 0.14.6. P values were corrected using the FDR method and the significant threshold for heterogeneity was defined as &lt;0.05. Sensitivity analyses were performed using logistic regressions, as implemented in the statsmodels Python package, including associations per diplotype, effect of covariates in significant Phecodes. Interaction analyses were performed by adding a product term APOE*covariate, and the interaction P value was corrected using FDR when multiple comparisons were performed. For the proteomics analysis, we fit a linear regression using the NPX values of each protein as outcome, adjusted by 16 genetic PCs, age, sex, plate ID and the mean NPX value per participant, as recommended elsewhere 17 . SNAP25 levels between different neurological phenotypes were adjusted by the same covariates as the APOE dosage models.</p>
+<p>Heterogeneity between ancestries was tested as explained before. We used the STREGA reporting guidelines in the development of this manuscript 20.</p>
+<p>Role of funders: Funders had no role in the design, analysis or interpretation of this report.</p>
+<h3>Results</h3>
+<h3>Cohort characteristics</h3>
+<p>The cohort with genetic, phenotypic and EHR data was comprised of 367,757 participants (Table 1), with 60.3% EUR (N= 221,901), 18.2% AMR (N=66,856), 17.5% AFR (N=64,261), 2.6% EAS (N=9,549), 1.0% SAS (N=3,677), and 0.4% MID (1,513).</p>
+<p>The average age of participants was 58.2 (SD = 16.9) years. Females were younger, with an average age of 56.5 (SD = 16.8) compared to 60.9 (SD = 16.8) in males. In the whole cohort, the most frequent APOE allele was ε3, with an allele frequency of 0.777, compared to 0.077 for the ε2 allele and 0.145 for the ε4 allele. We found significant differences in allele frequencies between ancestries (χ2 = 11,253, df = 10, p &lt; 10 -300 ), with AFR ancestry displaying the highest frequency of ε4 (0.21) and the lowest ε3 frequency (0.679).</p>
+<h3>Primary PheWAS</h3>
+<p>Of the 3,517 phecodes extracted, 2,632 had at least 50 cases and were included in the analysis. PheWAS of the entire cohort found 27 phecodes associated with ordinal APOE variable (p &lt; 1.90×10⁻), spanning cardiovascular, neurological, endocrine/metabolic, gastrointestinal, genetic and mental categories. The most significant associations were with hyperlipidemia (OR 1.15, P = 6.6×10⁻²) and hypercholesterolemia (OR 1.12, P = 5.4×10⁻¹²). The largest effect sizes were observed for Alzheimer&#x27;s disease (OR 1.67, P = 9.3×10⁻) and dementias (OR 1.31, P = 9.9×10⁻). Additional significant associations were observed, such as increased risks for mixed hyperlipidemia, memory loss, mild cognitive impairment, coronary atherosclerosis, ischemic heart disease, vascular dementia as well as decreased risk for chronic liver disease and fatty liver disease (Figure 1, Table 2). These associations are consistent with APOE&#x27;s known pleiotropy and involvement in lipid and neurological traits 11.</p>
+<p>Comparing with the previous multi-ancestry PheWAS performed in All of Us 11 , we identified 11 new significant associations 11 (Table 2). Nine phecodes were reported to be nominally significant in the previous study, such as vascular dementia (OR 1.26, 95% CI [1.17-1.36]; P = 9.44 × 10⁻¹), angina pectoris (OR 1.05, 95% CI [1.03-1.07]; P = 3.05 × 10⁻), chronic non-alcoholic liver disease (OR 0.96, 95% CI [0.94-0.98]; P = 1.25 × 10⁻) and familial hypercholesterolemia (OR 1.14, 95% CI [1.08-1.21]; P = 1.16 × 10⁻); two novel associations, dementia with Lewy bodies (OR 1.42, 95% CI [1.22-1.65]; P = 6.60 × 10⁻) and neurocognitive disorder (OR 1.38, 95% CI [1.21-1.58]; P = 2.37 × 10⁻) were not previously reported before due to insufficient case counts (&lt; 50 cases) (Table 2). Sensitivity analysis was performed by including the following SDOH factors: education levels and SDI. All 27 associations remained significant after SDOH adjustment, confirming they are robust to potential confounders (Table S2).</p>
+<p>To isolate ε2 and ε4-specific dosage effects beyond the ordinal model, we conducted additional analyses testing allele dosages of ε2 and ε4, each adjusted for copies of the other allele, using the same Bonferroni threshold as the primary PheWAS (p &lt; 1.90×10⁻). The ε2 dosage yielded 13 significant associations (supplementary Figure 1 and Table S3). Most were protective effects on lipid and cardiovascular phecodes, and one neurological signal was detected for Alzheimer&#x27;s disease (OR = 0.62, P = 1.1×10⁻). The ε4 dosage yielded 22 significant associations, including risk effects for ten neurological phenotypes and nine lipid and cardiovascular phecodes (Supplementary Figure 2 and Table S4). ε4 dosage analysis also revealed an association with cerebral amyloid angiopathy (OR = 2.59, P = 1.2×10⁻) that was not detected in the primary ordinal PheWAS. Negative associations were observed for three gastrointestinal liver phecodes, consistent with the primary analysis. Together, these dosage analyses confirm that lipid effects are ε2/ε4-symmetric while neurological effects are driven predominantly by ε4. Interestingly, both ε2 and ε4 dose were positively associated with pure hyperglyceridemia.</p>
+<p>To resolve whether APOE effects follow a linear dose-response or non-linear architecture, we performed diplotype analysis using ε3/ε3 as reference for the 27 significant hits, except for the phecode neurocognitive disorder, which no ε2/ε2 individuals were found in patients (Figure 2, Table S5). For lipidemia phecodes, effects were approximately linear, consistent with the ordinal model (Figure 2A). In contrast, dementia phecodes showed clear non-linearity, with ε4/ε4 conferring risks substantially larger than expected under linearity. The largest effects were observed for Alzheimer&#x27;s disease (OR = 7.73, 95% CI 6.07-9.86) and general dementias (OR = 3.45, 95% CI 2.96-4.01), followed by vascular dementia (OR = 2.80, 95% CI 1.88-4.18) and Lewy body dementia (OR = 3.85, 95% CI 1.66-8.94; n = 138). ε4/ε4 was also associated with increased risk of coronary atherosclerosis (OR = 1.16, 95% CI 1.07-1.25) and, notably, reduced risk of fatty liver disease (OR = 0.82, 95% CI 0.73-0.92). These patterns confirm the allele dosage effects identified and highlight the value of diplotype-resolved reporting for phenotypes with non-additive APOE risk architectures.</p>
+<h3>Females carry higher APOE-related risk for lipid-related traits</h3>
+<p>To disentangle APOE sex-specific effects, we performed a stratified PheWAS in females (N = 224,916) and males (N = 142,841). In females, 2,384 phecodes were tested and 22 were found significant after Bonferroni correction (P &lt; 2.10 × 10⁻) (Supplementary Figure 3 and Table S6); in males, 2,066 phecodes were tested and 19 were found significant (P &lt; 2.42 × 10⁻) (Supplementary Figure 4 and Table S7). Among the 16 shared hits, we found the top overall-cohort associations, including Alzheimer&#x27;s disease, hyperlipidemia, and dementia. Female-only hits included familial hypercholesterolemia (OR 1.19, 95% CI [1.11-1.28]; P = 3.93 × 10⁻) and anoxic brain damage (OR 1.42, 95% CI [1.22-1.65]; P = 7.59 × 10⁻), among others. Vascular dementia was significant in males only (OR 1.28, 95% CI [1.16-1.41]; P = 1.66 × 10⁻).</p>
+<p>To test whether APOE effects differ between sexes, we assessed heterogeneity across the 27 primary hits using a Cochran&#x27;s Q test. Five phecodes showed FDR-significant sex heterogeneity (FDR-P &lt; 0.05, Figure 3, Table S8), all lipid-related and with stronger effects in females: hyperlipidemia, hypercholesterolemia, pure hypercholesterolemia, mixed hyperlipidemia, and hyperglyceridemia. No evidence of sex heterogeneity was observed for neurological phecodes, consistent with Khajouei et al. (Figure 3).</p>
+<p>Sensitivity analysis included testing for interaction between APOE and sex using an APOE×Sex product term in the logistic regression model. Results revealed a significant interaction for all five lipid phecodes after FDR correction: hyperlipidemia (FDR-P = 4.3×10⁻¹), hypercholesterolemia (FDR-P = 6.1×10⁻¹¹), pure hypercholesterolemia (FDR-P = 1.8×10⁻), mixed hyperlipidemia (FDR-P = 4.6×10⁻), and hyperglyceridemia (FDR-P = 1.8×10⁻). These results identify lipid-related phecodes (with approximately linear APOE dose-response) as the only ones with sex heterogeneity among the 27 primary hits, with no evidence of sex heterogeneity for neurological or cognitive phenotypes.</p>
+<h3>APOE-conferred risk varies across ancestries for hepatic, neurological and lipid phenotypes</h3>
+<p>To understand ancestry-specific effects of APOE alleles, we conducted an ancestrystratified PheWAS for EUR, AFR, AMR, EAS, SAS, and MID, including 2,272, 1,824, 1,843, 901, 486, and 335 phecodes with at least 50 cases, respectively. EUR, AFR, AMR, EAS specific PheWAS revealed 23, 10, 6 and 2 significant associations after Bonferroni correction, with most significant phecodes being hyperlipidemia and hypercholesterolemia (Supplementary Figure 5 6 7 8, Table S9) in each ancestry.</p>
+<p>No significant associations were found for SAS or MID likely due to insufficient statistical power. All ancestry-specific Bonferroni-significant phecodes were also identified in the overall cohort, except for Alcohol use disorder, which was only found in AMR.</p>
+<p>Next, we performed ancestry-specific heterogeneity analyses for the 27 primary hits, excluding SAS and MID due to insufficient case counts. Nine phecodes showed significant heterogeneity across four ancestries (EUR, AFR, AMR, EAS) after FDR correction (Figure 4). Heterogeneity was maintained when excluding EAS which comprised of lowest sample size, confirming that heterogeneity is not driven by lack of power (Table S10). Three of these replicated ancestry-heterogeneous associations were previously reported 11 : hyperlipidemia, mild cognitive impairment, and symptoms and signs involving cognitive functions and awareness. The remaining six were novel ancestry-heterogeneous findings: hypercholesterolemia, dementias, dementias and cerebral degeneration, memory loss, chronic liver disease, and fatty liver disease. For dementia-related phecodes, the largest effect size was found in EUR, with attenuation in the other three groups. For hyperlipidemia, the largest effect size was found in EAS.</p>
+<p>Interestingly, APOE did not show protective effects for fatty liver disease and chronic liver disease in AFR, contrary to other ancestry groups (Figure 4). These findings confirm ancestry heterogeneity across three categories of the primary PheWAS: endocrine/metabolic, neurological, and gastrointestinal, with the largest lipid effect in EAS and the largest dementia effect in EUR. We did not observe heterogeneity in cardiovascular phenotypes.</p>
+<h3>Proteomic signatures of APOE genotypes across ancestries</h3>
+<p>To identify proteomic signatures associated with APOE allele dosage, we performed differential protein level analysis using ε2 and ε4 dosage in linear regression models adjusted for age, sex, 16 genetic principal components, and plate ID. As expected, we found a positive association between APOE level and ε2 dosage (β = +0.874) and a negative association with ε4 (β =-0.846), consistent with previous reports 17 . Additionally, ε4 dosage was associated with 17 proteins (Figure 5A and Table S11) and ε2 dosage (Figure 5B and Table S12) with 77 proteins at FDR &lt; 0.05. Top ε4-associated proteins included MENT, SNAP25, PALM, and CSNK2A1; top ε2-associated proteins included LDLR, MENT, PLA2G7, and BRK1. These proteins were involved in pathways of lipid metabolism (APOA1, APOD, LDLR), neurodegeneration (SNAP25, PALM, CSNK2A1), and immune regulation.</p>
+<p>Our proteomic findings both validated and extended prior European-ancestry work.</p>
+<p>Consistent with Lu et al. 17 , we recovered several APOE-associated proteins on both SomaLogic and Olink platforms, including LDLR, PLA2G7, PLA2G10, ANGPTL3, HMOX1, MENT, and BRK1, spanning lipid metabolism, immune regulation, and previously reported APOE signatures. Beyond these, the multi-ancestry design and expanded Olink Explore HT coverage enabled discovery of proteins not previously reported, including SNAP25, PALM, CSNK2A1, and AGR3 for ε4, and LPA, CCK, APOA1, and APOD for ε2. Notably, we identified a novel protein, SNAP25, which was not reported in the previous proteomics study 17.</p>
+<p>We next tested for ancestry specific APOE-proteomic effects. We repeated the joint ε2/ε4 model stratified by genetic ancestry across five major groups (EUR n=2,648; AFR n=1,439; AMR n=2,033; EAS n=1,374; SAS n=1,187). For ε2 dosage, we identified 8, 6, 4, 4, and 2 FDR-significant proteins in EUR, AFR, AMR, EAS, and SAS, respectively (Table S13) of which five exhibited significant ancestry heterogeneity. APOA1 showed a positive association with ε2 dosage that was strongest in EUR (β = +0.204, P = 3.3×10⁻) and AMR (β = +0.181, P = 0.011), attenuated in AFR (β = +0.106, P = 0.11), and absent in EAS (β = -0.061, P = 0.34) and SAS (β = -0.048, P = 0.57), indicating that the ε2-mediated increase in APOA1 is largely restricted to non-Asian populations (Q FDR-P = 0.02). In contrast, ε4 dosage was uniformly associated with lower APOA1 across all five ancestries (β range -0.04 to -0.13), with nominal significance in EUR, EAS, and SAS, consistent with ε4&#x27;s established effect on HDL apolipoprotein reduction.</p>
+<p>Additional ancestry-specific ε2 findings included CDC42EP1 (β = -0.18, FDR-P = 9.3×10⁻³), PDGFC (β=+0.26, FDR-P = 1.05×10 -2 ) in AFR, FGFBP1 (β=-0.35, FDR-P=1.39×10⁻), LPA (β=-0.28, FDR-P = 5.51×10⁻³) in EAS, and ITGB5 in AMR (β=+0.28, FDR-P = 2.47×10⁻²), the latter implicated in extracellular matrix organization and neurodegeneration.</p>
+<p>For ε4 dosage, we identified 13, 5, 3, 3, and 3 FDR-significant proteins in EUR, AFR, AMR, EAS, and SAS, respectively (Table S14). Two proteins were found significant only in AFR: PLA2G7 (β=+0.23, FDR-P = 6.34×10⁻), IL32 (β=+0.19, FDR-P = 3.33×10⁻²).</p>
+<p>Five proteins exhibited significant ancestry heterogeneity by Cochran&#x27;s Q test (FDR-P &lt; 0.05; Figure 6). three were EUR-specific (BMERB1, β = +0.185; SMPD1, β = -0.191; SMPDL3A, β = -0.184). On the other hand, SNAP25 showed consistent effect sizes across ancestries (Figure 5C). Further analysis showed that SNAP25 levels are higher in Alzheimer&#x27;s disease (β = +0.476, FDR-P = 1.5×10⁻²) and memory loss cases (β = +0.200, FDR-P = 4.69×10⁻³) compared to controls (Figure 5D and Table S15), supporting its role as a neurodegeneration biomarker.</p>
+<h3>Discussion</h3>
+<p>To our knowledge, this is the largest multi-ancestry APOE PheWAS to date, combining a PheWAS of 367,757 participants with the first ancestry-stratified plasma proteomic analysis that includes AMR and EAS ancestries. We identified 27 phenotypes associated with APOE -11 not previously reported in this cohort -converging on four categories: dyslipidemia (Endocrine/Metabolic), dementia and cognitive decline (Neurological), coronary atherosclerosis (Cardiovascular), and protection against hepatic lipid accumulation (Gastrointestinal). Across these themes, five lipid-related phecodes showed sex specific effects and nine phecodes for ancestry specific effects, with the largest lipid and hepatic effects in EAS and the largest dementia effect in EUR.</p>
+<p>Plasma proteomics analysis identified SNAP25 as an ancestry-portable candidate biomarker of APOE-ε4 not previously detectable at scale, alongside ancestry-specific proteins (IL32 in AFR, ITGB5 in AMR, APOA1 in non-Asian populations) that may provide molecular hypotheses for the observed phenotypic heterogeneity. Together, these findings strongly supported that genetic ancestry should be integrated into APOEbased risk interpretation.</p>
+<p>As expected, we replicated 16 of the 17 top phecode associations reported by Khajouei et al. in an expanded cohort of 367,757 All of Us participants, approximately double the previous sample size (n = 181,880) 11 . Non-inflammatory disorders of vulva and perineum, which was reported in Khajouei et al. (P = 1.07 × 10⁻), did not reach Bonferroni significance in our sex-adjusted overall-cohort analysis, though the direction of effect was preserved. New associations included vascular dementia, angina pectoris, unstable angina, occlusion/stenosis of precerebral arteries, highlighting the role of APOE in cardiovascular and neurological phenotypes beyond classic dementias and hyperlipidemia, and the increased power compared to previous studies 11.</p>
+<p>We found a significant association with vascular dementia that was not reported before using All of Us due to lack of statistical power. Our diplotype analysis confirmed these findings, with an OR of 1.55 (95% C.I = 1.29 -1.88) for ε3/ε4 and 2.8 (95% C.I = 1.88 -4.18) for ε4/ε4. Associations between APOE ε4 and vascular dementia have been documented before, with OR = 1.65 (95% CI = 1.40-1.94) for ε3/ε4 and OR = 3.17 (95% CI = 2.09-4.80) for ε4/ε4 21 . This finding along with precerebral artery occlusion/stenosis suggest that the APOE role on the vasculature is consistent across ancestries (no heterogeneity observed), although we might lack power to detect differences between ancestries and sexes. APOE ε4 has been shown to affect the vasculature through several mechanisms, including blood brain barrier dysfunction 22 , amyloid beta plaques clearance impairment 23 , extracellular matrix remodeling, vascular metabolism 24 , among others. Our findings confirm well-established associations from the literature with similar estimates, confirming our increased power to detect associations that were not possible before the last release from All of Us 11.</p>
+<p>We also confirmed the recently reported protective association of APOE ε4 with fatty liver disease and chronic liver disease. This protection showed significant ancestry heterogeneity for chronic liver disease (Cochran&#x27;s Q FDR-P = 8×10⁻³) and fatty liver disease (Cochran&#x27;s Q FDR-P = 0.05). The reduced risk was consistent in EUR and EAS but absent in AFR, which could be due to African populations have substantially greater local diversity around APOE, which resulted in attenuated hepatic effect in Africans. The opposing direction of the ε4 effect on circulating lipid disorders (increased risk of hyperlipidemia and hypercholesterolemia) versus hepatic fat is consistent with a lipidpartitioning model, in which APOE ε4 favors lipid retention in the circulation and peripheral adipose over hepatic storage in mouse models 25 . These results demonstrate the interplay between risk and protection given by the APOE alleles, highlighting the complexity given the metabolic processes in which APOE is involved.</p>
+<p>Ancestry heterogeneity was also found in phenotypes where APOE genotypes do not show a linear relationship such as dementia (Cochran&#x27;s Q FDR-P = 5.1 x10 -5 ), memory loss (Cochran&#x27;s Q FDR-P = 5.4x10 -5 ), and mild cognitive impairment (Cochran&#x27;s Q FDR-P = 5.4x10 -5 ). EUR shows a larger risk of these neurological phenotypes, followed by AFR and AMR. Recent reports have shown that APOE has heterogeneous effects in Latinos, including smaller risks of AD associated with APOE ε4 compared to Europeans 26 . Although several reasons have been proposed to explain these differences, including local ancestry, confounding by admixture, among others, the exact cause remains an open question. In AFR, a recent common 19bp deletion in the APOE enhancer region protects against AD and interacts with APOE genotypes 27 . We tested the most common confounders, including SDOH, and heterogeneity remained, suggesting that other factors such as interaction with other variants (epistasis) or environmental factors could contribute to this difference. Sex heterogeneity was found exclusively in lipid-related phenotypes, with no evidence of heterogeneity for neurological outcomes. This association is consistent with hormonally mediated regulation of APOE: estrogen upregulates APOE expression, providing lipid protection before menopause 28, 29 and loss of this protection after menopause exacerbates the APOE-ε4-driven downregulation of LDLR 17 , yielding disproportionate lipid-related risk in women [30] [31] [32] , consistent with our observation of stronger effects in female carriers for hyperlipidemia, hypercholesterolemia, and mixed hyperlipidemia.</p>
+<p>The lack of sex heterogeneity for neurological phenotypes may reflect the non-linear architecture of APOE-associated dementia risk. For instance, several reports have suggested sex-specific ε4 effects on cognitive decline [33] [34] [35] [36] . Main difference between our study and the ones that reported a higher risk in female is that they either evaluated this association longitudinally (with proportional hazard models) and they measured cognitive decline in multiple visits [33] [34] [35] [36] , therefore providing stronger evidence that our cross-sectional approach.</p>
+<p>Finally, proteomic analysis revealed proteins robustly associated with APOE allele dosage across ancestries such as SNAP25. SNAP25 plays an essential role in the exocytosis of neurotransmitters, as it helps in the fusion with the cell membrane 37.</p>
+<p>SNAP25 has been proposed as a biomarker of synaptic loss and brain injury 38 . This evidence is concordant with the higher levels of SNAP25 found in Alzheimer&#x27;s disease and memory loss cases (Figure 5D). A few studies have identified SNAP25 as an APOE and AD biomarker in CSF 17, 39 . However, the largest APOE proteomics study did not identify it as an APOE-associated protein in plasma (β = 0.008, P = 0.74) 17 . This discrepancy was due to platform discordance between SomaLogic and Olink, where abovementioned study used SomaScan panel to quantify proteins. It was highly likely originated from SomaScan assay specificity: that altered aptamer binding was driven by SERPINA1 proteoforms, as strong SNAP25 cis-pQTL was only identified in Olink panel (rs362562), while only exceptionally strong SERPINA1-region trans-pQTL was found in SomaLogic related proteomic GWAS for SNAP25 40, 41 . In addition, studies have shown that the correlation of protein levels between CSF and plasma is generally low, especially for neurological phenotypes 42, 43 . Given the non-invasive nature of a blood draw, SNAP25 could be a novel biomarker of APOE ε4 effects across ancestries, and it could be used to track memory loss and AD, as recently suggested by preliminary studies and our results (Figure 5D) 44, 45.</p>
+<p>APOA1 showed significant ancestry heterogeneity in the association with ε2 dosage: no significant association in EAS and SAS populations but positive association in EUR and AMR. APOA1 levels are positively associated with HDL levels, which takes excess cholesterol in the bloodstream and delivers it to the liver, known as reverse transport 46.</p>
+<p>The absence of an ε2-driven APOA1 response in EAS could explain the larger effects of APOE genotype (ordinal) on EAS for lipid-related traits, and the largest protective effects against fatty liver disease, as reverse cholesterol transport might be diminished due to lack of APOA1.</p>
+<p>Four proteins were significant only in AFR: CDC42EP1, PDGFC (ε2 dosage), IL32 and PLA2G7 (ε4 dosage) (Table S13 and 14). CDC42EP1 is a CDC42 binding protein that mediates actin cytoskeleton reorganization 47 . CDC42 regulates neurite outgrowth, neurotransmitter and T cell mediated neuroinflammation 48 . Moreover, CDC42 pathway activity has been linked with cognitive impairment, neuron senescence and synaptic loss 48, 49 . Downregulation of CDC42EP1 could help reduce inflammation, possibly explaining one of the protective mechanisms of APOE ε2 in AFR, and the smaller risk observed compared to EUR and EAS for lipid-related and neurological traits.</p>
+<p>In contrast, IL32 was associated with APOE ε4 alleles only in AFR. IL32 is associated with chronic inflammation, endothelial function and HDL concentrations 50 . IL32 is linked to cardiovascular diseases and atherosclerosis 51, 52 . Moreover, IL32 has been associated with neuroinflammation, memory impairment, glia activation and amyloidogenesis 53, 54 . These associations are consistent with the observed effects of APOE ε4 on lipid-related traits and neurological phenotypes. Inflammation might be different between ancestry groups 55 , influencing responses to microorganisms 56 . IL32 has different isoforms, and genetic variation that is ancestry-specific could contribute to the differences observed in APOE ε4 related signatures 57 . In summary, IL32 could be mediating some of the effects of APOE ε4 in the AFR population, but further validation in independent cohorts is needed.</p>
+<p>We would like to acknowledge several limitations in this study. Reduced sample sizes for EAS, SAS and MID have limited statistical power to detect heterogeneity between ancestries, especially for neurological phenotypes. The use of EHR might result in reduced diagnostic accuracy, although we used a strict definition with at least 2 code occurrences per phecode to be classified as a case. This bias due to EHR case definition could lead to underestimated ORs, particularly if cases were misclassified or if we included controls with subclinical AD or another phenotype. In addition, dyslipidemias were classified using phecodes, and we cannot ascertain if blood measurements were used to perform these diagnoses. Similarly, biases due to geographical variables could result in differences in billing and cognitive assessment. SDOH was included as a covariate in our analyses to help mitigate confounding from these sources, however, it might not be sufficient to account for all social-economical differences. Finally, even with increased sample size in our study, the number of ε2/ε2 carriers were still low (N=2,376), particularly for less common diseases such as neurodegenerative disorders which are generally underrepresented in population-based biobanks.</p>
+<p>In summary, our findings provide robust evidence to support the need to ancestry integrated APOE-risk interpretation. Across 367,757 participants of six ancestries, the risks and protections conferred by APOE differ meaningfully between populations -for hepatic, dementia, and lipid phenotypes -and the plasma proteins we identify (SNAP25 shared across ancestries; IL32 in AFR, ITGB5 in AMR, APOA1 in non-Asian populations) parallel these differences and suggest biomarkers for ancestry-specific follow-up. Prospective evaluation of ancestry-aware APOE risk models and validation of these plasma proteomic candidates, including SNAP25 as a candidate cross-ancestry ε4 biomarker, are the next steps toward translating APOE genetics into equitable clinical practice.</p>
+<h3>Contributors</h3>
+<p>A.M-G and S.Z conceived and designed the study. A.M-G performed the genetic ancestry and APOE genotype extraction, phecode ascertainment, PheWAS analyses, proteomic analyses, and drafted the manuscript. A.M-G, S.Z, T.M.Z, J.J, Z.W, H.M.T, P.V-C, C-Y.S and C.A.O contributed to the statistical analysis and interpretation. A.M-G, T.M.Z, C-Y.S and Z.W contributed to the proteomic data processing. A.M-G, H.M.T, T.M.Z and Z.W accessed and verified the underlying data. S.Z supervised the study. All authors reviewed, edited, and approved the final manuscript, and had full access to all data in the study and accept responsibility for the decision to submit for publication.  in the whole cohort (n= 367,757). Genotypes were arranged hierarchically from ε2 to ε4 (ε2/ε2&lt;ε2/ε3&lt;ε3/ε3&lt;ε2/ε4&lt;ε3/ε4&lt;ε4/ε4). Logistic regressions for each phecode were adjusted by age, sex, 16 genetic PCs and EHR length. A total of 2,632 phecodes were evaluated. The green line represents the significance threshold after Bonferroni correction (p &lt; 1.90×10⁻). The red line represents the nominal significance threshold of 0.05. The direction of the triangles represents the direction of the association, with a  diplotype for a) hyperlipidemia, b) dementias, c) coronary atherosclerosis and d) fatty liver disease. Each forest plot displays the 95% C.I for each genotype compared to ε3/ε3. Each logistic regression included age, sex, 16 genetic PCs and EHR length as covariates. We selected the top hit for the four largest PheWAS categories. Colors define each diplotype. Odds Ratios and 95% confidence intervals for male (blue), female (red) and combined (black). Logistic regressions for each phecode were adjusted by age, 16 genetic PCs and EHR length. Heterogeneity P-values were adjusted using the FDR method. Heterogeneity was only observed for lipid-related traits (asterisks). Only 15 out of 27 hits were displayed, including significantly heterogeneous phenotypes (5) and 10 nonsignificant ones, mainly for neurological, cardiovascular and liver. displaying nine phenotypes that demonstrated heterogeneity between four ancestry groups: EUR, AFR, AMR and EAS. The x-axis shows the Odds Ratio for the APOE ordinal model and its respective 95% Confidence interval. Logistic regressions for each phecode were adjusted by age, sex, 16 genetic PCs and EHR length. Heterogeneity P-784 values were adjusted using the FDR method. showing proteins associated with ε4 allele dosage (A) and ε2 dosage (B). Significantly 788 upregulated proteins are colored in red, and significantly downregulated proteins in blue. The X-axis shows beta per e4 allele (A) and per e2 allele (B), and the Y-axis displays the -log10(P-value) after FDR correction. We capped the capped -log10(FDR p) at 45, 791 but the real value is displayed for capped proteins (triangles). ancestries. Forest plot with 8 proteins that showed ancestry-heterogeneity in their associations with either ε2 or ε4 allele dosage. FDR corrected P-value from the heterogeneity test are displayed for each forest plot. The ancestry where the protein</p>
+<h3>Acknowledgments</h3>
+<p>We would like to thank All of Us participants for their contribution to the research program. A.M-G is supported by STAGE Quebec and the Canadian Institute for Health Research (CIHR) doctoral scholarship, Funding reference number: 210230. S.Z. is supported by a Fonds de recherche du Québec santé (FRQS) Chercheurs-boursiers J1 award. This research was supported by the Canadian Institute for Health Research (CIHR) project grant PJT205932 (S.Z).</p>
+<p>Funding is listed in the acknowledgements section.</p>
+<h3>Individual</h3>
+<p>-level data from the All of Us Research Program are not publicly available but can be accessed by approved researchers through the All of Us Researcher Workbench (https://workbench.researchallofus.org) upon completion of the required training and institutional data use agreement. All analytical code used in this study will be available in the All of Us workbench. Summary statistics for the PheWAS and proteomic analyses are provided in the Supplementary material. No individual participant data will be shared outside the All of Us Researcher Workbench in accordance with the program&#x27;s data access policy.</p>
+<h3>Declaration of Interests</h3>
+<p>The authors declare no competing interests.</p>
+<p>European-ancestry participants, and the largest Olink plasma dataset in Lu et al. (UK Biobank, N=4,813, Olink Explore 3,072) is a subset of the newer Olink Explore HT panel available in All of Us. Whether these signatures generalize across ancestries and whether ancestry-specific proteomic effects exist remain unresolved.</p>
+<h3>57</h3>
+<p>Palstra R-J, de Crignis E, Röling MD, et al. Allele-specific long-distance regulation dictates IL-32 isoform switching and mediates susceptibility to HIV-1. Sci Adv 2018; 4: e1701729.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. PheWAS analysis of APOE genotypes. APOE genotypes PheWAS analysis</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Disease risk by APOE diplotype. Forest plot displaying the risk of each</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Sex-stratified analysis for APOE-associated phenotypes. Forest plot with</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Ancestry-stratified risk for APOE-associated phenotypes. Forest plot 780</p>
+<h3>Figure 5.</h3>
+<p>Figure 5. APOE ε2 and ε4 proteomics signatures across ancestries. Volcano plots 787</p>
+<h3>792 Figure 6.</h3>
+<p>Figure 6. APOE ε2 and ε4 associated proteins with heterogeneous effects across 794</p>
+<h3>Table 1.</h3>
+<p>Cohort characteristics by APOE genotype and Allele frequency 801Percentages within each row sum to 100 across the six diplotypes. Cells with &lt;20 mean that the number of 807 individuals for that category is below 20, and the All of Us Research program does not allow sharing or distributing summary statistics for fewer than 20 individuals. Percentages are not included for those because the exact number could be recovered. -: Masking of some values above 20 to avoid calculations of the exact number for cells with &lt;20.</p>
+<h3>Table 2.</h3>
+<p>Significant associations between APOE genotypes and 27 phecodes. 818Bonferroni-significant phecodes (n = 27; α = 0.05 / 2,632 tested = 1.90 × 10⁻) from the whole-cohort PheWAS (n = 819 367,757). Effect estimates come from logistic regression with the ordinal APOE genotype (ε2/ε2 &lt; ε2/ε3 &lt; ε3/ε3 &lt; ε2/ε4 &lt; ε3/ε4 &lt; ε4/ε4) as the exposure, adjusted for age, sex at birth, EHR length, and the first16 genetic principal components. Odds ratios (OR) are per rank increase in the ordinal APOE variable. Cases and controls reflect the analytic cohort after case-positive definition (≥2 phecode occurrences). Phecodes are grouped by category and sorted by ascending P value within category. Asterisks (*) denote phecodes newly reaching Bonferroni significance in this analysis that were not tested (Ischemic cardiomyopathy, Familial hypercholesterolemia, Neurocognitive disorder) or not reported in the prior All of Us APOE PheWAS (Khajouei et al., 2025). PheTK package automatically excludes individuals with similar phenotypes from the control set for a given test, resulting in the number of cases + controls</p>
+<h3>References</h3>
+<p>Johnson LA, Olsen RHJ, Merkens LS, et al. Apolipoprotein E-low density lipoprotein receptor interaction affects spatial memory retention and brain ApoE levels in an isoform-dependent manner. Neurobiol Dis 2014; 64: 150-62.</p>
+<p>Abondio P, Sazzini M, Garagnani P, et al. The genetic variability of APOE in different human populations and its implications for longevity. Genes (Basel) 2019; 10: E222.</p>
+<p>Huang Y, Liu XQ, Rall SC Jr, Mahley RW. Apolipoprotein E2 reduces the low density lipoprotein level in transgenic mice by impairing lipoprotein lipase-mediated lipolysis of triglyceride-rich lipoproteins. J Biol Chem 1998; 273: 17483-90.</p>
+<p>Khalil YA, Rabès J-P, Boileau C, Varret M. APOE gene variants in primary dyslipidemia. Atherosclerosis 2021; 328: 11-22.</p>
+<p>Corder EH, Saunders AM, Strittmatter WJ, et al. Gene dose of apolipoprotein E type 4 allele and the risk of Alzheimer&#x27;s disease in late onset families. Science 1993; 261: 921-3.</p>
+<p>Genin E, Hannequin D, Wallon D, et al. APOE and Alzheimer disease: a major gene with semi-dominant inheritance. Mol Psychiatry 2011; 16: 903-7.</p>
+<p>Li Z, Shue F, Zhao N, Shinohara M, Bu G. APOE2: protective mechanism and therapeutic implications for Alzheimer&#x27;s disease. Mol Neurodegener 2020; 15: 63.</p>
+<p>Reiman EM, Arboleda-Velasquez JF, Quiroz YT, et al. Exceptionally low likelihood of Alzheimer&#x27;s dementia in APOE2 homozygotes from a 5,000-person neuropathological study. Nat Commun 2020; 11: 667.</p>
+<p>9 Rebeck GW, Reiter JS, Strickland DK, Hyman BT. Apolipoprotein E in sporadic Alzheimer&#x27;s disease: allelic variation and receptor interactions. Neuron 1993; 11: 575-80.</p>
+<p>Lumsden AL, Mulugeta A, Zhou A, Hyppönen E. Apolipoprotein E (APOE) genotype-associated disease risks: a phenome-wide, registry-based, case-control study utilising the UK Biobank. EBioMedicine 2020; 59: 102954.</p>
+<p>Khajouei E, Ghisays V, Piras IS, et al. Phenome-wide association of APOE alleles in the All of Us Research Program. EBioMedicine 2025; 117: 105768.</p>
+<p>Toribio-Fernández R, Tristão-Pereira C, Carlos Silla-Castro J, et al. Apolipoprotein E-ε2 and resistance to atherosclerosis in midlife: The PESA observational study. Circ Res 2024; 134: 411-24.</p>
+<p>Lagging C, Lorentzen E, Stanne TM, et al. APOE ε4 is associated with younger age at ischemic stroke onset but not with stroke outcome. Neurology 2019; 93: 849-53.</p>
+<p>Nascimento JCR, Castro LFF, Oriá R, Toniutto P. ApoE and liver diseases. In: Apolipoprotein E. Cham: Springer Nature Switzerland, 2026: 1119-45.</p>
+<p>Huebbe P, Rimbach G. Evolution of human apolipoprotein E (APOE) isoforms: Gene structure, protein function and interaction with dietary factors. Ageing Res Rev 2017; 37: 146-61.</p>
+<p>Smith CJ, Ashford JW, Perfetti TA. APOE, human ancestry, and evolution. In: Apolipoprotein E. Cham: Springer Nature Switzerland, 2026: 39-63.</p>
+<p>Lu L, Pichet Binette A, Hristovska I, et al. Proteomic signatures of the APOE ε4 and APOE ε2 genetic variants and Alzheimer&#x27;s disease. Nat Aging 2026; 6: 1138-57.</p>
+<p>Shvetcov A, Johnson ECB, Winchester LM, et al. APOE ε4 carriers share immune- related proteomic changes across neurodegenerative diseases. Nat Med 2025; 31: 2590-601.</p>
+<p>Bick AG, Metcalf GA, Mayo KR, et al. Genomic data in the All of Us Research Program. Nature 2024; 627: 340-6.</p>
+<p>Little J, Higgins JPT, Ioannidis JPA, et al. STrengthening the REporting of Genetic Association studies (STREGA)-an extension of the STROBE statement. In: Human Genome Epidemiology, 2nd Edition. Oxford University Press, 2009: 188- 214.</p>
+<p>Yin Y-W, Li J-C, Wang J-Z, et al. Association between apolipoprotein E gene polymorphism and the risk of vascular dementia: a meta-analysis. Neurosci Lett 2012; 514: 6-11.</p>
+<p>Montagne A, Nation DA, Sagare AP, et al. APOE4 leads to blood-brain barrier dysfunction predicting cognitive decline. Nature 2020; 581: 71-6.</p>
+<p>Zlokovic BV. Cerebrovascular effects of apolipoprotein E: implications for Alzheimer disease. JAMA Neurol 2013; 70: 440-4.</p>
+<p>Laing KK, Fialova N, Wardlaw J, Montagne A. Impact of Apolipoprotein E4 on blood-brain barrier integrity in target replacement murine models: a systematic review and meta-analysis. Alzheimers Res Ther 2026; 18. DOI:10.1186/s13195-026-02018-3.</p>
+<p>Huebbe P, Bilke S, Rueter J, et al. Human APOE4 protects high-fat and high- sucrose diet fed targeted replacement mice against fatty liver disease compared to APOE3. Aging Dis 2024; 15: 259-81.</p>
+<p>Barral S, Yang Z, Phillips N, et al. APOE and Alzheimer&#x27;s disease and related dementias risk among 12,221 Hispanics/Latinos. Alzheimers Dement 2025; 21: e70138.</p>
+<p>Brutman JN, Busald T, Nizamis E, et al. A common 19 bp APOE enhancer deletion is protective against Alzheimer&#x27;s disease in African Americans. Nat Commun 2026;</p>
+<p>DOI:10.1038/s41467-026-68808-3.</p>
+<p>Dunk MM, Li J, Liu S, et al. Associations of dietary cholesterol and fat, blood lipids, and risk for dementia in older women vary by APOE genotype. Alzheimers Dement 2023; 19: 5742-54.</p>
+<p>Shi Y, Liu W, Hu J, et al. The role of menopause and its association with the apolipoprotein E4 allele for age at diagnosis of glaucoma in women. Ophthalmol Sci 2025; 5: 100726.</p>
+<p>Damoiseaux JS, Seeley WW, Zhou J, et al. Gender modulates the APOE ε4 effect in healthy older adults: convergent evidence from functional brain connectivity and spinal fluid tau levels. J Neurosci 2012; 32: 8254-62.</p>
+<p>Blostein F, Actkins K, Niarchou M, Straub P, Cox N, Davis L. Sex differences in the association of apoe haplotypes, ldl cholesterol, and dementia in the electronic health record. Eur Neuropsychopharmacol 2025; 99: 31-2.</p>
+<p>Azhuvalappil S, Prasad R, Sahadevan P, Pradhan H, Rai P, Sundarakumar JS. Sex-specific differences in the association between APOE genotype and metabolic syndrome among middle-aged and older rural Indians. Metabol Open 2024; 22: 100281.</p>
+<p>Dessy T, Barhdadi A, Cyr M-C, et al. Disentangling the effects of sex and gender on APOE 4-related neurocognitive impairment. Alzheimers Dement (Amst) 2025; 17: e70111.</p>
+<p>Holland D, Desikan RS, Dale AM, McEvoy LK, Alzheimer&#x27;s Disease Neuroimaging Initiative. Higher rates of decline for women and apolipoprotein E epsilon4 carriers. AJNR Am J Neuroradiol 2013; 34: 2287-93.</p>
+<p>Chung Y-CE, Chung R-H, Hsu C-C, et al. APOE ε4 and accelerated cognitive decline among cognitively healthy middle-aged and older adults. JAMA Netw Open 2026; 9: e260853.</p>
+<p>Payami H, Montee KR, Kaye JA, et al. Alzheimer&#x27;s disease, apolipoprotein E4, and gender. JAMA 1994; 271: 1316-7.</p>
+<p>Antonucci F, Corradini I, Fossati G, Tomasoni R, Menna E, Matteoli M. SNAP-25, a known presynaptic protein with emerging postsynaptic functions. Front Synaptic Neurosci 2016; 8: 7.</p>
+<p>Zhang C, Xie S, Malek M. SNAP-25: A biomarker of synaptic loss in neurodegeneration. Clin Chim Acta 2025; 571: 120236.</p>
+<p>Halbgebauer S, Steinacker P, Hengge S, et al. CSF levels of SNAP-25 are increased early in Creutzfeldt-Jakob and Alzheimer&#x27;s disease. J Neurol Neurosurg Psychiatry 2022; 93: jnnp-2021-328646.</p>
+<p>Sun BB, Chiou J, Traylor M, et al. Plasma proteomic associations with genetics and health in the UK Biobank. Nature 2023; 622: 329-38.</p>
+<p>Ferkingstad E, Sulem P, Atlason BA, et al. Large-scale integration of the plasma proteome with genetics and disease. Nat Genet 2021; 53: 1712-21.</p>
+<p>Ali M, Timsina J, Xu Y, et al. Large-scale CSF and plasma proteomics reveal immune, synaptic, and extracellular matrix disruptions across neurodegenerative diseases. Neuron 2026; 114: 2549-2565.e7.</p>
+<p>Caro I, Western D, Namba S, et al. Proteogenomics in cerebrospinal fluid and plasma reveals new biological fingerprint of cerebral small vessel disease. Nat Aging 2025; 5: 2514-31.</p>
+<p>Ribaldi F, Mendes AJ, Zetterberg H, et al. Plasma SNAP -25 as a potential Alzheimer &#x27; s disease biomarker. Alzheimers Dement 2023;</p>
+<p>DOI:10.1002/alz.076863.</p>
+<p>Martinuzzo C, Pilotto A, Tolassi C, et al. Multiplex plasma profiling of synaptic biomarkers in Alzheimer&#x27;s disease using NULISA: early alterations, APOE genotype effects, and pTau217 associations. medRxiv. 2026; published online June 1. DOI:10.64898/2026.05.21.26353560.</p>
+<p>Perswani P, Ismail SM, Mumtaz H, et al. Rethinking HDL-C: An in-depth narrative review of its role in cardiovascular health. Curr Probl Cardiol 2024; 49: 102152.</p>
+<p>Farrugia AJ, Calvo F. The Borg family of Cdc42 effector proteins Cdc42EP1-5. Biochem Soc Trans 2016; 44: 1709-16.</p>
+<p>Zhang Y, Niu C. Relation of CDC42, Th1, Th2, and Th17 cells with cognitive function decline in Alzheimer&#x27;s disease. Ann Clin Transl Neurol 2022; 9: 1428-36.</p>
+<p>Zhu M, Xiao B, Xue T, et al. Cdc42GAP deficiency contributes to the Alzheimer&#x27;s disease phenotype. Brain 2023; 146: 4350-65.</p>
+<p>Damen MSMA, Popa CD, Netea MG, Dinarello CA, Joosten LAB. Interleukin-32 in chronic inflammatory conditions is associated with a higher risk of cardiovascular diseases. Atherosclerosis 2017; 264: 83-91.</p>
+<p>Law CC, Puranik R, Fan J, Fei J, Hambly BD, Bao S. Clinical implications of IL-32, IL-34 and IL-37 in atherosclerosis: Speculative role in cardiovascular manifestations of COVID-19. Front Cardiovasc Med 2021; 8: 630767.</p>
+<p>Yang Z, Liu M, Shi Y, et al. Upregulation of IL-32γ in endothelial cells promotes macrophage recruitment and inflammatory progression in atherosclerosis. Sci Rep 2026; 16: 11262.</p>
+<p>Yun H-M, Kim JA, Hwang CJ, et al. Neuroinflammatory and amyloidogenic activities of IL-32β in Alzheimer&#x27;s disease. Mol Neurobiol 2015; 52: 341-52.</p>
+<p>Gong L, Dong C, Cai Q, Ouyang W. Interleukin 32: A novel player in perioperative neurocognitive disorders. Med Hypotheses 2020; 144: 110158.</p>
+<p>Wiley CR, Williams DP, Sigrist C, et al. Differences in inflammation among black and white individuals: A systematic review and meta-analysis. Brain Behav Immun 2025; 127: 269-86.</p>
+<p>Dos Santos JC, Leite Quixabeira VB, Teodoro Silva MV, et al. Genetic variation in Interleukin-32 influence the immune response against New World Leishmania species and susceptibility to American Tegumentary Leishmaniasis. PLoS Negl Trop Dis 2020; 14: e0008029.</p>
 </div>
 </details>
 </div>
