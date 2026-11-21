@@ -198,7 +198,7 @@ than Use of Either Drug Alone in Early Psychosis: Results from a
 Multisite Study
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.03.26367232
+2026-11-21 · Metacheck 0.4.4.29 · DOI 10.64898/2026.11.03.26367232
 </p>
 </header>
 <div class="mc-main">
@@ -517,8 +517,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -868,9 +869,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -892,7 +897,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -907,9 +913,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -922,13 +946,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -948,6 +975,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -955,12 +988,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1061,6 +1100,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1080,6 +1139,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1335,19 +1429,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1457,6 +1633,132 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Despite their high usage rates and associations with risk for psychosis and earlier age of symptom onset, few studies have examined relationships between nicotine and cannabis co-use and symptoms. Here we examined associations between symptom burden and cannabis/nicotine use/co-use in individuals with early psychosis (EP).</p>
+<p>Methods: This cross-sectional, multisite cohort study used data from 738 individuals (mean age 22 years, 62% male) from the Early Psychosis Intervention Network (EPI-NET). Relationships between cannabis and/or nicotine use and frequency (over the prior 30 day period) and Modified Colorado Symptom Index (MCSI) scores were examined using mixed effects models, with site as a random factor and age, sex, and cannabis/nicotine use (none, nicotine only, cannabis only, or both) as fixed factors.</p>
+<p>Exploratory analyses also examined effects of frequency of use (daily vs. less than daily).</p>
+<p>Results: 59% of the sample used neither nicotine nor cannabis, 17% only nicotine, 9% only cannabis, and 16% both. Significant effects of use were observed on total MCSI score (F = 6.69, p &lt; .001) driven by greater symptoms in individuals who used both cannabis and nicotine relative to neither, only nicotine, or only cannabis. More frequent use, furthermore, was associated with higher total score.</p>
+<p>These results suggest that co-use of cannabis and nicotine is associated with greater symptom burden in EP, which may have implications for treatment strategies.</p>
+<h3>[div-01]</h3>
+<p>Neuropharmacological mechanisms that may underlie this association are discussed.</p>
+<h3>Introduction</h3>
+<p>Psychotic disorders such as schizophrenia (SZ) are associated with higher prevalence of nicotine and cannabis use relative to unaffected populations. Although estimates vary, rates of cigarette smoking generally range between 60-80% in SZ [1] [2] [3] (~3x the general population), and approximately one-quarter of people experiencing SZ have a co-occurring cannabis use disorder 4.</p>
+<p>The high rates of cannabis use disorder in psychotic illness are particularly important given evidence that cannabis use increases risk for psychosis. Specifically, lifetime cannabis use is associated with 1.4-fold increase in developing psychosis, and cannabis dependence a 3.4 increased risk 5 . Cannabis users who develop SZ also have a 2-3 year earlier age of psychosis onset relative to non-users 5 . Using cannabis has also been linked to higher induce positive and negative symptoms of psychosis, such as hallucinations and anhedonia, respectively 6, 7 . Similarly, smoking tobacco may also increase risk for psychosis, with a relative risk of 2.18 for daily smokers vs. nonsmokers as well as a 1.04 years earlier age of psychosis onset in smokers 8.</p>
+<p>To this point, the great majority of studies examining links between nicotine, cannabis use and psychosis have been conducted by studying relationships with each substance in isolation. However, recent studies suggest that it is important to examine use for both substances simultaneously. Indeed, according to a 2018 study, 48% of people aged 18-25 who smoked tobacco also used cannabis in the last month (compared to 28% of adults &gt; age 25) 9 ; a later (2024) study found that more teens used cannabis and tobacco together than either alone 10 . Interestingly, that study also found that co-users had higher internalizing and externalizing symptoms than non-users and users of just one substance 10 , suggesting co-use is associated with higher levels of psychopathology.</p>
+<p>Amongst work that has examined relationships between nicotine and cannabis co-use and psychosis, a 2023 study by Sanchez-Gutierrez, et al. (2023) 11 recruited 1105 patients with first-episode psychosis and 1355 controls, and found that individuals who used tobacco daily as well as cannabis were more likely to have psychosis than non-users or tobacco-only users (odds-ratios = 7.8 for co-users and 3.3 for tobacco only users vs. non-users). Gonzalez-Blanco, et al. (2021) 12 found that, in first-episode patients, those who used cannabis and tobacco together had lower age of first prodromal symptoms and higher disorganization symptoms and delusional thinking than those that only used tobacco. Gonzalez-Blanco, et al. (2021) 12 did not report relationships between co-users and cannabis only users, however, likely because the sample size for cannabis-only users was low (n = 13). Bello, et al. (2026) 13 found that heavy cannabis and light tobacco co-use was associated with the highest risk of conversion to psychosis in individuals at clinical high risk (CHR) for psychosis compared to no use of either substance or either substance alone. Bello, et al. (2026)  13 also found that nicotine and cannabis use frequency was associated with symptom severity in CHRs, although they did not find differences in symptom severity when grouping CHRs based on binary classification (e.g., nicotine only, cannabis only, nicotine + cannabis).</p>
+<p>These previous studies suggest that use of both cannabis and nicotine together is associated with psychosis, although links to symptom burden are unclear. How nicotine and cannabis co-use relate to symptom severity in individuals with full threshold psychotic illness is particularly poorly understood. Here we leveraged the power of a large, multisite study (the Early Psychosis Intervention Network (EPINET) dataset) to examine these relationships. Based on prior work suggesting nicotine and cannabis couse is associated with increased risk for psychosis conversion in individuals at CHR 13 as well as greater symptom burden in first-episode psychosis 12 , we hypothesized that use of both substances would be associated with worse overall symptomatology than use of neither or either alone. We also conducted exploratory analyses examining associations with clinical subdomains, frequency of use, alcohol use, and socioeconomic status (SES).</p>
+<h3>Methods</h3>
+<h3>Sample</h3>
+<p>EPINET (nationalepinet.org) is a network of early psychosis programs across the United States that provide Coordinated Specialty Care (CSC) for psychosis. CSC is a team-based, recovery-oriented approach to care that involves collaborative relationships between the CSC team, individuals seeking care for early psychosis, and their chosen support persons 14, 15 . CSC programs vary somewhat in their admission criteria, although they typically provide care to individuals aged 12-25 who have experienced psychosis onset within the past 2-5 years 14, 15 . Notably, all CSC programs participating in EPINET are required to provide core CSC services including therapy, case management, medication management, work and education support, family education, and have an identifiable team lead. All EPINET programs also collect standardized core assessment measures with the goal of collecting data that can be used to inform and improve early psychosis care 16.</p>
+<p>All available EPINET data was downloaded from the National Data Archive</p>
+<h3>Assessment</h3>
+<p>Symptoms were assessed using the Modified Colorado Symptom Inventory (MCSI) 17 . The MCSI is a 14 item self-report panel that asks participants how often they experience different symptoms over the past month. Responses are rated as 0 (not at all), 1 (once during the month), 2 (several times during the month), 3 (several times a week), or 4 (at least every day). Symptoms assessed include anxiety, depression, hallucinations, mania, forgetfulness, and suicidal ideations (see Supplementary Material for detailed listing).</p>
+<p>Nicotine and cannabis use were assessed with separate yes/no questions (&quot;Have you used cannabis in the past 30 days?&quot;, &quot;Have you used nicotine in the past 30 days?&quot;). Frequency of use in the last 30 days was also assessed (none, less than daily, daily).</p>
+<p>As previously for the EPINET dataset 18 , as a proxy for SES we used health insurance status (private insurance, public insurance, or no insurance). Insurance specified as &quot;other&quot; in the EPINET dataset was considered missing.</p>
+<h3>Analysis</h3>
+<p>Relationships between substance use and average MCSI total score were examined using a mixed effects model with site as a random effect, age and sex as fixed effects, and cannabis/nicotine use (use neither / used nicotine only / used cannabis only / used both) as a fixed effect. Significant main effects of substance use were followed up by post-hoc tests. Significance for post-hoc tests was set to p &lt; . 05, Sidak-corrected for multiple comparisons. We also examined effect sizes for F tests (η² ), with .01 &lt; η² &lt; .06 indicating &quot;small&quot;,.06 ≤ η² &lt; .14 indicating &quot;medium&quot;, and η² ≥ .14 indicating &quot;large&quot; effects (resources.nu.edu/statsresources/eta). To examine potentially confounding effects of SES and antipsychotic use on relationships between nicotine/cannabis use and MCSI total score, SES score (assessed by insurance status; see above) or antipsychotic use (yes/no) were included as fixed factors in exploratory analyses.</p>
+<p>As alcohol use was a potential confounder (because individuals who use cannabis/nicotine may be more likely to consume alcohol), a secondary set of exploratory analyses also examined relationships between alcohol and total symptoms in two ways. In the first analysis, nicotine + cannabis non-users were divided into two groups (non-users of any substance and alcohol-only users) prior to being incorporated in the mixed effects model above. Post-hoc tests then compared non-users vs. alcoholonly users. In the second analysis, alcohol use and its interaction with cannabis/nicotine use were included as additional factors in the mixed effects model.</p>
+<p>Additional exploratory analyses examined relationships between MCSI &quot;affective&quot;, &quot;cognitive&quot;, and &quot;positive&quot; symptoms and cannabis/nicotine use were also assessed to determine if associations varied within particular symptom domains. A listing of which questions were included in each of the three domains is shown in Table 1.</p>
+<p>Finally, exploratory analyses were also performed analyzing relationships between frequency of use and symptoms. The sample was divided into 5 groups for this analysis (used none, used nicotine (only) or cannabis (only) less than daily, used nicotine (only) or cannabis (only) daily, used both cannabis and nicotine but did not use both daily, used both cannabis and nicotine daily). Relationships with frequency of use were conducted using mixed effects models with site as a random effect and sex/age/frequency of use as fixed effects. Effect sizes were also examined using the guidelines above. Significant main effects of frequency of use were followed up by a planned linear contrast (use none &lt; use one less than daily &lt; use one daily &lt; use both but did not use both daily &lt; use both daily). Significance for the linear contrast was set to p &lt; .05. Relationships between use/co-use for nicotine and cannabis and frequency of use for each drug were examined using chi-square tests, with significance also set to p &lt; .05.</p>
+<h3>Results</h3>
+<h3>Demographics</h3>
+<p>Demographic and clinical information as well as cannabis and nicotine use data are presented in Table 1. After applying exclusion criteria and removing individuals with missing substance use and/or clinical information, 738 individuals across 47 sites were included in analysis. 505 individuals did not have MCSI data and were thus excluded from analysis. Comparisons between substance use patterns for individuals with vs.</p>
+<p>without MCSI scores are presented in Supplementary Table 1. No significant differences were observed in nicotine/cannabis use between those participants with and without symptom data. MCSI frequency scores were between one and two (i.e., between once during the month and several times during the month) for most questions and for each symptom domain (affective, cognitive, and positive (see Methods)). 59% of individuals did not use either cannabis or nicotine in the last 30 days, 17% used nicotine only, 9% used cannabis only, and 16% used both cannabis and nicotine.</p>
+<h3>Symptom Profiles based on Cannabis/Nicotine Use</h3>
+<p>Total MSCI scores depending on cannabis and/or nicotine use are illustrated in Figure 1 (covariate-adjusted parameter estimates extracted from ANOVA models) and Supplementary Figure 1 (raw means); statistical comparisons are presented in Tables 2a and 2b. Briefly, a significant effect of use was observed on MCSI total symptom score, although the effect size was small (η² = .030). The effect was driven by significantly higher symptoms in individuals that used cannabis and nicotine together vs.</p>
+<p>those that used neither and those that used nicotine only. Individuals that used only cannabis did not differ symptomatically from any other substance use profile.</p>
+<p>Exploratory analyses of symptom domains are illustrated in Supplementary Figures 2 (parameter estimates) and 3 (raw means); statistical comparisons are presented in Supplementary Tables 2a and 2b. Similar between-group results were observed for affective, cognitive, and positive symptoms, although the only significant between-group difference for positive symptoms was observed between non-users and individuals who used both.</p>
+<h3>Cannabis/Nicotine + Alcohol Use</h3>
+<p>When individuals who used neither nicotine nor cannabis were segregated into groups that also did not use alcohol or used only alcohol, the effect of substance use on total MCSI symptom score remained significant (F 4,685 = 5.04, mean square error (MSE) = 163.40, p &lt; .001, η² = .029). Amongst participants that used neither nicotine nor cannabis, post-hoc tests found no difference between those that did not vs. those that did use alcohol (did not use alcohol estimate = 19.61, used alcohol estimate = 20.31, mean difference = -.70, standard error (SE) = 2.13, p &gt; .99).</p>
+<p>When alcohol use was included an additional factor in mixed models, no effect of alcohol use was observed (F 1,685 = 1.51, MSE = 163.62, p = .22, η² = .002). The interaction effect between nicotine/cannabis use and alcohol use was also nonsignificant (F 3 ,682 = .33, MSE = 163.62, p = .81, η² = .001).</p>
+<h3>Symptom Profiles based on Cannabis/Nicotine Use Frequency</h3>
+<p>MSCI total scores based on cannabis and/or nicotine use frequency are illustrated in Figure 2 (covariate-adjusted estimates) and Supplementary Figure 4 (raw means). A significant main effect of cannabis/nicotine use frequency and MCSI total symptoms was observed (F 4,673 = 6.19, MSE = 161.53, p &lt; .001, partial η² = .04). The planned linear contrast of frequency of use relationships (use none &lt; use nicotine-only or cannabis-only less than daily &lt; use nicotine-only or cannabis-only daily &lt; use both but did not use both daily &lt; use both daily) was also significant (linear contrast estimate = 6.45, 95% CI = 3.26 -9.65, p &lt; .001).</p>
+<p>Results from exploratory analyses of MSCI symptom domains based on use frequency are presented are presented in Supplementary Table 3. Parameter estimates and raw means are presented in Supplementary Figures 5 and 6, respectively. Briefly, significant main effects of cannabis/nicotine use frequency were observed for all symptom domains. Planned linear contrasts of frequency of use relationships were also significant for all symptom domains.</p>
+<h3>Frequency of Use for Individuals with Co-Use vs. Single Substance Use</h3>
+<p>Frequency of use data was missing for 12 participants. Amongst the 175 individuals using nicotine who also had frequency of use data available, no difference was found between nicotine only users vs. individuals who used both nicotine and cannabis in nicotine use frequency (χ2 = .022, p = .88). Specifically, amongst 117 individuals who used nicotine only, 33 (28.2%) used the drug lightly and 84 (71.8%) used the drug heavily (i.e., daily). Amongst 110 individuals who used both nicotine and cannabis, 32 (29.1%) used the drug lightly and 78 (70.9%) used the drug heavily.</p>
+<p>Similarly, amongst the 179 individuals using cannabis and who also had frequency of use data available, no difference was observed between those who used cannabis only and those who used both nicotine and cannabis in cannabis use frequency (χ2 = .91, p = .34). Specifically, amongst the 67 individuals who used cannabis only, 46 (68.7%) used the drug lightly and 21 (31.3%) used the drug heavily.</p>
+<p>Amongst the 112 individuals who used both nicotine and cannabis, 69 (61.6%) used the drug lightly and 43 (38.4%) used the drug heavily.</p>
+<h3>Socioeconomic Status Effects</h3>
+<p>A question regarding medication affordability was used as a proxy for SES (data presented in Table 1). A plurality of individuals had public insurance (41%). When SES was added as a factor to a model predicting MCSI total score based on nicotine/cannabis use, the SES effect was non-significant (F 2, 615 ) = 1.06, MSE = 163.30, p = .35, η² = .00). The effect of nicotine/cannabis usage also remained significant (F 2,615 = 6.96, MSE = 163.30, p &lt; .001, η² = .033).</p>
+<h3>Antipsychotic Effects</h3>
+<p>Amongst individuals with available mediation status information, 89% were taking antipsychotics (Table 1). No significant effects of antipsychotic use status were observed on models based on nicotine/cannabis use.</p>
+<h3>Discussion</h3>
+<p>Overall, the results of this study suggest that, after controlling for effects of age and sex, nicotine and cannabis co-use is associated with greater overall symptom severity in EP compared to use of neither substance or either substance alone. This difference was not dependent on the symptom domain examined (affective, cognitive, or positive). Symptom scores were not different between individuals who did not use any substances versus those who used only alcohol. Alcohol use was also not significantly associated with symptoms and showed no interactions with nicotine/cannabis use on symptoms. Controlling for SES effects also did not affect the relationship between nicotine/cannabis use and MCSI total score. Linear contrast of dose relationships also suggested that, after controlling for effects of age and sex, those individuals that used both substances daily had the highest symptom burden. The lack of significant relationships between use/co-use and frequency of use for either drug, however, suggests the differences in symptom severity between users and co-users is unlikely to be due to differences in frequency of use between users and co-users.</p>
+<p>While prior work has shown that nicotine and cannabis co-use is associated with greater odds of psychosis 11 or conversion from CHR 13 relative to isolated use of either drug, these results show that the combined drug effect may continue to impact clinical outcomes by exacerbating symptom burden in individuals who experience threshold psychosis. This is consistent with research showing greater symptom severity among nicotine and cannabis co-use relative to nicotine without cannabis use 12 , but also leverages a larger sample of those who use cannabis but not nicotine to suggest that co-use is more deleterious than single use alone.</p>
+<p>Combined with results from prior literature, the results also suggest that EP may be a period of particularly high vulnerability to symptom exacerbation related to nicotine and cannabis co-use over the course of illness (compared to those with chronic illness).</p>
+<p>Specifically, in CHR individuals, Bello et al. (2026) 13 found higher rates of conversion in in participants who used both substances vs. those that used none or either alone, as well as relationships between frequency of use for both nicotine and cannabis and symptom severity. In contrast, in a review of studies examining mostly chronic (average age ~40 years) people with schizophrenia, Sabe et al. (2020) 19 found that positive symptoms were only marginally elevated in nicotine and cannabis users vs. those that used neither drug. The subgroup analyses from this review, however, were limited as all cannabis users also used cannabis, precluding comparisons vs. nicotine or cannabis only users.</p>
+<p>While directionality cannot be inferred between co-use and symptom severity in EP from the present study, their co-use may have synergistic effects that may ultimately exacerbate symptoms of psychosis. A large body of preclinical work indicates that the nicotinic cholinergic and endocannabinoid systems exhibit functional interdependence, where pharmacological or genetic alteration of one system produces neurochemical and behavioral changes in the other 20 . Both cannabis and nicotine elicit acute increases in dopamine release 21, 22 , and co-use may synergistically sensitize dopamine firing 23.</p>
+<p>Given that hyperdopaminergia is plausibly linked to psychosis symptoms, co-use of these drugs may feasibly lead to emergence and exacerbation of these symptoms 24 . In addition, while the expression of cannabinoid-1 receptors on cortical glutamatergic and GABAergic neurons 25 suggest excitatory-inhibitory balance plays a role in cannabis-associated psychosis 26 , these neurons also express nicotinic acetylcholine receptor subtypes 27 . The co-use of nicotine and cannabis may thus contribute to even more pronounced excitatory-inhibitory dysregulation. Additionally, Rabin et al. (2025) 28 found that cannabis and tobacco co-use were associated with elevations in fatty acid amide hydrolase compared to cannabis use only, suggesting increased metabolism of the endocannabinoid anandamide associated with nicotine exposure. The downregulation of anandamide is another possible mechanism for the present results, as it is thought to serve a neuroprotective role and inversely correlates with cross-domain symptom severity in EP 29 . Structurally, co-use in adolescent and young adult populations has been tied to aberrations in cortical white matter tracts 30, 31 , changes that could underly morphological contributions to symptom severity 32 . Finally, it should be noted that the preponderance of the evidence (including genomic studies) suggest that cannabis use is a causal mechanism of psychosis 33 , although it is unclear if nicotine (when combined with cannabis) synergizes this relationship.</p>
+<p>In regard to our examination of SES effects, our results suggest SES did not affect relationships between use and symptoms, although only a SES proxy (health insurance status) was available to assess SES across the majority of individuals in the dataset. The impact of socioenvironmental factors like early childhood adversity have been implicated in the relationship between cannabis use and psychosis 34, 35 , and their inclusion could explain whether co-use is involved in a multi-hit pathway 36 to symptom exacerbation. Additional research is thus needed to more completely understand the relationships between environmental adversity (e.g., low SES), nicotine/cannabis use, and symptom severity in psychotic illness.</p>
+<p>While strengthened by the use of a large multisite cohort of EP participants to resolve differences between groups, the present study had several limitations. Firstly, antipsychotic dose information was not available, which could affect the results due to pharmacokinetic drug interactions 37, 38 and differential neurometabolic responses as a function of cannabis use 39 . Additionally, while past 30-day use frequency was used to delineate levels of use, a more comprehensive substance use inventory would be beneficial for future research. For cannabis use, the age of initiation 40 , accelerating vs. decelerating use patterns 41 , quantity/potency 42 , and cumulative exposure 43 are implicated in clinical outcomes. Cannabis strain information may have also been useful, as some evidence suggests that the ratio of tetrahydrocannabinols (exacerbating 44 ) to cannabidiol (protective 45 ) may affect how cannabis use influences psychosis symptoms. A retrospective, more detailed account of substance use history could better explain how co-use develops relative to illness onset and contributes to symptom burden.</p>
+<p>In conclusion, the results of this study suggest that co-use of nicotine and cannabis is associated with greater psychosis symptom burden in EP relative to use of neither substance of either alone. The study also suggests a dose effect, where daily use of both substances was associated with the most severe symptoms. These findings expand on prior work suggesting that co-use may be a synergistic risk factor for psychosis in CHR by demonstrating symptom burden after illness onset in EP. The prior literature and present study emphasize that co-use should be specifically accounted for as a specific risk factor in populations at-risk for or diagnosed with psychosis. One possible avenue for future research is to use longitudinal approaches (including causal models) to examine temporal relationships between use and symptoms. Future work can also test specific mechanistic hypotheses based on prior work on co-use in other populations such as bioassays for endocannabinoids like anandamide and stress hormones 46 , imaging methods that probe dopamine and glutamate/GABA, cannabinoid receptors and behavioral mechanisms such as reward responsivity and neurocognitive performance. Inventory (MCSI) total score. Parameter estimates are adjusted for age, sex, and site. *p &lt; .05 vs. individuals who use both. Symptom Inventory (MCSI) total score (top left) and MCSI symptom domains (top right, bottom left, and bottom right). Parameter estimates are adjusted for age, sex, and site.</p>
+<h3>Acknowledgements</h3>
+<p>The authors thank the study site coordinators and providers of EPINET for allowing for the use of their data repository on nda.nih.gov, as well as the associated patients and their families. Author J.S. is supported by grant K-01 MH125096 from the National Institutes of Mental Health.</p>
+<p>Private Insurance 258 (35.0) Public Insurance 300 (40.7) No Insurance 110 (14.9) Other or Missing Data 70 (9.5) Modified Colorado Symptom Inventory (MSCI) Total Score (n = 738) 20.9 (13.9) 1. How Often Nervous? 2.2 (1.4) 2. How Often Depressed? 1.8 (1.4) 3. How Often Lonely? 1.8 (1.5) 4. How Often Others Said You Were Paranoid? 1.0 (1.3) 5. How Often Hear Voices? 1.4 (1.6) 6. How Often Indecisive? 2.0 (1.5) 7. How Often Concentration Problems? 2.0 (1.5) 8. How Often Behavior Felt Strange? 1.6 (1.5) 9. How Often Felt Out of Place? 1.7 (1.6) 10. How Often Forgetful? 1.6 (1.4) 11. How Often Racing Thoughts? 1.6 (1.5) 12. How Often Suspicious/Paranoid? 1.4 (1.4) 13. How Often Felt Like Hurting Yourself/Suicidal? .5 (.9) 14. How Often Felt Like Hurting Someone Else? .3 (.8) Avg Affective Symptoms (#s 1, 2, 3, 9, 11, 13, 14) 1.4 (1.0) Avg Cognitive Symptoms (#s 6, 7, 10) 1.9 (1.3) Avg Positive Symptoms (#s 4, 5, 8, 12) 1.3 (1.2)</p>
+<h3>(</h3>
+<p>NDA; nda.nih.gov). Data was gathered from four study repositories: Advancing the Early Psychosis Intervention Network in Texas (EPINET-TX), Connecting First Episode Psychosis Research and Practice through a Learning Health System, Laboratory for Early Psychosis Research (LEAP), and Academic-Community EPINET (AC-EPINET): Mitigating Barriers to Care. The current analysis excluded individuals who used opioids or stimulants in the last 30 days, had missing demographic information (sex/age), had missing symptom information, and individuals diagnosed with substance-induced psychosis or an affective disorder without psychosis. After exclusion criteria were applied, the dataset included information from 47 different sites and 738 participants seeking care at a CSC program nationwide. Only baseline EPINET data were used for analysis.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Association between nicotine and cannabis use and Colorado Symptom</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Association between frequency of nicotine and cannabis use and Colorado</p>
+<h3>Table 1.</h3>
+<p>Demographic and clinical information. &quot;Light&quot; cannabis/nicotine use was defined as less than daily (but more than none), and &quot;heavy&quot; use defined as daily use.</p>
+<h3>Table 2.</h3>
+<p>Overall ANOVA F test (top) and post-hoc test results (bottom) for comparisons of Modified Colorado Symptom Index (MSCI) score between individuals who use neither nicotine nor cannabis, nicotine only, cannabis only, or both. *Significant difference (p &lt; .05, Sidak-corrected). MSE = mean square error.</p>
+<h3>References</h3>
+<p>Keltner NL, Grant JS. Smoke, smoke, smoke that cigarette. Perspect Psychiatr Care Nov 2006;42(4):256-261.</p>
+<p>Myles N, Newall HD, Curtis J, Nielssen O, Shiers D, Large M. Tobacco use before, at, and after first-episode psychosis: a systematic meta-analysis. J Clin Psychiatry Apr 2012;73(4):468-475.</p>
+<p>Winterer G. Why do patients with schizophrenia smoke? Curr Opin Psychiatry Mar 2010;23(2):112-119.</p>
+<p>Hunt GE, Large MM, Cleary M, Lai HMX, Saunders JB. Prevalence of comorbid substance use in schizophrenia spectrum disorders in community and clinical settings, 1990-2017: Systematic review and meta-analysis. Drug Alcohol Depend Oct 1 2018;191:234-258.</p>
+<p>Hasan A, von Keller R, Friemel CM, et al. Cannabis use and psychosis: a review of reviews. Eur Arch Psychiatry Clin Neurosci Jun 2020;270(4):403-412.</p>
+<p>Argote M, Sescousse G, Brunelin J, et al. Association between cannabis use and symptom dimensions in schizophrenia spectrum disorders: an individual participant data meta-analysis on 3053 individuals. EClinicalMedicine Oct 2023;64:102199.</p>
+<p>Addington J, Liu L, Chu M, et al. Baseline Clinical Characterization of Participants in the Accelerating Medicines Partnership Schizophrenia Program. Schizophr Bull Open Jan 2025;6(1):sgaf012.</p>
+<p>Gurillo P, Jauhar S, Murray RM, MacCabe JH. Does tobacco use cause psychosis? Systematic review and meta-analysis. Lancet Psychiatry Aug 2015;2(8):718-725.</p>
+<p>Cohn AM, Chen S. Age groups differences in the prevalence and popularity of individual tobacco product use in young adult and adult marijuana and tobacco co-users and tobacco-only users: Findings from Wave 4 of the population assessment of tobacco and health study. Drug Alcohol Depend Apr 1 2022;233:109278.</p>
+<p>Do VV, Ling PM, Chaffee BW, Nguyen N. Concurrent Use of Tobacco and Cannabis and Internalizing and Externalizing Problems in US Youths. JAMA Netw Open Jul 1 2024;7(7):e2419976.</p>
+<p>Sanchez-Gutierrez T, Rodriguez-Toscano E, Roldan L, et al. Tobacco use in first-episode psychosis, a multinational EU-GEI study. Psychol Med Nov 2023;53(15):7265-7276.</p>
+<p>Gonzalez-Blanco L, Garcia-Portilla MP, Gutierrez M, et al. Impact of previous tobacco use with or without cannabis on first psychotic experiences in patients with first-episode psychosis. Schizophr Res Oct 2021;236:19-28.</p>
+<p>Bello D, Blyth SH, Rabin RA, et al. Cannabis and tobacco co-use predicts psychosis in clinical high risk cohorts. Nat Ment Health 2026;4(6):941-950.</p>
+<p>Demarais M, Fisher M, Williams-Wengerd A, Alexandre C, Meyer-Kalos P, Vinogradov S. Impact of family engagement on client participation in coordinated specialty care for first episodes of psychosis. BMC Psychiatry Oct 15 2024;24(1):686.</p>
+<p>Calkins ME, Jumper M, Ered A, et al. Connection Learning Healthcare System Hub of the Early Psychosis Intervention Network: Program and Participant Characteristics. Early Interv Psychiatry Apr 2025;19(4):e70031.</p>
+<p>Early Psychosis Intervention Network. Program level core assessment battery (PL-CAB) [PDF]. National EPINET Data Coordinating Center. Available at: https://nationalepinet.org/wp-content/uploads/2021/12/EPINET-Program-Level- Core-Assessment-Battery.pdf 2022.</p>
+<p>Early Psychosis Intervention Network. Modified Colorado Assessment Inventory [PDF]. National EPINET Data Coordinating Center. Available at: https://nationalepinet.org/wp- content/uploads/2021/03/ModifiedColoradoSymptomIndex-2-26-21.pdf 2021.</p>
+<p>Tayfur SN, Vohs JL, Chaudhry S, et al. Discharge From Coordinated Specialty Care: Timing, Reasons, and Predictors in a National Early Psychosis Network. Psychiatr Serv Aug 27 2026:appips20260106.</p>
+<p>Sabe M, Zhao N, Kaiser S. Cannabis, nicotine and the negative symptoms of schizophrenia: Systematic review and meta-analysis of observational studies. Neurosci Biobehav Rev Sep 2020;116:415-425.</p>
+<p>Scherma M, Muntoni AL, Melis M, Fattore L, Fadda P, Fratta W, Pistis M. Interactions between the endocannabinoid and nicotinic cholinergic systems: preclinical evidence and therapeutic perspectives. Psychopharmacology (Berl) May 2016;233(10):1765-1777.</p>
+<p>Oleson EB, Cheer JF. A brain on cannabinoids: the role of dopamine release in reward seeking. Cold Spring Harb Perspect Med Aug 1 2012;2(8).</p>
+<p>Yin R, French ED. A comparison of the effects of nicotine on dopamine and non- dopamine neurons in the rat ventral tegmental area: an in vitro electrophysiological study. Brain Res Bull Apr 2000;51(6):507-514.</p>
+<p>Rabin RA, George TP. A review of co-morbid tobacco and cannabis use disorders: possible mechanisms to explain high rates of co-use. Am J Addict Mar 2015;24(2):105-116.</p>
+<p>McCutcheon RA, Abi-Dargham A, Howes OD. Schizophrenia, Dopamine and the Striatum: From Biology to Symptoms. Trends Neurosci Mar 2019;42(3):205-220.</p>
+<p>Hill EL, Gallopin T, Ferezou I, Cauli B, Rossier J, Schweitzer P, Lambolez B. Functional CB1 receptors are broadly expressed in neocortical GABAergic and glutamatergic neurons. J Neurophysiol Apr 2007;97(4):2580-2589.</p>
+<p>D&#x27;Souza DC, Cortes-Briones J, Raj J, et al. Cognitive, Electrophysiological, and Behavioral Presentation of First-Episode Psychosis With or Without Cannabis Exposure. Am J Psychiatry Aug 1 2026;183(8):552-561.</p>
+<p>Picciotto MR, Caldarone BJ, King SL, Zachariou V. Nicotinic receptors in the brain. Links between molecular biology and behavior. Neuropsychopharmacology May 2000;22(5):451-465.</p>
+<p>Rabin RA, Farrugia J, Garani R, Mizrahi R, Rusjan P. A preliminary investigation of tobacco co-use on endocannabinoid activity in people with cannabis use. Drug Alcohol Depend Rep Sep 2025;16:100369.</p>
+<p>Ben Flah W, Lansari R, Kamoun A, Ghazzani I. Anandamide in First-Episode Psychosis: Associations with Symptoms and Inflammation. European Psychiatry 2026;69(S1):S170-S170.</p>
+<p>Courtney KE, Baca R, Doran N, Jacobson A, Liu TT, Jacobus J. The effects of nicotine and cannabis co-use during adolescence and young adulthood on white matter cerebral blood flow estimates. Psychopharmacology (Berl) Dec 2020;237(12):3615-3624.</p>
+<p>Wallace AL, Courtney KE, Wade NE, Hatz LE, Baca R, Jacobson A, Liu TT, Jacobus J. Neurite Orientation Dispersion and Density Imaging (NODDI) of Brain Microstructure in Adolescent Cannabis and Nicotine Use. Behav Sci (Basel) Mar 13 2024;14(3).</p>
+<p>Stein F, Buckenmayer E, Brosch K, et al. Dimensions of Formal Thought Disorder and Their Relation to Gray-and White Matter Brain Structure in Affective and Psychotic Disorders. Schizophr Bull Jun 21 2022;48(4):902-911.</p>
+<p>Ganesh S, D&#x27;Souza DC. Cannabis and Psychosis: Recent Epidemiological Findings Continuing the &quot;Causality Debate&quot;. Am J Psychiatry Jan 2022;179(1):8- 10.</p>
+<p>Kennedy L, Lin J, Metry V, Villodas M, Cadenhead K. Socioenvironmental and Developmental Predictors of Cannabis Initiation and Use in Psychosis: a Systematic Scoping Review. Current Addiction Reports 2025;12(1).</p>
+<p>Trotta G, Rodriguez V, Quattrone D, et al. Cannabis use as a potential mediator between childhood adversity and first-episode psychosis: results from the EU- GEI case-control study. Psychol Med Nov 2023;53(15):7375-7384.</p>
+<p>Howes OD, Onwordi EC. The synaptic hypothesis of schizophrenia version III: a master mechanism. Mol Psychiatry May 2023;28(5):1843-1856.</p>
+<p>Lopera V, Rodriguez A, Amariles P. Clinical Relevance of Drug Interactions with Cannabis: A Systematic Review. J Clin Med Feb 22 2022;11(5).</p>
+<p>Alsfouk BA, Aljanadi QM, Almutairi MM. Evaluation of drug interactions in outpatients taking antipsychotic medications. Front Pharmacol 2025;16:1590167.</p>
+<p>Martinez-Sadurni L, Barrera-Conde M, Robledo P, et al. Differential effect of cannabis use and antipsychotic medication on extracellular free-water in the brain of individuals with early psychosis and controls. Mol Psychiatry Jan 2026;31(1):362-373.</p>
+<p>Kline ER, Ferrara M, Li F, D&#x27;Souza DC, Keshavan M, Srihari VH. Timing of cannabis exposure relative to prodrome and psychosis onset in a community- based first episode psychosis sample. J Psychiatr Res Mar 2022;147:248-253.</p>
+<p>Wright AC, Browne J, Cather C, Meyer-Kalos P, Mueser KT. Relationship between patterns of cannabis use and functional and symptomatic trajectories in first-episode psychosis. Eur Arch Psychiatry Clin Neurosci Jun 2023;273(4):765- 778.</p>
+<p>Petrilli K, Ofori S, Hines L, Taylor G, Adams S, Freeman TP. Association of cannabis potency with mental ill health and addiction: a systematic review. Lancet Psychiatry Sep 2022;9(9):736-750.</p>
+<p>Salazar de Pablo G, Laherran-Cantera N, Aymerich C, et al. Systematic Review and Meta-Analysis: Prevalence, Correlates, and Impact of Cannabis Use and Cannabis Use Disorder in Early-Onset Psychosis. J Am Acad Child Adolesc Psychiatry Jun 22 2026.</p>
+<p>D&#x27;Souza DC, Perry E, MacDougall L, et al. The psychotomimetic effects of intravenous delta-9-tetrahydrocannabinol in healthy individuals: implications for psychosis. Neuropsychopharmacology Aug 2004;29(8):1558-1572.</p>
+<p>Davies C, Bhattacharyya S. Cannabidiol as a potential treatment for psychosis. Ther Adv Psychopharmacol 2019;9:2045125319881916.</p>
+<p>al&#x27;Absi M, DeAngelis BN, Nakajima M, Hodges JS, Budney A, Hatsukami D, Allen S. Biobehavioral and affective stress responses during nicotine withdrawal: Influence of regular cannabis co-use. Psychopharmacology (Berl) Feb 2024;241(2):253-262.</p>
 </div>
 </details>
 </div>
