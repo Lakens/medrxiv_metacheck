@@ -198,7 +198,7 @@ Transplantation: Development and Temporal Evaluation of the RIGHT-HTx
 Framework
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.03.26367231
+2026-11-21 · Metacheck 0.4.4.29 · DOI 10.64898/2026.11.03.26367231
 </p>
 </header>
 <div class="mc-main">
@@ -369,8 +369,8 @@ Your Statistical Inferences</a>.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 30 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 30 detected.</p>
 </div>
 </div>
 </div>
@@ -467,8 +467,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -819,9 +820,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -843,7 +848,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -858,9 +864,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -873,13 +897,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -899,6 +926,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -906,12 +939,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1012,6 +1051,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1031,6 +1090,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1286,19 +1380,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1408,6 +1584,171 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Main-text word count: 3,958 . RIGHT-HTx identifies cumulative multidomain vulnerability associated with early mortality after heart transplantation. Temporal discrimination was comparable, but absolute-risk calibration differed.</p>
+<p>The framework may support risk recognition and mitigation, not transplant eligibility or allocation; independent multicentre validation is required before clinical implementation.</p>
+<h3>[div-01]</h3>
+<p>ABSTRACT: BACKGROUND Risk models from high-income transplant programmes may not generalise to resource-constrained settings with different recipient acuity, donor characteristics and access to mechanical circulatory support. We developed RIGHT-HTx, a parsimonious framework integrating clinical and physiological vulnerabilities, and evaluated its prognostic performance in a subsequent same-centre cohort.</p>
+<h3>METHODS</h3>
+<p>This retrospective single-centre study included 436 consecutive adult heart transplant recipients (2012-2026). Of 357 development recipients, 341 (95.5%) were score-evaluable. RIGHT-HTx incorporated three vulnerability domains: clinical acuity (INTERMACS 1-2), graded renal dysfunction (eGFR 30-59 or &lt;30 mL/min/1.73 m²) and haemodynamic-donor mismatch (TPG &gt;12 mmHg combined with donor-to-recipient weight ratio &lt;1.0). A seven-point Cox-derived score underwent internal validation using 1,000 bootstrap resamples and was applied unchanged to 79 subsequent recipients. Low-, intermediate-and high-risk categories represented zero, one and ≥2 affected domains, respectively.</p>
+<h3>RESULTS</h3>
+<p>Among development recipients, 75/341 (22.0%) died within one year. Mortality increased across low-, intermediate-and high-risk categories (8.1%, 20.3% and 55.6%; log-rank P&lt;0.001). Elevated TPG was not significantly associated with mortality individually, whereas its combination with donor undersizing was independently associated with mortality (adjusted HR 2.87, 95% CI 1.53-5.40; P=0.001). The full model improved discrimination beyond renal dysfunction alone (optimismcorrected ΔC-index 0.067), and the simplified score achieved an optimism-corrected C-index of 0.732.</p>
+<p>The temporal cohort more often had ≥1 affected domain (75.9% versus 60.4%; P=0.010). Discrimination was comparable (C-index 0.738, 95% CI 0.643-0.833), although observed Kaplan-Meier one-year mortality exceeded original predictions (35.4% versus 25.4%; calibration slope 0.929).</p>
+<p>In pooled analyses (n=420), mortality increased from 8.4% (13/154) with no affected domain to 57.3% (47/82) with two or more.</p>
+<h3>CONCLUSIONS</h3>
+<h3>INTRODUCTION</h3>
+<p>Heart transplantation remains the definitive treatment for selected patients with end-stage heart failure. ¹ Most transplants and published risk models originate in North America and Europe. ²,³,⁴ Their transportability to programmes with different recipients, donor pools, and access to mechanical circulatory support (MCS) is uncertain. External validation and calibration assessment are frequently incomplete,⁵ and model performance may vary across populations⁶ and between scores evaluated in the same transplant cohort. ⁷ These concerns are especially pertinent to resource-constrained programmes, where recipients may rely on personal funds,⁸ durable MCS access is limited,⁹,¹⁰ and deceased donors are geographically concentrated. Critically ill patients must therefore endure long-distance travel and prolonged waiting periods without durable mechanical support. ¹¹ Heart transplantation also depends on a scarce donor resource beyond the treating team&#x27;s control. Socioeconomic and geographical factors influence heartfailure and transplant outcomes,¹²,¹³,¹⁴ alongside regional differences in transplant survival. ² Nevertheless, the underlying physiological determinants of early mortality are likely to be relevant across healthcare systems, even when the resources available to address them differ.</p>
+<p>We sought to identify clinically relevant predictors of one-year mortality following heart transplantation in a resource-constrained setting and to develop a parsimonious, clinically interpretable risk-stratification framework. Candidate predictors were examined using clinical and physiological considerations alongside survival analyses, from which the RIGHT-HTx score was derived. Its performance was subsequently evaluated in a non-overlapping, same-centre temporal cohort. The score is intended to support risk recognition and potential mitigation, not determine transplant eligibility or organ allocation.</p>
+<h3>MATERIALS AND METHODS</h3>
+<h3>Study Design and Population</h3>
+<p>This retrospective, single-centre study included 357 consecutive adult heart transplant recipients transplanted between October 2012 and September 2024 and 79 subsequent recipients transplanted between October 2024 and June 2026. The latter constituted a non-overlapping, same-centre temporal cohort. Paediatric and combined-organ transplant recipients were excluded.</p>
+<p>Of 357 development recipients, 341 (95.5%) were score-evaluable; five lacked estimated glomerular filtration rate (eGFR), and 11 had indeterminate haemodynamic-donor classification. All 79 temporal recipients were evaluable, yielding 420 recipients for pooled analyses. Complete-case analysis was used for model development without multiple imputation. Mortality among score-evaluable and nonevaluable recipients was compared to assess potential selection bias.</p>
+<p>The primary endpoint was all-cause mortality within 12 months of transplantation, analysed using time-to-event methods with administrative censoring at one year. Survival status was updated through 25 October 2026. No temporal recipient was lost to follow-up; 17 had less than 12 months of observation and were censored at their last confirmed contact. Five score-evaluable development recipients were also censored before 12 months at their last documented follow-up. Clinical, biochemical, haemodynamic, donor and transplant data were obtained from prospectively maintained institutional electronic records. The Institutional Review Board approved the study and waived individual informed consent. Reporting followed TRIPOD+AI guidance. ¹⁵ eGFR was calculated using the 2021 race-free CKD-EPI creatinine equation.</p>
+<h3>Variables and Definitions</h3>
+<p>¹⁶ MELD-XI was calculated as 5.11 × ln(bilirubin) + 11.76 × ln(creatinine) + 9.44, with values below 1 mg/dL set to 1. ¹⁷ Clinical acuity was classified by INTERMACS profile at transplantation rather than listing, reflecting deterioration while awaiting transplantation where applicable. ¹⁸ Recipients requiring extracorporeal membrane oxygenation or temporary mechanical support for critical cardiogenic shock were classified as profile 1. Durable-LVAD recipients were reclassified as profile 1 only following documented clinical deterioration. Profiles were dichotomised as 1-2 versus 3-5.</p>
+<p>Right-heart catheterisation was performed within three months before transplantation, but the exact interval between right-heart catheterisation and transplantation was not recorded. Transpulmonary gradient (TPG) was calculated as mean pulmonary arterial pressure minus pulmonary capillary wedge pressure; pulmonary vascular resistance (PVR) as TPG divided by cardiac output. Recorded haemodynamic indices were retained when constituent measurements were unavailable. Donor undersizing was defined as donor-to-recipient body-weight ratio &lt;1.0. Haemodynamic-donor vulnerability required both TPG &gt;12 mmHg and donor undersizing. The composite was classified as absent in non-undersized recipients regardless of TPG availability; TPG was required for classification when donors were undersized.</p>
+<h3>RIGHT-HTx Development and Scoring</h3>
+<p>Candidate predictors were examined using univariable Cox regression. Selection prioritised clinical relevance, physiological plausibility, nonredundancy and parsimony, informed by observed associations. The RIGHT-HTx framework incorporated three vulnerability domains: INTERMACSdefined clinical acuity, renal dysfunction and combined haemodynamic-donor mismatch.</p>
+<p>The final multivariable Cox model contained four coefficients: INTERMACS 1-2, eGFR 30-59 and &lt;30 mL/min/1.73 m² (reference ≥60), and TPG &gt;12 mmHg with donor undersizing. RIGHT-HTx represents Renal reserve, INTERMACS-defined acuity, Graft-recipient size compatibility and Haemodynamic load in heart Transplantation; the latter two were combined into one model term.</p>
+<p>Regression coefficients were converted to integer points by dividing by half the smallest nonreference coefficient (0.8803/2) and rounding, following established methods for presenting multivariable models as integer point scores. ¹⁹ Points were allocated as follows: INTERMACS 1-2, 2; eGFR 30-59, 2; eGFR &lt;30, 3; and haemodynamic-donor mismatch, 2. The maximum score was seven.</p>
+<p>Risk categories reflected the number of affected domains: low (none; score 0), intermediate (one; scores 2-3) and high (two or more; scores 4-7). Category boundaries followed the domain structure rather than outcome-optimised cutoffs. Donor age and ischaemic time were evaluated but not retained.</p>
+<h3>Incremental Prognostic Value and Internal Validation</h3>
+<p>Incremental prognostic information was assessed by comparing renal-only, renal-plus-INTERMACS and full three-domain Cox models using nested likelihood-ratio tests and Harrell&#x27;s C-index. Reverseorder comparisons examined the contribution of each additional domain.</p>
+<p>Internal validation used 1,000 bootstrap resamples. Full-model coefficients were re-estimated within resamples, while the simplified seven-point score was evaluated with fixed integer weights and a reestimated score coefficient. Optimism-corrected discrimination and calibration slopes were calculated.</p>
+<p>A separate paired bootstrap comparison estimated the optimism-corrected improvement in discrimination over renal dysfunction alone.</p>
+<p>Validation was conditional on the selected predictors, thresholds, weights and risk boundaries; the complete development process was not repeated. Absolute 12-month risks were estimated using the continuous seven-point Cox model, with calibration assessed against Kaplan-Meier mortality.</p>
+<h3>Haemodynamic-Donor Interaction and Sensitivity Analyses</h3>
+<p>Recipients were classified into four groups according to TPG ≤12 or &gt;12 mmHg and donor undersizing. An analogous analysis used PVR ≤3 or &gt;3 Wood units. Cox models examined these groups and multiplicative interactions, adjusting for INTERMACS status and eGFR categories.</p>
+<p>Interaction terms were evaluated using nested likelihood-ratio tests.</p>
+<p>The TPG and PVR analyses included 312 and 313 recipients, respectively; adjusted interaction models included 309. An additional complete-case sensitivity analysis compared the incremental prognostic contributions of MELD-XI and eGFR categories using nested Cox models fitted to a common sample. These analyses were exploratory, did not constitute independent validation and were not adjusted for multiplicity.</p>
+<h3>Temporal Evaluation and Cumulative Vulnerability</h3>
+<p>The unchanged seven-point score was applied to 79 subsequent recipients. Discrimination was assessed using Harrell&#x27;s C-index, and calibration by comparing frozen development-model predictions with observed Kaplan-Meier 12-month mortality. The calibration slope was estimated using the frozen linear predictor.</p>
+<p>Exploratory recalibration retained the development score coefficient while updating the baseline cumulative hazard using temporal outcomes; these predictions were not considered independent validation.</p>
+<p>For descriptive pooled analyses, 420 score-evaluable recipients were classified by the number of affected domains (0 to 3). Renal dysfunction counted as one domain regardless of eGFR severity.</p>
+<p>Crude mortality proportions and Wilson confidence intervals were calculated. These pooled analyses were not independent of model development.</p>
+<h3>Long-Term and Conditional Survival</h3>
+<p>Programme-level survival was assessed in all 436 recipients using Kaplan-Meier methods. Conditional survival was evaluated among development-cohort recipients surviving and remaining under observation beyond one year, retaining their original RIGHT-HTx classifications. Between-group differences were assessed using log-rank tests and Cox regression.</p>
+<h3>Statistical Analysis</h3>
+<p>Continuous variables were summarised as median (interquartile range) and categorical variables as number (percentage). Cox models used the Efron method for ties, with hazard ratios and 95% confidence intervals reported. Proportional-hazards assumptions were assessed using Schoenfeld residuals. Two-sided P&lt;0.05 was considered statistically significant for primary analyses; exploratory findings were interpreted cautiously without multiplicity adjustment. Global Schoenfeld tests showed no evidence of violation for the full model (P=0.61) or the seven-point score (P=0.64).</p>
+<p>Sample size was determined by the available consecutive cohort without an a priori calculation. The primary model included 75 events across four coefficients (18.75 events per coefficient). Analyses used Stata 19 and R 4.6.1, including survival, survminer and ggplot2.</p>
+<h3>RESULTS</h3>
+<h3>Study Population and Baseline Characteristics</h3>
+<p>Among the 341 score-evaluable development recipients, 75 (22.0%) died within one year, compared with 5 of 16 (31.3%) non-evaluable recipients (HR 1.46, 95% CI 0.59-3.60; P=0.415). The small non-evaluable group limits the precision of this comparison. Baseline demographic, clinical, haemodynamic and donor characteristics, together with univariable associations with one-year mortality, are presented in Table 1.</p>
+<h3>Univariable Associations</h3>
+<p>INTERMACS profiles 1-2 were associated with one-year mortality (HR, 3.21; 95% CI, 2.02-5.11; P&lt;0.001). Relative to eGFR ≥60 mL/min/1.73 m², HRs were 2.55 (95% CI, 1.55-4.19; P&lt;0.001) for eGFR 30-59 and 6.76 (95% CI, 3.70-12.35; P&lt;0.001) for eGFR &lt;30. TPG &gt;12 mmHg considered individually was not significantly associated with mortality (HR, 1.49; 95% CI, 0.88-2.51; P=0.135). Donor undersizing considered individually was associated with mortality (HR, 1.96; 95% CI, 1.26-3.04; P=0.003), whereas the conjunctive TPG &gt;12 mmHg plus undersizing exposure had HR 3.83 (95% CI, 2.11-6.95; P&lt;0.001). These candidate associations informed the final multivariable model (Table 1).</p>
+<h3>RIGHT-HTx Model Development and Risk Stratification</h3>
+<p>The final multivariable model incorporated recipient clinical acuity, renal dysfunction, and donorrecipient haemodynamic-size compatibility (Table 2). Adjusted HRs were 2.66 (95% CI, 1.64-4.33; P&lt;0.001) for INTERMACS 1-2; 2.41 (95% CI, 1.46-3.99; P&lt;0.001) for eGFR 30-59; 4.09 (95% CI, 2.10-7.95; P&lt;0.001) for eGFR &lt;30; and 2.87 (95% CI, 1.53-5.40; P=0.001) for the conjunctive TPGundersizing exposure.</p>
+<p>The seven-point score allocated 2 points for INTERMACS 1-2, 2 for eGFR 30-59, 3 for eGFR &lt;30, and 2 for combined TPG &gt;12 mmHg with undersizing. Low risk (0 points), intermediate risk (2-3), and high risk (4-7) represented zero, one, and two or more vulnerability domains. Among 341 development recipients, 135 were low risk, 143 intermediate risk, and 63 high risk. Crude one-year mortality was 11/135 (8.1%), 29/143 (20.3%), and 35/63 (55.6%), respectively (Figure 1). Kaplan-Meier survival at one year was 91.8%, 79.7%, and 44.4%, respectively (log-rank P&lt;0.0001; Figure 2A).</p>
+<h3>Incremental Prognostic Value</h3>
+<p>The full three-domain model improved discrimination beyond renal dysfunction alone (apparent Cindex 0.7357 versus 0.6599). In a paired bootstrap comparison using 1,000 resamples, the optimismcorrected C-index increased from 0.6594 for the renal-only model to 0.7261 for the full model (ΔC=0.0667). Adding the haemodynamic-donor domain to renal dysfunction and INTERMACS improved model fit (likelihood-ratio χ²=8.795, 1 df; P=0.003; Supplementary Table S1).</p>
+<p>In a sensitivity analysis of 242 recipients with both measures available (58 one-year deaths), MELD-XI was associated with mortality when considered alone (HR per point 1.10; P&lt;0.001), but not after adjustment for eGFR categories (HR 1.03; P=0.486). Adding MELD-XI to eGFR did not improve model fit (LR χ²=0.48; P=0.491), whereas adding eGFR to MELD-XI did (LR χ²=8.17; P=0.017).</p>
+<h3>Internal Validation and Calibration</h3>
+<p>The full multivariable Cox model had an apparent Harrell C-index of 0.7357 and an optimismcorrected C-index of 0.7276 after 1,000 bootstrap resamples, with an optimism-corrected calibration slope of 0.9489. The simplified seven-point RIGHT-HTx score had an apparent C-index of 0.7315 and an optimism-corrected C-index of 0.7323, with an optimism-corrected calibration slope of 1.0053.</p>
+<p>The slightly higher optimism-corrected estimates for the simplified score reflect differences in estimated optimism, not demonstrated superiority. Mean predicted one-year mortality in the development cohort was 21.92%, compared with observed Kaplan-Meier mortality of 22.01% (Table 2; Figure 3A). Bootstrap validation held predictors, thresholds, integer score weights and risk-category boundaries fixed and did not repeat the full model-development process.</p>
+<h3>Haemodynamic-Donor Interaction and Physiological Analysis</h3>
+<p>Among 312 recipients with complete TPG and donor-recipient weight measurements, one-year mortality was 56.5% (13/23) when elevated TPG and donor undersizing coexisted, compared with 20.8% (60/289) among those with neither or only one exposure. Relative to recipients with neither exposure, the combined-exposure group had substantially higher mortality (HR 3.85, 95% CI 2.02-7.35; P&lt;0.001; Supplementary Table S2).</p>
+<p>In an exploratory analysis adjusted for INTERMACS status and renal dysfunction, the multiplicative interaction between elevated TPG and donor undersizing remained statistically significant (HR 3.24, 95% CI 1.03-10.22; P=0.045; Supplementary Table S3). This finding supports the physiological rationale for the conjunctive haemodynamic-donor domain used in RIGHT-HTx, although the interaction and conjunctive models are not statistically equivalent. The interaction estimate was imprecise, with only 23 recipients having both exposures.</p>
+<p>An analogous analysis using PVR &gt;3 Wood units demonstrated a similar pattern, with an adjusted interaction HR of 2.66 (95% CI 1.01-7.02; P=0.049; Supplementary Table S4). Because PVR incorporates TPG and cardiac output, this represents physiological consistency rather than independent confirmation.</p>
+<h3>Donor-Recipient Weight Matching</h3>
+<p>Among 355 development-era recipients with complete donor and recipient body-weight measurements, donor weight increased by only 1.53 kg (95% CI 0.91-2.14 kg) for every 10-kg increase in recipient weight. The fitted slope was significantly below that expected with proportional donor-recipient weight matching (P&lt;0.001; R²=0.063). Donor undersizing increased progressively across recipientweight categories, from 2.1% (1/48) among recipients weighing &lt;50 kg to 98.0% (48/49) among those weighing ≥80 kg. Median donor weight increased from 65.0 to 74.8 kg across these strata, compared with an increase in median recipient weight from 45.0 to 86.0 kg. These findings demonstrate a marked disparity between recipient and donor body weights, particularly among larger recipients (Figure 4; Supplementary Table S5).</p>
+<h3>Temporal Evaluation of RIGHT-HTx</h3>
+<p>All 79 recipients in the subsequent same-centre temporal cohort were score-evaluable. Compared with the development cohort, the temporal cohort had a significantly higher prevalence of at least one represented pretransplant vulnerability (75.9% versus 60.4%; P=0.010) and higher one-year mortality (35.4% versus 22.0%). Mortality increased across RIGHT-HTx risk categories, from 10.5% in low-risk to 34.1% in intermediate-risk and 63.2% in high-risk recipients (Table 3; Figure 2B).</p>
+<p>The continuous seven-point RIGHT-HTx score showed discrimination comparable in magnitude to its development performance (Harrell C-index 0.738, 95% CI 0.643-0.833). The temporal calibration slope was 0.929 (95% CI 0.452-1.406).</p>
+<p>Observed Kaplan-Meier one-year mortality exceeded predictions derived from the development model (35.44% versus 25.35%). Exploratory baseline-hazard recalibration increased mean predicted mortality to 29.56%, although underprediction remained (Figures 3B-C). Detailed calibration estimates are provided in Supplementary Table S6.</p>
+<h3>Cumulative Vulnerability in the Pooled Cohort</h3>
+<p>Among 420 score-evaluable recipients (103 one-year deaths), mortality increased progressively with the number of affected vulnerability domains, from 8.4% with none to 23.4% with one, 54.1% with two and 87.5% (7/8) with all three. Recipients with two or more affected domains constituted only 19.5% of the cohort but accounted for 45.6% of one-year deaths (Figure 5). These pooled analyses were descriptive and did not constitute independent validation.</p>
+<h3>Programme-Level and Conditional Long-Term Survival</h3>
+<p>Among 436 adult heart transplant recipients, 141 deaths occurred during a median follow-up of 4.7 years (IQR, 2.0-8.0 years), of which 108 (76.6%) occurred within the first post-transplant year.</p>
+<p>Overall Kaplan-Meier survival was 75.1% at one year, 68.2% at five years and 57.7% at ten years (Supplementary Figure S1A) Among 341 score-evaluable development recipients, 261 survived and remained under observation beyond the one-year landmark, with 31 subsequent deaths. Conditional survival was 91.0% at five years and 76.7% at ten years after transplantation (Supplement Figure S1B). Among these one-year survivors, subsequent survival did not differ significantly across the original RIGHT-HTx risk categories. Five-year survival was 92.3%, 89.0% and 90.7% in low-, intermediateand high-risk recipients, respectively (log-rank P=0.60; C-index 0.515; Supplement Figure S1C). These findings suggest that the prognostic separation associated with RIGHT-HTx is concentrated predominantly within the first post-transplant year, although the limited number of late deaths and selection inherent in landmark analysis preclude conclusions of equivalent long-term risk.</p>
+<h3>DISCUSSION</h3>
+<p>Risk models derived from high-income registries may not transport readily to resource-constrained programmes, where recipient acuity, donor characteristics, and access to advanced bridging differ.</p>
+<p>RIGHT-HTx organised transplant risk into three domains: clinical acuity, renal reserve, and donorrecipient haemodynamic compatibility. One-year survival in the development cohort ranged from 91.8% in low-risk to 44.4% in high-risk recipients. Risk separation persisted in subsequent recipients despite greater pretransplant vulnerability and higher mortality (C-statistic 0.738). The principal contribution of RIGHT-HTx may lie more in demonstrating the convergence of vulnerabilities than in the numerical risk score alone, although sparse phenotypes cannot establish synergy.</p>
+<p>Clinical acuity,²⁰ renal dysfunction,²¹,²² pulmonary vascular load²³ and donor-recipient size mismatch²⁴ are established determinants of heart-transplant outcomes.</p>
+<p>Risk factors seldom operate in isolation, and cumulative vulnerability, including comorbidity burden,²⁵ frailty and obesity,²⁶ and cardiovascular-kidney-metabolic risk,²⁷ has been associated with posttransplant mortality. Previous models have incorporated combinations of donor and recipient risk factors,²⁸,²⁹ with analogous approaches in lung³⁰ and liver³¹ transplantation. However, the cumulative and potentially interrelated effects of these physiological vulnerabilities remain incompletely characterised. We are not aware of an existing framework that integrates these three domains and evaluates their combined prognostic contribution in a subsequent temporal cohort.</p>
+<p>The donor-recipient haemodynamic domain illustrates the relational nature of RIGHT-HTx: elevated TPG was most informative when combined with donor undersizing, consistent with previous evidence that donor and recipient characteristics may modify each other&#x27;s effects. ²⁸,³² One-year mortality was 56.5% when both exposures coexisted, compared with 20.8% among recipients with neither or only one exposure. A similar pattern was observed with PVR, supporting the physiological rationale for considering pulmonary vascular load in relation to donor size rather than in isolation. ³³,³⁴ RIGHT-HTx showed similar discrimination in the subsequent temporal cohort (C-index 0.738) despite greater pretransplant vulnerability. Observed mortality exceeded predictions from the development model, highlighting the distinction between discrimination and absolute-risk calibration. ³⁵,³⁶ Exploratory baseline-hazard recalibration only partially reduced this discrepancy, underscoring the need for independent validation and potential recalibration across different populations. ³⁷ During the later period, the programme also experienced disruptions in air transport, increased retrieval costs and difficulties with timely donor-organ procurement, potentially affecting waiting times and clinical status at transplantation. These circumstances illustrate the challenges of transplantation in a resourceconstrained setting, but their contribution to the higher mortality could not be determined from the available data, as the relevant variables -waiting-list duration, retrieval disruptions and their timing -were not recorded.</p>
+<p>Two deaths among low-risk recipients in the subsequent cohort illustrate vulnerabilities not adequately captured by RIGHT-HTx. One involved complex congenital heart disease after Fontan palliation and multiple previous operations; the other involved PVR 5.3 Wood units and TPG 14 mmHg without meeting the predefined donor-undersizing criterion (donor 70 kg; recipient 67 kg). These cases highlight an inherent limitation of parsimonious, threshold-based risk scores: a score of zero does not imply absence of clinical risk.</p>
+<p>Donor-size availability emerged as an important systems-level constraint in our transplant programme.</p>
+<p>Whereas previous matching studies have examined acceptable mismatch and organ utilisation,²⁴,³⁸,³⁹,⁴⁰ our data demonstrate relatively constant donor weight across increasing recipient size, with undersizing increasing from 2.1% among recipients weighing &lt;50 kg to 98.0% among those weighing ≥80 kg. Median recipient weight increased from 45.0 to 86.0 kg across these strata, whereas median donor weight increased only from 65.0 to 74.8 kg. These observations demonstrate the practical constraints of donor-recipient matching among transplanted recipients, although they do not establish the availability of appropriately sized hearts in the underlying donor pool. Size mismatch may represent a continuous gradient rather than a discrete threshold. ⁴⁰ Predicted heart mass (PHM) may provide more precise size matching than body weight,⁴¹,⁴² although ideal body-weight ratio has been reported non-inferior to PHM. ⁴³ PHM could not be reliably calculated in most recipients because of incomplete donor anthropometric data. Importantly, neither metric directly measures donor right ventricular reserve relative to recipient pulmonary vascular load. The RIGHT-HTx weight-ratio threshold should therefore be regarded as a pragmatic operational definition rather than a physiological boundary. The healthcare-system context is important when interpreting transplant outcomes. The two principal surgical options for end-stage heart failure-heart transplantation and durable LVAD support-depend on resources constrained by different factors: organ donation rates and access to reimbursement, respectively. Registry-derived risk scores, such as IMPACT, incorporate treatment-dependent variables, including mechanical ventilation and circulatory support, whose prognostic significance may differ across healthcare systems. ⁴⁴,⁴⁵ In resource-constrained programmes, the absence of advanced support may reflect limited access or affordability rather than lesser clinical need. Such variables may therefore capture both disease severity and healthcare resources, potentially limiting the transportability of existing scores. ⁴⁶ RIGHT-HTx instead used transplant-time INTERMACS profile to characterise clinical acuity less directly dependent on the support modality received. Direct benchmarking against established scores was not undertaken because the available data did not permit reliable reconstruction of all comparator predictors and some scores target different endpoints.</p>
+<p>The cumulative-vulnerability framework also has limitations. Severity within a domain matters, not merely the number of affected domains. Recipients with multiple vulnerabilities constituted only 19.5% of the cohort but accounted for 45.6% of one-year deaths. However, the adverse prognosis associated with severe renal dysfunction illustrates that the severity of individual vulnerabilities may be as important as their accumulation.</p>
+<p>RIGHT-HTx was developed to identify potentially modifiable peri-transplant vulnerability rather than determine transplant eligibility or organ allocation. This emphasis on early vulnerability is consistent with its prognostic separation being concentrated predominantly within the first post-transplant year, with no significant risk-category separation among one-year survivors (log-rank P=0.60).</p>
+<p>Its three domains suggest different opportunities for intervention. Earlier referral, before deterioration in renal function and clinical acuity, may help preserve physiological reserve. ⁴⁷,⁴⁸ Timely mechanical circulatory support may prevent progression to critical illness,⁴⁹ while recognition of elevated pulmonary vascular load may inform donor-recipient size matching. Reversible pulmonary vascular load may also be modified through durable mechanical circulatory support,⁵⁰ yet access to affordable devices remains limited in this setting, where treatment costs are largely borne by recipients. ⁸,⁹,¹⁰ These are potential strategies rather than interventions evaluated in this study, and prospective evaluation is needed to determine whether score-informed management improves outcomes. Favourable outcomes among low-risk recipients highlight the potential importance of reaching transplantation before multiple vulnerabilities accumulate, while residual mortality even at score zero emphasises that low scores do not exclude clinical risk.</p>
+<h3>LIMITATIONS</h3>
+<p>This retrospective study reflects the consecutive experience of a single transplant programme. Its findings describe early post-transplant risk within that setting and require evaluation in other populations. Score calculation was possible in 341 of 357 development recipients (95.5%). Among the 16 nonevaluable recipients, five died within one year (31.3%), compared with 75 of 341 (22.0%) evaluable recipients; their exclusion may therefore have introduced selection bias. Eleven recipients had indeterminate haemodynamic-donor classification: nine had donor undersizing with missing TPG, and two lacked donor-weight measurements. Multiple imputation was not undertaken. The primary model contained 75 deaths across four coefficients, and predictor selection, thresholds and integer weights were informed by development data. Although risk-category boundaries followed the number of affected domains, bootstrap validation was conditional on these modelling decisions and may underestimate full-development optimism.</p>
+<p>The adjusted TPG interaction analysis included only 23 recipients with both exposures, producing an imprecise exploratory estimate. PVR provided physiological consistency rather than independent replication. Haemodynamic measurements are influenced by loading conditions and timing, while body weight is an imperfect surrogate for donor cardiac mass and right ventricular reserve. The observed donor-recipient matching pattern describes transplanted recipients and cannot establish donor-pool availability.</p>
+<p>The 79-recipient temporal cohort provided limited precision for calibration and risk-category comparisons. Seventeen recipients had less than 12 months of observation, although none was lost to follow-up. The temporal evaluation was conducted at the same centre and does not constitute geographical external validation. Baseline-hazard recalibration used temporal outcomes and did not eliminate the discrepancy between predicted and observed mortality. Small pooled phenotypes further limit precision.</p>
+<p>Only 31 late deaths occurred among development recipients surviving beyond one year, limiting interpretation of conditional survival comparisons. Important potential predictors-including detailed graft quality, cause-specific mortality, waiting-list deterioration, donor availability, treatment access and financial constraints-were incompletely captured. A score of zero indicates the absence of vulnerabilities represented in RIGHT-HTx, not the absence of clinical risk; complex congenital anatomy, allosensitisation and other unmeasured factors may remain important. Independent multicentre validation and prospective evaluation are required before clinical implementation.</p>
+<h3>CONCLUSIONS</h3>
+<p>RIGHT-HTx integrates recipient clinical acuity, renal dysfunction and donor-recipient haemodynamic-size compatibility into a parsimonious seven-point score for one-year mortality after adult heart transplantation. Its categories correspond to zero, one or multiple score-captured vulnerability domains. Discrimination was comparable in magnitude in a later, more vulnerable samecentre cohort, although absolute-risk calibration differed. The framework may help recognise potentially modifiable vulnerability but should not be used to exclude patients from transplantation or determine organ allocation without independent evaluation. The scaling divisor was set to half the smallest nonreference regression coefficient (0.8803/2 ≈ 0.44015), and the resulting scaled coefficients were rounded to the nearest integer to assign points.</p>
+<p>Because the eGFR categories are mutually exclusive, achievable scores are 0, 2, 3, 4, 5, 6 and 7. Risk categories were defined by the number of affected vulnerability domains: none (low risk; score 0), one (intermediate risk; scores 2-3), or two or more (high risk; scores 4-7). These boundaries followed the predefined domain structure and were not selected or optimised using observed mortality outcomes.</p>
+<p>The model had 75 events across four regression coefficients (18.75 events per coefficient). Bootstrap estimates condition on the selected predictors, thresholds, score weights and risk boundaries; they do not repeat the full development process. The slightly negative fixed-score bootstrap optimism is compatible with Monte Carlo variation and does not establish superiority over the full model.</p>
+<p>Apparent calibration-in-the-large uses the same cohort in which baseline risk was estimated.</p>
+<p>Abbreviations: CI, confidence interval; eGFR, estimated glomerular filtration rate; HR, hazard ratio; INTERMACS, Interagency Registry for Mechanically Assisted Circulatory Support; TPG, transpulmonary gradient.</p>
+<h3>INTERMACS 3 - 5 ,</h3>
+<p>eGFR ≥60, and absence of the composite exposure. Donor undersizing denotes donor-to-recipient body-weight ratio &lt;1.0; the composite requires BOTH TPG &gt;12 mmHg and undersizing. In the tables, eGFR is expressed in mL/min/1.73 m², TPG in mmHg, and &quot;INTERMACS 1-2&quot; denotes INTERMACS profiles 1-2.</p>
+<h3>Table 1.</h3>
+<p>Baseline characteristics and univariable Cox associations with one-year mortality</p>
+<h3>Table 2.</h3>
+<p>Final multivariable Cox model and derivation of the seven-point RIGHT-HTx score Apparent 12-month calibration-in-the-large (seven-point score): mean predicted mortality 21.92%; observed Kaplan-Meier mortality 22.01%; crude death proportion 75/341 (21.99%). Cox models used follow-up administratively censored at 12 months. Reference categories were</p>
+<h3>Table 3.</h3>
+<p>RIGHT-HTx risk-category distribution and crude one-year mortality by cohortNote. Percentages in cohort columns are proportions of the respective score-evaluable cohort; mortality values are crude death proportions, not Kaplan-Meier estimates. The two cohorts are non-overlapping. A greater prevalence of represented vulnerability does not, by itself, explain all temporal differences in mortality.</p>
+<h3>References</h3>
+<p>Severino P, Mather PJ, Pucci M, et al. Advanced heart failure and end-stage heart failure: does a difference exist? Diagnostics (Basel). 2019;9(4):170.</p>
+<p>El Rafei A, Cogswell R, Atik FA, Zuckermann A, Allen LA. Review of the global activity of heart transplant. Circ Heart Fail. 2025;18(7):e012272.</p>
+<p>Ortiz-Bautista C, Muñiz J, Almenar-Bonet L, et al. Utility of the IMPACT score for predicting heart transplant mortality: analysis on a contemporary cohort of the Spanish Heart Transplant Registry. Clin Transplant. 2022;36(9):e14774.</p>
+<p>Segovia J, Cosío MDG, Barceló JM, et al. RADIAL: a novel primary graft failure risk score in heart transplantation. J Heart Lung Transplant. 2011;30(6):644-651.</p>
+<p>Collins GS, de Groot JA, Dutton S, et al. External validation of multivariable prediction models: a systematic review of methodological conduct and reporting. BMC Med Res Methodol. 2014;14:40.</p>
+<p>Binuya MAE, Engelhardt EG, Schats W, Schmidt MK, Steyerberg EW. Methodological guidance for the evaluation and updating of clinical prediction models: a systematic review. BMC Med Res Methodol. 2022;22(1):316.</p>
+<p>Coutance G, Kransdorf E, Bonnet G, Loupy A, Kobashigawa J, Patel J. Statistical performance of 16 posttransplant risk scores in a contemporary cohort of heart transplant recipients. Am J Transplant. 2021;21(2):645-656.</p>
+<p>Varshney S, Kansra P, Garg A, Raj BM, Singh SP, Khadar AA. Financial implications of organ transplant and advantages of covering it in Ayushman Bharat. J Mar Med Soc. 2025;28(1):89-93.</p>
+<p>Balakrishnan K. Heart transplantation in India-are we there yet? Indian J Thorac Cardiovasc Surg. 2020;36:159-165.</p>
+<p>Sivathasan C, Hayward C, Jansz P, et al. Durable mechanical circulatory support across the Asia- Pacific region. J Heart Lung Transplant. 2020;39(11):1195-1198.</p>
+<p>Manek P, Madkaiker A, Gandhi H, et al. Current status, challenges, and solution for heart transplantation in public sector hospital. Indian J Transplant. 2024;18(4):352-359.</p>
+<p>Mentias A, Desai MY, Vaughan-Sarrazin MS, et al. Community-level economic distress, race, and risk of adverse outcomes after heart failure hospitalization among Medicare beneficiaries. Circulation. 2022;145(2):110-121.</p>
+<p>Chen Q, Malas J, Emerson D, et al. Heart transplantation in patients from socioeconomically distressed communities. J Heart Lung Transplant. 2024;43(2):324-333.</p>
+<p>Axelrod DA, Guidinger MK, Finlayson S, et al. Rates of solid-organ wait-listing, transplantation, and survival among residents of rural and urban areas. JAMA. 2008;299(2):202-207.</p>
+<p>Collins GS, Moons KGM, Dhiman P, et al. TRIPOD+AI statement: updated guidance for reporting clinical prediction models that use regression or machine learning methods. BMJ. 2024;385:e078378.</p>
+<p>Inker LA, Eneanya ND, Coresh J, et al. New creatinine-and cystatin C-based equations to estimate GFR without race. N Engl J Med. 2021;385(19):1737-1749.</p>
+<p>Heuman DM, Mihas AA, Habib A, et al. MELD-XI: a rational approach to &quot;sickest first&quot; liver transplantation in cirrhotic patients requiring anticoagulant therapy. Liver Transpl. 2007;13(1):30-37.</p>
+<p>Friesen EL, Foroutan F, Krakovsky J, et al. Utility of the INTERMACS profile at the time of assessment for heart transplant. Clin Transplant. 2020;34(3):e13796.</p>
+<p>Sullivan LM, Massaro JM, D&#x27;Agostino RB Sr. Presentation of multivariate data for clinical use: the Framingham Study risk score functions. Stat Med. 2004;23(10):1631-1660.</p>
+<p>Barge-Caballero E, Segovia-Cubero J, Almenar-Bonet L, et al. Preoperative INTERMACS profiles determine postoperative outcomes in critically ill patients undergoing emergency heart transplantation: analysis of the Spanish National Heart Transplant Registry. Circ Heart Fail. 2013;6(4):763-772.</p>
+<p>Kumar A, Bonnell LN, Thomas CP. Impact of changing renal function, while waiting for a heart transplant, on post-transplant mortality and development of end stage kidney disease. Transpl Int. 2021;34:1044-1051.</p>
+<p>Habib PJ, Patel PC, Hodge D, et al. Pre-orthotopic heart transplant estimated glomerular filtration rate predicts post-transplant mortality and renal outcomes: an analysis of the UNOS database. J Heart Lung Transplant. 2016;35(12):1471-1479.</p>
+<p>Erickson KW, Costanzo-Nordin MR, O&#x27;Sullivan EJ, et al. Influence of preoperative transpulmonary gradient on late mortality after orthotopic heart transplantation. J Heart Transplant. 1990;9(5):526-537.</p>
+<p>Holzhauser L, Imamura T, Bassi N, et al. Increasing heart transplant donor pool by liberalization of size matching. J Heart Lung Transplant. 2019;38(11):1197-1205.</p>
+<p>Bonnesen K, Mols RE, Løgstrup BB, Gustafsson F, Eiskjær H, Schmidt M. The ability of comorbidity indices to predict mortality after heart transplantation: a validation of the Danish Comorbidity Index for Acute Myocardial Infarction, Charlson Comorbidity Index, and Elixhauser Comorbidity Index. Transplant Direct. 2023;9(4):e1438.</p>
+<p>Goubar T, Mullin AM, Rushworth LR, Macdonald PS. Frailty and obesity in heart transplant recipients: impact on post-transplant mortality. Eur Heart J. 2025;46(suppl 1):ehaf784.1357.</p>
+<p>Stauffacher G, Gros BP, Antiochos P, et al. Prognostic impact of cardiovascular-kidney-metabolic burden among heart transplant patients: insights from the Swiss Transplant Cohort Study. Eur Heart J. 2025;46(suppl 1):ehaf784.1062.</p>
+<p>Trivedi JR, Cheng A, Ising MS, Lenneman A, Birks EJ, Slaughter MS. Heart transplant survival based on recipient and donor risk scoring: a UNOS database analysis. ASAIO J. 2016;62(3):297-301.</p>
+<p>Hong KN, Iribarne A, Worku B, et al. Who is the high-risk recipient? Predicting mortality after heart transplant using pretransplant donor and recipient risk factors. Ann Thorac Surg. 2011;92(2):520- 527.</p>
+<p>Ehrsam JP, Schuurmans MM, Laager M, Opitz I, İnci İ. Recipient comorbidities for prediction of primary graft dysfunction, chronic allograft dysfunction and survival after lung transplantation. Transpl Int. 2022;35:10451.</p>
+<p>Volk ML, Hernandez JC, Lok AS, Marrero JA. Modified Charlson comorbidity index for predicting survival after liver transplantation. Liver Transpl. 2007;13(11):1515-1520.</p>
+<p>Young JB, Naftel DC, Bourge RC, et al. Matching the heart donor and heart transplant recipient. Clues for successful expansion of the donor pool: a multivariable, multiinstitutional report. The Cardiac Transplant Research Database Group. J Heart Lung Transplant. 1994;13(3):353.</p>
+<p>Chen JM, Levin HR, Michler RE, Prusmack CJ, Rose EA, Aaronson KD. Reevaluating the significance of pulmonary hypertension before cardiac transplantation: determination of optimal thresholds and quantification of the effect of reversibility on perioperative mortality. J Thorac Cardiovasc Surg. 1997;114(4):627-634.</p>
+<p>Wagner T, Magnussen C, Bernhardt A, et al. Impact of diastolic pulmonary gradient and pulmonary artery pulse index on outcomes in heart transplant patients-results from the Eurotransplant database. Front Cardiovasc Med. 2022;9:1036547.</p>
+<p>Van Calster B, Steyerberg EW, Wynants L, van Smeden M. There is no such thing as a validated prediction model. BMC Med. 2023;21(1):70.</p>
+<p>Tanner KT, Keogh RH, Coupland CAC, Hippisley-Cox J, Diaz-Ordaz K. Dynamic updating of clinical survival prediction models in a changing environment. Diagn Progn Res. 2023;7(1):24.</p>
+<p>Royston P, Altman DG. External validation of a Cox prognostic model: principles and methods. BMC Med Res Methodol. 2013;13:33.</p>
+<p>Patel ND, Weiss ES, Nwakanma LU, Russell SD, Baumgartner WA, Shah AS, Conte JV. Impact of donor-to-recipient weight ratio on survival after heart transplantation: analysis of the United Network for Organ Sharing database. Circulation. 2008;118(14 suppl):S83-S88.</p>
+<p>Tao R, Hess T, Kuchnia AJ, Hermsen JL, Raza F, Dhingra R. Association of size matching using predicted heart mass with mortality in heart transplant recipients with obesity or high pulmonary vascular resistance. JAMA Netw Open. 2023;6(6):e2319191.</p>
+<p>Dale R, Bahatyrevich N, Leipzig M, Pines KC, Currie M. Causal nonlinear dose response analysis of donor-recipient predicted heart mass ratio. JHLT Open. 2025;11:100418.</p>
+<p>Ahmad D, Brodie A, Pritting C, et al. Predicted heart mass based on ideal body weight for donor- to-recipient size matching. Clin Transplant. 2023;37(12):e15150.</p>
+<p>Khush KK, Cherikh WS, Chambers DC, et al. The International Thoracic Organ Transplant Registry of the International Society for Heart and Lung Transplantation: thirty-sixth adult heart transplantation report -2019; focus theme: donor and recipient size match. J Heart Lung Transplant. 2019;38(10):1056-1066.</p>
+<p>Pritting C, Nasher N, Rahimov D, et al. Ideal body weight ratio for donor-to-recipient size matching in heart transplantation. Clin Transplant. 2025;39(11):e70369.</p>
+<p>Moayedi Y, Ródenas-Alesina E, Mueller B, et al. Rethinking donor and recipient risk matching in Europe and North America: using heart transplant predictors of donor and recipient risk. Circ Heart Fail. 2023;16(5):e009994.</p>
+<p>Weiss ES, Allen JG, Arnaoutakis GJ, George TJ, Russell SD, Shah AS, Conte JV. Creation of a quantitative recipient risk index for mortality prediction after cardiac transplantation (IMPACT). Ann Thorac Surg. 2011;92(3):914-921.</p>
+<p>Figueredo A, Echeverría LE, Castillo VR, Murcia A, Rojas LZ, Gamboa-Delgado EM. Evaluación del riesgo de mortalidad de pacientes de trasplante cardíaco a través de la escala IMPACT en una población latinoamericana. Rev Argent Cardiol. 2016;84(5):487-492.</p>
+<p>Thorvaldsen T, Lund LH. Focusing on referral rather than selection for advanced heart failure therapies. Card Fail Rev. 2019;5(1):24-26.</p>
+<p>Morris AA, Khazanie P, Drazner MH, et al. Guidance for timely and appropriate referral of patients with advanced heart failure: a scientific statement from the American Heart Association. Circulation. 2021;144(15):e238-e250.</p>
+<p>Barge-Caballero E, Almenar-Bonet L, Gonzalez-Vilchez F, et al. Clinical outcomes of temporary mechanical circulatory support as a direct bridge to heart transplantation: a nationwide Spanish registry. Eur J Heart Fail. 2018;20(1):178-186.</p>
+<p>Salzberg SP, Lachat ML, von Harbou K, Zünd G, Turina MI. Normalization of high pulmonary vascular resistance with LVAD support in heart transplantation candidates. Eur J Cardiothorac Surg. 2005;27(2):222-225.</p>
 </div>
 </details>
 </div>
