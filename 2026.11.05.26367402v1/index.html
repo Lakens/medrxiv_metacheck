@@ -198,7 +198,7 @@ Following the 2022 Sindh, Pakistan Floods: An Interrupted Time Series
 Study
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.05.26367402
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.05.26367402
 </p>
 </header>
 <div class="mc-main">
@@ -515,8 +515,8 @@ Your Statistical Inferences</a>.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 23 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 23 detected.</p>
 </div>
 </div>
 </div>
@@ -599,8 +599,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -952,9 +955,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -976,7 +983,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -991,9 +999,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -1006,13 +1032,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1032,6 +1061,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -1039,12 +1074,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1145,6 +1186,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1164,6 +1225,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1419,19 +1515,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1541,6 +1719,124 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Malaria remains a major global public health challenge in developing countries, with climate change intensifying its impact, particularly in vulnerable populations. Rising temperatures can expand the geographic range and local abundance of malaria vectors, Anopheles mosquitoes, which thrive in warm climates, with 25°C representing the optimal temperature for malaria transmission. In Pakistan, malaria is primarily spread through P. falciparum and P. vivax. Pakistan is one of the seven countries in the Eastern Mediterranean Region that accounts for 98% of the total malaria burden in the region. Recently, after catastrophic flooding in Pakistan in 2022 and the subsequent increase in malaria incidence, it has become imperative to estimate the climate change-attributed increase in the risk of malaria. In this study, we analyze the time series malaria case incidence data from the province of Sindh, Pakistan, and the climate data to quantify climate-attributed malaria cases in Sindh, Pakistan. We fit a negative binomial generalized linear model (GLM) to monthly case counts with interrupted time series and seasonality terms. The majority of malaria-confirmed infections were Plasmodium Vivax (40-95%) between 2016-2024, followed by Plasmodium falciparum infections. The positivity rate for malaria remained &lt;10% until June 2022, and increased massively after the July 2022 flooding. After accounting for this case momentum, the onset of the 2022 floods was associated with an immediate, independent increase in malaria cases of approximately threefold (IRR 2.985, 95% CI 1.878-4.751, p &lt; 0.001). These findings suggest that post-flooding malaria surveillance and response in flood-affected settings should anticipate not only an acute environmentally-driven surge in cases but also a subsequent period of elevated, self-sustaining transmission that may persist well beyond the resolution of the initiating environmental disruption, in this case the flooding.</p>
+<h3>Introduction</h3>
+<p>Malaria remains a major global public health challenge in developing countries, with climate change intensifying its impact, particularly in vulnerable populations [1]. Malaria has gained significant attention because of its disease burden and its transmission sensitivity to environmental conditions, particularly temperature and rainfall [2]. Variability in climate (rainfall, temperature and humidity) is increasingly recognized as a major determinant of malaria transmission pathways by altering Anopheles mosquito reproduction, survival, and the development rate of Plasmodium parasites [3] [4] [5]. Literature has shown that rising temperatures can expand the geographic range and local abundance of malaria vectors, Anopheles mosquitoes, which thrive in warm climates, with 25°C representing the optimal temperature for malaria transmission [6, 7]. Warmer temperatures accelerate the development of malaria parasites within mosquitoes and shorten the incubation period of the disease in humans, leading to an increased risk of disease transmission.</p>
+<p>On the other hand, the relationship between precipitation and malaria transmission is complex. While standing water bodies created after downpour provide a breeding habitat for mosquitoes [8], high-intensity heavy rainfalls may wash or kill the larvae or adult mosquitoes [9]. Studies have reported a non-linear relationship between malaria case incidence and rainfall in Kenya and a positive correlation between rainfall and malaria in Thailand [10, 11].</p>
+<p>In Pakistan, malaria is primarily spread through two of the four Plasmodium species, namely P. falciparum and P. vivax [12, 13]. Pakistan is one of the seven countries in the Eastern Mediterranean Region that accounts for 98% of the total malaria burden in the region according to the World Health Organization (WHO) [14, 15]. In Pakistan, around 217 million people are reported to be at moderate risk of malaria, and 63 million are at high risk of the disease [14]. In Pakistan, An. culicifacies, An. stephensi, An. subpictus, and An. superpictus are the primary vectors for malaria transmission and have been endemic in the region since the early 1900s [16]. High malaria prevalence in Pakistan is facilitated by the country&#x27;s monsoon-fed agricultural landscape, temperatures ranging between 20 °C and 30 °C from September-December and April-May each year, poor vector control and surveillance in the country, and a weak disaster preparedness infrastructure [1, 14].</p>
+<p>Sindh Province is one of the five administrative units of Pakistan with a 348km coastline and a population reaching 48 million [17]. Sindh is bordered by the Thar Desert on its eastern side, the Kherthar Mountains on its western side, and the Arabian Sea on its southern side [17]. Sindh is known to have three climatic zones: north, south, and central, and is subdivided into 29 districts. The coastal zone of Sindh is extremely sensitive to climate change [17]. The province is generally located in a dry climate zone with annual precipitation of less than 10 inches and hazards of drought and frequent flooding [17].</p>
+<p>Recently, after catastrophic flooding in Pakistan in 2022 [18] and the subsequent increase in malaria incidence, it has become imperative to estimate the climate change-attributed increase in the risk of malaria. In this study, we analyze the time series malaria case incidence data from the province of Sindh, Pakistan, and the climate data to quantify climate-attributed malaria cases in Sindh, Pakistan.</p>
+<h3>Methods</h3>
+<h3>Ethics statement</h3>
+<p>The study protocol was approved by the Stanford University Institutional Review Board (Protocol ID #31488) and the Ethical Review Board at Agha Khan University.</p>
+<h3>Study Site</h3>
+<p>The study site, Sindh province, is located in the southern region of Pakistan, bordering the Arabian Sea and features diverse landscapes (Fig 1). The fertile plains along the Indus River, with stagnant water bodies, provide optimum breeding grounds for malaria-transmitting mosquitoes. The riverine belt, with its high density of healthcare facilities, experiences a favourable climate for malaria transmission during the wet season (June-August). Conversely, arid regions face significant temperature fluctuations, impacting mosquito breeding patterns. The temperatures frequently rise above 46 °C (115°F) between May and August, and the minimum average temperature of 2 °C (36°F) occurs during December and January. The annual rainfall averages about 18 cm, falling during July and August, which can influence mosquito breeding patterns and potentially affect malaria seasonality [19, 20]. Case Data Monthly longitudinal confirmed malaria cases reported to primary healthcare facilities across 29 districts in Sindh Province, Pakistan, between 2018 and 2025 were analysed. The data were available on a monthly temporal resolution from 2018-2025 with a distinction between malaria caused by Plasmodium Falciparum and Plasmodium Vivax and mixed species.</p>
+<h3>Climate Data</h3>
+<p>The current climate data set is composed of meteorological daily data on mean, maximum, and minimum temperature and precipitation (mm/day), collected and published readily by the &quot;Visual Crossings,&quot; which is an easy-to-use, low-cost source of historical and forecast global weather data [21]. The climate data on temperature and precipitation was temporally aggregated to monthly data to avoid over-parametrization, overfitting, and calculation problems faced with analysing daily climate data.</p>
+<h3>Data analysis</h3>
+<p>Several descriptive summaries (mean, minimum, and maximum) were considered for the two main covariates: temperature and precipitation. The distribution of the mean, minimum, and maximum temperature and precipitation was defined on a daily, weekly and monthly temporal scale, and patterns of temperature and precipitation were identified over time.</p>
+<h3>Identification of a structural break</h3>
+<p>Visual inspection of the case series revealed a marked and sustained increase in monthly case counts beginning in August 2022, coinciding with Pakistan&#x27;s 2022 monsoon rains, which caused extensive and prolonged devastating flooding in Sindh province. Mean monthly cases rose from approximately 10,900 (range 2,729-32,620) in the pre-flood period (January 2018-July 2022) to approximately 105,100 (range 31,759-250,746) from August 2022 onward. Since this shift reflected a discrete environmental and public-health disruption rather than continuous variation in the climate covariates of primary interest, it was modeled explicitly as a structural break using an interrupted time series (ITS) framework, rather than relying on the climate variables or a smooth time trend to absorb this discontinuity.</p>
+<h3>Model specification</h3>
+<p>We fit a negative binomial generalized linear model (GLM) to monthly case counts. The negative binomial distribution was selected over a standard Poisson or quasi-Poisson specification because preliminary Poisson models exhibited substantial overdispersion. The negative binomial allows us to estimate a dispersion parameter (θ) directly rather than applying a post hoc variance correction to standard errors, making it a suitable model in this study.</p>
+<p>The interrupted time series structure was represented by three terms: (1) a continuous, meancentered time variable capturing the pre-existing linear trend; (2) a binary indicator for the postflood period (August 2022 onward), representing an immediate level shift at the time of the break; and (3) a &quot;time since flood&quot; variable (coded 0 prior to the break, incrementing thereafter), allowing the post-break period to have its own linear trend distinct from the prebreak trend and from the level shift itself. This decomposition in the time series data follows standard segmented-regression practice for interrupted time series analysis, separating the &quot;jump&quot; from any subsequent change in slope [22]. This study design is usually used to study the effects of an intervention, disaster, or natural event on the occurrence of a disease over time [23].</p>
+<p>We also incorporated seasonality in the model. Seasonality was represented using a first-order harmonic (paired sine and cosine terms with an annual period) rather than a full set of calendarmonth indicator variables, in order to conserve degrees of freedom given the limited number of observations (n = 84 months; n = 82 after lagging) to maintain the accuracy, reliability, and unbiased nature of your parameter estimates Climate covariates included monthly mean temperature (modeled with a linear and quadratic term to allow for a non-monotonic relationship, consistent with known non-linear effects of temperature on mosquito vector and parasite development) and monthly total rainfall (modeled linearly). One-month lagged terms for both temperature and rainfall were included to allow for a delayed effect consistent with the extrinsic incubation period of the malaria parasite and mosquito breeding-cycle dynamics.</p>
+<h3>Addressing residual autocorrelation</h3>
+<p>An initial model specification (without an autoregressive term) showed significant first-order autocorrelation in the Pearson residuals (lag-1 autocorrelation ≈ 0.34, exceeding the 95% confidence bound), indicating that month-to-month dependence in case counts was not fully captured by the trend, seasonal, flood, and climate terms alone. To address this, the natural logarithm of the case count in the preceding month, log(cases[t-1] + 1), was added as a covariate. This log transformation was used because the model&#x27;s linear predictor operates on the log scale; including the lagged outcome in this form allows its coefficient to be interpreted as an elasticity (the proportional change in expected cases associated with a proportional change in the prior month&#x27;s cases).</p>
+<p>Following inclusion of this autoregressive term, residual autocorrelation was no longer statistically significant at any lag, and model fit improved substantially (ΔAIC = 28.3; ΔBIC = 25.9, both favoring the autoregressive specification). This model was retained as the final specification.</p>
+<h3>Final model</h3>
+<p>The final model can be summarized as:</p>
+<p>This model was fit via negative binomial regression (MASS::glm.nb in R), with 𝑐𝑎𝑠𝑒𝑠 ! ~ 𝑁𝑒𝑔𝐵𝑖𝑛(𝜇 ! , 𝜃).</p>
+<h3>Testing for interactions</h3>
+<p>To assess whether the effects of climate covariates or seasonality differed before versus after the 2022 flood, or whether temperature and rainfall jointly modified each other&#x27;s effect, three candidate interaction terms were added individually to the final model and evaluated via likelihood ratio tests (LRTs) [24] against the model without interactions: (1) temperature × rainfall, testing whether the two exposures compound one another; (2) post-flood period × temperature, testing whether the temperature-case relationship differed after the flood; and (3) post-flood period × seasonal harmonic terms (sine and cosine components together), testing whether the shape of seasonality itself shifted post-flood.</p>
+<p>None of the three interactions reached conventional statistical significance individually (temperature × rainfall: χ²(1) = 0.01, p = 0.92; post-flood × temperature: χ²(1) = 3.32, p = 0.068; post-flood × seasonality: χ²(2) = 5.40, p = 0.067), and none improved model fit by Akaike Information Criterion (AIC) by more than 1.4 points relative to the model without interactions. A joint model including all three interaction terms simultaneously reached nominal significance on a combined likelihood ratio test (χ²(4) = 10.90, p = 0.028) and showed a marginally lower AIC (Δ = 2.9), but had a higher Bayesian Information Criterion (BIC) than the model without interactions (Δ = 6.8), indicating that the added complexity was not justified once penalized for the number of parameters relative to the sample size (n = 83 months). Given the absence of a single robust, individually significant interaction and the BIC-based preference for the simpler specification, all interaction terms were excluded from the final model. This joint-significance-without-individual-significance pattern is interpreted as reflecting several weak, correlated effects rather than a single confirmed interaction, and is reported here as a formal robustness check with a null result rather than as a substantive finding.</p>
+<h3>Model diagnostics</h3>
+<p>Model adequacy was assessed via: (1) comparison of Pearson residual variance between the pre-and post-flood periods, to confirm the negative binomial dispersion parameter adequately characterized variability in both regimes (observed variances of 0.95 and 1.11, respectively, indicating no meaningful discrepancy); (2) visual inspection of observed versus fitted values over time; (3) residuals-versus-fitted and residuals-versus-time plots to assess for remaining heteroscedasticity or trend; and (4) the autocorrelation function (ACF) of Pearson residuals, to confirm adequate resolution of temporal dependence following inclusion of the autoregressive term.</p>
+<p>A non-parametric seasonal Mann-Kendall test was also performed to detect monthly trends of malaria, mean temperature and precipitation. This test is particularly useful to detect trends in data when underlying distribution is unknown. Mann-Kendall&#x27;s rank correlation tau and the associated p-value for temperature and precipitation was investigated [25]. The crosscorrelation function between the time series of the weekly precipitation, weekly mean temperature, and the weekly malaria incidence assessed the time lags with peak correlations between malaria incidence and precipitation and mean temperature. These time lags were used in the final models of precipitation and mean temperature on the weekly malaria incidence. All analyses were performed in R (Version 2026.01.1+403 (2026.01.1+403)).</p>
+<h3>Results</h3>
+<p>In this study, we explored the dynamics of the evolution of malaria incidence over time in relation to temperature and precipitation, on a pre-and post-flooding temporal scale. Fig. 1 presents the space-time evolution of malaria incidence over time in the study region. The results suggest that malaria risk increased substantially after the 2022 flooding in all the cities of the province. The final dataset for the analysis comprised 82 monthly observations (84 in total) from January 2018 through December 2024, following exclusion of two months with missing lagged covariates. Mean monthly malaria cases were 12641 (SD [15027]) before the August 2022 flood and 106481 (SD [63224]) after the devastating 2022 flooding. The majority of malaria-confirmed infections were Plasmodium Vivax (40-95%) between 2016-2024, followed by Plasmodium falciparum infections (Fig 3). The positivity rate for malaria remained &lt;10% until June 2022, and increased massively after the July 2022 flooding (Fig 3). The rainfall pattern in the province is highest between July and September, ranging up to 3 mm per month compared to 0 and 18 mm per month during the rest of the year. Sindh experiences a wet season from July to September and has a dry season for the rest of the year (~9 months). Average monthly temperatures in the province range from 55-97.5°F with the maximum temperatures reaching 111.6°F and the lowest hitting 43.3 °F. The strongest positive cross-correlation between malaria cases and rainfall occurs at a lag period of -1 to -2 months (4-8 weeks), indicating that rainfall occurring 1-2 months prior to the current malaria cases resulted in the subsequent increase of malaria cases in the current month. The CCF of temperature and malaria showed scattered output. A negative lag of 1 month exists between malaria cases and temperature. An interrupted time series model incorporating a first-order autoregressive term (the log of the prior month&#x27;s case count), harmonic seasonal terms, a pre-flood linear trend, a level shift at the onset of the 2022 floods, and climate covariates (temperature and rainfall, each with a onemonth lag) provided a substantially better fit to the data than an equivalent model without the autoregressive term (AIC: [1646] vs. 1674 [no-AR1 model]; BIC: [1677] vs. 1703 [no-AR1 model]), both favoring the autoregressive specification). The negative binomial dispersion parameter (θ = 22.38, SE = 3.45) indicated the model adequately captured overdispersion in monthly case counts, and residual variance was similar in the pre-and post-flood periods (0.83 vs. 1.30; F-test for equality of variances, F=0.64, 𝑝 = 0.16), indicating no evidence that the model fit differentially across the two periods. Fitted values closely tracked observed cases across the full study period, including the magnitude and timing of the post-2022 surge (Figure 1). An autocorrelation function of model residuals showed no remaining significant lag structure, confirming that the autoregressive term adequately addressed the temporal dependence present in an earlier model specification without it (Fig 6).</p>
+<p>The log of the previous month&#x27;s case count was strongly associated with the current month&#x27;s cases (incidence rate ratio [IRR] 1.696, 95% CI 1.431-2.008, p &lt; 0.001). Because this term enters the model on the log scale, its coefficient can be interpreted as an elasticity: a 10% increase in the prior month&#x27;s cases was associated with an approximately 5.3% increase in the current month&#x27;s cases, holding trend, season, flood status, and climate covariates constant. This indicates substantial month-to-month persistence in transmission, consistent with ongoing local transmission chains rather than each month&#x27;s case count being driven independently by external conditions.</p>
+<h3>Effect of Flood</h3>
+<p>After accounting for this case momentum, the onset of the 2022 floods was associated with an immediate, independent increase in malaria cases of approximately threefold (IRR 2.985, 95% CI 1.878-4.751, p &lt; 0.001). This is substantially smaller than the roughly tenfold difference in raw means between the pre-and post-flood periods reported above, indicating that a sizeable portion of the apparent flood-associated increase reflects self-sustaining transmission momentum rather than a one-time exogenous shock alone. There was no evidence of an additional change in the underlying monthly trend following the flood beyond this level shift (time-since-flood term: IRR 0.990, 95% CI 0.979-1.001, p = 0.069), suggesting that the elevated post-flood case level has persisted rather than clearly resolving within the study period. The pre-flood period itself showed no significant secular trend (IRR 1.002 per month, 95% CI 0.999-1.006, p = 0.23). The post-flood trend showed a small, marginally significant decline of about 1% per month (IRR = 0.99, 95% CI: 0.979-1.001; p = 0.069), indicating the elevated post-flood level was largely sustained rather than rapidly decaying over the remaining study period.</p>
+<p>For comparison, the model excluding the autoregressive term estimated a substantially larger immediate flood effect (IRR = 10.77 [CI not yet computed]). This divergence is consistent with the autoregressive term absorbing part of the flood&#x27;s effect through lagged case counts, since cases in the months following the flood were themselves elevated. Moreover, Log-transformed cases in the prior month were strongly predictive of current-month cases (IRR = 1.70, 95% CI: 1.43-2.01; p &lt; 0.001), confirming meaningful month-to-month persistence in case counts beyond what seasonality and climate covariates alone explain (Fig 7).</p>
+<h3>Impact of climate covariates on malaria cases</h3>
+<p>Mean monthly temperature was positively and significantly associated with malaria cases with a non-linear relationship. The linear temperature term was associated with increased incidence (IRR = 1.11, 95% CI: 1.04-1.17; p = 0.0014), while the negative quadratic term was negative and significant (IRR = 0.9994, 95% CI: 0.9989-0.9999; p = 0.012), indicating that incidence rose with temperature up to a point before plateauing or declining at the highest observed temperatures. The one-month lagged temperature term was not independently significant in this model (IRR 1.012, 95% CI 0.996-1.029, p = 0.15).</p>
+<p>Monthly rainfall was not significantly associated with malaria incidence (IRR = 0.9996, 95% CI: 0.9979-1.0013; p= 0.63). Lagged rainfall (by one month) on the other hand was statistically significantly associated with malaria case incidence (IRR = 1.0030, 95% CI: 1.0012-1.0048; p &lt;0.001), however, the magintude of the effect was small The underlying linear time trend (IRR = 1.002, 95% CI: 0.999-1.006; p = 0.23) was not statistically significant in the model.</p>
+<h3>Impact of seasonality</h3>
+<p>Residual seasonality captured by the first-order harmonic term (sine and cosine) terms after accounting for trends, flooding and other climate covariates described above followed the expected annual cycle, with predicted relative risk lowest in the early months of the year and rising toward a peak in the mid-to-late months (Figure 8), consistent with the monsoonassociated transmission season in Sindh. Neither harmonic term was individually statistically significant at conventional thresholds (sine term: IRR 0.863, 95% CI 0.670-1.112, p = 0.27; cosine term: IRR 0.935, 95% CI 0.647-1.351, p = 0.73), which is expected given that sine and cosine terms jointly define a single seasonal curve rather than being independently interpretable. It suggests that the residual seasonal variation is largely captured by the lag-1 case term once it is included in the model. The Pearson residual variance is high post-flood vs. pre-flood (1.3 vs. 0.83), variance ratio 0.64 (𝑝=0.161), indicating that after including the AR(1) term, there is no statistically significant remaining evidence of a pre/post-flood difference in residual dispersion-though the observed post-flood variance is still somewhat larger (Fig 8). Interaction effects Three pre-specified interaction terms; temperature * rainfall, flood period * temperature, and flood period * seasonality were tested individually via likelihood ratio tests against the base model. None reached conventional statistical significance individually (temperture*rainfall [p=0.9195], flood perid* temperature [p=0.06848], flood period * seasonlity [p=0.06721]) and a joint model including all three interactions was significant [p=0.02773]. This model was preferred by AIC but not by BIC relative to the base model without interactions (see Methods, Testing for interactions). No interaction terms were retained in the final model.</p>
+<p>Interaction term AIC BIC Model with no interactions 1646.110 1677.555 Temperature*rainfall 1648.100 1681.963 Flood period*temperature 1644.719 1678.665 Flood period*seasonality 1644.710 1680.993 Model with all interaction terms 1643.212 1684.332 Table: AIC and BIC values of the model with and without the interaction terms.</p>
+<h3>Discussion</h3>
+<p>This study modelled the influence of selected climatic variables on the incidence of malaria in the province of Sindh, Pakistan over a period of seven years. We employed a negative binomial generalized linear model (GLM) and an interrupted time series approach to isolate the impact of flooding on malaria incidence in the region. Interrupted time series analysis has been utilized in malaria studies to quantify malaria diagnosis before and after the introduction of rapid diagnostic tests [26]. In our study, this method provides us an opportunity to account for the increase in malaria cases after the flooding event, as used in prior studies quantifying impacts of flooding on diseases such as Leishmania and diarrhea [23, 27].</p>
+<p>The analysis has identified three principal drivers of malaria case incidence in Sindh Pakistan: a strong month-to-month case momentum consistent with ongoing local malaria transmission, a large and persistent increase in cases following the catastrophic 2022 monsoon floods as documented by scientists [19], and a non-linear temperature-incidence relationship consistent with the known thermal biology of Anopheles vectors and Plasmodium parasites [28]. In contrast, rainfall depicted at most a small and practically modest association with incidence once these other factors were accounted for. The results indicate a 3-fold increase in malaria cases (IRR 2.98, CI 1.88-4.75) after the flooding event in July 2022 that has not resolved within the subsequent two and a half years of available data. The 2022 monsoon floods were among the most severe in the country&#x27;s recorded history, submerging roughly a third of the country at their peak and disproportionately affecting Sindh province [29]. The public health mechanisms linking an event of massive flooding to a sustained malaria surge are well documented in the broader literature and plausibly include an expansion of mosquito breeding habitat from prolonged standing water, collapse of water, sanitation, and hygiene systems, large-scale population displacement into crowded, under-resourced settings, disruption of vector control and case-management infrastructure, and degraded surveillance and reporting capacity that may itself inflate recorded case counts independent of true incidence [29] [30] [31].</p>
+<p>The application of an interrupted time series study design to this data, and specifically the inclusion of an autoregressive case-momentum term, allowed us to partially disentangle two related but distinct phenomena: an immediate, flood-associated increase in transmission risk (captured by the level-shift term), and the tendency of an established outbreak to sustain itself through ongoing local transmission independent of monthly climate conditions (captured by the autoregressive term). Flooding has been associated with increased risk of malaria in other countries including China, Mozambique, the Gambella region, and Sudan [32] [33] [34] [35] [36]. The finding that the flood-specific level shift (approximately threefold) was substantially smaller than the raw pre/post difference in means (approximately tenfold) indicates that a substantial share of the sustained elevation in cases reflects this self-sustaining transmission dynamic rather than a fixed, one-time environmental shock. This shows there is a high level of heterogeneity in the effects of weather on malaria transmission, as has been shown in prior studies [37]. This distinction has direct implications for intervention timing: measures aimed at breaking transmission chains (vector control, active case finding, prompt treatment) may have compounding value in an outbreak of this kind, beyond addressing the initiating environmental conditions alone.</p>
+<p>The non-linear relationship identified between temperature and malaria incidence in this study corroborates with evidence from prior studies. In our study, malaria incidence rose with temperature before plateauing at the highest observed values. This is consistent with a substantial body of entomological and epidemiological literature describing an intermediate thermal optimum for malaria transmission [7]. This is reflective of the combined effects of temperature on mosquito survival [2, 38], biting rate, and the duration of the parasite&#x27;s extrinsic incubation period within the vector [38]. This pattern held even after controlling for the floodrelated disruption and case momentum, strengthening the confidence that it is a genuine biological relationship rather than confounding by the concurrent trend.</p>
+<p>The comparatively weak rainfall association is a notable point of divergence from some prior malaria-climate studies [39, 40], and from this study&#x27;s own preliminary models (see Methods), which found much larger and directionally unstable rainfall effects before the flood-period structural break and case-momentum term were incorporated. We interpret this as evidence that at least part of the apparent rainfall signal in unadjusted or under-specified models was confounded by the coincident timing of extreme rainfall and the flood-driven case surge, rather than reflecting a robust independent rainfall-transmission relationship at the monthly, provincewide scale examined here. This does not rule out a meaningful rainfall effect at finer spatial or temporal resolution (e.g., district-or week-level analyses), where the relationship between precipitation and vector breeding habitat may be more directly observable than in an aggregated monthly series spanning a large and hydrologically heterogeneous province.</p>
+<p>These findings suggest that post-flooding malaria surveillance and response in flood-affected settings should anticipate not only an acute environmentally-driven surge in cases but also a subsequent period of elevated, self-sustaining transmission that may persist well beyond the resolution of the initiating environmental disruption, in this case the flooding. From a modeling perspective, this analysis illustrates the value of interrupted time series methods, and specifically of explicitly modeling case autocorrelation, when analyzing surveillance data spanning a major disruptive event, an approach that may be broadly applicable to other vectorborne disease series affected by extreme weather events, conflict, or other structural breaks. Future work should prioritize disaggregating this analysis to finer spatial resolution where flood exposure and rainfall are less confounded with province-wide reporting changes, validating the case definition and completeness of reporting across the pre-and post-flood periods, and extending the observation window as further post-flood data become available to better characterize whether and when the elevated transmission regime identified here begins to resolve.</p>
+<h3>Fig 1 :</h3>
+<p>Fig 1: Geographic representation of the study site, province of Sindh.</p>
+<h3>Fig 2 :</h3>
+<p>Fig 2: Annual city level malaria incidence from 2014 to 2024.</p>
+<h3>Fig 3 :</h3>
+<p>Fig 3: Percentage of Plasmodium Vivax, Plasmodium Falciparum, mixed infections (Plasmodium Vivax and Plasmodium Falciparum), and the malaria positivity rate in the population.</p>
+<h3>Fig 4 :</h3>
+<p>Fig 4: Panel plot showing the monthly mean temperature, monthly cumulative rainfall and monthly malaria case incidence in Sindh Pakistan from 2018-2024.</p>
+<h3>Fig 5 :</h3>
+<p>Fig 5: Cross correlations between temperture, rainfall and malaria cases.</p>
+<h3>Fig 6 :</h3>
+<p>Fig 6: Panel plot showing the fit of the model, residuals and ACF over time.</p>
+<h3>Fig 7 :</h3>
+<p>Fig 7: Impact of autoregressive lag term in the model.</p>
+<h3>Fig 8 :</h3>
+<p>Fig 8: Estimated seasonal impact of rainfall and temperture on malaria cases in Sindh Pakistan.</p>
+<h3>References</h3>
+<p>Fatima, S.H., et al., Impact of temperatures on malaria incidence in vulnerable regions of Pakistan: empirical evidence and future projections. Epidemiol Infect, 2025.153: p. e33.</p>
+<p>Parham, P.E. and E. Michael, Modeling the Effects of Weather and Climate Change on Malaria Transmission. Environmental Health Perspectives, 2009.118(5): p. 620-626.</p>
+<p>Githeko, A.K., et al., Climate change and vector-borne diseases: a regional analysis. Bull World Health Organ, 2000.78(9): p. 1136-47.</p>
+<p>Stresman, G.H., Beyond temperature and precipitation: ecological risk factors that modify malaria transmission. Acta Trop, 2010.116(3): p. 167-72.</p>
+<p>Reiter, P., Weather, Vector Biology, and Arboviral Recrudescence, in The Arboviruses: Epidemiology and Ecology. 1988, CRC Press.</p>
+<p>Pascual, M., et al., Shifting patterns: malaria dynamics and rainfall variability in an African highland. Proc Biol Sci, 2008.275(1631): p. 123-32.</p>
+<p>Mordecai, E.A., et al., Optimal temperature for malaria transmission is dramatically lower than previously predicted. Ecol Lett, 2013.16(1): p. 22-30.</p>
+<p>Kouadio, I.K., et al., Infectious diseases following natural disasters: prevention and control measures. Expert Review of Anti-infective Therapy, 2012.10(1): p. 95-104.</p>
+<p>Velu, R.M., et al. Ecological Niche Modeling of Aedes and Culex Mosquitoes: A Risk Map for Chikungunya and West Nile Viruses in Zambia. Viruses, 2023.15, 1900 DOI: 10.3390/v15091900.</p>
+<p>Tariq, A., et al., Modelling the effects of precipitation and temperature on malaria incidence in coastal and western Kenya. Malar J, 2025.24(1): p. 208.</p>
+<p>Wiwanitkit, V., Correlation between rainfall and the prevalence of malaria in Thailand. Journal of Infection, 2006.52(3): p. 227-230.</p>
+<p>Qureshi, N.A., et al., Occurrence and seasonal variation of human Plasmodium infection in Punjab Province, Pakistan. BMC Infectious Diseases, 2019.19(1): p. 935.</p>
+<p>Qureshi, H., et al., Baseline survey for malaria prevalence in Khyber Pakhtunkhwa Province, Pakistan. East Mediterr Health J, 2020.26(4): p. 453-460.</p>
+<p>Khan, M.I., et al., Malaria prevalence in Pakistan: A systematic review and meta- analysis (2006-2021). Heliyon, 2023.9(4): p. e15373.</p>
+<p>WHO, World Malaria Report 2025.2025.</p>
+<p>Khan, M.A., Seasonal variation in species composition and relative abundance of mosquitoes in the District Bannu, Khyber Pakhtunkhwa, Pakistan: prospects of dengue fever in the study area. International Journal of Tropical Insect Science, 2022.42(3): p. 2221-2231.</p>
+<p>Haider, S., et al., Understanding Climate Change Impacts on Coastal Communities: Resilience, Adaptation, and Sustainable Development in Sindh, Pakistan, in Remote Sensing and GIS Application in Forest Conservation Planning, K. Moharir and C.B. Pande, Editors. 2025, Springer Nature Singapore: Singapore. p. 391-423.</p>
+<p>Shoaib, A., N. Salim, and S. Waseem, Dengue surge in Pakistan amidst the torrential rains: The threat of a potential outbreak. Journal of Medical Virology, 2023.95(1): p. e28346.</p>
+<p>Baig, N., et al., Subnational malaria burden in Sindh, Pakistan: over a decade of evidence for tailored strategies. Malar J, 2025.24(1): p. 265.</p>
+<p>SWP. Sindh Weather Portal (SWP). 2026; Available from: https://sindhweatherportal.wordpress.com/climate-of-sindh/.</p>
+<p>Crossing, V. Weather Data. 2025; Available from: https://www.visualcrossing.com/weather- data/?gad_source=1&amp;gad_campaignid=21410448611&amp;gbraid=0AAAAAD5PI1jK6Aj iyvPPr7Xgg3LCVXOvU&amp;gclid=Cj0KCQiArOvIBhDLARIsAPwJXOZWjCBK04dIn 1wuhFsP9Vo26u33CT_PR27ftKjbvJji7SDoC2QDyNIaAkGMEALw_wcB.</p>
+<p>Johansen, I.C., E.F. Moran, and M.U. Ferreira, The impact of hydropower dam construction on malaria incidence: Space-time analysis in the Brazilian Amazon. PLOS Global Public Health, 2023.3(3): p. e0001683.</p>
+<p>Majidnia, M., A. Khoshkchali, and A. Khosravi, Effect of flood on the cutaneous leishmaniasis incidence in northeast of Iran: an interrupted time series study. BMC Infect Dis, 2025.25(1): p. 15.</p>
+<p>Semakula, H.M., et al., Potential of household environmental resources and practices in eliminating residual malaria transmission: a case study of Tanzania, Burundi, Malawi and Liberia. Afr Health Sci, 2015.15(3): p. 819-27.</p>
+<p>K., M.V., et al., Rainfall and Temperature Trend Analysis using Mann-Kendall and Sen&#x27;s Slope Estimator Test in Makueni County, Kenya J. Mater. Environ. Sci., 2024.15(3): p. 349-363.</p>
+<p>Boyce, R.M., et al., Impact of rapid diagnostic tests for the diagnosis and treatment of malaria at a peripheral health facility in Western Uganda: an interrupted time series analysis. Malaria Journal, 2015.14(1): p. 203.</p>
+<p>Zhang, N., et al., The impact of the 2016 flood event in Anhui Province, China on infectious diarrhea disease: An interrupted time-series study. Environment International, 2019.127: p. 801-809.</p>
+<p>Murugan, Y. and V. Shrivastav, Association between temperature and malaria (1959- 2019): a systematic review and meta-analysis. Arch Public Health, 2025.83(1): p. 255.</p>
+<p>Jan, R., M. Jan, and N. Jan, From 2022 to 2025: Preventing the Escalating Health Crisis of Pakistan&#x27;s Floods. Ann Glob Health, 2025.91(1): p. 82.</p>
+<p>Arshad, T., et al., Malaria and dengue outbreaks during a national disaster in Pakistan: A rising concern for public health. J Glob Health, 2022.12: p. 03076.</p>
+<p>Seltenrich, N., Standing Water and Missing Data: The Murky Relationship between Flooding and Mosquito-Borne Diseases. Environ Health Perspect, 2021.129(12): p. 124001.</p>
+<p>Ding, G., et al., A mixed method to evaluate burden of malaria due to flooding and waterlogging in Mengcheng County, China: a case study. PLoS One, 2014.9(5): p. e97520.</p>
+<p>Kondo, H., et al., Post-flood -Infectious Diseases in Mozambique. Prehospital and Disaster Medicine, 2002.17(3): p. 126-133.</p>
+<p>Wakuma Abaya, S., N. Mandere, and G. Ewald, Floods and health in Gambella region, Ethiopia: a qualitative assessment of the strengths and weaknesses of coping mechanisms. Global Health Action, 2009.2(1): p. 2019.</p>
+<p>El Sayed, B.B., et al., A study of the urban malaria transmission problem in Khartoum. Acta Tropica, 2000.75(2): p. 163-171.</p>
+<p>Woodruff, B.A., et al., Disease Surveillance and Control After a Flood: Khartoum, Sudan, 1988. Disasters, 1990.14(2): p. 151-163.</p>
+<p>Arisco, N.J., et al., The impact of weather and extreme events on malaria transmission in the Brazilian Amazon: a case-crossover and population-based study. The Lancet Regional Health -Americas, 2025.49.</p>
+<p>Agyekum, T.P., et al., A Systematic Review of the Effects of Temperature on Anopheles Mosquito Development and Survival: Implications for Malaria Control in a Future Warmer Climate. International Journal of Environmental Research and Public Health, 2021.18(14): p. 7255.</p>
+<p>Liu, Q., et al., Association of temperature and precipitation with malaria incidence in 57 countries and territories from 2000 to 2019: A worldwide observational study. J Glob Health, 2024.14: p. 04021.</p>
+<p>Bakare, E.A., et al., Modelling the association of rainfall and temperature with malaria incidence in Adamawa State, Nigeria. Scientific Reports, 2026.16(1): p. 8761.</p>
 </div>
 </details>
 </div>
