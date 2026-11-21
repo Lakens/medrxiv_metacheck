@@ -198,7 +198,7 @@ evaluation of a smartphone ambulatory ECG pathway for Emergency
 Department patients
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.05.26367104
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.05.26367104
 </p>
 </header>
 <div class="mc-main">
@@ -462,8 +462,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -815,9 +818,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -839,7 +846,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -854,9 +862,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -869,13 +895,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -895,6 +924,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -902,12 +937,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1008,6 +1049,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1027,6 +1088,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1282,19 +1378,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1404,6 +1582,62 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Author contributions: MJR conceived and designed the study and supervised data collection.</p>
+<p>MJR and RM supervised the conduct of the study and RM, GZ, SK, MIA, LF, JM, FW and MM undertook recruitment of participants. MJR, CM, PS, RA, EP, LP and YT managed the data. MJR provided statistical advice, analysed and drafted the first manuscript draft. All authors contributed to its revision. MJR takes responsibility for the paper.</p>
+<h3>INTRODUCTION</h3>
+<p>Palpitations account for over 300,000 emergency department (ED) visits annually in the UK, representing a major diagnostic challenge for emergency and acute care clinicians. [1] While the vast majority are due to benign non-cardiac conditions (i.e. sinus tachycardia or ectopic beats), underlying cardiac arrhythmias including atrial fibrillation (AF) and supraventricular tachycardia (SVT) reduce quality of life, carry risks of stroke and heart failure, and extremely rarely, sudden cardiac death, if unrecognised.</p>
+<p>The diagnostic gold standard requires symptom/rhythm correlation by capturing an ECG during symptoms. However, because palpitations are typically intermittent, the presenting ED 12-lead ECG is commonly normal and frequently fails to establish the underlying rhythm diagnosis. Traditional secondary monitoring pathways such as 24-and 48-hour Holter monitors have diagnostic capture rates as low as 10-15%</p>
+<h3>METHODS</h3>
+<h3>Study design and setting</h3>
+<p>Single-centre service evaluation study at the Royal Infirmary of Edinburgh, a United Kingdom (UK) tertiary academic hospital receiving over 120,000 annual emergency department (ED) visits. The study evaluated a consecutive cohort of patients referred from the ED and Acute Medical Unit (AMU) to the post-ED smartphone palpitations service between 24 th July 2019 and 24 th July 2024. The study was deemed by the Health Research Authority (HRA; hnps://www.hra-decisiontools.org.uk/research/) to not require HRA ethical approval. The study was registered as a service evaluaWon on the NHS Lothian Emergency Department Quality Improvement Project database.</p>
+<h3>Patient population</h3>
+<p>Patients aged 16 years or older presenting to the ED or AMU with acute palpitations in whom initial ED evaluation (including history, physical examination, and baseline 12-lead ECG) revealed no underlying cause or reason for immediate inpatient admission, were eligible for referral. [4]</p>
+<h3>Clinical pathway</h3>
+<p>Referred patients attended a next working day outpatient appointment where the ambulatory clinic team (made up of acute medicine clinicians and nurses) evaluated symptom characteristics and supplied the patient with a single-lead smartphone ECG event recorder device (KardiaMobile®, AliveCor, Inc., Mountain View, CA, USA) unless their own smartwatch possessed ECG functionality. [5] Patients were instructed how to record a 30-second singlelead ECG trace whenever they experienced palpitations over a 7-to-14-day monitoring window. Recordings were reviewed by the ambulatory clinic team at a subsequent clinic follow-up. Specific details about the smartphone palpitations service have previously been reported</p>
+<h3>Primary outcome</h3>
+<p>The primary outcome was a confirmed cardiac diagnosis at one year, defined as documented atrial fibrillation, atrial flutter, atrial tachycardia, supraventricular tachycardia (SVT; including undifferentiated narrow-complex tachycardia) or ventricular tachycardia. Non-cardiac diagnoses included sinus rhythm, sinus tachycardia, sinus bradycardia, isolated ectopic beats and bigeminy.</p>
+<h3>Statistical Analysis</h3>
+<p>Continuous variables were summarized using means ± standard deviations and categorical variables were expressed as frequencies and percentages. Analyses were performed using available data with no imputation of missing values. Univariable logistic regression screening was performed on all baseline candidate predictors available at initial presentation (n=1176 monitored cohort). Candidate predictors demonstrating p&lt;0.10 in univariable screening, alongside key demographic controls (sex), were entered into a multivariable logistic regression model. Automated backward stepwise elimination based on p&lt;0.05 was conducted to identify independent baseline predictors of a one-year cardiac diagnosis. Model performance was evaluated using the Area Under the Receiver Operating Characteristic curve (AUC). Statistical analyses were performed using Python 3.10 in Google Gemini 3.6 Flash.</p>
+<h3>RESULTS</h3>
+<p>During the five-year study period, 1750 consecutive patients attended the smartphone ambulatory clinic [Figure 1]. The mean age was 44.3 ± 16.1 years (range 16-93) and 1012 (58.2%) were female. Overall, 1176 (67.2%) patients underwent smartphone ECG monitoring. The remaining 574 patients were not appropriate for device fitting (e.g. presented with isolated chest pain or syncope, incompatible phone). The mean device monitoring duration was 7.0 ± 8.6 days (median 7.0).</p>
+<p>Baseline demographics and clinical presentations are summarised in Table 1. Direct event-triggered smartphone ECG recordings captured a cardiac arrhythmia in 67 patients (5.7% of the monitored cohort). Atrial fibrillation was the most common detected arrhythmia (n=39), followed by SVT (13), atrial flutter (9), atrial tachycardia (5) and ventricular tachycardia (1) [Table 2]. In contrast, 1227 benign non-cardiac rhythms were documented during symptomatic episodes in 889 patients, comprising sinus rhythm (693), sinus tachycardia (274), ectopic beats /bigeminy (251), sinus bradycardia (16) and other non-cardiac rhythms (33). 152 patients (12.9%) recorded no rhythm/symptom correlation ECGs during their monitoring period and 54 (4.6%) did not attend their follow-up appointment.</p>
+<p>Immediate therapeutic management changes were instituted directly at the clinic for 106 patients (6.1%) across the overall cohort. Among the 92 patients who had changes to or commencement of medication, initiation of beta-blockers occurred in 57 patients (62.0%) and oral anticoagulation was started in 13 patients (14.1%). Other changes to medication included dose modifications (19; 20.7%) and commencement of proton pump inhibitors (9; 9.8%), ACE inhibitors (3; 3.3%), amiodarone (1; 1.1%) and digoxin (1; 1.1%).</p>
+<p>Following clinic assessment, additional diagnostic investigations were requested in 341 patients (19.5%), predominantly arranged by the ambulatory clinic medical team (287; 84.2%). These included 24-hour (223; 12.8%), 48-hour (35; 2.0%) or 7-day Holter monitors (7; 0.4%), 144 transthoracic echocardiograms (8.2%) and one implantable loop recorder (0.1%).</p>
+<p>At one-year follow-up across the entire cohort (n=1750), a cardiac diagnosis was established in 114 patients (6.5%). Within the monitored cohort (n=1176), 84 patients (7.1%) received a final one-year cardiac diagnosis, with 79.8% (67/84) of these diagnoses established directly via the clinic smartphone/watch ECG recording. Secondary investigations identified the remaining 17 cardiac cases [Table 3].</p>
+<p>MR is supported by an NHS Research Scotland Career Researcher Clinician award.</p>
+<p>All authors have no completing interest to declare. AliveCor was not while safely discharging nearly 90% of patients to primary care.</p>
+<p>Clinical characteristics may guide patient selection to maximise clinic efficiency. Keywords: emergency department; cardiac, arrythmias; care systems, cardiac care; diagnosis, cardiac care.</p>
+<h3>[ 2 ]</h3>
+<p>due to limited monitoring duration, low symptom frequency and long waits for investigation due to NHS service demands. The Investigation of Palpitations in the ED (IPED) randomised controlled trial, [3] demonstrated that patient-activated, smartphone-based ambulatory ECG event recorder devices markedly increased diagnostic yield (over five-fold) and reduced time to diagnosis by almost 80% compared to standard care. Following the IPED trial, NHS Lothian established a dedicated smartphone palpitations service in the ambulatory care outpatient department at the Royal Infirmary of Edinburgh as part of routine acute care pathways. While clinical trials provide rigorous efficacy data, evaluating long-term real-world implementation is crucial to determine service sustainability, health system impact, safety and diagnostic utility across unselected clinical populations. This service evaluation evaluates the five-year performance of a real-world smartphonebased ambulatory ECG event recorder palpitations service, examining diagnostic yield, immediate management changes, one-year clinical outcomes and baseline clinical predictors of underlying cardiac arrhythmia.</p>
+<h3>[ 6 ] 1 . 2 . 3.</h3>
+<p>and clinic pathways are available. [4] Data collection Clinical data was prospectively recorded the Electronic Patient Record (EPR) and subsequently on a dedicated secure REDCap database hosted at the University of Edinburgh. [7,8] Data collected included: Baseline demographics and clinical features: Age, sex, primary presenting symptom, symptom duration and past medical history (hypertension, ischemic heart disease, AF/flutter, valvular disease). Clinic diagnostic yield: Specific rhythm recorded on the smartphone device during symptomatic episodes. Immediate clinical management: Medication changes initiated at clinic (e.g. betablockers, anticoagulation, antiarrhythmics) and secondary investigations ordered (e.g. echocardiogram, extended Holter). 4. One-year outcomes: Final diagnostic classification at one year (Cardiac cause versus non-cardiac cause versus undiagnosed), specialist cardiology referrals, one-year ED re-attendances, and hospital admissions related to palpitations.</p>
+<h3>Figure 1 :</h3>
+<p>Figure 1: Flow of patients through clinic process 03/08/2026, 09:04 Editable Patient Flowchart Presentation Slide Page 1 of 2 blob:https://0woatgiy6eoh8qtvpfv58k4i78sjjkqdej42wnle849fk2ofbw-h955308071.scf.usercontent.goog/42423aee-26b2-475f-9d94-4d9c5d37006a Slide 1 of 1  67.2% Device fitting rate 1176 out of 1750 evaluated patients fitted with monitor  5.7% of those fitted recorded a cardiac arrhythmia using the device 67 of 1176 of those fitted with device recorded a cardiac arrhythmia Referred to Clinic (n=1818)</p>
+<h3>Table 1 :</h3>
+<p>Baseline demographics and presentation characteristics of the study cohort</p>
+<h3>Table 2 :</h3>
+<p>Symptom-triggered smartphone rhythm findings (n=1176; monitored group)</p>
+<h3>Table 3 :</h3>
+<p>One-year final diagnoses and health resource utilisation</p>
+<h3>Table 4 :</h3>
+<p>Year-by-year breakdown for smartphone clinic arrhythmia capture.</p>
+<h3>Table 5 :</h3>
+<p>Univariable screening and final backward stepwise multivariable logistic regression model for 1-year cardiac diagnosis (n=84) in the 1176 patients undergoing smartphone monitoring.Our multivariable analysis identified three baseline clinical parameters that strongly predict one-year cardiac arrhythmia detection, these being advancing age, history of AF/flutter and symptoms described by the patients as &#x27;irregular beating&#x27; (rather than &#x27;racing&#x27; or &#x27;pounding&#x27;). Patients with syncope were not suitable for our service, but looking at both studies together, perhaps increasing age, a cardiac history and a description of irregular beating may perhaps allow clinicians in ED and primary care to prioritise patients for immediate smartphone ECG event monitoring, maximising diagnostic yield and improving service efficiency. We have since emphasised to our ED and AMU teams that referrals should be limited to paWents in whom an underlying cardiac cause is considered possible. This study has limitations. First, this is service evaluation study conducted at a single centre academic tertiary care centre in Scotland and may not translate to other healthcare systems with differing referral structures or digital access. Secondly, missing data occurred in some baseline fields (although overall missing was &lt;1%) due to the retrospective collection of the prospectively written clinic EPR. Equity of access is also a consideration as not all patients have access to a smartphone and/or the ability to use digital technology especially those older patients who may lack familiarity or those with limited capacity or cognition.CONCLUSIONA smartphone-based ambulatory ECG clinic represents an effective and safe model for evaluating ED patients presenting with palpitations. Over five years of real-world experience, the pathway demonstrated high diagnostic yield for actionable arrhythmias while allowing almost 90% of patients to be safely discharged to primary care. Applying clinical predictor models based on age, history and symptom description may be able to further refine patient selection for our digital ambulatory care service.</p>
+<h3>References</h3>
+<p>Reed MJ, Grubb NR, Lang CC et al. Multi-centre randomised controlled trial of a smart phone-based event recorder alongside standard care versus standard care for patients presenting to the Emergency Department with palpitations and pre-syncope -the IPED (Investigation of Palpitations in the ED) study: study protocol for a randomised controlled trial. Trials 2018; 19, 711; https://doi.org/10.1186/s13063-018-3098-1 (accessed 28 July 2026).</p>
+<p>Ribero-Vargas D, Jaramillo-Alvarez JC, Gandara-Ricardo J. Palpitations: A Practical Approach. Cureus. 2025 Nov 25;17(11):e97748. doi: 10.7759/cureus.97748 (accessed 28 July 2026).</p>
+<p>Reed MJ, Grubb NR, Lang CC et al. Multi-centre randomised controlled trial of a smartphone- based event recorder alongside standard care versus standard care for patients presenting to the Emergency Department with palpitations and pre-syncope: the IPED (Investigation of Palpitations in the ED) study. Lancet eClinical Medicine 2019; 8: 37-46</p>
+<p>Cullen J, Reed MJ, Muir A et al. Experience of a smartphone ambulatory ECG clinic for emergency department patients with palpitation. European Journal of Emergency Medicine 2021; 28(6): 463-468</p>
+<p>Harris PA, Taylor R, Thielke R, Payne J, Gonzalez N, Conde JG. Research electronic data capture (REDCap) -a metadata-driven methodology and workflow process for providing translational research informatics support. J Biomed Inform 2009; 42:377-381.</p>
+<p>Balen F, Louisot S, Thiruganasambandamoorthy V. Risk Factors of a Serious Underlying Cause of Palpitations Among Patients Attending an Emergency Department. CJC Open, 2026; 8, 796-799</p>
 </div>
 </details>
 </div>
