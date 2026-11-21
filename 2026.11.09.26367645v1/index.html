@@ -197,7 +197,7 @@ Natural-language cohort queries on a hospital data platform: accuracy
 and provenance in a real-world evaluation
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.09.26367645
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367645
 </p>
 </header>
 <div class="mc-main">
@@ -319,8 +319,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -678,9 +681,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -702,7 +709,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -717,9 +725,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -732,13 +758,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -758,6 +787,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -765,12 +800,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -871,6 +912,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -890,6 +951,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1145,19 +1241,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1267,6 +1445,125 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Accessing routinely collected clinical data for research remains technically demanding across heterogeneous hospital systems. This proof-of-concept study aimed to evaluate the accuracy and query-level traceability of a commercial natural-language (NL) data-query platform implemented at a university hospital.</p>
+<p>Methods: An on-premises data integration platform with an NL query interface (AIRE; Briya, Tel Aviv, Israel) was connected to the institutional health data platform across three tertiary-care hospitals under an approved pseudonymization and governance framework. Implementation comprised regulatory and governance approval, and IT deployment. Twenty-five NL prompts addressing cohort identification and characterization in an adult ICD-10 C71-coded brain-tumor cohort (n = 1,594) were evaluated against manually written reference SQL and checked for a corresponding executed query in the exported log. Responses were classified into five categories. Prompts with unanswered or incorrect responses were reposed in a new thread.</p>
+<p>Results: The platform was implemented over two years. Fifteen of 25 responses were exact (n = 11), concordant after definition alignment (n = 1), or incorrect but traceable from the logged SQL (n = 3); six were plausible but incorrect without a logged query, and four remained unanswered. No incorrect unlogged result recurred in a new thread. Across the initial and repeat evaluations, 22 of 23 logged responses were correct or traceable, whereas all eight unlogged responses were incorrect.</p>
+<p>Conclusions: Implementation was feasible but required substantial local institutional preparation. The NL interface reproduced SQL-derived results when definitions were explicit, while query-level provenance and verification of the displayed result were critical for identifying unreliable outputs.</p>
+<h3>Introduction</h3>
+<p>Retrospective clinical research depends on the ability to translate routinely collected clinical data inside a hospital into reproducible research cohorts. Although university hospitals increasingly provide centralized clinical data infrastructures [1, 2], cohort identification often still requires project-specific database queries and support from informatics specialists [3]. Graphical feasibility tools let researchers check cohort availability without writing queries, but their usability remains limited [4], and the actual cohort still has to be built with database queries. Natural-language (NL) interfaces that translate clinical questions into executable database queries could therefore lower an important technical barrier to institutional research data and enable iterative on-demand querying without generating a new static data extract for each research question [5] [6] [7] [8].</p>
+<p>Large language model (LLM)-based text-to-SQL systems have increasingly been investigated for this purpose. Previous work has evaluated the translation of NL questions into structured database queries [5, 6, [9] [10] [11], while studies using hospital-derived tabular data suggest that LLM-based systems perform more reliably when they generate executable code than when they derive answers directly from the underlying data [12]. Tool-connected LLM systems querying clinical data warehouses have similarly shown high accuracy for comparatively simple retrieval tasks, whereas temporal and more complex operations remain challenging [13]. However, most evaluations have been performed using research databases, benchmark datasets, or experimental systems [5, 6, [9] [10] [11] [12] [13] rather than commercially deployed platforms embedded within routine hospital infrastructure. In such settings, performance must be assessed not only by whether a numerical result is correct, but also by whether its derivation can be independently verified [14] [15] [16].</p>
+<p>For clinical research, this distinction is especially important. LLM-generated responses can be fluent but incorrect [17, 18], vary between repeated interactions [19] [20] [21], and appear grounded without verifiable provenance [14]. Accordingly, evaluation of conversational data-query systems should consider both answer accuracy and query-level traceability. Whether a deployed platform meets both requirements in routine hospital infrastructure has not been well investigated so far.</p>
+<p>Following calls for deployment-centered evaluation of clinical LLM systems [22], we implemented a commercially available NL clinical data-query platform within the institutional health data infrastructure of a German university hospital comprising three tertiary-care hospitals. We report the technical and organizational implementation process and evaluate the system in a neuro-oncological proof-of-concept study using manually written SQL as the reference. The primary aim of this study was to assess the platform&#x27;s query performance, defined as answer accuracy against the reference SQL and query-level traceability, in a real-world hospital deployment. Secondary analysis examined sources of discrepancy, first-prompt performance, and the reproducibility of failed or incorrect responses when queries were repeated in a new conversation thread without access to the previous conversational context.</p>
+<h3>Methods</h3>
+<h3>Study design.</h3>
+<p>We conducted an institutional implementation and subsequent single-center proof-of-concept evaluation of a commercially available NL data-query platform at Charité -Universitätsmedizin Berlin, a university medical center with three tertiary-care hospitals that share one clinical IT infrastructure and one institutional data platform, from October 2024 to September 2026. The study protocol was approved by the local institutional ethics committee (EA1/239/24).</p>
+<h3>Institutional setting and data source.</h3>
+<p>Relevant structured clinical data were accessed through the institutional Health Data Platform (HDP), a pseudonymized mirror of the clinical systems containing structured data from all three hospitals, including patient master data, encounters, diagnoses, and procedures. Data are queried with SQL through the Impala query engine. Access is governed by GDPRcompliant pseudonymization, role-based access control, project-specific approval, and audit mechanisms. The HDP holds relational tables rather than FHIR resources; the FHIR representation used by the platform was created during platform deployment (see below). Data integration centers of this kind were established at German university hospitals by the Medical Informatics Initiative, whose core data set is modeled in HL7 Fast Healthcare Interoperability Resources (FHIR) [1, 2].</p>
+<h3>Commercial platform implementation and architecture.</h3>
+<p>The commercial data query platform (AIRE, described by the vendor as a scientific AI research environment; Briya, Tel Aviv, Israel) was deployed on a virtual server within the hospital network and connected directly to the institutional HDP. Implementation proceeded in two stages. The first stage comprised regulatory, data-protection, and governance approval. The second stage comprised installation and technical configuration on hospital infrastructure, and its FHIR layer was populated from the HDP tables without an export step. Vendor staff performed the installation and the data mapping. The language model and query components operated on-premises server, ensuring that no patient-level data left the hospital network. The platform was not modified during the study period.</p>
+<h3>Platform operation and user interaction.</h3>
+<p>Users interacted with the platform through an NL chat interface (Figure 1). The platform generated and executed SQL through the Trino query engine and requested clarification when a query was ambiguous. Each response was returned together with a short methodological note and the generated query. An exportable query log recorded the timestamp, SQL, row count, and execution status of each query (Supplemental Figure S1). This log served as the provenance channel of the study. A response without a generated query was identifiable on screen at the time of the answer and was confirmed in the exported log. The platform was evaluated without additional vendor-side instrumentation.</p>
+<h3>Proof-of-concept evaluation.</h3>
+<p>The proof-of-concept was designed to reflect a typical retrospective neurooncology cohort-selection workflow. The primary objective was to identify an adult cohort for a glioblastomaoriented neuro-oncology use case, diagnosed between 2018 and 2023, and to further identify patients who underwent subsequent tumor resection.</p>
+<p>A base cohort was defined as adults (18 years or older at first diagnosis) with any ICD-10 code from C71.0 to C71.9 in any coding slot, using C71 as a pragmatic proxy for glioblastoma. Because C71 is not specific to this tumor entity, the resulting cohort may represent a broader malignant brain-tumor population [23].</p>
+<p>Additional stepwise cohort-construction items reflected the remaining predefined eligibility criteria of diagnosis period and surgical treatment, including definition of a subgroup of patients who underwent tumor resection. The resulting adult C71-coded cohort and the subgroup of patients who underwent tumor resection served as the reference cohorts for all items. Beyond cohort construction, characterization and variable-level queries were selected to test increasingly complex operations relevant to clinical cohort description and subgroup analysis.</p>
+<p>The battery comprised 25 predefined items, each posed as an NL prompt (Table 2). The items were organized in three blocks: stepwise cohort construction (A1-A4: C71 → adult → first diagnosis 2018-2023 → resection), cohort characterization (B1-B4), and 17 additional variables of increasing complexity (V1-V17), ranging from grouped distributions to patient-level thresholds, event sequences, and subgroup statistics. Blocks B and V were evaluated in the full adult cohort, except B1, which used the resected sub-cohort.</p>
+<p>The battery was run between July and September 2026 in a single chat thread, such that all preceding turns remained available in the platform&#x27;s conversational context. Eight prompts were posed in a second, parallel thread: two for the base count (A1), five attempts at the mean age (B2), and one aborted attempt (V12). Exploratory prompts preceded the battery and were not scored. When the platform asked a clarifying question or aborted, the prompt was refined by specifying operational definitions (fields, prefix matching, explicit date range), never by providing information about the expected result. The number of prompts required for each item was recorded. The response after final refinement was defined as the primary evaluation result.</p>
+<p>To assess first-prompt performance separately, the response to the first prompt of each item was recorded as a correct number, an incorrect number, a clarifying question, or an abort. Numerical responses returned during intermediate steps without a corresponding logged query were recorded as unlogged responses.</p>
+<h3>Reference queries and outcome definitions.</h3>
+<p>For each predefined query item, the platform-generated result was compared with the result of a manually written reference SQL query. Because both workflows ultimately accessed data derived from the same institutional HDP source tables, manually written HDP SQL was used as the reference. Reference queries were written in Impala SQL by DD before the corresponding prompt was posed, so that their construction was not influenced by the platform-generated query or result. They represent a pre-specified operationalization of each item rather than an independent ground truth; their internal consistency was checked across the stepwise cohort items, and discrepancies were investigated as described below.</p>
+<p>Discrepancies were assessed at the levels of query logic, patient-level cohort composition, and query provenance. Platform-generated SQL was reproduced in Impala to evaluate query logic; patient-level identifier exports were compared when cohort composition differed; and query-log timestamps were matched to the chat transcript to establish provenance. Medians were calculated outside the platform from patient-level exports. Response latency was defined as the interval between submission of a prompt and receipt of the platform&#x27;s response, based on the chat export. Each item was placed in one of five mutually exclusive categories (Table 1).</p>
+<p>A response was considered logged when the exported query log contained an executed data query between the prompt and response timestamps whose logic corresponded to the requested operation. Schemainformation queries were excluded. Query timestamps were matched to the chat transcript to assign executed queries to individual responses.</p>
+<p>The classification comprised 37 responses: 25 primary-thread items and 12 re-test items. Two investigators (DD and GG), working independently and blinded to each other&#x27;s classifications, assigned each response to one of the categories in Table 1. DD had run the battery, whereas GG had not been involved in the evaluation; GG received the prompts, platform answers, reference results, and logged SQL. Disagreements were resolved by discussion, and the consensus categories were used for all results; the independent ratings served only to quantify agreement. No hypothesis was prespecified. The analysis was descriptive, with results reported as counts within each category. Interrater agreement was assessed using percentage agreement and Cohen&#x27;s kappa [24]. Item-level classifications, prompts, generated and reference SQL, and matched log entries are provided in Supplemental Material S1.</p>
+<p>Because no reporting guideline specifically addresses evaluations of NL clinical data-query interfaces, TRIPOD-LLM was consulted [25]. Applicable elements were reported that apply to a user-side evaluation of a deployed commercial system, including data source, task, evaluation protocol, human oversight, and limitations. Elements on model development and training data were not accessible to end users.</p>
+<h3>Exploratory re-test.</h3>
+<p>Immediately after completion of the primary thread, all items that had remained unanswered or had produced incorrect result were re-posed in a new chat thread without prior conversational context. Each prompt was posed verbatim, with one attempt per item. If the platform requested clarification, the same operational definitions used during the primary evaluation were provided. Apart from the absence of prior conversational context, the prompting procedure and operational definitions were kept unchanged.</p>
+<h3>Results</h3>
+<p>Implementation. The project was initiated in October 2024. Implementation required nearly two years, with regulatory approval and institutional IT deployment each accounting for roughly half of this period. Regulatory, data-protection, and governance approval took approximately nine months and included a data protection impact assessment and a two-stage information-security review, an initial risk mapping followed by a tailored risk assessment. Installation and technical configuration on hospital infrastructure started in July 2025 and was driven primarily by institutional prerequisites: virtual-server provisioning, VPN and network access, firewall clearance, and interoperability with legacy systems. Once server access was established, vendor-led installation, FHIR data mapping, and initial testing were completed within approximately two weeks. The first successful query was executed in June 2026, followed by about one month of institutional testing before the evaluation.</p>
+<h3>Cohort characteristics.</h3>
+<p>The adult C71 cohort comprised 1,594 patients with a mean age of 55.1 years at first diagnosis; 1,279 (80.2%) underwent tumor resection and 258 had a biopsy only. Among the 1,275 patients resected after a first diagnosis in 2018-2023, 741 were male and 534 female. Resection was coded on the day of the coded diagnosis in 49.5%, before it in 26.1%, and after it in 24.4% of patients. In-house death was documented for 101 patients (6.3%). All values are reference-SQL results (Table 2).</p>
+<h3>Comparability of data access paths.</h3>
+<p>The reference cohort comprised 1,594 adults with a C71 code, including 1,279 patients with tumor resection. When equivalent operational definitions were applied, the cohortconstruction and characterization queries (A1-B4) yielded concordant patient counts across the platform and the reference SQL, with one exception. Two timing and subgroup items reproduced percentages and mean ages to the decimal. For the tumor-resection step (A4), a patient-level identifier comparison showed that the platform-derived cohort was a strict subset of the reference cohort; the discrepancy was attributable to code depth, with deeper OPS subcodes not captured by the platform&#x27;s explicit code list. No other discrepancy attributable to the data mapping was identified. Unit handling and the treatment of missing values were not evaluated beyond these concordances.</p>
+<p>The exported query log comprised 100 entries: 30 schema lookups and 70 data queries. All 70 data queries could be assigned to a chat response or to a separate patient-identifier export, no response had a candidate query outside its prompt-to-response window, and chat and log timestamps agreed to the minute. When a single turn generated several queries (three items), their temporal sequence allowed unambiguous assignment. The log was therefore considered complete for the evaluated battery.</p>
+<p>The two raters agreed on 30 of 37 responses (81%; Cohen&#x27;s κ = 0.74): 21 of 25 primary-thread responses (κ = 0.77) and 9 of 12 re-test responses (κ = 0.65). No disagreement crossed the boundary between categories 1-3 and 4-5. All seven disagreements concerned the distinction between a definitional choice and an unrequested restriction, or between an abort and an unlogged answer, and were resolved by discussion. Consensus categories are reported below and in Table 2.</p>
+<p>Both access paths reflected the same characteristics of the routine data: a mixed C71 population (mean age 55 years, 22% under 40), in-house-only mortality of 6.3%, under-coded external radiotherapy and chemotherapy, and resection preceding the coded diagnosis in 26% of patients.</p>
+<p>Primary evaluation and failure modes. Of the 25 primary-thread items, 11 responses were exact, one was concordant after definition alignment, three were incorrect but traceable, six were incorrect and unlogged, and four were not answered (Table 2; Figure 2a). Exact matches, including the generated SQL, covered counts and rankings (mortality, the top-15 procedure codes, the sex and C71-subcode distributions) as well as more complex operations: a sex × age cross-tabulation, a per-patient encounter summary, a subgroup analysis of deceased patients, and a diagnosis-to-resection timing distribution reproduced to the decimal (49.5% same day, 26.1% before, and 24.4% after the coded diagnosis; n = 1,279). Stepwise cohort construction returned 1,880, 1,594, 1,587, and 1,248 patients (reference 1,880, 1,584, 1,587, and 1,275; the reference resection count refers to first diagnoses in 2018-2023, whereas the 1,279 used for the V items is the resection subgroup of the full adult cohort). The concordant item was the adult cohort (A2): the platform counted C71 in all coding slots and computed age by calendar year, whereas the reference used the exact date of birth, and the difference of 10 patients was visible in the SQL. The three traceable deviations each arose from a specific clause in the logged SQL: a list of 48 leaf codes instead of prefix matching on 5-011 to 5-016 (A4), a NULL code ranked first in a top-10 diagnosis ranking so that 9 of 10 codes matched (V6), and a default verification-status filter in the re-resection rate (V4).</p>
+<p>First-prompt performance was lower than the final result. Six of the 25 items were answered exactly by the first prompt (B1, B3, B4, V3, V9, V16) and two more with a traceable deviation (A4, V6); three began with a clarifying question, seven with an abort or a response without a number, and seven with an incorrect number that was never corrected in the primary thread (V2, V4, V5, V12-V15). Of the 12 items finally scored exact or concordant, nine were correct at their first numeric answer; in three, a refined prompt corrected the first number (1,594 → 1,587 once the date range was spelled out; 64.9 → 55.1 years after a summary-style prompt; 113 → 1,594 after &quot;do not filter on verification status&quot;). First-prompt accuracy was thus 6 of 25 by the strictest criterion and 9 of 25 at the first number returned, compared with 12 of 25 after refinement. Every refinement specified a criterion, never a value, and items in categories 1-3 took a median of one prompt (range 1-7).</p>
+<p>The platform asked a clarifying question in seven items, offered alternative code-set definitions for resection, and ended four items with an abort or an explained abstention that proposed alternative variables. Every logged deviation could be traced to a specific clause. Two errors, the re-resection rate (V4) and, at an intermediate step, the sex × age cross-tabulation (V8), shared one cause: a default verification-status filter (verificationStatus = &#x27;G&#x27;) that restricts cohorts to confirmed diagnoses and, because Condition.verificationStatus is an optional modifier element in FHIR R4, also drops conditions in which the element is absent [26]. The filter was applied even when the prompt said &quot;regardless of verification status&quot;; an explicit &quot;do not filter on verification status&quot; clause removed it reliably thereafter. Six items were answered with fluent methodological prose but without any query, in the log or on screen, and all six deviated from the reference (Table 2), for example biopsy-only patients 117 (reference 258), chemotherapy 512 patients, 32.1% (142, 8.9%), and a median diagnosis-to-death interval of 231 days (43 days for in-house documented deaths). The six yearly first-diagnosis values were identical, year for year, to a peryear breakdown logged earlier in the thread, and the three code-family counts (V12-V14) returned the same unlogged numbers when requested again days later. Two further unlogged numbers appeared at intermediate steps (B2, V7), one of which exactly matched a value previously reported for a differently defined age band. When asked for the SQL behind an unlogged answer, the platform stated that no query was included in the results it had received. The parallel thread provided the counter-example: a mean age of 52.3 years was incorrect but logged, and its SQL showed that the query had run on all adult patients without the C71 restriction.</p>
+<h3>Exploratory re-test and query provenance.</h3>
+<p>In the new thread, none of the incorrect numbers recurred (Table 2; Figure 2a). Four items were exact and logged at the first attempt: two code-family counts, the age-decade distribution, and the biopsy-before-resection sequence. The per-patient count of diagnosis codes was concordant after definition alignment (median 13 vs 12): the platform counted distinct codes across all three coding slots, whereas the reference counted the primary ICD code only, and re-running the reference over all three slots reproduced the platform result exactly. Two items were incorrect but traceable, the mean age (53.2 years, n = 113) and the re-resection rate (13/83), both carrying the default filter; the latter additionally carried a disclosed restriction to procedures after the diagnosis date. One item (V15) was logged but did not match its own query: the diagnosis-to-death query returned 101 distinct patients, the in-house mortality count, yet statistics were displayed for 84 patients, a reduction with no counterpart in the query or the log. Four items were not answered, one explained abstention and three aborts. No answer lacked a logged query.</p>
+<p>Across both threads, 8 of the 37 evaluated responses were aborts or abstentions rather than numbers, and every unlogged number occurred in the primary thread. Two structurally identical code-family prompts diverged in the new thread (radiotherapy exact, chemotherapy aborted), and the mean-age question yielded four values across threads: 64.9 unlogged, and 55.1, 53.2, and 52.3 logged, the last two traceable from their SQL. In sum, 22 of 23 logged answers were correct or traceable, the exception being the display-query mismatch, whereas all six unlogged answers and both intermediate unlogged numbers were incorrect (Figure 2b).</p>
+<h3>Response latency.</h3>
+<p>Numeric responses with a logged query had substantially longer response times than unlogged numeric responses. The 27 numeric responses with a logged query arrived after a median of 64 s (interquartile range 57-81 s; range 45-371 s), with one exception at 3 s, the incorrect mean age of 52.3 years in the parallel thread. All 15 numeric answers without a logged query arrived within 3-6 s, as did all 25 aborts and all 8 clarifying questions. With that single exception, every number that appeared within seconds had no executed query behind it.</p>
+<p>Table 1 -Outcome categories for platform responses. No. Category Definition Logged query 1 Exact All values identical to the reference. yes 2 Concordant after definition alignment Deviation fully explained by a legitimate definitional choice visible in the SQL, such as the coding slot, the age computation, or prefix versus leaf codes. yes 3 Incorrect but traceable Deviation caused by a specific SQL clause that was not requested. yes 4 Incorrect and unlogged Value deviates and no executed query exists for it. no 5 Not answered Abort, explained abstention, or unresolved clarifying question. -</p>
+<p>Categories are mutually exclusive and were assigned by two raters independently (Methods). Logged query = an executed data query for the response was present in the exported query log; category 4 is defined by its absence. Categories 1-3 are correct or traceable from the logged SQL; category5 = no answer was generated.</p>
+<p>Table 2 -Results of the 25-item battery in the primary thread and exploratory newthread re-test. ID Query Prompts Primary thread results / reference SQL Logged New thread results (12 re-posed items, 13 prompts) A1 C71 cohort 2 1,880 / 1,880 yes -A2 + age ≥18 2 1,594 / 1,584¹ yes -A3 + first dx 2018-2023 7 1,587 / 1,587² yes -A4 + resection 4 1,248 / 1,275³ yes -B1 Sex distribution (resected) 1 741/534 exact yes -B2 Mean age 6 64.9 → 55.1 / 55.1 y yes⁵ 53.2 y, n = 113⁶, logged B3 Mortality 1 101 / 101 yes -B4 Top-15 procedures 1 15/15 yes -V1 C71 subcodes 4 10/10 yes -V2 Resection; biopsy only 1 1,275; 117 / 1,279; 258⁴ no explained abstention (decomposition offered) V3 Days dx→resection 1 49.5/26.1/24.4% exact yes -V4 ≥2 resections 1 34/95 / 220/1,279 yes⁶ 13/83⁷, logged V5 First dx per year 1 Σ1,594 / Σ1,587 no aborted V6 Top-10 other diagnoses 1 9/10 codes yes -V7 Age decades 5 failed; control 494 / 337 no 7/7 exact, logged V8 Sex × age band 3 113 → 1,594 / 1,594 yes -V9 Cases per patient 1 median 1 / 1 yes -V10 Dx codes per patient 2 abstained / median 12 -median 13, concordant⁸, logged V11 MRIs per patient 1 aborted / median 2 -aborted V12 Chemotherapy 8-54 2 512 / 142 no aborted V13 Radiotherapy 8-52 2 684 / 116 no 116 exact, logged V14 Shunt 5-023 2 88 / 76 no 76 exact, logged V15 Days dx→death 1 median 231 / 43 no 93 d, n = 84⁹, logged V16 Deceased: sex, mean age 1 35/66; 59.5/62.2 y exact yes -V17 Biopsy before resection 2 aborted / 23/56 -23/56 exact, logged Prompts = user prompts per item in the thread of the scored answer, including answers to clarifying questions and verbatim repeats (B2: five further attempts in the parallel thread not counted; V12-V14 asked twice with identical results; new thread: 13 prompts for 12 items). ¹ Concordant after definition alignment: all coding slots and calendar-year age; the reference rebuilt with these definitions also gives 1,594. ² After an explicit date-range prompt; a naive prompt returned 1,594. ³ 48-code list vs prefix matching on 5-011 to 5-016; the 27 missing patients carried five-digit sub-codes or . X/. Y suffixes. 1,275 refers to the 2018-2023 cohort, 1,279 (V items) to the full adult cohort. ⁴ Both values unlogged .</p>
+<p>⁵ First answer (64.9 y) unlogged, final answer logged. ⁶ Default verification-status filter in the logged query. ⁷ Default filter plus a self-added date restriction, disclosed in prose. ⁸ All three coding slots counted; the reference rebuilt accordingly gives 13. ⁹ Displayed for 84 patients, logged query returned 101 (display ≠ query). Categories are the consensus of two raters (Methods). Prompts, generated SQL, and reference SQL for every item are in Supplemental Material S1. as shown in the platform&#x27;s code view, abridged; the full query is in Supplemental Material S1. (C) Unlogged item (V13, radiotherapy exposure): the platform returned a numeric answer with a methodological explanation, but no plan or query was shown, and the answer was attributed only to the data context; the query log contains no data query for this prompt (reference 116 of 1,594 patients, 7.3%, versus 684, 42.9%, reported). The query activity log is shown in Supplemental Figure S1.  2 and Supplemental Material S1.</p>
+<h3>Discussion</h3>
+<p>In this real-world proof-of-concept study, we evaluated the institutional implementation, accuracy, and query-level traceability of a commercial natural-language data-query platform connected to a large hospital data platform. The platform enabled NL querying of institutional clinical data, but response reliability was strongly associated with the presence of an executed, traceable database query. When a corresponding SQL query was logged, results were almost always correct, or deviations could be explained from the executed query; numerical responses without a logged query were consistently incorrect. Prompt wording and operational definitions also influenced performance, and several errors did not recur when the same items were re-posed in a new chat thread. Implementation was feasible but required nearly two years, with most of the effort attributable to regulatory, governance, and institutional IT requirements rather than software installation.</p>
+<p>A key implementation finding was that integration through a single institutional data platform provided a practical entry point for deployment across a multi-site university medical center under the GDPR. Rather than connecting the NL interface separately to multiple clinical source systems, the platform could build on the existing HDP and its established pseudonymization, access-control, approval, and audit mechanisms. That governance framework is what makes it possible to offer an NL interface to clinician-researchers at all, and it reduced the technical integration burden once the institutional infrastructure was in place. The benefit arose from coupling the NL interface with a standardized FHIR layer built on this centralized platform; wider adoption of FHIR in hospital data infrastructures would reduce the integration effort for such systems. Existing secondary-use data platforms may therefore provide an effective foundation for introducing NL dataquery tools in regulated hospital environments. Extension to further departments and data sources is part of the ongoing implementation and lies outside this report.</p>
+<p>Once the NL interface was available, the question was what a clinician can rely on. In a fully on-premises, regulated deployment, the platform reproduced SQL-derived cohort results for most operation types when definitions were explicit and the thread was fresh. Performance was not determined by the type of operation requested: the platform reproduced reference results for basic descriptive tasks and for cross-tabulations, per-patient summaries, subgroup analyses, and event-sequence queries, whereas several failures occurred for comparatively simple counts. Both the NL interface and the reference SQL also reflected the same limitations of routine clinical data. The observed in-house mortality of 6.3% is implausibly low for a disease with a median survival of about 14.6 months under standard chemoradiation [27], indicating incomplete capture of outcomes outside the institution. An NL interface surfaces such data-quality limitations as readily as conventional SQL, but it does not necessarily identify or contextualize them for the user.</p>
+<p>The importance of query provenance is consistent with text-to-SQL approaches in which the model generates or invokes an executable query rather than producing an answer directly [6, 12, 13]. Recent systems expose the executed SQL alongside the result [7], and agentic approaches add schema grounding and iterative query correction [8, 28]. Our findings concern the deployment-side counterpart: the executed query must remain visible and auditable to the user. The platform&#x27;s clarification behavior served the same purpose. It requested definitions, offered alternative code-set interpretations, and in some instances disclosed restrictions it had introduced itself. Because NL questions may permit several valid SQL interpretations [29], such clarification makes otherwise implicit analytical choices explicit.</p>
+<p>The second central finding was the association between traceability and thread state. Every numerical response without a logged query was incorrect, whereas re-posing the same items in a new thread yielded logged correct responses, traceable errors, or explicit abstentions, but no unlogged number. Several observations suggest that accumulated conversation context led the platform to reuse earlier values instead of executing a new query, and some of these unlogged outputs were clinically plausible and would have been difficult to question without the reference SQL. This reading agrees with the literature. Sequential clinical text-to-SQL accuracy depends on how conversation history is represented [10], which is consistent with the same items succeeding once the history was removed. Frontier LLMs lose reliability when task information accumulates across turns and commit to early assumptions [21], which matches the reuse of a logged peryear breakdown as the unlogged answer to a later question. Multi-turn text-to-SQL models gain accuracy when schema elements and prior SQL are tracked explicitly rather than left in an ever-growing context [30]; our six-week thread is an extreme version of the untracked setting. Non-deterministic execution, which we observed directly, cannot be ruled out for individual items; it is the pattern across all 12 re-posed items that carries the argument. The finding extends the provenance gap described for citations [14] to structured analytics, and it means that failures that at first appeared to be intrinsic limits of the platform were artifacts of the thread.</p>
+<p>Three further behaviors matter for practice. First, a default verification-status filter restricting cohorts to confirmed diagnoses was applied unless the prompt said &quot;do not filter&quot;; &quot;regardless of verification status&quot; did not prevent it in three instances. Such a default may suit clinical use, but in research it should be explicit and overridable, because defaults embedded in generated SQL can be overlooked even when the query is displayed. Second, structurally identical prompts were executed non-deterministically, in line with the repeated-run variability reported for LLMs in other clinical tasks [20]. Third, observed once, the presentation layer deduplicated rows and then lost some, so a logged query is necessary but not sufficient. Reproducibility of routine-data studies depends on a complete specification of the cohort-extraction logic [15], and provenance capture has long been proposed as a requirement of learning health systems [16]. Provenance does not guarantee correctness, but it turns opaque errors into traceable ones: the default filter was identified from one SQL line and fixed with one clause, whereas the unlogged chemotherapy share remained unexplained.</p>
+<p>Several practical measures follow. Users should keep threads short and separated by topic, state every definition in every prompt, and accept no number without a displayed query; its absence, together with a response within seconds, was the most reliable warning sign we found. They should keep the executed query for any number they intend to use, check that the displayed count follows from it, and repeat critical queries in a new thread. Platform developers should flag the absence of an executed query as a reliability signal and abstain instead of answering, in the spirit of reliability-scored text-to-SQL [9] and calibrated abstention [31], and reconcile presentation-layer counts with query row counts. Criteria that exist only in free text are poorly served by structured-only retrieval; precision among the top five retrieved patients rose from 0.54 to 0.90 in one proof of concept when clinical text processed with natural language processing (NLP) was added [32]. We plan to evaluate free-text retrieval once report text becomes available on the platform, with the same provenance requirement for every source added.</p>
+<p>The study has limitations. It covered a single site, vendor, cohort, and platform version. The reference standard was query execution, not clinical truth, and the mapping was validated by comparing outputs rather than field by field; where a prompt left a definition open, the deviation could lie on the reference side, as in the per-patient code count, where the platform&#x27;s reading was the more complete one. Patient-level cohort composition was compared only for the resection step (A4), so compositional differences that leave a count unchanged would not have been detected. The battery was descriptive, developed in three blocks over six weeks, and not pre-specified. Two raters classified the items independently, but neither was blinded to the reference values, and the first rater had run the battery; all classifications can be audited from Supplemental Material S1. Each item had one phrasing, so sensitivity to paraphrase is unknown, and the re-test was post hoc with a single attempt per item. Future studies should prospectively assess repeated-run reproducibility, robustness to prompt wording, and the effect of conversational context under preregistered protocols with blinded evaluation.</p>
+<h3>Conclusion</h3>
+<p>Integration of a natural-language data-query platform through an institutional health data platform was feasible in a German university hospital, although implementation required substantial regulatory, governance, and IT preparation. The NL interface reproduced SQL-derived cohort results across a broad range of query types, but performance was sensitive to operational definitions and conversational context. Querylevel provenance emerged as a key requirement for reliable use: logged queries made numerical outputs auditable and allowed discrepancies to be traced to specific query logic, whereas unlogged numerical responses were consistently incorrect. However, the presence of a logged query alone did not guarantee agreement between query output and the displayed result. Reliable clinical-research use therefore requires both transparent query provenance and verification that displayed results accurately reflect the underlying executed query.</p>
+<h3>Statements and declarations</h3>
+<p>Acknowledgements: we thank Talia Friedman and Chagai Yariv (Briya) for the data mapping and the installation of the platform, and Thilo Wetzer, Florian Seidel, and Camille Guinemer (Berlin Institute of Health at Charité) for setting up the platform server, connecting it to the HDP, and providing the HDP data.</p>
+<h3>Ethical considerations:</h3>
+<p>the study was approved by the Ethics Committee of Charité -Universitätsmedizin Berlin (EA1/239/24; approval of 29 October 2024, conditions confirmed fulfilled on 7 January 2025) as a retrospective analysis of pseudonymized routine data without individual informed consent; no patient-level data left the hospital network.</p>
+<p>Conflict of interest: D. Desser received partial salary support from Briya during the study period (see Funding). J. Nawabi reports research collaboration agreements with Briya, Cercare Medical, and mediaire, and has received grant funding from the European Union (COMFORT; project number: 101079894). He is participant in the Berlin Advanced Clinician Scientist Program proHealth -Förderung von Advanced Clinician Scientists im Bereich Prävention funded by the Federal Ministry of Research, Technology and Space, project number: 01EO2508. G. Galperin was formerly employed by Briya and worked on the Charité project in that capacity; she joined the manuscript after the evaluation had been completed, had no role in the query battery or the reference SQL, and classified the responses as the independent second rater. The other authors declare no competing interests. Briya reviewed a pre-submission version of the manuscript solely for factual accuracy regarding the product and had no editorial control or influence over the decision to publish. The platform was provided to the hospital free of charge for the proof-of-concept.</p>
+<p>Funding: this work was partially funded by Briya. Briya had no role in the study design, conduct of the evaluation, data analysis, interpretation of the results, manuscript preparation, or decision to submit for publication.</p>
+<p>Data availability: prompts, generated and reference SQL and the matched query-log entries for every item are provided as Supplemental Material S1; the full chat transcripts and query-log export are available from the corresponding author on reasonable request; patient-level data cannot be shared.</p>
+<p>Author contributions (CRediT): DD -conceptualization, methodology, investigation, data curation, formal analysis, visualization, writing -original draft. PB -project administration (platform implementation), resources, software, investigation, writing -review and editing. AD -methodology, writing -review and editing. GG -formal analysis (independent second rating), writing -review and editing. MPW -supervision, writing -review and editing. JN -conceptualization, supervision, project administration, writing -review and editing.</p>
+<p>AI use: language-model assistance (Claude, Anthropic) was used for drafting, editing and reference checking under author supervision; all content was verified by the authors.</p>
+<h3>Figure 1 -</h3>
+<p>Figure 1 -Query interface and provenance of the evaluated platform. (A) Logged item (B1, sex distribution of the resected cohort): the user prompt, the platform&#x27;s plan, and the narrative answer. (B) The generated SQL for this item (Trino, FHIR layer) as shown in the platform&#x27;s code view, abridged; the full query is in Supplemental Material S1. (C) Unlogged item (V13, radiotherapy exposure): the platform returned a numeric answer with a methodological explanation, but no plan or query was</p>
+<h3>Figure 2 -</h3>
+<p>Figure 2 -Provenance and outcome across the 25-item battery. (a) Outcome of every item in the primary thread (one continuous thread over six weeks) and, for the 12 items re-posed verbatim, in a new thread without prior context; white cells = not re-posed. (b) Answers pooled across both threads by whether the exported query log contained an executed query for the answer: 22 of 23 logged answers were correct or traceable from their SQL (the exception being the display-query mismatch in V15); all eight numbers returned without a logged query -six final answers and two intermediate values (64.9 years; 494)were incorrect. Categories as defined in Methods; item-level detail in Table2and Supplemental Material S1.</p>
+<h3>References</h3>
+<p>Semler SC, Wissing F, Heyder R. German Medical Informatics Initiative. Methods Inf Med 2018; 57(S 01): e50-e56. doi:10.3414/ME18-03-0003.</p>
+<p>Ammon D, Kurscheidt M, Buckow K, et al. [Interoperability working group: core dataset and information systems for data integration and data exchange in the Medical Informatics Initiative]. Bundesgesundheitsblatt Gesundheitsforschung Gesundheitsschutz 2024; 67(6): 656-667. German. doi:10.1007/s00103-024-03888-4.</p>
+<p>Dobbins NJ, Spital CH, Black RA, et al. Leaf: an open-source, model-agnostic, data-driven web application for cohort discovery and translational biomedical research. J Am Med Inform Assoc 2020; 27(1): 109-118. doi:10.1093/jamia/ocz165.</p>
+<p>Schüttler C, Prokosch HU, Sedlmayr M, Sedlmayr B. Evaluation of three feasibility tools for identifying patient data and biospecimen availability: comparative usability study. JMIR Med Inform 2021; 9(7): e25531. doi:10.2196/25531.</p>
+<p>Wang P, Shi T, Reddy CK. Text-to-SQL generation for question answering on electronic medical records. In: Proceedings of The Web Conference 2020 (WWW &#x27;20). p. 350-361. doi:10.1145/3366423.3380120.</p>
+<p>Lee G, Hwang H, Bae S, et al. EHRSQL: a practical text-to-SQL benchmark for electronic health records. In: NeurIPS 2022 Datasets and Benchmarks Track. arXiv:2301.07695.</p>
+<p>Al Attrach R, Moreira P, Fani R, et al. M3: conversational LLMs simplify secure clinical data access, understanding, and analysis. PLOS Digit Health 2026; 5(9): e0001671. doi:10.1371/journal.pdig.0001671.</p>
+<p>Kulkarni P, Kanhere A, Yi PH, Parekh VS. Text2Cohort: facilitating intuitive access to biomedical data with natural language cohort discovery. arXiv:2305.07637 (2023).</p>
+<p>Lee G, Kweon S, Bae S, Choi E. Overview of the EHRSQL 2024 shared task on reliable text-to-SQL modeling on electronic health records. In: Proceedings of the 6th Clinical Natural Language Processing Workshop (ClinicalNLP), NAACL 2024. p. 644-654. doi:10.18653/v1/2024.clinicalnlp-1.62.</p>
+<p>Ryu J, Cho S, Lee G, Choi E. EHR-SeqSQL: a sequential text-to-SQL dataset for interactively exploring electronic health records. In: Findings of the Association for Computational Linguistics: ACL 2024. p. 16388-16407. doi:10.18653/v1/2024.findings-acl.971.</p>
+<p>Park J, Fang Y, Ta C, et al. Criteria2Query 3.0: leveraging generative large language models for clinical trial eligibility query generation. J Biomed Inform 2024; 154: 104649. doi:10.1016/j.jbi.2024.104649.</p>
+<p>Klang E, Sorin V, Korfiatis P, et al. Large language models are poor clinical administrators: an evaluation of structured queries in real-world electronic health records. PLOS Digit Health 2026; 5(5): e0001326. doi:10.1371/journal.pdig.0001326.</p>
+<p>Masayoshi K, Hashimoto M, Yokoyama R, et al. EHR-MCP: real-world evaluation of clinical information retrieval by large language models via Model Context Protocol. arXiv:2509.15957 (2025).</p>
+<p>Ahmed MS, Dusanic M, Kirschner MN, et al. The provenance gap in clinical AI: evidence-traceable temporal knowledge graphs for rare disease reasoning. arXiv:2604.17114 (2026).</p>
+<p>Wang SV, Sreedhara SK, Schneeweiss S, et al. Reproducibility of real-world evidence studies using clinical practice data to inform regulatory and coverage decisions. Nat Commun 2022; 13(1): 5126. doi:10.1038/s41467-022-32310-3.</p>
+<p>Curcin V. Embedding data provenance into the Learning Health System to facilitate reproducible research. Learn Health Syst 2017; 1(2): e10019. doi:10.1002/lrh2.10019.</p>
+<p>Zhou K, Hwang JD, Ren X, Sap M. Relying on the unreliable: the impact of language models&#x27; reluctance to express uncertainty. In: Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers); 2024. p. 3623-3643. doi:10.18653/v1/2024.acl-long.198.</p>
+<p>Asgari E, Montaña-Brown N, Dubois M, et al. A framework to assess clinical safety and hallucination rates of LLMs for medical text summarisation. NPJ Digit Med 2025; 8(1): 274. doi:10.1038/s41746-025-01670-7.</p>
+<p>Ouyang S, Zhang JM, Harman M, Wang M. An empirical study of the non-determinism of ChatGPT in code generation. ACM Trans Softw Eng Methodol 2025; 34(2): 1-28. doi:10.1145/3697010.</p>
+<p>Shyr C, Ren B, Hsu C-Y, et al. A statistical framework for evaluating the repeatability and reproducibility of large language models. medRxiv 2025 [preprint]; version 3 posted 25 March 2026. doi:10.1101/2025.08.06.25333170.</p>
+<p>Laban P, Hayashi H, Zhou Y, Neville J. LLMs get lost in multi-turn conversation. In: Proceedings of the International Conference on Learning Representations (ICLR) 2026. arXiv:2505.06120.</p>
+<p>Unell A, Fuentes M, Li B, et al. Deployment-centered evaluation: predicting query-level rejection risk in a clinical LLM system. arXiv:2606.12702 (2026).</p>
+<p>Ostrom QT, Price M, Neff C, et al. CBTRUS statistical report: primary brain and other central nervous system tumors diagnosed in the United States in 2016-2020. Neuro Oncol 2023; 25(Suppl 2): iv1-iv99. doi:10.1093/neuonc/noad149.</p>
+<p>Cohen J. A coefficient of agreement for nominal scales. Educ Psychol Meas 1960; 20(1): 37-46. doi:10.1177/001316446002000104.</p>
+<p>Gallifant J, Afshar M, Ameen S, et al. The TRIPOD-LLM reporting guideline for studies using large language models. Nat Med 2025; 31(1): 60-69. doi:10.1038/s41591-024-03425-5.</p>
+<p>HL7 International. FHIR Release 4 (v4.0.1): Resource Condition -Condition.verificationStatus, https://hl7.org/fhir/R4/condition.html (2019, accessed 4 September 2026).</p>
+<p>Stupp R, Mason WP, van den Bent MJ, et al. Radiotherapy plus concomitant and adjuvant temozolomide for glioblastoma. N Engl J Med 2005; 352(10): 987-996. doi:10.1056/NEJMoa043330.</p>
+<p>Lee K, Hong S, Park J, et al. EMR-AGENT: automating cohort and feature extraction from EMR databases. arXiv:2510.00549 (2025).</p>
+<p>Bhaskar A, Tomar T, Sathe A, Sarawagi S. Benchmarking and improving text-to-SQL generation under ambiguity. In: Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing; 2023. p. 7053-7074. doi:10.18653/v1/2023.emnlp-main.436.</p>
+<p>Chen B, Shi S, Luo Y, et al. Track-SQL: enhancing generative language models with dual-extractive modules for schema and context tracking in multi-turn text-to-SQL. In: Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers); 2025. p. 10690-10708. doi:10.18653/v1/2025.naacl-long.536.</p>
+<p>Chen K, Chen Y, Yu X, Koudas N. Reliable text-to-SQL with adaptive abstention. Proc ACM Manag Data (SIGMOD) 2025. doi:10.1145/3709719.</p>
+<p>Liu S, Wang Y, Wen A, et al. Implementation of a cohort retrieval system for clinical data repositories using the Observational Medical Outcomes Partnership Common Data Model: proof-of-concept system validation. JMIR Med Inform 2020; 8(10): e17376. doi:10.2196/17376.</p>
 </div>
 </details>
 </div>
