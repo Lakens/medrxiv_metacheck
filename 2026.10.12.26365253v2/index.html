@@ -195,7 +195,7 @@ MetaCheck Report
 Lymphatic Dysplasia Shapes Liver Epithelial Outcomes in Biliary Atresia
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.1 · DOI 10.64898/2026.10.12.26365253
+2026-11-21 · Metacheck 0.4.4.29 · DOI 10.64898/2026.10.12.26365253
 </p>
 </header>
 <div class="mc-main">
@@ -415,8 +415,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -812,9 +813,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -836,7 +841,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -851,9 +857,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -866,13 +890,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -892,6 +919,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -899,12 +932,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1005,6 +1044,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1024,6 +1083,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1279,19 +1373,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1401,6 +1577,175 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Biliary Atresia (BA) is the leading cause of pediatric liver transplantation. Early mechanisms governing outcomes remain unknown. A multiscale atlas of outcome-stratified BA, resolving single cell, spatial and 3D-tissue states of livers sampled at Kasai portoenterostomy (KPE), established lymphatic dysplasia in infants on a trajectory toward liver failure and transplantation (&#x27;severe BA&#x27;). An architecturally fragmented, immature and CCL21 high lymphatic vasculature marked severe BA early on. In the epithelium, hepatocyte-to-biliary plasticity emerged across clinical outcomes, while hepatocyte dedifferentiation, acute-phase-reactions and MMP7/SOX9 high cholangiocyte expansion delineated severe disease. Ex vivo, lymphatic endothelial cells, isolated from severe BA livers, induced SOX9 high epithelial progenitors when cultured as assembloids with cholangiocytes. MMP7, the known BA mediator, was governed by ectopic CCL21-signaling on epithelium after inflammatory priming, as evidenced in CCL21 neutralization experiments. In sum, lymphatic endothelial dysplasia is an early phenomenon in BA that perturbs intrahepatic epithelial states and offers CCL21 as a target for epithelial stability.</p>
+<h3>INTRODUCTION</h3>
+<p>Biliary atresia (BA) is a progressive neonatal cholestatic disease and the most common indication for pediatric liver transplantation.( 1-3) After diagnosis, BA requires prompt surgical intervention. Yet outcomes following palliative Kasai portoenterostomy (KPE) remain variable. (1, 2) Despite progress in screening and diagnosis,(4, 5) the early pathophysiological determinants of BA native liver survival or failure remain elusive. This has deep implications for anticipatory care and target identification. Understanding the drivers of intrahepatic outcome early on is vital because KPE removes the obliterated extrahepatic bile duct remnant but leaves the intrahepatic disease process largely untouched. Despite important efforts in single-cell resolution studies of BA, (6, 7) there has been no comprehensive spatiotemporal BA atlas that links early molecular phenomena to concrete clinical outcome stratifications.</p>
+<p>In BA, periportal hepatocytes and cholangiocytes undergo a continuum of reactive epithelial states. (8) As part of the so-called &#x27;ductular reaction&#x27;, CK19+ ductules expand into the parenchyma, largely without obvious bile-draining capacity. Matrix metalloproteinase (MMP)-7, induced by Wnt/β-catenin signaling, drives cholangiocyte injury and fibrosis in BA and also serves as a validated diagnostic biomarker. (4, 9, 10) While liver regeneration in many injury settings relies primarily on hepatocyte self-duplication without a classical stem cell, (11) Wnt signaling-linked LGR5+ progenitors, as found in the intestine, (12) can -in principle -also emerge in the injured liver. (13) Transdifferentiation between hepatocyte and cholangiocyte without stem or progenitor cell intermediates is wellestablished in the liver and has been demonstrated in different systems, including a NOTCHdeficient mouse model of Alagille syndrome (14) and even in human Metabolic Dysfunction-Associated Steatotic Liver Disease. (15) In BA, there have been reports of epithelial signatures consistent with both transdifferentiation but also LGR5+ cell subsets. (8, 16) However, the exact role, distribution and functional relevance of these epithelial states to the disease severity and outcomes, remains unclear.</p>
+<p>Among the many cell types in the BA &#x27;ecosystem&#x27;, the role of the intrahepatic lymphatic vasculature remains poorly understood. The common referral of the &#x27;portal triad&#x27; instead of tetrad underscores the negligence to acknowledge their relevance, despite the liver being among the largest producers of lymph generating 25-50% of lymph that passes through the thoracic duct back into the body&#x27;s circulation. (17) Outside the liver, the lymphatic vasculature is well established as a regulator of fluid homeostasis, wound healing, and immune surveillance, with CCL21 recognized as a key mediator of lymphatic immune cell trafficking. (17) (18) (19) A reactive lymphangiogenesis has been proposed in chronic liver diseases. (20) Beyond merely responding to injury, here, we assess an active role of lymphatic endothelial cells (LEC) at the time of KPE to modulate the future ability of intrahepatic bile ducts to drain bile and evade transplantation.</p>
+<p>Here, we provide a single-cell, spatial, and 3D-imaging-based atlas of early BA livers retrospectively stratified for outcome after KPE. Unbiased analysis identifies hepatic lymphatic dysplasia as an early determinant of rapid disease progression towards transplantation in BA.</p>
+<p>Functional validation in tissue-and iPSC-derived organoids and assembloids reveals that excessive lymphatic CCL21 signals on inflammation-primed liver epithelium and shapes its fate in BA.</p>
+<h3>RESULTS</h3>
+<h3>Multiscale profiling of BA identifies early determinants of divergent outcomes</h3>
+<p>To identify molecular, tissue and functional determinants of intrahepatic BA outcome, we sampled liver tissue at three German university hospitals at the timepoint of KPE and stratified for clinical outcome thereafter. We compared BA and non-BA cholestatic control patients that include Choledochal Cyst, Alagille Syndrome, and Progressive Familial Intrahepatic Cholestasis using a variety of experimental modalities to dissect BA-specific phenomena from general cholestatic effects. To link cell-specific molecular programs to multicellular tissue circuits, we combined single-nucleus RNA-sequencing (snRNA-seq) analysis of cryopreserved samples with multiplexed (mpIF) and 3D-immunofluorescence, spatial Stereo-sequencing (Stereo-seq) and a variety of ex vivo profiling and mechanistic organoid studies (Fig. 1A-B).</p>
+<p>To delineate biological processes governing epithelial outcome after KPE, we retrospectively stratified for long native liver survival vs. infants with rapid progression toward liver transplantation (LTX) in the first year due to biliary epithelial dysfunction, independent of viral infections or other possibly confounding factors. We classified patients achieving jaundice clearance, defined as normalization of serum bilirubin levels by 100 days post-KPE, and sustained native liver survival as a &#x27;mild BA&#x27; phenotype (n=14). Infants with persistent hyperbilirubinemia at 100 days post-KPE and LTX within their first year of life were classified as &#x27;severe BA&#x27; patients (n=12). We deemed biosampling at KPE as &#x27;pre-outcome&#x27; and used those samples for snRNA-seq, Stereo-seq, mpIF and tissue-cleared 3D-light sheet microscopy (Fig. 1B). For functional validation, we performed &#x27;post-outcome&#x27; biosampling from BA and non-BA liver explant tissue received during LTX. From these tissues, we generated intrahepatic cholangiocyte organoids (ICO), isolated lymphatic endothelial cells (LECs) and conditioned media from minced tissue for proteomic analysis of soluble disease tissue mediators. For functional validations requiring multiple cell types -i.e. cholangiocytes and hepatocyte -we also used iPSC-derived fetal liver-like organoids (FLO) (21) and hepatocyte-like cells (iHeps) (22). Notably, patient age at KPE, histopathological fibrosis levels (as measured by the ISHAK score) and direct bilirubin levels did not significantly differ between mild and severe BA patients (Fig. 1C), enabling the identification of jaundice clearing mechanisms specifically.</p>
+<p>Mean age at LTX was 6.6 (±2.2 SD) months in the severe BA group. Mean duration of native liver survival in the mild BA group is 6.8 (±2.7 SD) years, with only one patient being transplanted during the ongoing study. In sum, this study design offers an outcome-stratified BA cohort, as the basis for the different analyses that follow.</p>
+<h3>Maladaptive lymphatic dysplasia is an early determinant of poor outcome after KPE</h3>
+<p>To dissect the heterogenous cell types and states determining clinical outcomes, we leveraged snRNA-seq from a multi-center and retrospectively outcome-stratified patient cohort. Using mechanical homogenization, avoiding enzymatic dissociation, which typically biases against matrix-embedded and fragile stromal, endothelial and epithelial cell types in fibrotic tissue, we identified that most cell types were conserved across the three groups, including rarer cell types, e.g. lymphatic endothelial cells, T and B lymphocytes (Fig. 2A, Fig. S1A-F</p>
+<h3>for annotations).</h3>
+<p>While the overall inferred cell-cell interactions escalated with disease severity (Fig. S2A-C), LECs lost most of their physiological interactions in severe BA when compared to mild BA (Fig. 2B). A detailed assessment of expression modules for LEC identity, function and structure revealed a loss of PROX1, SOX18, ANGPT2, EPHB4 and EFNB2 in severe BA (Fig. 2C).</p>
+<p>Surprisingly, severe BA LECs mount a selective surge in CCL21 and PDPN. Mild BA LECs displayed an opposite pattern, indicating critical differences of lymphatic endothelial identity, . vasculogenesis, remodeling, and integrity across BA outcomes. (23, 24) Interestingly, VEGF-C, the main stimulus of lymphangiogenesis was significantly decreased in endothelial cells (EC) in severe BA, while VEGF-C-receptor expression (FLT4) was significantly increased in LECs -potentially reflecting a failed compensatory response (Fig. 2D). When comparing most enriched biological processes between mild and severe BA LECs that were derived from the cell-cell interaction members, the mild BA LEC top terms &#x27;blood vessel morphogenesis&#x27; and &#x27;vasculogenesis&#x27; were missing in severe BA LECs, which suggests insufficient lymphangiogenesis in line with the aberrant gene signature (Fig. 2E). The top gene ontology (GO) term of severe BA LECs -&#x27;laminin interactions&#x27; -may further suggest their contribution to ECM remodeling.</p>
+<p>In accordance with the unstable PDPN high , CCL21 high maladaptive LEC state in severe BA, we validated high PDPN+ and continuous CCL21-staining patterns in mpIF stainings (Fig. S3A-D). Further, mpIF of 28 FFPE liver sections confirmed insufficient formation of lymphatic endothelial vasculature. While mild BA livers show a consistent pattern of expanded lamellarlike lymphatic endothelial structures intercalated with the CK19+ epithelium as a sign of portal lymphangiogenesis, severe BA livers were characterized by an increased number of malformed, clumped PDPN+ aggregates in the periportal area and reduced numbers of elongated, endothelial structures (Fig. 2F). Whole mount IF and light sheet microscopy confirmed a sparse and fragmented lymphatic network most pronounced in severe BA, consistent with a dysplasia phenotype (Fig. 2G). In comparison, livers of cholestatic-fibrotic controls showed a dense, organized and highly branched lymphatic network.</p>
+<p>A dysplastic, CCL21 high lymphatic vasculature suggested altered immune cell trafficking in severe BA. MpIF indicated consistent accumulation of CD3+ lymphocytes in BA livers and specifically at close distance to LECs. However, differences were not statistically significant compared to mild BA patients (Fig. S3D). After observing lymphatic dysplasia in severe BA, mpIF further confirmed that severe BA patients mount ductular reactions early on. Consistently, 7 out of 9 severe BA-patients but only 1 out of 10 mild BA patients classified as CK19 high tissue indicating a significant surge in CK19+ ductular cells in severe BA, when compared to mild BA patients with better clinical outcomes (Fig. S3C+D). The observations of largely colocalized lymphatic and biliary dysplasia in the expanding portal areas of severe BA patients suggested that interactions between CCL21 high lymphatic vasculature and cholangiocytes may be possible.</p>
+<p>Further differential pathway inference showed thrombospondin (THBS) and transforming growth factor beta (TGFβ) enriched in severe BA (Fig. 2H). Surprisingly, both THBS and TGFβ, previously described as important regulators of liver injury and fibrosis, (25, 26) were amongst the few upregulated genes in LECs from severe BA indicating a fibrogenic LEC state in those patients proceeding towards poor clinical outcome (Fig. 2H-J). While the inferred number of cell populations involving hepatic stellate cells (HSCs) and portal fibroblasts were larger, this data, together with LEC pathway enrichment (Fig. 2E) discussed earlier, shows that LECs contribute to local fibrogenic circuits, which is relevant given their portal location in proximity to cholangiocytes.</p>
+<h3>SnRNA-seq identifies epithelial cell states associated with early LTX in BA</h3>
+<p>Across clinical strata, snRNA-seq identified highly plastic epithelial cell states (Fig. 2A; Fig. 3A-G; Fig. S1A-F). We identified hepatocyte-to-biliary spectrum cell states (Hep trans), as a broad adaptive response in all cholestatic injuries (Fig. 3A). However, in severe BA livers the Hep trans state pivoted the strongest towards biliary transdifferentiation states (i.e.</p>
+<h3>SOX9/HNF1B high , HNF4A low ) and involved</h3>
+<p>LGR5. This finding demonstrated that transdifferentiation is found across cholestatic injuries but that severe cholestatic injury exacerbated the liver&#x27;s plasticity response and engages the Wnt/β-catenin-responsive progenitor activity (Fig. 3D-F). Trajectory analysis inferred that periportal and interzonal hepatocytes may participate in transdifferentiation programs (Fig. 3B). Notably, we also found another distinct BA-specific hepatocyte subset enriched in severe BA. This &#x27;Hep BA&#x27; cell state was characterized by the instability of hepatocyte identity (HNF4A low ) and transcriptional programs high in acute-phase, metal-/redox-stress and ECM-crosslinking signatures, e.g. CRP, SAA1, LOXL1 and TGM2 (Fig. 3C-E; Fig. S1D). These Hep BA cells were also enriched for GO terms like &#x27;wound healing&#x27;, &#x27;viral response&#x27;, &#x27;innate immune response&#x27; (Fig. S4A). We then sought to check whether all other hepatocytes could glean the Hep BA phenotype by calculating a score for the top Hep BA genes (Fig. S4B). Interestingly, we found a stepwise increase of cells taking on this phenotype with increasing disease severity.</p>
+<p>Importantly, regarding the cholangiocyte response across clinical BA strata, we identified a unique state enriched in severe BA patients characterised by a broad Interferon-responsive and chemotactic program suggestive of a lymphoid immune response and possibly post viral state (Fig. 3G, Fig. S4D). Condition-specific GO terms confirmed further differences with &#x27;wound healing&#x27;, &#x27;cell-substrate adhesion&#x27;, and &#x27;response to TGF-β&#x27;, being shared by mild and severe cholangiocytes, while &#x27;response to virus&#x27;, &#x27;chemotaxis&#x27;, and &#x27;tissue remodeling&#x27; were specifically enriched in severe BA. Interestingly, these severe BA cholangiocytes were again highly expressing SOX9 as well as the BA-specific epithelial gene product and diagnostic biomarker MMP7 (4) (Fig. 3G, Fig. S4D). Of note, MMP7 expression levels of cholangiocytes derived from mild BA livers were equal to those from cholestatic controls. Because MMP7 is, thus far, not well established as severity marker after KPE, our results add this new dimension to it. While cholangiocytes from severe BA exhibited a highly activated state, they showed a significant loss of KLF5, a transcription factor required for biliary epithelial remodelling and integrity in cholestatic liver injury. (27) Aside from the epithelial cells, we also sought to characterize the disease severity differences in key mesenchymal and myeloid cell types of the BA liver (Fig. S4D). HSCs exemplified a shared &#x27;wound healing&#x27;, &#x27;collagen organization&#x27; and &#x27;viral response&#x27; phenotype in BA regardless of severity. Meanwhile in severe BA, we find &#x27;interferon response&#x27;, &#x27;TOR signaling&#x27;, and &#x27;smooth muscle cell migration&#x27; that may indicate mesenchymal cell activation. For Kupffer-like cells, the BA condition showed strong enrichment of terms involved in the immune response, viral process, and cell adhesion. In severe BA, we find &#x27;leukocyte proliferation&#x27; and &#x27;response to dsRNA&#x27; terms to be uniquely enriched (Fig. S4D). Across all cell types, IFN signaling indicative of a lymphoid immune response was enriched in severe BA compared to mild and control (Fig. S4E).</p>
+<h3>Fetal liver-like organoids recapitulate SOX9 high structural atresia and HNF4A loss</h3>
+<p>BA has a presumed fetal origin, yet no fetal model has captured how hepatocytes and cholangiocytes jointly respond to a BA-specific microenvironment. We established a BAspecific multi-compartment fetal liver-like organoid (FLO) system, combined with patientderived liver secretome, to test what injury is sufficient to drive the epithelial plasticity and biliary lumen collapse (&#x27;atresia&#x27;) seen in patients (Fig. 3H). After detecting an IFN-high signature in severe BA, we used the synthetic dsRNA analogue polyinosinic:polycytidylic acid (polyI:C) to model the convergent, virus-independent innate response, also previously shown to induce the BA phenotype. (28) We combined this injury with the addition of conditioned medium (CM) derived from minced BA and non-BA liver tissue, sampled at LTX (postoutcome biosampling) (Fig. 3H). Intriguingly, different from the literature above, polyI:C treatment alone, had no significant effect on lumen-forming biliary phenotypes or epithelial plasticity in FLOs (Fig. 3H). Yet, additional treatment of differentiated multilineage FLOs with CM from severe BA patients (but not non-BA controls, Fig. S5A+B), resulted in a complete biliary lumen-collapse (&#x27;atresia&#x27;) (Fig. 3I). Both BA and non-BA CM treatment led to the transdifferentiation of HNF4A+ grape-like hepatocyte clusters to SOX9+ cells (Fig. 3J; Fig. S5A+C). At the same time, only the addition of BA CM largely suppressed HNF4A in hepatic organoid assemblies, when assessed at protein level using mpIF on FLOs (Fig. 3J; Fig. S5C). Thus, a BA-like model that combines a developmental, multicellular organoid with patient tissue secretome provides evidence that BA-specific niche signaling establishes cellular cues that promote disease and not innate epithelial programs alone drive BA-associated cell states.</p>
+<h3>Spatial Stereo-sequencing offers insights into adaptive and maladaptive lymphatic cell neighborhoods</h3>
+<p>Because snRNA-seq dissociates tissue architecture, we applied Stereo-seq to intact liver sections from cholestatic control and BA patients to spatially resolve the portal lymphatic niche at single-cell resolution. Stereo-seq captured the cellular complexity of the liver in both cholestatic control and BA patients (Fig. 4A+B, Fig. S6A-D) by detecting 434,563 cells and 15,679 genes and resolving hepatocyte-dominated hepatic regions and portal fibroblast enriched portal regions (Fig. S6E). Cholangiocytes formed duct-like structures surrounded by stromal, endothelial, and immune cells, while portal regions became expanded and interconnected in BA, all consistent with general understanding of BA, validating our spatial data. Cellular community analysis identified seven communities across tissues, two of which were dominated by cholangiocytes (Fig. 4C+D, Fig. S7A). Community 5 comprised mainly cholangiocytes and Hep trans cells, suggesting that transitional cells may acquire biliary identity. GO terms were enriched for &#x27;cell polarity&#x27;, &#x27;movement&#x27;, &#x27;cell-cell junctions&#x27;, &#x27;morphogenesis&#x27;, and &#x27;development&#x27;. Community 3 comprised portal area associated populations, including portal fibroblasts, endothelial and lymphatic endothelial cells, and immune cells, and was enriched for &#x27;ECM assembly&#x27;, &#x27;vessel morphogenesis&#x27;, &#x27;TGF-β production&#x27;, &#x27;chemotaxis&#x27;, and &#x27;development&#x27; (Fig. S7B).</p>
+<p>Cellular co-occurrence analysis revealed greater co-occurrence of cholangiocytes with other cholangiocytes with increasing disease severity, consistent with our previous findings of expansion during ductular reaction of severe BA (Fig. 4E+F, Fig. S7C). Co-occurrence with lymphatic endothelium also appeared increased in severe BA but was not a consistent phenomenon across all samples. These patterns may partly reflect changes in cell abundance. Spatial profiling confirmed that inflammatory mediators and ductular reaction, including SOX9 and MMP7, were most strongly expressed in severe BA cholangiocytes (Fig. 4G). HSCs exhibited the highest expression of fibrogenic genes in severe BA (Fig. 4H), collectively corroborating the snRNA-seq findings at a spatial level.</p>
+<p>Although data sparsity precluded identification of the Hep BA subcluster in the Stereo-seq dataset, projection of its top differentially expressed genes revealed a progressive increase in the Hep BA score with disease severity, validating the trend observed by snRNA-seq (Fig. 4I, Fig. S7D). An interferon-response gene score similarly increased in severe BA, spatially validating the severity-associated interferon signature (Fig. S7E).</p>
+<p>Spatial analysis along the hepatic-portal axis showed that established hepatocyte zonation markers, including CYP3A4, GLUL, and HAL, followed their expected expression patterns. The cellular communities localized predominantly to hepatic or portal regions, or at their interface (Fig. 4J, Fig. S7F-H). To resolve regional differences in cell states, we delineated the hepatic and portal regions and calculated signed distances from their interface, using 100 μm bins radiating along the hepatic-portal axis (Fig. 4J, Fig. S7F). Cells were then classified within their respective regional niches as interface, midpoint, or core (Fig. 4K+L). This spatial stratification largely recapitulated the cholangiocyte signatures shown in Fig. 4G, while revealing additional regional heterogeneity. In severe BA, interface cholangiocytes expressed high levels of SPP1 and CD24, whereas midpoint-region cholangiocytes showed increased ductular reaction and inflammatory mediators, including CXCL2, CXCL6, and CXCL8 (Fig. 4K), consistent with our snRNA-seq data (Fig. 3G). Core-region cholangiocytes showed the strongest expression of ductular reaction markers, including KRT7, KRT19, and MMP7. Hep trans cells exhibited a similar spatial pattern, consistent with acquisition of a stronger biliary identity (Fig. S7I). Finally, HSCs showed greater profibrogenic activity at the hepatic-portal interface (Fig. 4L), suggesting that the local microenvironment contributes to HSC activation and architectural remodeling in BA liver tissue.</p>
+<h3>Lymphatic endothelium controls SOX9-and MMP7-states of immune-primed cholangiocytes</h3>
+<p>Post-outcome biosampling obtained tissue and cell isolates from BA and non-BA liver explants for functional validation using ICOs and ICO-LEC-assembled organoids. For in-depth profiling of the soluble BA microenvironment, CM was obtained as mentioned above and profiled with Proteomics, LegendPlex TM and ELISA.</p>
+<p>Proteomics detected a total of 1823 proteins of which 134 were unique to BA (Fig. S8A-C).</p>
+<p>Overall pathway analysis enriched &#x27;epithelial cell development&#x27;, &#x27;immune system&#x27;, &#x27;ECM proteoglycans&#x27; and other pathways in BA compared to non-BA. Lipid metabolic processes and lysosome activity were also enriched, reflecting a high bile acid metabolism. When further comparing CM from mild (late LTX) and severe (early LTX) BA patients, the latter enriched pathways concerning innate immune system, ECM receptor interaction, fibrillar collagen trimer and cadherin binding as well as lysosome. ICAM-1 was more than 10-fold higher in severe BA CM than in mild, and CD44 was uniquely detected in severe BA, possibly resembling inflammatory endothelial activation and immune cell enrichment. Interleukin (IL)-18 was detected exclusively in CM from severe BA, but not in CM from mild BA, echoing reports linking IL-18 to post-Kasai outcomes.( 29) LegendPlex TM detected no significant differences between BA and non-BA secretome for TNF-alpha, IL-1B, IL-17A, and IL-8 surprisingly (Fig. S8D). Interferon-Gamma (IFN-γ), Interferon-alpha2 (IFN-α2), IL-12-p70, IL-33, IL-6 and MCP-1 were significantly higher in BA.</p>
+<p>Given the previous observation of extensive biliary and lymphatic dysplasia in the portal areas of severe BA patients and the epithelial plasticity observed in BA-secretome-treated FLOs, we hypothesized that LECs from severe BA may directly affect the biliary epithelium and induce epithelial state changes via CCL21. To model lymphatic-to-epithelial effects, we isolated LECs from BA liver explants, leveraging magnetic bead-based fractionation, assembled them with non-BA ICOs in a 3D assembloid and observed SOX9 high LGR5 high biliary progenitor state, as in the severe BA tissue response highlighted earlier (Fig. 5A, Fig. 3D-G). Direct treatment of ICOs with recombinant CCL21 alone partially recapitulated the SOX9 high epithelial state and confirmed that cholangiocytes can respond to CCL21 (Fig. S9A+B). As not all patient-derived ICO lines were responsive to CCL21, we found that the permissive epithelial state for CCL21 was determined by the condition from which the ICOs were derived. Specifically, CCL21sensing ICOs were derived from livers with histopathological evidence of immune cell infiltration and ductular reaction (Fig. S9B).</p>
+<p>Following up on the hepatocyte states identified in severe BA -transdifferentiating (Hep trans) and identity-destabilized (Hep BA) hepatocytes (Fig. 3A-D) -we treated iPSC-derived hepatocytes with CCL21 and interestingly observed alterations of their transcriptional profile, indicating CCL21-sensing in hepatocytes. Suppression of SOX9, LGR5 and HNF4A indicated broad collapse of both biliary and hepatocyte identity programs rather than a directed lineage transition (Fig. 5B). While bile acids have been shown to regulate cholangiocyte plasticity and promote biliary differentiation of liver progenitor cells, their potential to alter hepatocyte identity in a cholestatic milieu remains unclear. (30, 31) As bile acids largely determine the hepatocyte microenvironment in BA, we combined the CCL21 treatment with Chenodeoxycholic acid (CDCA) at a non-cytotoxic concentration and observed exacerbated identity loss relative to CCL21 alone. Intrahepatic CCL21 was elevated in BA liver secretome (Fig. 5C; Fig. S9C), consistent with the CCL21 high LEC transcriptome and mpIF staining observed at the earlier pre-outcome timepoint in severe BA patients, indicating sustained CCL21 elevation along disease progression. To model the effects of disrupted lymphatic signaling on the liver epithelium within the complex cholestatic and inflammatory BA environment ex vivo, we treated hepatocytes with CCL21 high BA CM in combination with indirect co-culture with polyI:C-primed PBMCs (Fig. 5D+E; Fig. S9D; pIC-PBMC CM). This BA-like environment induced upregulation of C-C chemokine receptor type 7 (CCR7) in some but not all patient epithelia. Further, it led to a surge of the BAspecific MMP7 (Fig. 5E). Assessing the translational value of CCL21-modulating strategies to improve epithelial outcomes, CCL21-neutralizing antibodies normalized the BA-associated MMP7 -high -state in ICOs (Fig. 5F; Fig. S9E), suggesting that CCL21 is not only a marker of the dysplastic lymphatic niche but also a tractable effector of BA epithelial states (Fig. 5G).</p>
+<h3>DISCUSSION</h3>
+<p>BA follows a multifactorial pathophysiology and is the leading cause of pediatric liver transplantation worldwide. (1, 32) To dissect the molecular and structural tissue features that bias patient outcomes of BA early on, we profiled infant liver tissue obtained at KPE that was retrospectively outcome stratified. Thereby, we distinguished distinct intrahepatic BA phenotypes and identified early intrahepatic determinants of rapid progression towards liver transplantation in BA.</p>
+<p>Here, we establish across a series of experimental modalities (spanning transcriptional, mpIF, liver tissue secretome-based ELISA, functional experiments in organoids) that early CCL21 high lymphatic endothelial dysplasia is a hallmark of BA patients who proceed with poor outcome.</p>
+<p>Structurally, severe BA exhibited a maladaptive aggregation of lymphatic cells and a loss of lymphatic endothelial morphology continuity, whereas mild BA, although also affected relative to cholestatic controls, displayed an adaptive lymphangiogenic response.</p>
+<p>Interestingly, we found that lymphatic endothelium signals on liver epithelium via CCL21 and induces a SOX9 high LGR5 high biliary progenitor response and most interestingly an MMP7 high epithelial state in cholangiocytes. This is relevant since a landmark study and subsequent validations established MMP7 elevation not only as a BA-specific phenomenon and biomarker, both at serum and hepatic transcript level, but also as mechanistically relevant in BA mouse models. (2, 4, 9, 10, 33) Yet here we show an upstream lymphatic-to-epithelial circuit, based on findings that soluble mediators as CCL21 can shape biliary epithelial responses, contributing to maladaptive remodeling or tissue repair. (34) We demonstrate that hepatic lymphatic tissue can exert these ectopic epithelial effects after prior BA-specific inflammatory licensing. Ex vivo, we suggest that a CCL21 receptor, CCR7, can potentially be induced on epithelial cells exposed to the tissue supernatant of severe BA livers. Yet, CCR7 expression levels vary and may be controlled by epigenetically determined permissive states. Beyond CCL21&#x27;s role in homing immune and trafficking metastatic cells toward the lymphatic system,(35) our data lends well into reports of ectopic CCL21 sensing in liver fibrosis (on myofibroblasts). (36) CCL21-signaling beyond the lymphatic endothelium is dependent on glycosaminoglycan binding in the ECM, (19) thus CCL21-accessability should be considered in subsequent studies. Interestingly, cholestasis-associated increase in proteoglycans on cholangiocytes and HSCs may alter the local retention and spatial presentation of LEC-derived CCL21, thereby modulating epithelial exposure to this chemokine.( 37) Consistent with this finding, &#x27;ECM proteoglycans&#x27; pathway was enriched in BA liver&#x27;s secretome relative to non-BA controls.</p>
+<p>Our findings of maladaptive lymphatic dysplasia in severe BA may offer a shared mechanism for disease progression in severe inflammatory cholestasis, given a preprint report on lymphatic changes in PSC, although our focus on CCL21-effects on immune licensed-epithelium has a different angle. (38) Different from the report on lymphatic endothelium after bile duct ligation in mice, our mpIF analysis did not reveal alterations of immune cell trafficking or accumulation around dysplastic lymphatic vasculature. Of note, we were comparing BA patients to cholestatic control patients and not to healthy livers and differences in immune cell accumulation around LECs were not significant. The report further linked the increase of TGFβ in LECs to reduced LEC density and drainage capacity. (38) Interestingly, in our outcome-stratified BA cohort, enrichment of TGFβ, a driver of epithelial plasticity, was not significant in severe BA LECs. However, we observed partial fibrogenic activity in LECs of severe BA patients with enrichment of SPARC (Osteonectin) and COL5A2. Thus, LECs may contribute to liver fibrosis in BA. (14, 39) In HSCs, TGFβ was also not differentially expressed between HSCs from mild and severe BA, supporting our foundational observation in Fig. 1, that fibrosis is not an obvious driver of outcome. Overall, our study suggests that the lymphatic compartment in BA is not only a bystander injury but actively engages with the epithelium with partial contribution to fibrogenicity.</p>
+<p>Consistent with the central role of the liver epithelium in BA pathophysiology, we observed highly plastic epithelial cell states with distinct phenotypes characterizing severe BA. SnRNAseq detected hepatic-to-biliary transdifferentiation unspecifically in BA and cholestatic controls, yet the epithelial spectrum is more nuanced in BA with increased SOX9/HNF1b expression, which was most prominent in transdifferentiating hepatocytes in severe BA.( 14) Interestingly, severe BA also engaged LGR5+, distinct from the direct transdifferentiation reported in adults.( 15) Functionally, we provide evidence for LECs stimulating epithelial progenitor reprogramming, engaging LGR5, using a novel assembloid system. This offers a new possibility of a lymphatic rheostat of the liver&#x27;s LGR5+ progenitor subset, previously reported in cholestatic liver injury.( 13) Our FLO in vitro experiments recapitulated epithelial plasticity towards SOX9 high states under severe BA-&#x27;secretomes&#x27; and revealed that this state is not driven by intrinsic epithelial programs or viral mimetic-polyI:C alone. In addition, FLOs, exhibited biliary lumen-collapse despite increased SOX9 expression, similar to the ductular reaction in BA, and Lastly, we detected a unique cholangiocyte signature in severe BA that was characterized by proinflammatory and profibrotic programs with extensive expression of chemokines and cytokines, highlighting their active role in an inflammatory hub in BA pathophysiology. Additionally, MMP7 was significantly increased in severe compared to mild BA cholangiocytes at the timepoint of KPE.</p>
+<p>One limitation of our findings is that the exact inflammatory priming of CCL21-sensing may involve factors beyond CCL21, which requires further analyses, but could involve additional cytokines, chemokines or extracellular vesicles. Regarding functional experimentation, the standard rhesus rotavirus (RRV)-induced mouse model of BA is restricted to a single mouse strain, and species-specific differences in the CCL21 system, including a third mouse Ccl21 gene (Ccl21c) with no human ortholog and predominantly non-lymphoid expression, may limit its translational relevance for validating CCL21-dependent mechanisms in BA. Moreover, biliary injury is induced postnatally in the RRV mouse model, whereas mounting data suggests fetal onset in humans, (5, 42, 43) further limiting its translational relevance. Therefore, we pursued a human tissue-centered approach, combining patient-derived tissue analyses with human liver-and iPSC-derived organoid models for ex vivo functional validation, thereby enabling the investigation of human BA pathophysiology in the most relevant context.</p>
+<p>In summary, our multiscale atlas indicates that outcome after KPE is shaped by intrahepatic cell states already present at diagnosis raising the possibility that distinct pathogenic mechanisms may underlie the clinical diagnosis of BA. Our findings specifically underscore the previously underappreciated role of the lymphatic niche within the &#x27;portal tetrad&#x27; in BA progression, offering potential opportunities for prognostic stratification and therapeutic interventions which should be addressed in future prospective studies.</p>
+<h3>MATERIALS AND METHODS</h3>
+<h3>Experimental Design</h3>
+<p>This study investigated intrahepatic determinants of clinical outcome in patients with BA After collection of liver tissue during LTX or KPE, samples were immediately snap frozen, stored in basal medium or in 10% Formalin at 4°C, respectively. Liver samples were further processed for respective experiments immediately or within a maximum of 24 hours after biosampling. Biospecimen collection and processing were reported in accordance with the applicable items of the Biospecimen Reporting for Improved Study Quality (BRISQ) guidelines.( 45)</p>
+<h3>Single-cell transcriptomics</h3>
+<p>For snRNA-seq, we used fresh frozen liver tissues from patients with BA and cholestatic controls (control n = 3, mild n = 4, severe n = 4). Nuclei were isolated from tissue pieces with less than 0.3 cm diameter and prepared for snRNA-seq capture as previously described. (46) In brief, tissues were homogenized in citric acid buffer (250 mM sucrose, 25 mM citric acid, 1 μg/ml Hoechst 33342) with glass tissue douncers. The homogenate was filtered through 35 μm cell strainers to remove debris, then centrifuged at 500g for 5 min at 4°C. Nuclei were washed in citric acid buffer and spun down again for a final wash before being resuspended in cold resuspension buffer (25 mM KCl, 3 mM MgCl2, 50 mM Tris-buffer, 0.4 U/μl RNaseIn (2313A, Takara), 1 mM dithiothreitol, 0.4 U/μl SuperaseIn (AM2694, Thermo Fisher Scientific) and 1 μg/ml Hoechst 33342). After removing the supernatant, nuclei were counted and immediately loaded into the 10x Chromium Controller using the 10x Genomics Single Cell 3′ Library Kit</p>
+<h3>Generation of FLOs and conditioned media induced injury-modeling</h3>
+<p>FLOs were generated from induced pluripotent stem cells (iPSCs) as previously described. (21) On day 19 of differentiation, FLOs were treated with 40 µg/mL polyI:C (Miltenyi) or vehicle control (NaCl) for 22 hours. On day 20, medium was replaced with 600 µL of basal FLO medium, followed by addition of 600 µL of liver CM of BA or non-BA explants. FLOs were cultured under the respective medium condition for 5 or 7 days, with the medium replaced every two days, before fixation (30 min in 10% formalin at RT) and processing for mpIF.</p>
+<h3>Isolation and culture of liver lymphatic endothelial cells</h3>
+<p>Liver tissue with or without capsule was digested into single cells. Cells were plated at a density of 1 × 10⁶ cells/cm² on collagen-coated plates (5 µg/cm²; rat tail collagen, Corning) and cultured in EGM-2 medium (Lonza) supplemented with Y-27632 (10µM) and 25 ng/mL VEGF-C. The following day, plates were washed three times with DPBS containing 1% P/S, and fresh medium was added. Cells were cultured until approximately 80% confluency was reached, typically after 7-10 days, before MACS sorting was performed. PDPN-positive cells were isolated by indirect magnetic cell sorting using mouse IgG anti-human PDPN antibody at a dilution of 1:400 for 30 min, followed by anti-mouse IgG magnetic beads according to the manufacturer&#x27;s instructions.</p>
+<h3>Statistics</h3>
+<p>Differential gene expression testing was calculated with the Seurat FindMarkers() function using the Wilcoxon Rank Sum test, with significance set at p-value &lt;.05 and log-fold change of 0.25. For multiple testing, p-values were adjusted using the Benjamini-Hochberg method and considered significant at adjusted p-value &lt;.05. CellChat identified enriched pathways to specific conditions by performing a paired Wilcoxon test within the rankNet() function.</p>
+<p>ClusterProfiler applies a hypergeometric test for enrichment analysis, with significance thresholds set at Benjamini-Hochberg adjusted p-value &lt;.05. Gene set score comparisons were calculated with a Wilcoxon Rank Sum test and adjusted with Benjamini-Hochberg method, significance set at adjusted p-value &lt;.05. Significance was only reported if the calculated Cohen&#x27;s effect size r was classified as small, moderate, or large. For all non-sequencing assays one-way ANOVA or unpaired t-test were performed and statistical results were reported when considered significant at adjusted p-value &lt;.05. Data for mpIF, clinical characteristics and qPCR are presented as individual data points, with the mean±SD indicated, unless otherwise stated.</p>
+<h3>List of Supplementary Material</h3>
+<h3>Materials and Methods</h3>
+<p>Fig S1 to Figures Fig.1 Multiscale profiling of outcome-stratified biliary atresia to identify early disease drivers undetected by routine diagnostics. A: Clinical stratification of patients with neonatal cholestasis. *An additional eight non-cholestatic patients (AIH, metabolic disorder, portal veine thrombosis, adult liver tumor) were sampled at post-outcome sampling for generation of intrahepatic cholangiocyte organoids (ICO) and conditioned media. B: UpSet-Plot shows the number of patients sampled for one or multiple experimental techniques, respectively, at diagnosis/Kasai (pre-outcome biosampling) and LTX (post-outcome biosampling). C: Clinical characteristics and serum biochemistry of patients sampled at pre-outcome sampling shown in a heatmap and summarized as minimum to maximum with interquartile range in boxplots. One-way Scale bar = 150 µm. C: Spatial distribution of identified cellular communities in a severe BA sample. D: Composition of cellular communities across all samples. E: Expanded views of portal areas in selected samples. F: Cellular co-occurrence analysis relative to cholangiocytes. G: Gene expression differences across severity in cholangiocytes and H: HSCs. Red circle indicates significant difference compared to controls.</p>
+<p>Asterisk indicates significant difference between mild and severe BA. I: Spatial distribution of Hep BA geneset score expression. J: Signed distance measurement of depth relative to hepatic and portal regions.</p>
+<h3>Concentric rings represent 100µm bins. Maximum depth is 600µm from the interface (thick lines). K:</h3>
+<p>Expression of ductular reaction and inflammatory markers in cholangiocytes when binning the regional depth into 3: interface, midpoint and core. L: Expression of profibrogenic markers in HSCs when binning the regional depth. K+L: Red circle indicates significant difference between the least activated region vs. the midpoint and most activated region. Asterisk indicates significant difference between the midpoint and most activated region. BA patients (n=2) with LECs isolated from BA explant livers (n=2). Graphs show mean±SD of fold change up-/downregulation of respective genes in ICOs. B: CCL21 treatment (100ng/ml) of iPSC-derived hepatocytes with and without addition of 200µM CDCA. Graphs show mean±SD of fold change up-/downregulation of respective genes. C: CCL21 ELISA of CM from non-BA (n=6) and BA (n=6) liver</p>
+<p>Funding Alliance4Rare / Eva Luise und Horst Köhler Stiftung (LS, RLC, MR) German Research Foundation (DFG) Collaborative Research Center/Transregio 412/1 grant 535081457 (MR) German Research Foundation (DFG) Emmy Noether Programme grant RE 3749/2-1 (MR) Berlin Institute of Health at Charité Medical Scientist Program (RLC) German Research Foundation Project-ID 556479455 and SFB1382; Project-ID 403224013 (AG) Federal Ministry of Education and Research (BMBF), partner of the ERDERA, European Union&#x27;s Horizon Europe research and innovation program grant N°101156595 (AG) Lymphatic Malformation Institute and European Union ERC, PREVENT, 101078827; ERC, 3D-SpatiOmics, 101189497 (RH)</p>
+<h3>Data files S1 to S2 (Supplementary Material Antibodies; Supplementary Material Primers)</h3>
+<p>Movies S1 to S3 (3D whole-mount IF imaging) References (58-73)</p>
+<h3>Data and materials availability</h3>
+<p>The snRNA-seq and spatial transcriptomics sequencing data generated in this study have been</p>
+<h3>Competing interests</h3>
+<p>Authors declare that they have no competing interests.</p>
+<p>of the German Research Foundation (DFG). Graphical abstracts and schemes were created with BioRender (https://biorender.com/). ChatGPT and Claude were used only for language improvement, not authorative data generation or interpretation.</p>
+<h3>Conceptualization</h3>
+<p>: MR, PB, CC, LS, RLC Methodology: MR, LS, RLC, MM, SQ, JW Investigation: LS, RLC, MZK, MM, SQ, JW, DG, RD, RB, MK Formal analysis: LS, RLC, MZK, MZ, AS, JL, AG Visualization: LS, RLC Resources: MU, JK, CS, OMS, BG, RÖ, JCK, SH Project administration: LS, RD Supervision: SE, RH, RE, PB, CC, MR Writing -original draft: LS, RLC, MR, PB Writing -review &amp; editing: All authors. All authors interpreted the data and approved the final version of the manuscript.</p>
+<p>deposited in the European Genome-Phenome Archive under the accession number EGAXXXXX. The data are available under controlled access due to the sensitive nature of sequencing data, and access can be obtained by contacting the data access committee of the study. The fully annotated single-cell and spatial transcriptomics objects are available at figshare (XXXXX) and can be easily explored through our interactive data explorer (XXXXX).</p>
+<p>The mass spectrometry proteomics data have been deposited to the ProteomeXchange Consortium via the PRIDE partner repository with the dataset identifier PXD085983.</p>
+<p>Reviewers can log in to the PRIDE website using the following details: Project accession: PXD085983, Token: 6iQrdQsZSNjq.</p>
+<p>HNF4a loss of the hepatic compartment.(40) Consistently, severe BA enriched a distinct hepatocyte dedifferentiation and immunogenic state exhibiting HNF4A low identity loss, acute reactive and inflammatory programs (Hep BA) as identified by snRNA-seq. Interestingly, CCL21 treatment of hepatocytes in a cholestatic milieu ex vivo induced this Hep BA-like state, that included a loss of HNF4A, SOX9 and LGR5. A recent transcriptional study on BA also linked poor native liver survival to epithelial plasticity, however molecular analysis was done at late stage on explant livers and could not recapitulate diverging outcomes at the timepoint of KPE.(41) through retrospective analysis and prospective sampling of BA and non-BA cholestatic control livers upon written informed consent of the patients&#x27; parents.</p>
+<p>Human liver tissue and clinical data were obtained from patients undergoing KPE, diagnostic biopsy or LTX at Charité Universitätsmedizin Berlin, Hannover Medical School and University Children&#x27;s Hospital Tübingen. The study was approved by the Ethics Committee of Charité -Universitätsmedizin Berlin (EA2/148/22) and conducted in accordance with the Declaration of Helsinki.( 44)</p>
+<h3>v3.1 (</h3>
+<p>PN 1000223, PN 1000157, PN 1000213 and PN 1000122). Libraries were pooled and sequenced on the NovaSeq 6000 system using paired-end mode (Illumina). Raw sequencing data were processed using Cell Ranger v7.2.0 (10x Genomics). Transcripts were aligned to the reference human genome GRCh38.p13. Ambient RNA removal was performed with cellbender v0.3.0 on all samples.( 47) Pre-processing to remove low-quality cells was performed with Seurat v5.1.0 based on the following criteria: (i) &gt;200 and &lt;7500-9000 genes, (ii) &lt;10% mitochondrial reads. After log-normalization and variable feature selection, samples were integrated with Harmony using the IntegrateLayers() function in Seurat.( 48) Using the integrated layer, neighbors and clusters were calculated, PCA was run, and finally UMAP calculation. Doublet detection was performed for each sample using DoubletFinder 2.0.3(49) and removed from the dataset. Cell type assignment was performed by using known marker genes.( 50-53) Pair-wise compositional changes in cellular neighborhood densities were calculated with MILO v1.10.0.( 54) To perform unsupervised trajectory analysis, scVelo v0.3.2 was used as it utilizes velocitybased models to infer the dynamics of gene expression based on RNA splicing ratios. Loom files were generated with velocyto v0.17.17.( 55) Potential cell-cell interactions between the different cell types were identified using CellChat v2.1.2.( 56) Differential interactions between patient groups were calculated using mergeCellChat() and compareInteractions() functions. &quot;Interaction strength&quot; refers to the communication probability of each interaction in the computed network, while &quot;information flow&quot; denotes the overall communication probability of a given pathway, calculated as the sum of probabilities among all interacting cell groups. GO term enrichment was performed with clusterProfiler v4.14.6.( 57) Differentially expressed genes used as input had adjusted p-values &lt; 0.05. Gene set scores were calculated using the function AddModuleScore() from Seurat. The interferon response score gene set is composed of the union of genes belonging to the GO Biological Process terms GOBP RESPONSE TO TYPE I INTERFERON (GO:0034340) and GOBP RESPONSE TO TYPE II INTERFERON (GO:0034341) but filtered to genes detected in the datasets.</p>
+<h3>S9 FiguresFig. 1</h3>
+<p>FigS1to S9</p>
+<h3>Fig 5</h3>
+<p>Fig.5 CCL21 shapes MMP7+ epithelial states ex vivo. A: Nine day co-culture of ICOs derived from non-</p>
+<h3>References</h3>
+<p>C. L. Mack, R. J. Sokol, Unraveling the Pathogenesis and Etiology of Biliary Atresia. Pediatr. Res. 57, 87-94 (2005).</p>
+<p>J. A. Bezerra, R. G. Wells, C. L. Mack, S. J. Karpen, J. H. Hoofnagle, E. Doo, R. J. Sokol, Biliary Atresia: Clinical and Research Challenges for the Twenty-First Century. Hepatology 68, 1163-1173 (2018).</p>
+<p>P. K. H. Tam, R. G. Wells, C. S. M. Tang, V. C. H. Lui, M. Hukkinen, C. D. Luque, P. De Coppi, C. L. Mack, M. Pakarinen, M. Davenport, Biliary atresia. Nat Rev Dis Primers 10, 47 (2024).</p>
+<p>C. Lertudomphonwanit, R. Mourya, L. Fei, Y. Zhang, S. Gutta, L. Yang, K. E. Bove, P. Shivakumar, J. A. Bezerra, Large-scale proteomics identifies MMP-7 as a sentinel of epithelial injury and of biliary atresia. Sci. Transl. Med. 9, (2017).</p>
+<p>S. Harpavat, T. A. Rabbani, A. M. Upton, S. Devaraj, J. A. Hernandez, B. L. Shneider, A strategy to identify biliary atresia efficiently: A perspective from a Texas center. World J Pediatr Surg 9, e001142 (2026).</p>
+<p>J. Wang, Y. Xu, Z. Chen, J. Liang, Z. Lin, H. Liang, Y. Xu, Q. Wu, X. Guo, J. Nie, B. Lu, B. Huang, H. Xian, X. Wang, Q. Wu, J. Zeng, C. Chai, M. Zhang, Y. Lin, L. Zhang, S. Zhao, Y. Tong, L. Zeng, X. Gu, Z. G. Chen, S. Yi, T. Zhang, D. Delfouneso, Y. Zhang, S. L. Nutt, A. M. Lew, L. Lu, F. Bai, H. Xia, Z. Wen, Y. Zhang, Liver Immune Profiling Reveals Pathogenesis and Therapeutics for Biliary Atresia. Cell 183, 1867- 1883 e1826 (2020).</p>
+<p>C. Ye, J. Zhu, J. Wang, D. Chen, L. Meng, Y. Zhan, R. Yang, S. He, Z. Li, S. Dai, Y. Li, S. Sun, Z. Shen, Y. Huang, R. Dong, G. Chen, S. Zheng, Single-cell and spatial transcriptomics reveal the fibrosis-related immune landscape of biliary atresia. Clin Transl Med 12, e1070 (2022).</p>
+<p>L. Meng, M. Du, H. Li, F. Kong, J. Yang, R. Dong, S. Zheng, G. Chen, Z. Shen, J. Wang, Single-cell transcription reveals hepatocyte-to-cholangiocyte reprogramming and biliary gene profile in biliary atresia. Hepatol Commun 9, (2025).</p>
+<p>S. Pandurangi, R. Mourya, S. Nalluri, L. Fei, S. Dong, S. Harpavat, S. L. Guthery, J. P. Molleston, P. Rosenthal, R. J. Sokol, K. S. Wang, V. Ng, E. M. Alonso, E. K. Hsu, S. J. Karpen, K. M. Loomes, J. C. Magee, B. L. Shneider, S. P. Horslen, J. H. Teckman, J. A. Bezerra, N. Childhood Liver Disease Research, Diagnostic accuracy of serum matrix metalloproteinase-7 as a biomarker of biliary atresia in a large North American cohort. Hepatology 80, 152-162 (2024).</p>
+<p>A. Kerola, H. Lampela, J. Lohi, P. Heikkilä, A. Mutanen, J. Hagström, T. Tervahartiala, T. Sorsa, C. Haglund, H. Jalanko, M. P. Pakarinen, Increased MMP-7 expression in biliary epithelium and serum underpins native liver fibrosis after successful portoenterostomy in biliary atresia. J Pathol Clin Res 2, 187-198 (2016).</p>
+<p>J. R. Schaub, Y. Malato, C. Gormond, H. Willenbring, Evidence against a stem cell origin of new hepatocytes in a common mouse model of chronic liver injury. Cell Rep. 8, 933-939 (2014).</p>
+<p>N. Barker, J. H. van Es, J. Kuipers, P. Kujala, M. van den Born, M. Cozijnsen, A. Haegebarth, J. Korving, H. Begthel, P. J. Peters, H. Clevers, Identification of stem cells in small intestine and colon by marker gene Lgr5. Nature 449, 1003-1007 (2007).</p>
+<p>M. Huch, C. Dorrell, S. F. Boj, J. H. van Es, V. S. Li, M. van de Wetering, T. Sato, K. Hamer, N. Sasaki, M. J. Finegold, A. Haft, R. G. Vries, M. Grompe, H. Clevers, In vitro expansion of single Lgr5+ liver stem cells induced by Wnt-driven regeneration. Nature 494, 247-250 (2013).</p>
+<p>J. R. Schaub, K. A. Huppert, S. N. T. Kurial, B. Y. Hsu, A. E. Cast, B. Donnelly, R. A. Karns, F. Chen, M. Rezvani, H. Y. Luu, A. N. Mattis, A. L. Rougemont, P. Rosenthal, S. S. Huppert, H. Willenbring, De novo formation of the biliary system by TGFβ- mediated hepatocyte transdifferentiation. Nature 557, 247-251 (2018).</p>
+<p>C. Gribben, V. Galanakis, A. Calderwood, E. C. Williams, R. Chazarra-Gil, M. Larraz, C. Frau, T. Puengel, A. Guillot, F. J. Rouhani, K. Mahbubani, E. Godfrey, S. E. Davies, E. Athanasiadis, K. Saeb-Parsy, F. Tacke, M. Allison, I. Mohorianu, L. Vallier, Acquisition of epithelial plasticity in human chronic liver disease. Nature 630, 166-173 (2024).</p>
+<p>H. Xie, M. Zhu, Z. Zhu, J. Tang, R. Zhang, Z. Ding, J. Li, Z. Wu, P. K. H. Tam, Q. Wang, V. C. H. Lui, Y. Xia, W. Tang, Expanded Hepatic Progenitor Cells Featured with Aggregation of α-Synuclein Contribute to Pathologic Bile Duct Regeneration in Biliary Atresia. Adv Sci (Weinh) 13, e76054 (2026).</p>
+<p>M. Tanaka, Y. Iwakiri, Lymphatics in the liver. Curr. Opin. Immunol. 53, 137-142 (2018).</p>
+<p>G. Oliver, J. Kipnis, G. J. Randolph, N. L. Harvey, The Lymphatic Vasculature in the 21(st) Century: Novel Functional Roles in Homeostasis and Disease. Cell 182, 270-296 (2020).</p>
+<p>M. Weber, R. Hauschild, J. Schwarz, C. Moussion, I. de Vries, D. F. Legler, S. A. Luther, T. Bollenbach, M. Sixt, Interstitial dendritic cell guidance by haptotactic chemokine gradients. Science 339, 328-332 (2013).</p>
+<p>B. Vollmar, B. Wolf, S. Siegmund, A. D. Katsen, M. D. Menger, Lymph vessel expansion and function in the development of hepatic fibrosis and cirrhosis. Am. J. Pathol. 151, 169-175 (1997).</p>
+<p>M. Rezvani, S. Quach, K. Lewis, N. Saiki, C. Xue, M. Kimura, K. Iwasawa, J. Weihs, T. Elzobair, H. Al Reza, Y. Cai, R. Zhang, Y. Milton, P. Chaturvedi, K. Thorner, R. C. Nayak, J. Munera, P. Kramer, B. R. Davis, A. N. Balamurugan, Y. A. Ahmed, M. Finke, R. Y. Behncke, A. Guillot, R. Hagerling, J. K. Polansky, P. Bufler, J. A. Cancelas, A. M. Zorn, J. M. Wells, M. Yoshimoto, T. Takebe, Modeling immune lineage co- development in human pluripotent stem cell-derived liver organoids. J. Hepatol. 84, 946-961 (2026).</p>
+<p>J. Weihs, F. Baldo, A. Cardinali, G. Youssef, K. Ludwik, N. Haep, P. Tang, P. Kumar, C. Engelmann, S. Quach, M. Meindl, M. Kucklick, S. Engelmann, B. Chillian, M. Rothe, D. Meierhofer, I. Lurje, L. Hammerich, P. Ramachandran, T. J. Kendall, J. A. Fallowfield, H. Stachelscheid, I. Sauer, F. Tacke, P. Bufler, C. Hudert, N. Han, M. Rezvani, Combined stem cell and predictive models reveal flavin cofactors as targets in metabolic liver dysfunction. bioRxiv, 2024.2010.2010.617610 (2025).</p>
+<p>M. Frye, S. Stritt, H. Ortsäter, M. Hernandez Vasquez, M. Kaakinen, A. Vicente, J. Wiseman, L. Eklund, J. L. Martínez-Torrecuadrada, D. Vestweber, EphrinB2-EphB4 signalling provides Rho-mediated homeostatic control of lymphatic endothelial cell junction integrity. Elife 9, e57732 (2020).</p>
+<p>W. Zheng, H. Nurmi, S. Appak, A. Sabine, E. Bovay, E. A. Korhonen, F. Orsenigo, M. Lohela, G. D&#x27;Amico, T. Holopainen, Angiopoietin 2 regulates the transformation and integrity of lymphatic endothelial cell junctions. Genes Dev. 28, 1592-1603 (2014).</p>
+<p>R. V. Smalling, D. A. Delker, Y. Zhang, N. Nieto, M. S. Mcguiness, S. Liu, S. L. Friedman, C. H. Hagedorn, L. Wang, Genome-wide transcriptome analysis identifies novel gene signatures implicated in human chronic liver disease. American Journal of Physiology-Gastrointestinal and Liver Physiology 305, G364-G374 (2013).</p>
+<p>M. El-Youssef, Y. Mu, L. Huang, V. Stellmach, S. E. Crawford, Increased expression of transforming growth factor-β1 and thrombospondin-1 in congenital hepatic fibrosis: possible role of the hepatic stellate cell. J. Pediatr. Gastroenterol. Nutr. 28, 386-392 (1999).</p>
+<p>H. Okada, M. Yamada, K. Kamimoto, C. Y.-Y. Kok, K. Kaneko, M. Ema, A. Miyajima, T. Itoh, The transcription factor Klf5 is essential for intrahepatic biliary epithelial tissue remodeling after cholestatic liver injury. J. Biol. Chem. 293, 6214-6229 (2018).</p>
+<p>C. L. Mack, The pathogenesis of biliary atresia: evidence for a virus-induced autoimmune disease. Semin. Liver Dis. 27, 233-242 (2007).</p>
+<p>P. Vejchapipat, S. Poomsawat, V. Chongsrisawat, S. Honsawek, Y. Poovorawan, Elevated serum IL-18 and interferon-gamma in medium-term survivors of biliary atresia. Eur. J. Pediatr. Surg. 22, 29-33 (2012).</p>
+<p>F. Sampaziotis, D. Muraro, O. C. Tysoe, S. Sawiak, T. E. Beach, E. M. Godfrey, S. S. Upponi, T. Brevini, B. T. Wesley, J. Garcia-Bernardo, K. Mahbubani, G. Canu, R. Gieseck, 3rd, N. L. Berntsen, V. L. Mulcahy, K. Crick, C. Fear, S. Robinson, L. Swift, L. Gambardella, J. Bargehr, D. Ortmann, S. E. Brown, A. Osnato, M. P. Murphy, G. Corbett, W. T. H. Gelson, G. F. Mells, P. Humphreys, S. E. Davies, I. Amin, P. Gibbs, S. Sinha, S. A. Teichmann, A. J. Butler, T. C. See, E. Melum, C. J. E. Watson, K. Saeb- Parsy, L. Vallier, Cholangiocyte organoids can repair bile ducts after transplantation in the human liver. Science 371, 839-846 (2021).</p>
+<p>K. N. Pozniak, M. A. Pearen, T. N. Pereira, C. S. M. Kramer, P. Kalita-De Croft, S. K. Nawaratna, M. A. Fernandez-Rojo, G. N. Gobert, J. E. E. Tirnitz-Parker, J. K. Olynyk, R. W. Shepherd, P. J. Lewindon, G. A. Ramm, Taurocholate Induces Biliary Differentiation of Liver Progenitor Cells Causing Hepatic Stellate Cell Chemotaxis in the Ductular Reaction: Role in Pediatric Cystic Fibrosis Liver Disease. The American Journal of Pathology 187, 2744-2757 (2017).</p>
+<p>B. Lakshminarayanan, M. Davenport, Biliary atresia: A comprehensive review. J. Autoimmun. 73, 1-9 (2016).</p>
+<p>C.-C. Huang, J.-H. Chuang, M.-H. Chou, C.-L. Wu, C.-M. Chen, C.-C. Wang, Y.-S. Chen, C.-L. Chen, M.-H. Tai, Matrilysin (MMP-7) is a major matrix metalloproteinase upregulated in biliary atresia-associated liver fibrosis. Mod. Pathol. 18, 941-950 (2005).</p>
+<p>A. E. Russi, P. Shivakumar, Z. Luo, J. A. Bezerra, Plasticity between type 2 innate lymphoid cell subsets and amphiregulin expression regulates epithelial repair in biliary atresia. Hepatology 78, 1035-1049 (2023).</p>
+<p>R. Förster, A. C. Davalos-Misslitz, A. Rot, CCR7 and its ligands: balancing immunity and tolerance. Nature Reviews Immunology 8, 362-371 (2008).</p>
+<p>A. Bonacchi, I. Petrai, R. M. S. Defranco, E. Lazzeri, F. Annunziato, E. Efsen, L. Cosmi, P. Romagnani, S. Milani, P. Failli, G. Batignani, F. Liotta, G. Laffi, M. Pinzani, P. Gentilini, F. Marra, The chemokine CCL21 modulates lymphocyte recruitment and fibrosis in chronic hepatitis C&lt;sup&gt;1&lt;/sup&gt;. Gastroenterology 125, 1060-1076 (2003).</p>
+<p>T. Roskams, J. Rosenbaum, R. De Vos, G. David, V. Desmet, Heparan sulfate proteoglycan expression in chronic cholestatic human liver diseases. Hepatology 24, 524-532 (1996).</p>
+<p>J. Jeong, S.-J. Hsu, D. Horikami, T. Utsumi, Y. Yang, N. Arefyev, X. Zhang, S.-Y. Cai, J. L. Boyer, R. Garcia-Milan, M. Tanaka, M. J. McConnell, H.-C. Huang, Y. Iwakiri, Liver Lymphatic Dysfunction as a Driver of Fibrosis and Cirrhosis Progression. bioRxiv, 2025.2001.2011.632552 (2025).</p>
+<p>H. Ayabe, E. A. K. DePasquale, S. P. Amarachintha, R. Mourya, W. Li, S. Nalluri, S. R. Fox, K. Konishi, P. Shivakumar, J. A. Bezerra, Cellular crosstalk mediated by TGF- β drives epithelial-mesenchymal transition in patient-derived multi-compartment biliary organoids. Nature Communications 16, 6575 (2025).</p>
+<p>H. R. Hrncir, B. Goodloe, S. Bombin, C. B. Hogan, O. Jadi, A. D. Gracz, Sox9 inhibits Activin A to promote biliary maturation and branching morphogenesis. Nature Communications 16, 1667 (2025).</p>
+<p>I. A. Ziogas, K. R. Conover, E. Dobrinskikh, S. I. Al-Juboori, K. D. Gromer, P. Malladi, C. J. Wright, R. J. Sokol, T. Andrews, S. A. Taylor, Spatial transcriptomics supports a role for SOX4-driven signaling throughout the disease course of biliary atresia. Hepatol Commun 10, (2026).</p>
+<p>K. R. Mysore, B. L. Shneider, S. Harpavat, Biliary Atresia as a Disease Starting In Utero. J. Pediatr. Gastroenterol. Nutr. 69, 396-403 (2019).</p>
+<p>S. Harpavat, M. J. Finegold, S. J. Karpen, Patients with biliary atresia have elevated direct/conjugated bilirubin levels shortly after birth. Pediatrics 128, e1428-1433 (2011).</p>
+<p>W. M. Association, World Medical Association Declaration of Helsinki: Ethical Principles for Medical Research Involving Human Participants. JAMA 333, 71-74 (2025).</p>
+<p>H. M. Moore, A. B. Kelly, S. D. Jewell, L. M. McShane, D. P. Clark, R. Greenspan, D. F. Hayes, P. Hainaut, P. Kim, E. A. Mansfield, O. Potapova, P. Riegman, Y. Rubinstein, E. Seijo, S. Somiari, P. Watson, H.-U. Weier, C. Zhu, J. Vaught, Biospecimen reporting for improved study quality (BRISQ). Cancer Cytopathol. 119, 92-102 (2011).</p>
+<p>L. Tosti, Y. Hang, O. Debnath, S. Tiesmeyer, T. Trefzer, K. Steiger, F. W. Ten, S. Lukassen, S. Ballke, A. A. Kühl, S. Spieckermann, R. Bottino, N. Ishaque, W. Weichert, S. K. Kim, R. Eils, C. Conrad, Single-Nucleus and In Situ RNA-Sequencing Reveal Cell Topographies in the Human Pancreas. Gastroenterology 160, 1330-1344.e1311 (2021).</p>
+<p>S. J. Fleming, M. D. Chaffin, A. Arduini, A. D. Akkad, E. Banks, J. C. Marioni, A. A. Philippakis, P. T. Ellinor, M. Babadi, Unsupervised removal of systematic background noise from droplet-based single-cell experiments using CellBender. Nat Methods 20, 1323-1335 (2023).</p>
+<p>I. Korsunsky, N. Millard, J. Fan, K. Slowikowski, F. Zhang, K. Wei, Y. Baglaenko, M. Brenner, P.-r. Loh, S. Raychaudhuri, Fast, sensitive and accurate integration of single- cell data with Harmony. Nature Methods 16, 1289-1296 (2019).</p>
+<p>C. S. McGinnis, L. M. Murrow, Z. J. Gartner, DoubletFinder: Doublet Detection in Single-Cell RNA Sequencing Data Using Artificial Nearest Neighbors. Cell Syst 8, 329- 337.e324 (2019).</p>
+<p>S. A. MacParland, J. C. Liu, X.-Z. Ma, B. T. Innes, A. M. Bartczak, B. K. Gage, J. Manuel, N. Khuu, J. Echeverri, I. Linares, R. Gupta, M. L. Cheng, L. Y. Liu, D. Camat, S. W. Chung, R. K. Seliga, Z. Shao, E. Lee, S. Ogawa, M. Ogawa, M. D. Wilson, J. E. Fish, M. Selzner, A. Ghanekar, D. Grant, P. Greig, G. Sapisochin, N. Selzner, N. Winegarden, O. Adeyi, G. Keller, G. D. Bader, I. D. McGilvray, Single cell RNA sequencing of human liver reveals distinct intrahepatic macrophage populations. Nature Communications 9, 4383 (2018).</p>
+<p>P. Ramachandran, R. Dobie, J. R. Wilson-Kanamori, E. F. Dora, B. E. P. Henderson, N. T. Luu, J. R. Portman, K. P. Matchett, M. Brice, J. A. Marwick, R. S. Taylor, M. Efremova, R. Vento-Tormo, N. O. Carragher, T. J. Kendall, J. A. Fallowfield, E. M. Harrison, D. J. Mole, S. J. Wigmore, P. N. Newsome, C. J. Weston, J. P. Iredale, F. Tacke, J. W. Pollard, C. P. Ponting, J. C. Marioni, S. A. Teichmann, N. C. Henderson, Resolving the fibrotic niche of human liver cirrhosis at single-cell level. Nature 575, 512-518 (2019).</p>
+<p>D.-M. Popescu, R. A. Botting, E. Stephenson, K. Green, S. Webb, L. Jardine, E. F. Calderbank, K. Polanski, I. Goh, M. Efremova, M. Acres, D. Maunder, P. Vegh, Y. Gitton, J.-E. Park, R. Vento-Tormo, Z. Miao, D. Dixon, R. Rowell, D. McDonald, J. Fletcher, E. Poyner, G. Reynolds, M. Mather, C. Moldovan, L. Mamanova, F. Greig, M. D. Young, K. B. Meyer, S. Lisgo, J. Bacardit, A. Fuller, B. Millar, B. Innes, S. Lindsay, M. J. T. Stubbington, M. S. Kowalczyk, B. Li, O. Ashenberg, M. Tabaka, D. Dionne, T. L. Tickle, M. Slyper, O. Rozenblatt-Rosen, A. Filby, P. Carey, A.-C. Villani, A. Roy, A. Regev, A. Chédotal, I. Roberts, B. Göttgens, S. Behjati, E. Laurenti, S. A. Teichmann, M. Haniffa, Decoding human fetal liver haematopoiesis. Nature 574, 365- 371 (2019).</p>
+<p>B. T. Wesley, A. D. B. Ross, D. Muraro, Z. Miao, S. Saxton, R. A. Tomaz, C. M. Morell, K. Ridley, E. D. Zacharis, S. Petrus-Reurer, J. Kraiczy, K. T. Mahbubani, S. Brown, J. Garcia-Bernardo, C. Alsinet, D. Gaffney, D. Horsfall, O. C. Tysoe, R. A. Botting, E. Stephenson, D. M. Popescu, S. MacParland, G. Bader, I. D. McGilvray, D. Ortmann, F. Sampaziotis, K. Saeb-Parsy, M. Haniffa, K. R. Stevens, M. Zilbauer, S. A. Teichmann, L. Vallier, Single-cell atlas of human liver development reveals pathways directing hepatic cell fates. Nat. Cell Biol. 24, 1487-1498 (2022).</p>
+<p>E. Dann, N. C. Henderson, S. A. Teichmann, M. D. Morgan, J. C. Marioni, Differential abundance testing on single-cell data using k-nearest neighbor graphs. Nat. Biotechnol. 40, 245-253 (2022).</p>
+<p>G. La Manno, R. Soldatov, A. Zeisel, E. Braun, H. Hochgerner, V. Petukhov, K. Lidschreiber, M. E. Kastriti, P. Lönnerberg, A. Furlan, J. Fan, L. E. Borm, Z. Liu, D. van Bruggen, J. Guo, X. He, R. Barker, E. Sundström, G. Castelo-Branco, P. Cramer, I. Adameyko, S. Linnarsson, P. V. Kharchenko, RNA velocity of single cells. Nature 560, 494-498 (2018).</p>
+<p>S. Jin, M. V. Plikus, Q. Nie, CellChat for systematic analysis of cell-cell communication from single-cell transcriptomics. Nat. Protoc. 20, 180-219 (2025).</p>
+<p>G. Yu, L. G. Wang, Y. Han, Q. Y. He, clusterProfiler: an R package for comparing biological themes among gene clusters. OMICS 16, 284-287 (2012).</p>
+<p>A. Archit, L. Freckmann, S. Nair, N. Khalid, P. Hilt, V. Rajashekar, M. Freitag, C. Teuber, M. Spitzner, C. Tapia Contreras, G. Buckley, S. von Haaren, S. Gupta, M. Grade, M. Wirth, G. Schneider, A. Dengel, S. Ahmed, C. Pape, Segment Anything for Microscopy. Nature Methods 22, 579-591 (2025).</p>
+<p>X. Qiu, D. Y. Zhu, Y. Lu, J. Yao, Z. Jing, K. H. Min, M. Cheng, H. Pan, L. Zuo, S. King, Q. Fang, H. Zheng, M. Wang, S. Wang, Q. Zhang, S. Yu, S. Liao, C. Liu, X. Wu, Y. Lai, S. Hao, Z. Zhang, L. Wu, Y. Zhang, M. Li, Z. Tu, J. Lin, Z. Yang, Y. Li, Y. Gu, D. Ellison, Y. Ryan Lu, Q. Hu, Y. Hu, A. Chen, L. Liu, J. S. Weissman, J. Ma, X. Xu, S. Liu, Y. Bai, Spatiotemporal modeling of molecular holograms. Cell 187, 7351- 7373.e7361 (2024).</p>
+<p>F. A. Wolf, P. Angerer, F. J. Theis, SCANPY: large-scale single-cell gene expression data analysis. Genome Biol. 19, 15 (2018).</p>
+<p>G. Palla, H. Spitzer, M. Klein, D. Fischer, A. C. Schaar, L. B. Kuemmerle, S. Rybakov, I. L. Ibarra, O. Holmberg, I. Virshup, M. Lotfollahi, S. Richter, F. J. Theis, Squidpy: a scalable framework for spatial omics analysis. Nature Methods 19, 171-178 (2022).</p>
+<p>S. Fang, M. Xu, L. Cao, X. Liu, M. Bezulj, L. Tan, Z. Yuan, Y. Li, T. Xia, L. Guo, V. Kovacevic, J. Hui, L. Guo, C. Liu, M. Cheng, L. a. Lin, Z. Wen, B. Josic, N. Milicevic, P. Qiu, Q. Lu, Y. Li, L. Wang, L. Hu, C. Zhang, Q. Kang, F. Chen, Z. Deng, J. Li, M. Li, S. Li, Y. Zhao, G. Fan, Y. Zhang, A. Chen, Y. Li, X. Xu, Stereopy: modeling comparative and spatiotemporal cellular heterogeneity via multi-sample spatial transcriptomics. Nature Communications 16, 3741 (2025).</p>
+<p>J. Lause, P. Berens, D. Kobak, Analytic Pearson residuals for normalization of single- cell RNA-seq UMI data. Genome Biol. 22, 258 (2021).</p>
+<p>D. M. Cable, E. Murray, L. S. Zou, A. Goeva, E. Z. Macosko, F. Chen, R. A. Irizarry, Robust decomposition of cell type mixtures in spatial transcriptomics. Nat. Biotechnol. 40, 517-526 (2022).</p>
+<p>B. Franco Leonardi, G. Yin, N. Amiridze, T. Lan, Y. Ait Ahmed, H. Berger, F. Tacke, M. S. Kohlhepp, A. Guillot, Unified platform for multiplex immunofluorescence across liver tissues and engineered models. eGastroenterology 4, e100379 (2026).</p>
+<p>A. Guillot, M. Winkler, M. Silva Afonso, A. Aggarwal, D. Lopez, H. Berger, M. S. Kohlhepp, H. Liu, B. Özdirik, J. Eschrich, J. Ma, M. Peiseler, F. Heymann, S. Pendem, S. Mahadevan, B. Gao, L. Diehl, R. Gupta, F. Tacke, Mapping the hepatic immune landscape identifies monocytic macrophages as key drivers of steatohepatitis and cholangiopathy progression. Hepatology 78, 150-166 (2023).</p>
+<p>R. Hägerling, C. Pollmann, M. Andreas, C. Schmidt, H. Nurmi, R. H. Adams, K. Alitalo, V. Andresen, S. Schulte-Merker, F. Kiefer, A novel multistep mechanism for initial lymphangiogenesis in mouse embryos based on ultramicroscopy. EMBO J. 32, 629-644 (2013).</p>
+<p>L. Broutier, A. Andersson-Rolf, C. J. Hindley, S. F. Boj, H. Clevers, B. K. Koo, M. Huch, Culture and establishment of self-renewing human and mouse adult liver and pancreas 3D organoids and their genetic manipulation. Nat. Protoc. 11, 1724-1743 (2016).</p>
+<p>M. Huch, H. Gehart, R. van Boxtel, K. Hamer, F. Blokzijl, Monique M. A. Verstegen, E. Ellis, M. van Wenum, Sabine A. Fuchs, J. de Ligt, M. van de Wetering, N. Sasaki, Susanne J. Boers, H. Kemperman, J. de Jonge, Jan N. M. Ijzermans, Edward E. S. Nieuwenhuis, R. Hoekstra, S. Strom, Robert R. G. Vries, Luc J. W. van der Laan, E. Cuppen, H. Clevers, Long-Term Culture of Genome-Stable Bipotent Stem Cells from Adult Human Liver. Cell 160, 299-312 (2015).</p>
+<p>N. Li, R. Wei, Y. Yuan, M. Deng, Y. Hu, C. W. Cheng, J. Yang, W. I. Ho, K. W. Au, Y. L. Tse, F. Li, X. Wu, Y. M. Lau, S. Liao, S. Ma, P. Liu, K. M. Ng, M. A. Esteban, H. F. Tse, Enhancement of hepatic differentiation from induced pluripotent stem cells by suppressing epithelial-mesenchymal transition. Hepatol Commun 9, (2025).</p>
+<p>N. Beier, M. Kucklick, S. Fuchs, A. Mustafayeva, M. Behringer, E. Härtig, D. Jahn, S. Engelmann, Adaptation of Dinoroseobacter shibae to oxidative stress and the specific role of RirA. PLoS One 16, e0248865 (2021).</p>
+<p>M. F. Lerch, S. M. K. Schoenfelder, G. Marincola, F. D. R. Wencker, M. Eckart, K. U. Förstner, C. M. Sharma, K. M. Thormann, M. Kucklick, S. Engelmann, W. Ziebuhr, A non-coding RNA from the intercellular adhesion (ica) locus of Staphylococcus epidermidis controls polysaccharide intercellular adhesion (PIA)-mediated biofilm formation. Mol. Microbiol. 111, 1571-1591 (2019).</p>
+<p>B. Schwanhäusser, D. Busse, N. Li, G. Dittmar, J. Schuchhardt, J. Wolf, W. Chen, M. Selbach, Global quantification of mammalian gene expression control. Nature 473, 337- 342 (2011).</p>
+<p>explants measured liver-derived CCL21. D: Treatment of iPSC-derived hepatocytes with BA CM and pI:C- primed PBMC CM. Graph shows mean±SD of fold change up-/downregulation of CCR7. E: Treatment of ICOs with non-BA and BA CM. Graphs show mean±SD of fold change up-/downregulation of MMP7. F: Treatment of ICOs with non-BA and BA CM +/-CCL21-antibody. Graphs show mean±SD of fold change up-/downregulation of MMP7. G: Graphical summary of the proposed mechanisms underlying mild versus severe BA. A-F: One-way ANOVA results are only indicated if p&lt;0.05.</p>
 </div>
 </details>
 </div>
