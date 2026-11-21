@@ -195,7 +195,7 @@ MetaCheck Report
 Uncovering Distinct Phenotypes of Early Onset Heart Failure in Women
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.04.26367323
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.04.26367323
 </p>
 </header>
 <div class="mc-main">
@@ -322,8 +322,8 @@ ethics approval statement.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 13 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 13 detected.</p>
 </div>
 </div>
 </div>
@@ -408,8 +408,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -766,9 +767,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -790,7 +795,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -805,9 +811,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -820,13 +844,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -846,6 +873,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -853,12 +886,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -959,6 +998,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -978,6 +1037,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1233,19 +1327,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1355,6 +1531,134 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>We would like to thank the patients of the Johns Hopkins Health System and participants of the All of Us cohort for access to their de-identified data.</p>
+<h3>INTRODUCTION</h3>
+<p>Heart failure (HF) remains a major cause of mortality and morbidity among women, 1 affecting 3 million women in the US alone. 2 Recent data show that even though overall cardiovascular disease mortality has declined, heart failure mortality rates and hospitalization are rising among women under 55 years. 3, 4 Despite this prevalence, women have traditionally been poorly represented in randomized controlled clinical trials. [5] [6] [7] Moreover, in younger women, pregnancy comprises a common condition, during which women are typically excluded entirely from trials and clinical studies, further reducing representation in evidence generation. This gap is especially relevant in the context of sex-based differences in epidemiology, pathophysiology, and therapies for heart failure. [8] [9] [10] Biological differences in sex hormones may contribute to modulation of renin-angiotensin-aldosterone, endothelial function, and inflammation. 11 Women experience unique life-course exposures, such as adverse pregnancy outcomes, 12, 13 premature menopause, and autoimmune diseases, that are not captured by sex-neutral cardiovascular risk stratification tools. 8, 14, 15 In addition, although absolute risk of heart failure is higher in older populations, the attributable risk of modifiable risk factors like obesity, hypertension, and diabetes is higher in younger adults (&lt;55 years), 2, 16 prompting the need to study and classify earlyonset heart failure. However, this has been frequently limited due to over-reliance on conventional frameworks centered around ejection fraction (EF) [17] [18] [19] [20] and etiology. [21] [22] [23] Unsupervised clustering algorithms have been used to identify novel phenotypes, uncovering latent data-driven groups that may not be apparent with hypothesis-driven models, offering a unique opportunity to better classify heart failure in younger women.</p>
+<p>However, prior work in phenotype development in heart failure performs clustering on small sample sizes, 24, 25 male-predominant datasets, [24] [25] [26] [27] and cohorts with median age above 65 years, [24] [25] [26] [27] [28] with limited inclusion of younger women. Few prior clustering studies have established external validity of the phenotypes, thereby raising concerns about data driven biases (i.e. clinical practice and data entry patterns) and limiting their potential utility in understanding the disease.</p>
+<p>Electronic health records (EHRs) present an opportunity to overcome evidence gaps through a wealth of detailed data, particularly in pregnancy through increased healthcare contact. These data enable real-world evidence generation that may better capture broader population heterogeneity and be replicable at scale for assessing transportability and external validity. Specifically, the Observational Health Data Sciences and Informatics (OHDSI) community has facilitated evidence generation through developing standardized methods for network analysis and federated learning through use of the Observational Medical Outcomes Partnerships (OMOP) Common Data Model (CDM) and standardized vocabularies for data harmonization. 29 Importantly, CDMs like OMOP provide more usable datasets for reproducing and evaluating external validity of site-specific studies.</p>
+<p>In the present study, we aimed to identify and characterize data-driven phenotypes of heart failure among young women, employing unsupervised machine learning for clustering. Secondarily, we aimed to evaluate the prognostic implications of the identified phenotypes for incident outcomes, including hospitalization and urgent visits.</p>
+<p>To enhance the generalizability and validity of these objectives, we leverage real world EHR data, harmonized using the OMOP CDM, across a large multi-hospital health system, with external validation in the geographically diverse, national All of Us cohort.</p>
+<h3>METHODS</h3>
+<h3>Dataset</h3>
+<p>Primary analysis was conducted on de-identified longitudinal EHR data, encompassing &gt;2 million patients in the Johns Hopkins Health System (JHHS), from 2016 through 2026. The JHHS OMOP CDM database was used, which organizes patient information into clinical domains, including conditions, drug exposures, measurements, procedures, and observations. The study was approved by the Johns Hopkins Institutional Review Board (IRB00501176). The lead author had access to all data and takes responsibility for integrity of the data and analysis.</p>
+<h3>Cohort Inclusion Criteria</h3>
+<p>The cohort consisted of adult women aged 18-55 years diagnosed with heart failure.</p>
+<p>The Universal Definition of Heart Failure 30 was used to determine cohort inclusion, requiring a standardized heart failure diagnosis code (Systematized Nomenclature of Medicine (SNOMED) code = 316139) with either an elevated NT-proBNP level (≥125 pg/mL) or symptoms and signs of heart failure six months prior to the index date, defined as the date of the first heart failure diagnosis code. Patients were excluded if they had no outpatient encounter documented more than six months before the index date.</p>
+<h3>Feature Engineering</h3>
+<p>Patient cohorts were defined using the OHDSI FeatureExtraction R package. 31 A prespecified set of 261 features across five domains (conditions, observations, measurements, drugs, procedures) was prepared (Tables S1-S4). Descendent concepts were included using the OMOP CDM vocabularies (version 5.4). Patients were randomly assigned to train or test sets at 80% (n=1,125) and 20% (n=282), respectively.</p>
+<p>Continuous measurements were robustly standardized as (value -median) / IQR and clipped to ±4 to mitigate extreme outliers and measurement errors, with the median and IQR fit exclusively on the training set. Patient conditions, procedures, and observations were included from any time before the index date. Medications were included within two years prior to the index date. Measurement values represented the most recent measurement in the one year window preceding the index date. Using all concept ancestors and a minimum prevalence of 0.01 (calculated from the training set alone), 283 features were ultimately included (Table S4).</p>
+<h3>Clustering</h3>
+<p>Given the high-dimensionality of EHR data, we used variational deep embedding (VaDE), an unsupervised clustering approach that integrates dimensionality reduction with probabilistic clustering. 32, 33 VaDE uses a variational autoencoder to learn a lowerdimensional representation of patient characteristics while modeling the latent distribution as a mixture of Gaussian components, allowing patients to be grouped according to multivariable patterns that may not be captured by individual clinical characteristics or linear relationships. We adapted the architecture to accommodate mixed binary and continuous clinical features and incorporated missingness masks to distinguish unobserved measurements from observed values.</p>
+<p>Patients were assigned to clusters according to the posterior probability of membership in the learned Gaussian mixture components. Clinical labels were subsequently assigned through expert clinical interpretation of cluster-specific feature enrichment and descriptive characteristics. Further details on the clustering architecture are presented in the supplementary methods.</p>
+<h3>Hyperparameters and Evaluation</h3>
+<p>Patients were randomly partitioned into a training (80%, n=1,125) and hold-out test set (20%, n=282). Model weights were fit on the training set only, and the scaling and imputation parameters for continuous measurements were likewise estimated from training data alone. Model hyperparameters, including the dimensionality of the latent representation and number of Gaussian mixture components, were optimized using Bayesian optimization in the Optuna framework. 33 Hyperparameter selection considered two competing objectives: minimizing the variational autoencoder loss on the hold-out set and maximizing the average silhouette score. Candidate configurations were evaluated along the Pareto frontier to identify solutions balancing representation quality and cluster separation. The held-out set was also used to determine early stopping during training.</p>
+<p>Reconstruction performance of the final model was evaluated on the hold-out set separately for binary and continuous features. Because binary features were sparse (7.0% of entries positive), accuracy was not informative; we instead report the area under the receiver operating characteristic curve (AUROC), the area under the precision-recall curve (AUPRC), and precision, recall, and F1 score for positive values, with reconstructed probabilities of 0.5 or greater classified as positive. Continuous features were evaluated on observed values only, using mean absolute error (MAE), root mean squared error (RMSE), the coefficient of determination (R²), and Pearson correlation, and were compared with a baseline that predicts each feature&#x27;s training-set mean. Metrics were computed both pooled across all entries and as the median across features. To assess the robustness and validity of cluster assignments, we performed 100 bootstrap-based clustering evaluations and quantified agreement using the adjusted Rand index (ARI). Final model hyperparameters and metrics are reported in Table S5.</p>
+<h3>Posthoc Clustering Explanations</h3>
+<p>We trained a supervised eXtreme Gradient Boosting (XGBoost) model 34 to predict cluster labels from the unsupervised model using the original 283-feature dataset. SHapley Additive exPlanations (SHAP) analysis was then used to quantify feature importances and contribution of individual features as previously described. 35 The XGBoost model was trained on a 1,126 patient randomized dataset with evaluation metrics derived from the remaining 281-patient test set. The final F1 score is reported as the size weighted average across all clusters. Additionally, in order to descriptively characterize cluster-specific feature enrichment, we calculated log odds ratios for binary features and standardized mean differences (SMDs) for continuous features.</p>
+<h3>Risk Assessment and Survival Analysis</h3>
+<p>We evaluated the association between cluster membership and subsequent healthcare utilization using Kaplan-Meier survival estimates and Cox proportional hazards regression. Four outcomes were examined: time from the heart failure index date to first inpatient admission, first emergency department (ED) visit, a composite first occurrence of either event, and mortality. Follow-up extended from the heart failure index date to either the first qualifying event or last observed clinical encounter.</p>
+<p>Cox proportional hazards models were stratified by age quartiles determined at the heart failure index date, with the largest cluster serving as the reference group.</p>
+<p>Proportional hazards assumptions were assessed using Schoenfeld residuals. Kaplan-Meier curves were generated to estimate event-free survival over the follow-up period.</p>
+<p>In a secondary analysis, patients were classified by heart failure subtype using ICD-10-CM diagnoses mapped to OMOP concepts (Table S6). Systolic or combined heart failure codes defined heart failure with reduced ejection fraction (HFrEF), while diastolic heart failure or right-sided heart failure defined heart failure with preserved ejection fraction (HFpEF). Patients without qualifying subtype codes were excluded for subtype analyses. Age-adjusted Cox models evaluated cluster-associated mortality and subsequent hospitalization within subtypes, with pooled estimates stratified by subtype.</p>
+<h3>External Validation and Independent Replication in All of Us</h3>
+<p>We evaluated the external validity and reproducibility of JHHS-derived heart failure phenotypes using the independent All of Us cohort through two complementary approaches: external model transfer and independent clustering. For both approaches, we applied the same cohort definition and feature extraction across JHHS and All of Us cohorts. All of Us data are standardized to the OMOP CDM (v5.4). Cohort extraction was performed via BigQuery queries against the All of Us Controlled Tier Curated Data Repository. Features represented in fewer than 10 patients were dropped. Missingness was handled by imputing the JHHS training mean when a measurement had no recorded value.</p>
+<p>For independent replication, a separate VaDE model was trained. The number of clusters was fixed to match JHHS, while remaining hyperparameters were optimized following the primary (JHHS) analysis approach (Table S7). Patients were assigned to the phenotype with the highest posterior membership probability. Cluster stability was evaluated across five random seeds using an 80/20 training-testing split. Agreement between independently derived and transferred cluster assignments was assessed using ARI and cluster-level Jaccard similarity. Survival analysis was similarly performed in All of Us for subsequent hospitalization. Mortality analyses were not repeated in All of Us, given prevalence limiting stable model fit.</p>
+<h3>RESULTS</h3>
+<p>The final cohort was comprised of 1407 young women (median age 45 [IQR 37-52] years) with heart failure (Figure 1). The majority of patients identified as African American (n=781, 55.5%) followed by White (n=490, 34.8%). Obesity was common, with median BMI 31.7 kg/m² and 52.0% with an obesity diagnosis. Blood pressure was generally within the normal range (median 114/65 mmHg). Median hemoglobin was low at 10.3 g/dL, and median eGFR was 82.8 mL/min per 1.73 m². Anemia was the most frequent comorbidity (67.0%), followed by hyperlipidemia (37.1%), type 2 diabetes (33.8%) and chronic kidney disease (27.9%). Pregnancy-related conditions were also prevalent, with 9.5% with a high-risk pregnancy and 4.3% with pre-eclampsia (Table 1, Table S8). Following VAE fitting, the optimized model used 10 latent dimensions and partitioned patients into four clusters. The resulting clustering solution maintained a bootstrap ARI of 0.65±0.02 and an average silhouette score of 0.45 across all clusters.</p>
+<p>On the hold-out test set, the model reconstructed binary features with a cluster size weighted average AUROC of 0.80 and an AUPRC of 0.24 (against a positive prevalence of 0.07). For continuous features, it achieved an MAE of 0.63 and R² of 0.23, compared with an MAE of 0.71 for the training-mean baseline (Table S5).</p>
+<h3>Cluster Characterization</h3>
+<p>Following expert review of cluster characteristics by a cardiologist, clusters were determined as: hypertensive pregnancy (n=494), cardiorenal (n=276), autoimmune (n=394), and cardiometabolic-ischemic (n=243).</p>
+<p>The hypertensive pregnancy cluster was the largest and youngest (median age 43.0 years, IQR [35, 50]), with the second highest prevalence of obesity (n=261, 53% of the cluster). This cluster was enriched for pregnancy-related outcomes, including preeclampsia (n=48, 10% of cluster) and high-risk pregnancy (n=89, 18% of cluster).</p>
+<p>The cardiorenal cluster was primarily characterized by reduced renal function, with lower eGFR (median 15.5 mL/min per 1.73 m 2 [IQR 8.1-30.0]) and elevated serum creatinine (median 3.68 mg/dL, IQR [2.08, 6.10]). The majority of the cluster (91%) had a diagnosis of chronic kidney disease.</p>
+<p>The autoimmune cluster had the highest proportion of patients with autoimmune disease, particularly systemic lupus erythematosus (n=54, 14% of cluster). This cluster also had the greatest proportion of individuals with pulmonary hypertension and sickle cell disease.</p>
+<p>The cardiometabolic-ischemic cluster had the highest body mass index (BMI) (median 36.8 kg/m 2 , IQR [29.8, 45.1]) and within cluster prevalence of type 2 diabetes (66%), obesity (72%), and myocardial infarction (36%). Distributions of key features and relative prevalence within each cluster are displayed in Figure 2, panels A-B.</p>
+<h3>Post-hoc Model Explanation and Validation</h3>
+<p>Feature contribution analysis, using XGBoost to predict individual cluster membership, achieved an F1 score of 0.77 and an average, one-against-all, average AUC-ROC of 0.94. Cluster AUC-ROC ranged from 0.90 for the cardiometabolic-ischemic cluster to 0.99 for the cardiorenal cluster. Using the mean absolute SHAP values across all patients, we noted that the most influential feature was serum creatinine, which predicted mostly for cardiorenal cluster membership (Figure S1). Feature importance was consistent with cluster identities as descriptively determined.</p>
+<p>Per-patient per-feature SHAP values were also computed per cluster for the patient with the highest assignment probability (Figure 3). The features most influencing cluster assignment were prior preeclampsia diagnosis and prior ethinyl estradiol prescription for hypertensive pregnancy cluster, high creatinine and end-stage renal disease diagnosis for the cardiorenal cluster, pancytopenia with depressed platelet counts for the autoimmune cluster, and history of aortocoronary bypass graft and ST segment elevation myocardial infarction for the cardiometabolic-ischemic cluster.</p>
+<h3>Stratified Risk for Rehospitalization</h3>
+<p>Hazard analyses were conducted using the hypertensive pregnancy cluster as reference. 807 inpatient all-cause subsequent hospitalization events occurred among 1406 patients (57.4%), over median 1.2 years of follow-up. The cardiorenal cluster had the greatest HR at 2.86 (95% CI 2.35-3.49, p&lt;0.001), followed by autoimmune at 2.25 (95%CI 1.87-2.70, p&lt;0.001) and cardiometabolic-ischemic at 1.55 (95% CI 1.25-1.92, p&lt;0.001). For ED only, 590 events occurred among 1406 patients (42.0%). The cardiometabolic-ischemic cluster had the greatest risk with HR 1.50 (95%CI 1.20-1.89, p&lt;0.001), followed by cardiorenal at 1.33 (95%CI 1.06-1.66, p= 0.013), and autoimmune at 0.80 (95%CI 0.64-1.00, p=0.052) (Figure 4A). For the composite inpatient and ED outcome, 959 events occurred among 1406 patients (68.2%). The cardiorenal cluster had HR 2.00 (95% CI 1.67-2.39, p&lt;0.001), followed by autoimmune at 1.52 (95% CI 1.29-1.79, p&lt;0.001) and cardiometabolic-ischemic at 1.38 (95% CI 1.13-1.67, p&lt;0.001) (Figure 4A, Figure S2).</p>
+<h3>Mortality Analysis</h3>
+<p>A total of 279 deaths occurred (19.8% of the cohort). Compared to the reference hypertensive pregnancy cluster, the cardiorenal cluster had HR 4.65 (95% CI 3.17-6.82, p&lt;0.001), the autoimmune cluster had HR 4.38 (95% CI 3.03-6.31, p&lt;0.001) and the cardiometabolic-ischemic cluster had HR 1.75 (95% CI 1.10-2.78, p=0.018). Kaplan-Meier mortality curves are shown in Figure S3. When stratified by heart failure type, the elevated risks of mortality and all-cause subsequent hospitalization in the cardiorenal and autoimmune phenotypes were consistent among patients with HFpEF and HFrEF (Figure 4B).</p>
+<h3>Validation in the All of Us Cohort</h3>
+<p>The All of Us cohort included 682 young women with heart failure, with 266 of 283 JHHS-derived features (94%) available for analysis (Figure S4). Application of the JHHS-trained model to All of Us yielded four clusters that broadly preserved the clinical characteristics observed in the derivation cohort, although their relative prevalence and degree of feature enrichment differed (Table S9). The transferred solution had a mean silhouette score of 0.31.</p>
+<p>The hypertensive pregnancy phenotype retained enrichment for pregnancy-induced hypertension and preeclampsia; the cardiorenal phenotype remained characterized by chronic kidney disease, end-stage renal disease, anemia of chronic kidney disease, and reduced eGFR; the autoimmune phenotype retained enrichment for systemic lupus erythematosus, pulmonary hypertension, sickle cell disease, and pulmonary embolism; and the cardiometabolic-ischemic phenotype remained enriched for obesity, diabetes, and hyperlipidemia (Figure 5; Figure S5).</p>
+<p>In the independent de novo clustering analysis, correspondence was strongest for the cardiorenal phenotype, with 85% overlap with the transferred cardiorenal cluster (Jaccard index, 0.744), whereas pregnancy-related, autoimmune, and cardiometabolic features were distributed less consistently across the remaining clusters (ARI 0.234; adjusted mutual information 0.286; Table S10; Figures S6-S7).</p>
+<p>Despite these differences in de novo cluster structure, the transferred phenotypes continued to inform subsequent hospitalization in All of Us. Compared with the cardioobstetric phenotype, the cardiorenal phenotype had the highest risk of subsequent inpatient hospitalization (HR 1.71 [95%CI 1.24-2.36]), while the cardiometabolicischemic phenotype was associated with increased risk of inpatient hospitalization (HR 1.62 [95%CI 1.17-2.23]), ER utilization (HR 1.60 [95%CI 1.22-2.11]), and the composite outcome (HR 1.58 [95%CI 1.22-2.06]) (Figures S8-S9).</p>
+<p>Detailed characteristics of the transferred phenotypes are provided in Table S9 and Figure 5.</p>
+<h3>DISCUSSION</h3>
+<p>In this real-world study of young women with heart failure, unsupervised learning of the EHR-identified four clinically distinct phenotypes characterized by hypertensive pregnancy, cardiorenal, autoimmune, and cardiometabolic-ischemic features. Three findings are particularly notable. First, two of the four phenotypes were organized around conditions that uniquely or disproportionately affect women, specifically hypertensive disorders of pregnancy and autoimmune disease. These conditions have rarely emerged as defining characteristics in prior heart failure phenotyping studies conducted largely in older or mixed-sex populations. [36] [37] [38] [39] Second, phenotype membership was associated with divergent risks of subsequent hospitalization and mortality. Third, distinct phenotypes were identified with differing risks for subsequent hospitalization and mortality, despite similar distribution of HFrEF and HFpEF, suggesting that EF alone may incompletely characterize early-onset heart failure in women. Finally, distinguishing features among clusters remained present with transfer of the institutionally derived model to the multicenter All of Us cohort. Together, these findings suggest that heart failure in younger women may represent a clinical syndrome arising through several life-course and systemic disease pathways, rather than a single disease process.</p>
+<p>The emergence of a distinct hypertensive pregnancy phenotype is particularly important. This was the largest and youngest group and was enriched for high-risk pregnancy and obesity. Hypertensive disorders of pregnancy are increasingly recognized as markers of premature cardiovascular disease, and recent longitudinal studies have demonstrated associations between adverse pregnancy outcomes and subsequent heart failure. 12 However, pregnancy history has rarely been incorporated into prior heart failure phenotyping studies. [36] [37] [38] Women in this group experienced the lowest subsequent hospitalization and mortality risk compared with the other phenotypes. However, this should not be interpreted as indicating low absolute cardiovascular risk, as all participants had established heart failure. This phenotype may identify women in whom heart failure occurs earlier in the life course with unique, modifiable risk factors for developing renal, inflammatory, or ischemic comorbidities.</p>
+<p>Longitudinal studies beginning before heart failure onset will be needed to determine whether this group represents an earlier stage along a cardiometabolic-HFpEF trajectory or a mechanistically separate pathway to heart failure.</p>
+<p>The autoimmune phenotype represents another potentially important pathway to early heart failure in women. This cluster was enriched for systemic lupus erythematosus, rheumatoid arthritis, pulmonary hypertension, sickle cell disease, anemia, and hematologic abnormalities. Women bear a disproportionate burden of many systemic autoimmune diseases, and growing evidence links chronic immune activation, endothelial dysfunction, and myocardial inflammation to HFpEF, independent of traditional cardiovascular risk factors. 40 Although we cannot establish causal mechanisms in the current study, these findings support inclusion of autoimmune history into heart failure risk assessment and phenotyping in women.</p>
+<p>The cardiorenal cluster and cardiometabolic-ischemic clusters are consistent with prior heart failure phenotyping studies. 36, 38 The cardiorenal phenotype was characterized by renal dysfunction, whereas the cardiometabolic-ischemic phenotype had the highest prevalence of obesity, type 2 diabetes and coronary artery disease. Notably, prior clustering studies in older heart failure populations have often identified broader multimorbidity or metabolic-vascular groups in which renal, metabolic, microvascular dysfunction, and vascular disease coexist. 36 The separation of these conditions into renal-dominant and ischemic-metabolic phenotypes in the present cohort may reflect the younger population studied, before extensive age-related multimorbidity obscures distinct disease pathways, as well as the broader clinical feature space used for clustering.</p>
+<p>External analyses replicating the cluster phenotypes in All of Us provide additional insight. When the institutionally-trained model was applied directly, the principal clinical features of all four phenotypes remained consistent, and clusters remained distinct with observable differences in hospitalization risk. The cardiorenal phenotype presented with higher inpatient admission risk and the cardiometabolic-ischemic phenotype demonstrated increased inpatient, ER, and composite utilization. Together, these analyses support the transportability and prognostic relevance of the JHHS-derived phenotypes, although their partial correspondence with independently derived clusters suggests that the underlying cluster structure varies across populations. This is important because many prior heart failure clustering studies have been derived and evaluated within a single cohort, limiting inference regarding generalizability. This study did not completely reproduce the JHHS derived clusters in All of Us through de novo analysis. Correspondence was strongest for the cardiorenal phenotype, whereas pregnancy-related, autoimmune, and metabolic features were distributed less consistently across independently derived clusters. This distinction between transportability and exact reproducibility is informative. Severe renal dysfunction may constitute a more stable axis of heart failure heterogeneity across populations, while hypertensive pregnancy and autoimmune phenotypes may be more sensitive to differences in population composition, health-system contact, coding practices, reproductive history capture, or feature prevalence. Several limitations should be considered. First, the study was observational and based on routinely collected EHR data. Therefore, diagnoses and exposures were dependent on clinical documentation and health-system contact, and measurements may reflect healthcare utilization patterns instead of true prevalence. Second, the clusters should be interpreted as data-derived phenotypes rather than causal disease subtypes. Third, unmeasured social, environmental, and structural determinants of health may contribute importantly to early-onset heart failure and should be incorporated into future phenotyping studies. Finally, more complete echocardiographic characterization was not available but may be important for biological refinement of these phenotypes.</p>
+<p>Overall, these findings have implications for conceptualization of heart failure in young women. Current classification systems appropriately emphasize EF given benefit for evidence-based heart failure therapies; however, the present results suggest that a second dimension of classification, i.e. one incorporating how patients arrive at heart failure across the life course, may be useful. Pregnancy-related vascular disease, autoimmune disease, severe renal dysfunction, and premature cardiometabolic or Figure 1 Legend: The Johns Hopkins Health System cohort includes women aged 18-55 years who meet the study criteria: signs and symptoms of heart failure plus either pulmonary edema or elevated natriuretic peptide. To establish prior history, patients also needed at least one outpatient visit at least six months prior to the heart failure diagnosis date. Figure 2 Legend. Panel A demonstrates cluster identities defined by condition and drug enrichment. Concentric rings represent log2 odds ratio per condition or drug, per cluster. Inner bolded ring represents no enrichment over cohort (log2 odds ratio of 0). Panel B displays per cluster measurement distributions. Ridgelines represent per-cluster patient density vs. robust z-score for notable continuous features. Figure 3 Legend. Per feature SHAP values for representative patients across clusters (panels A -D), with model confidence p=0.83 (A, Hypertensive Pregnancy), 0.97 (B, Cardiorenal), 0.92 (C, Autoimmune), and 0.88 (D, Cardiometabolic-Ischemic). Figure 4 Legend. Panel A shows age-adjusted Cox hazard ra os for healthcare u liza on and mortality by cluster, rela ve to the Hypertensive Pregnancy cluster. Hazard ra os are shown with 95% confidence intervals on a log scale; the dashed line marks HR = 1. Panel B shows the subset of patients with a heart failure, stratified by diagnosis-based classifications for HFpEF or HFrEF, with mortality (left) and all-cause readmission (right) estimated separately for HFpEF (circles), HFrEF (squares), and the HF-type-stratified pooled model (diamonds). Global likelihood ratio tests (3 df) are shown above each panel. Hazard ratios are plotted on a log scale; n = patients, ev = events.</p>
+<p>Dr. Minhas is supported by NIH-NHLBI K23HL171886. Mr. Barrett is supported by NLM/NIH T15LM013979. Dr. Bairey Merz is supported by NIH-NHLBI U54AG065141, the Barbra Streisand Women&#x27;s Cardiovascular Research and</p>
+<p>Dr. Bairey Merz serves on the Board of Directors and receives stock for iRhythm. The other authors declare no conflict of interest relevant to this study.</p>
+<h3>Figure 1</h3>
+<p>Figures and Tables Figure 1. Cohort Definition and Study Inclusion for Johns Hopkins Health System</p>
+<h3>Figure 2 .Figure 2</h3>
+<p>Figure 2. Clinical and Laboratory Characteristics across Heart Failure Phenotypes</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Additive value of key features on model cluster assignment</p>
+<h3>Figure 4 .Figure 4</h3>
+<p>Figure 4. Healthcare utilization and mortality by phenotype cluster, overall and stratified by heart failure type</p>
+<h3>Figure 5.</h3>
+<p>Figure 5. Phenotypic characterization of JHHS-transferred clusters in All of Us</p>
+<h3>Figure 5</h3>
+<p>Figure 5 Legend.Figure shows the phenotypic characterization of JHHS transferred clusters in All of Us. Hypertensive Pregnancy Cluster (n = 213); Cardiorenal Cluster (n = 150); Autoimmune Cluster (n = 138); and Cardiometabolic-Ischemic (n = 181). Colors identify the same clusters across all panels. Panel A shows cluster identities as characterized by condition and drug enrichment, expressed as log₂ prevalence ratios relative to the overall cohort. Panel B displays per-cluster distributions of NT-proBNP, age, glomerular filtration rate, and systolic blood pressure, displayed on robust z-score scales. Black dots indicate cluster medians, and shaded bars represent central 50%, 80%, and 95% intervals.</p>
+<p>Figure 5 Legend.Figure shows the phenotypic characterization of JHHS transferred clusters in All of Us. Hypertensive Pregnancy Cluster (n = 213); Cardiorenal Cluster (n = 150); Autoimmune Cluster (n = 138); and Cardiometabolic-Ischemic (n = 181). Colors identify the same clusters across all panels. Panel A shows cluster identities as characterized by condition and drug enrichment, expressed as log₂ prevalence ratios relative to the overall cohort. Panel B displays per-cluster distributions of NT-proBNP, age, glomerular filtration rate, and systolic blood pressure, displayed on robust z-score scales. Black dots indicate cluster medians, and shaded bars represent central 50%, 80%, and 95% intervals.</p>
+<h3>Table 1.</h3>
+<p>Clinical characteristics across phenotypes of heart failure in the JHHS cohortIQR=interquartile range. eGFR= estimated glomerular filtration rate. MI=myocardial infarction. NT-proBNP=N-terminal pro-B-type natriuretic peptide. BMI=body mass index. SBP=systolic blood pressure, DBP=diastolic blood pressure, LDL=low-density lipoprotein</p>
+<h3>References</h3>
+<p>Ibrahim R, Shahid M, Tan M-C, Martyn T, Lee JZ, William P. Exploring Heart Failure Mortality Trends and Disparities in Women: A Retrospective Cohort Analysis. Am. J. Cardiol. 2023;209:42-51.</p>
+<p>Martin SS, Aday AW, Allen NB, Almarzooq ZI, Anderson CAM, Arora P, Avery CL, Baker-Smith CM, Bansal N, Beaton AZ, et al. 2025 Heart Disease and Stroke Statistics: A Report of US and Global Data From the American Heart Association. Circulation [Internet]. 2025 [cited 2026 Oct 3];151. Available from: https://www.ahajournals.org/doi/10.1161/CIR.0000000000001303</p>
+<p>Minissian MB, Mehta PK, Hayes SN, Park K, Wei J, Bairey Merz CN, Cho L, Volgman AS, Elgendy IY, Mamas M, et al. Ischemic Heart Disease in Young Women. J. Am. Coll. Cardiol. 2022;80:1014-1022.</p>
+<p>Agarwal MA, Fonarow GC, Ziaeian B. National Trends in Heart Failure Hospitalizations and Readmissions From 2010 to 2021. JACC Heart Fail. 2025;13:175-178.</p>
+<p>Ekpo E, Balla S, Ngo S, Witting C, Sarraju A, Furst A, Rodriguez F. Underrepresentation of Women in Reduced Ejection Heart Failure Clinical Trials With Improved Mortality or Hospitalization. JACC Adv. 2024;3:100743.</p>
+<p>Reza N, Gruen J, Bozkurt B. Representation of women in heart failure clinical trials: Barriers to enrollment and strategies to close the gap. Am. Heart J. Plus Cardiol. Res. Pract. 2022;13:100093.</p>
+<p>Young BA. Health Disparities in Advanced Heart Failure Treatment: The Intersection of Race and Sex. JAMA Netw. Open. 2020;3:e2011034.</p>
+<p>Lam CSP, Arnott C, Beale AL, Chandramouli C, Hilfiker-Kleiner D, Kaye DM, Ky B, Santema BT, Sliwa K, Voors AA. Sex differences in heart failure. Eur. Heart J. 2019;40:3859-3868c.</p>
+<p>Rajendran A, Minhas AS, Kazzi B, Varma B, Choi E, Thakkar A, Michos ED. Sex- specific differences in cardiovascular risk factors and implications for cardiovascular disease prevention in women. Atherosclerosis. 2023;384:117269.</p>
+<p>Rosano GMC, Stolfo D, Anderson L, Abdelhamid M, Adamo M, Bauersachs J, Bayes-Genis A, Böhm M, Chioncel O, Filippatos G, et al. Differences in Presentation, Diagnosis and Management of Heart Failure in Women. A Scientific Statement of the Heart Failure Association of the ESC. Eur. J. Heart Fail. 2024;26:1669-1686.</p>
+<p>Nwia SM, Leite APO, Li XC, Zhuo JL. Sex differences in the renin-angiotensin- aldosterone system and its roles in hypertension, cardiovascular, and kidney diseases. Front. Cardiovasc. Med. 2023;10:1198090.</p>
+<p>Boyer TM, Barrett RB, Xiong C, Bu F, Bhansali RA, Wallace AS, Fang M, Vaught AJ, Selvin E, Hays AG, et al. Hypertensive Disorders of Pregnancy and Premature Cardiovascular Disease in a Diverse Cohort of Young US Women. Circulation. 2026;153:480-492.</p>
+<p>Crump C, Sundquist J, Sundquist K. Adverse Pregnancy Outcomes and Long-Term Risk of Heart Failure in Women. JACC Heart Fail. 2025;13:589-598.</p>
+<p>Auger N, Fraser WD, Schnitzer M, Leduc L, Healy-Profitós J, Paradis G. Recurrent pre-eclampsia and subsequent cardiovascular risk. Heart. 2017;103:235-243.</p>
+<p>Riise HKR, Sulo G, Tell GS, Igland J, Nygård O, Vollset SE, Iversen A, Austgulen R, Daltveit AK. Incident Coronary Heart Disease After Preeclampsia: Role of Reduced Fetal Growth, Preterm Delivery, and Parity. J. Am. Heart Assoc. 2017;6:e004158.</p>
+<p>Tromp J, Paniagua SMA, Lau ES, Allen NB, Blaha MJ, Gansevoort RT, Hillege HL, Lee DE, Levy D, Vasan RS, et al. Age dependent associations of risk factors with heart failure: pooled population based cohort study. BMJ. 2021;n461.</p>
+<p>Gouda P, Alemayehu W, Rathwell S, Ian Paterson D, Anderson T, Dyck JRB, Howlett JG, Oudit GY, McAlister FA, Thompson RB, et al. Clinical Phenotypes of Heart Failure across the spectrum of Ejection Fraction: A Cluster Analysis. Curr. Probl. Cardiol. 2022;47:101337.</p>
+<p>Meijs C, Handoko ML, Savarese G, Vernooij RWM, Vaartjes I, Banerjee A, Koudstaal S, Brugts JJ, Asselbergs FW, Uijl A. Discovering Distinct Phenotypical Clusters in Heart Failure Across the Ejection Fraction Spectrum: a Systematic Review. Curr. Heart Fail. Rep. 2023;20:333-349.</p>
+<p>Shah SJ, Katz DH, Selvaraj S, Burke MA, Yancy CW, Gheorghiade M, Bonow RO, Huang C-C, Deo RC. Phenomapping for Novel Classification of Heart Failure With Preserved Ejection Fraction. Circulation. 2015;131:269-279.</p>
+<p>Stolfo D, Uijl A, Vedin O, Strömberg A, Faxén UL, Rosano GMC, Sinagra G, Dahlström U, Savarese G. Sex-Based Differences in Heart Failure Across the Ejection Fraction Spectrum. JACC Heart Fail. 2019;7:505-515.</p>
+<p>Haue AD, Holm PC, Banasik K, Aunstrup KE, Johansen CH, Lundgaard AT, Muse VP, Röder T, Westergaard D, Chmura PJ, et al. Subgrouping patients with ischemic heart disease by means of the Markov cluster algorithm. Commun. Med. 2025;5:372.</p>
+<p>Nagamine T, Gillette B, Pakhomov A, Kahoun J, Mayer H, Burghaus R, Lippert J, Saxena M. Multiscale classification of heart failure phenotypes by unsupervised clustering of unstructured electronic medical record data. Sci. Rep. 2020;10:21340.</p>
+<p>Sankarankutty AC, Greiner J, Bragard J, Visker JR, Shankar TS, Kyriakopoulos CP, Drakos SG, Sachse FB. Etiology-Specific Remodeling in Ventricular Tissue of Heart Failure Patients and Its Implications for Computational Modeling of Electrical Conduction. Front. Physiol. 2021;12:730933.</p>
+<p>Urban S, Błaziak M, Jura M, Iwanek G, Zdanowicz A, Guzik M, Borkowski A, Gajewski P, Biegus J, Siennicka A, et al. Novel Phenotyping for Acute Heart Failure-Unsupervised Machine Learning-Based Approach. Biomedicines. 2022;10:1514.</p>
+<p>Uszko-Lencer NHMK, Janssen DJA, Gaffron S, Vanfleteren LEGW, Janssen E, Werter C, Franssen FME, Wouters EFM, Rechberger S, Brunner La Rocca H-P, et al. Clustering Based on Comorbidities in Patients with Chronic Heart Failure: An Illustration of Clinical Diversity. ESC Heart Fail. 2022;9:614-626.</p>
+<p>Karwath A, Bunting KV, Gill SK, Tica O, Pendleton S, Aziz F, Barsky AD, Chernbumroong S, Duan J, Mobley AR, et al. Redefining β-blocker response in heart failure patients with sinus rhythm and atrial fibrillation: a machine learning cluster analysis. The Lancet. 2021;398:1427-1435.</p>
+<p>Martins C, Neves B, Teixeira AS, Froes M, Sarmento P, Machado J, Magalhães CA, Silva NA, Silva MJ, Leite F. Identifying subgroups in heart failure patients with multimorbidity by clustering and network analysis. BMC Med. Inform. Decis. Mak. 2024;24:95.</p>
+<p>Banerjee A, Dashtban A, Chen S, Pasea L, Thygesen JH, Fatemifar G, Tyl B, Dyszynski T, Asselbergs FW, Lund LH, et al. Identifying subtypes of heart failure from three electronic health record sources with machine learning: an external, prognostic, and genetic validation study. Lancet Digit. Health. 2023;5:e370-e379.</p>
+<p>Hripcsak G, Duke JD, Shah NH, Reich CG, Huser V, Schuemie MJ, Suchard MA, Park RW, Wong ICK, Rijnbeek PR, et al. Observational Health Data Sciences and Informatics (OHDSI): Opportunities for Observational Researchers. Stud. Health Technol. Inform. 2015;216:574-578.</p>
+<p>Bozkurt B, Coats AJ, Tsutsui H, Abdelhamid M, Adamopoulos S, Albert N, Anker SD, Atherton J, Böhm M, Butler J, et al. Universal Definition and Classification of Heart Failure. J. Card. Fail. 2021;27:387-413.</p>
+<p>Schuemie M, Reps J, Black A, Defalco F, Evans L, Fridgeirsson E, Gilbert JP, Knoll C, Lavallee M, Rao GA, et al. Health-Analytics Data to Evidence Suite (HADES): Open-Source Software for Observational Research [Internet]. In: Bichel-Findlay J, Otero P, Scott P, Huesing E, editors. Studies in Health Technology and Informatics. IOS Press; 2024 [cited 2026 Oct 11]. Available from: https://ebooks.iospress.nl/doi/10.3233/SHTI231108</p>
+<p>Jiang Z, Zheng Y, Tan H, Tang B, Zhou H. Variational Deep Embedding: An Unsupervised and Generative Approach to Clustering [Internet]. In: Proceedings of the Twenty-Sixth International Joint Conference on Artificial Intelligence. Melbourne, Australia: International Joint Conferences on Artificial Intelligence Organization; 2017 [cited 2026 Oct 11]. p. 1965-1972.Available from: https://www.ijcai.org/proceedings/2017/273</p>
+<p>Cao L, Asadi S, Zhu W, Schmidli C, Sjöberg M. Simple, Scalable, and Stable Variational Deep Clustering [Internet]. In: Hutter F, Kersting K, Lijffijt J, Valera I, editors. Machine Learning and Knowledge Discovery in Databases. Cham: Springer International Publishing; 2021 [cited 2026 Nov 1]. p. 108-124.Available from: https://link.springer.com/10.1007/978-3-030-67658-2_7</p>
+<p>Chen T, Guestrin C. XGBoost: A Scalable Tree Boosting System [Internet]. In: Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining. San Francisco California USA: ACM; 2016 [cited 2026 Oct 11]. p. 785-794.Available from: https://dl.acm.org/doi/10.1145/2939672.2939785</p>
+<p>Lundberg SM, Lee S-I. A unified approach to interpreting model predictions. In: Proceedings of the 31st International Conference on Neural Information Processing Systems. Red Hook, NY, USA: Curran Associates Inc.; 2017. p. 4768-4777.</p>
+<p>Gulea C, Zakeri R, Quint JK. Model-based comorbidity clusters in patients with heart failure: association with clinical outcomes and healthcare utilization. BMC Med. 2021;19:9.</p>
+<p>Kao DP, Lewsey JD, Anand IS, Massie BM, Zile MR, Carson PE, McKelvie RS, Komajda M, McMurray JJ, Lindenfeld J. Characterization of Subgroups of Heart Failure Patients with Preserved Ejection Fraction with Possible Implications for Prognosis and Treatment Response. Eur. J. Heart Fail. 2015;17:925-935.</p>
+<p>Cohen JB, Schrauben SJ, Zhao L, Basso MD, Cvijic ME, Li Z, Yarde M, Wang Z, Bhattacharya PT, Chirinos DA, et al. Clinical Phenogroups in Heart Failure With Preserved Ejection Fraction. JACC Heart Fail. 2020;8:172-184.</p>
+<p>Ahmad T, Pencina MJ, Schulte PJ, O&#x27;Brien E, Whellan DJ, Piña IL, Kitzman DW, Lee KL, O&#x27;Connor CM, Felker GM. Clinical Implications of Chronic Heart Failure Phenotypes Defined by Cluster Analysis. J. Am. Coll. Cardiol. 2014;64:1765-1774.</p>
+<p>Gremese E, Bruno D, Perniola S, Ceolan J, Ferraccioli G. Autoimmune inflammation as a key risk factor for heart failure with preserved ejection fraction: the different types of inflammation driving to HFpEF. Front. Med. 2025;12:1557312.</p>
 </div>
 </details>
 </div>
