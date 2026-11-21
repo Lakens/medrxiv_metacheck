@@ -196,7 +196,7 @@ Anticholinergic Medications and Health in Adults with Autism or
 Intellectual Disability
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.10.26.26366518
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.10.26.26366518
 </p>
 </header>
 <div class="mc-main">
@@ -388,8 +388,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -741,9 +742,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -765,7 +770,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -780,9 +786,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -795,13 +819,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -821,6 +848,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -828,12 +861,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -934,6 +973,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -953,6 +1012,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1208,19 +1302,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1330,6 +1506,165 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Objective: Contributors to autistic adults&#x27; elevated risk for negative aging-related outcomes, including Alzheimer&#x27;s disease and related dementias (ADRD), falls, and mortality remain underexplored. One candidate factor is exposure to medications with anticholinergic (AC) effects. Thus, this study assessed prevalence of medications with AC effects, and their associations with ADRD, falls, and mortality across four groups: autism-only, autism+intellectual disability (ID), ID-only, and controls.</p>
+<p>We conducted a retrospective cohort study of 2017-2019 US linked Medicare and Medicaid claims data for 40+ year-olds. Autism, ID, ADRD, and falls were identified using validated algorithms, and mortality was based on Medicare/Medicaid death indicators.</p>
+<p>Medications were coded using a comprehensive AC potency scale. AC medication exposure effects and interactions between AC potency and group were examined using modified Poisson regressions. Sensitivity analyses to address indication bias excluded persons prescribed antidepressant and/or antipsychotic medication(s).</p>
+<p>Results: All three clinical groups experienced significantly greater AC medication exposure (autism+ID: 92.5%&gt;ID-only: 88.6%&gt;autism-only: 80.0%) than non-autistic/non-ID controls (61.3%). Additionally, AC medications were more frequently associated with ADRD, falls, and mortality in all of these groups. Stepwise associations between AC potency levels and ADRD, falls, and mortality were found, and these effects were more prominent for persons with autism and/or ID relative to the control sample.</p>
+<p>Interpretation: This study provides a foundational examination of exposure to AC medication effects and their associations with aging-related outcomes in middle-age and older autistic adults effects, attributable in part to high rates of co-occurring medical conditions for which such medications may be prescribed. 2,18, 19 Polypharmacy, including psychotropic polypharmacy, is common in autistic individuals, [20][21][22] [23] [24] [25] [26] [27] and prescription rates of psychotropic medications, which often have AC effects, increase with age. 26 Despite evidence of poorer aging-related outcomes and high rates of polypharmacy, only two studies have examined AC medication use among autistic adults. These studies, which included 40+ year-old middle and older age autistic adults (N=415) without ID and 18-68-yearold autistic adults with ID aged (N=512), found that AC medication use was common and associated with self-reported 27 and proxy-reported 28 memory problems and declines in cognition/behavior, respectively.</p>
+<p>No study has examined AC medication exposure and its associations with health-related outcomes among autistic adults in healthcare claims data, which allow for population-level estimates. Thus, it is unclear if AC medication exposure is more common among autistic relative to general population adults or if the patterning of associations between these medications and aging-related outcomes is the same or different among these populations.</p>
+<p>The current study therefore takes a foundational first step, characterizing exposure to medications with AC effects and examining associations of AC exposure and potency with ADRD, falls, and mortality in a national US sample of autistic adults without intellectual disability (ID), autistic adults with ID, non-autistic adults with ID, and a comparison group with neither autism nor ID.</p>
+<p>This study used 2017-2019 Medicare and Medicaid data from 50 states and the District of Columbia, where sources were Medicare fee-for-service data and Medicaid data from</p>
+<h3>Introduction</h3>
+<p>Relatively little is known about aging among autistic people 1 ; however, extant evidence indicates suboptimal outcomes. Notably, elevated rates of Alzheimer&#x27;s disease and related dementias (ADRD) have been reported for autistic adults aged ≥65 years enrolled in Medicare, with a four-fold increase in ADRD compared to general population Medicare enrollees. 2 Two subsequent studies, one of Medicaid enrollees, and the other including linked Medicare and Medicaid data, found elevated prevalence and incidence of ADRD among autistic adults &lt;65 years 3 and &gt;65 years. 4 Examining aging-related outcomes beyond ADRD, a Swedish populationbased longitudinal study found that autistic adults ≥45 years experienced higher falls risk relative to non-autistic adults. 5 Among Medicare enrollees in the US, autistic adults aged 65+ had higher rates of falls and fall-related injuries and hospitalizations relative to non-autistic adults. 6 Autistic adults also appear to face augmented mortality risk, 7, 8 including premature mortality, 9 compared to non-autistic adults. Among Medicare-enrolled individuals 65+ years, autistic adults had a 2.87 times greater rate of mortality compared to non-autistic adults. 10 Factors related to these increased risks for poorer cognitive and physical outcomes among autistic adults remain underexplored. One candidate factor meriting scrutiny is exposure to medications with anticholinergic (AC) effects. In the general aging population, exposure to medications with AC effects (including medications prescribed for their AC therapeutic properties and medications not prescribed for these properties but possessing AC effects 11 ) are associated with negative outcomes, including cognitive impairments. 12 More specifically, medications with higher AC potency are associated with elevated risk for ADRD. 13, 14 Exposure to higher-potency AC medications is also associated with elevated risk for falls 15, 16 and mortality. 17 Autistic adults likely have higher and earlier exposure to medications with AC Transformed Medicaid Statistical Information System (T-MSIS) Analytic Files (TAF). Datasets included demographic and enrollment information, as well as linked claims data covering diagnoses, healthcare utilization, and pharmacologic treatments. Individuals were linked across Medicare and Medicaid files using individual-level identifiers. The use of these data for research was approved via HIPAA waiver by the institutional review board of Drexel University (protocol #2501010962).</p>
+<p>Study inclusionary criteria were the following: enrolled in Medicare, Medicaid, or dually enrolled in Medicare and Medicaid, with at least 12 months of enrollment in 2017-2019; aged ≥40 years; and meeting claims-based criteria using validated algorithms from the CMS Chronic Conditions Data Warehouse (CCW) for autism or ID, both autism and ID, or having no claims for these conditions (control). 4, 5 Additionally, Medicare-only beneficiaries whose Medicare coverage consisted exclusively of managed care during the study period were excluded because their claims were unavailable.</p>
+<p>This study included not only adults &gt;65 years but also those below the age of 65 (the more common age cutoff in studies of medications with AC effects), based on accumulating evidence that autistic people experience aging-related cognitive 3 and physical health 5 challenges earlier in the lifespan. As in prior research, persons with Down syndrome were excluded due to their genetic risk for ADRD. 29 Autism and ID were ascertained using all available Medicare and Medicaid data, including data outside of the study period, because both are lifelong neurodevelopmental conditions. Autism and/or ID conditions required at least one inpatient claim or two noninpatient claims, an approach aligned with prior claims data research. [30] [31] [32] Individuals were identified as having ADRD or as having fallen if they had a single ADRD (using the Bynum-standard algorithm 33 ) or fall-related claim, respectively. Mortality information was identified using indicators from the relevant Medicare and/or Medicaid databases. See Table S1 for ICD-10 codes and/or claims/indicators for these variables.</p>
+<h3>Data Analysis Medication Coding for AC Potency</h3>
+<p>Medications were determined based on Medicaid pharmacy claims and Medicare Part D prescription drug event claims. Exposure to medication(s) with AC effects was operationalized in two ways using the CRIDECO Anticholinergic Load Scale (CALS). 34 First, AC medication exposure was dichotomized into no exposure to medication(s) with AC effects versus exposure to any medication with AC effects. Second, among those prescribed at least one medication with AC effects, AC potency was categorized according to the highest CALS score of any AC medication dispensed during the study period: low (AC=1), moderate (AC=2), or high (AC=3). See Supplementary Methods for details concerning medication coding, Table S2 for medication routes excluded from analyses, and Table S3 for a complete list of medications and their CALS potency scores.</p>
+<h3>Statistical Approach</h3>
+<p>Modified Poisson regressions with robust standard errors were conducted to obtain the prevalence ratios and 95% confidence intervals for each outcome: ADRD, falls, or mortality. 35 Models included the four-level diagnostic group variable (autism-only, autism+ID, ID-only, control), each of the two methods of AC medication characterization (no exposure vs. any exposure; exposure of medications with low, moderate, high potency AC effects), and the interactions between diagnostic group and the corresponding AC medication characterizations served as the independent variables of interest.</p>
+<p>Covariates were age group (40-44, 45-49, 50-54, 55-59, 60-64, 65-69, 70-79, and 80+ years), sex, race/ethnicity, enrolled months group (12-24, 25-36), enrollment type (Medicare, Medicaid, dually enrolled), and U.S. state of residence. Pairwise contrasts were used to compare AC exposure categories within each diagnostic group and diagnostic groups within the same AC exposure or potency category. Statistical significance was defined as a two-sided p value &lt;.05.</p>
+<h3>Sensitivity Analyses</h3>
+<p>Because indications for some medications with AC effects (e.g., depression) could also confer risk for one of the outcomes of interest evaluated here (e.g., ADRD), the prevalence of these outcomes could be related to the indication of the medication rather than the medication itself. 36 For instance, depression can be part of the dementia prodrome and may also confer risk for dementia, 37, 38 while antipsychotic medications may be prescribed for neuropsychiatric symptoms in dementia. 39 Thus, we conducted modified Poisson regressions after excluding persons prescribed medications with AC effects categorized as antidepressants or antipsychotics to help moderate concerns regarding possible indication bias (see Table S4).</p>
+<h3>Results</h3>
+<p>The final prevalence sample from the combined Medicare and Medicaid samples was comprised of 61,212,067 persons aged 40+ years (see Figure 1): autism-only N=48,839; autism+ID N=80,439; ID-only N=573,846; control N=60,508,943. Table 1 reports prevalence of exposure to medications with AC effects and outcomes (ADRD, falls, mortality), as well as demographic information within each group.</p>
+<h3>Characterization of Medications with AC Effects</h3>
+<p>Individuals in the autism-only, autism+ID, and ID-only groups were all significantly more likely to be prescribed at least one medication with AC effects compared to individuals in the control group (ps&lt;.05). The patterning of medication exposure across groups, where each pairwise comparison was significant, was as follows: autism+ID (92.5%) &gt; ID-only (88.6%) &gt; autism-only (80.0%) &gt; non-autism/non-ID controls (61.3%).</p>
+<p>The highest frequency categories of medications with AC effects for each group are visualized in Figure 1. Across all groups, antidepressants were among the most frequent.</p>
+<p>Antipsychotic medications were the most common in the autism+ID and ID-only groups and second most common (after antidepressants) within the autism-only group.</p>
+<h3>Associations of AC Medication Exposure (any vs. none), Group (autism, autism+ID, ID, control), and their Interaction with ADRD, Falls, and Mortality Prevalence</h3>
+<p>Relative to the control group not prescribed any AC medication, across the three clinical groups (autism-only, autism+ID, ID-only), ADRD, falls and mortality were all more frequent for those prescribed at least one medication with AC effects (Table 2). Within each diagnostic group, persons prescribed any medication with AC effects compared to those prescribed no such medication were more likely to have an ADRD or fall-related claim, and more likely to experience death (Table 3A). The interaction between diagnostic group and AC medication exposure was statistically significant for all three outcomes (Table 2) and follow-up pairwise comparisons among AC-exposed individuals showed that the autism-only, autism+ID, and IDonly groups each had higher adjusted prevalences of ADRD, falls, and mortality than the control group (Table 3B).</p>
+<h3>Associations of AC Potency Level (1, 2, 3) with ADRD, Falls, and Mortality</h3>
+<p>Relative to the control group prescribed a medication with an AC potency of 1, all three clinical groups of autism-only, autism+ID, and ID-only, had higher adjusted prevalences of ADRD, falls, or mortality (Table 4). Within each of the autism-only, autism+ID, and ID-only groups, higher potency AC medications were significantly associated with a stepwise increase in the prevalence of ADRD and falls (i.e., AC=3 &gt; AC=2 &gt; AC=1) (Table 5A). Mortality prevalence also generally increased with AC potency. The interaction between AC medication potency level and group was statistically significant for ADRD, falls, and mortality (Table 4).</p>
+<p>Pairwise follow-up comparisons indicated that relative to control persons prescribed the same level of AC medication potency, each clinical group broadly had a higher prevalence of ADRD, falls, and mortality (Table 5B).</p>
+<p>Sensitivity analyses removing individuals prescribed antidepressant and/or antipsychotic medication(s) with AC effects across the four groups (see Table S4 for subsample demographic characteristics) indicated findings between the clinical groups and the control group generally remained, although some exposure-outcome estimates were attenuated and the stepwise potency pattern was not consistently retained, particularly for mortality (see Supplementary Materials and Tables S5 and S6).</p>
+<h3>Discussion</h3>
+<p>Using US nationwide healthcare claims data, this study provides a foundational first step in characterizing exposure to medications with AC effects and establishing associations between these medications and negative aging-related outcomes for which autistic people with and without ID and people with ID (without autism) are at increased risk (i.e., ADRD, falls, mortality). Overall, the current study found elevated rates of exposure to medications with AC effects in the clinical groups compared to the control group and links between AC exposure (bivariate)/AC potency (ordinal, stepwise) and prevalence ADRD, falls, and mortality, which were accentuated in the three clinical groups relative to the control group for several outcomes.</p>
+<h3>Exposure to Medications with AC Effects</h3>
+<p>In the current sample of controls enrolled in Medicare, Medicaid or dually enrolled in Medicare and Medicaid, prevalence of exposure to AC medications was 61.3%. In the two completed studies that examined use of medications with AC effects among autistic adults with and without ID, rates of caregiver-reported and self-reported use of these medications was 66.4% 28 and 62.9%, 27 respectively. These rates are lower than those identified in the current claims-based data for autistic persons (autism-only=80.0%; autism+ID=92.5%), as well as for non-autistic persons with ID (88.6%). A potential explanation for higher rates in the current study relative to these prior studies may be related to the more complex medical needs of Medicare and/or Medicaid enrollees. For instance, persons who are &lt;65 years and enrolled in Medicare (or dually enrolled in Medicare and Medicaid) must have a qualifying disability. It is possible that these persons experience greater levels of difficulty in functioning due to one or more conditions (including autism and/or ID), and so they may be prescribed more medications with AC effects than persons &lt;65 enrolled in private health insurance.</p>
+<p>This study demonstrates that the prevalence of exposure to medications with AC effects was higher for the clinical groups relative to the control group, where persons in the autism+ID group experienced the greatest exposure to such medications, and those in the control group the lowest. Results for the ID-only group are consistent with a retrospective cohort study of Scottish persons aged 17-94 years with an ID (n=4,305) and controls (n=12,915) matched for demographic characteristics, which indicated that persons with ID were significantly more likely to be prescribed medications with AC effects relative to persons without ID (OR=1.49 [1.38-1.59]). 40 In terms of classes of AC medications, as has been reported for 65+ year old adults in the general aging population, 41 the current study found that for the three clinical groups and the control group antidepressants were among the most frequently prescribed class of medications with AC effects. 41 Differing from the current study&#x27;s control sample and prior studies in the general aging population, but broadly consistent with reports of high rates of psychotropic medication use in autistic and ID samples [24] [25] [26] 42 and aligned with the prior two studies of AC medication use among autistic adults, 27,28 antipsychotics [24] [25] [26] were common for the autism-only, autism+ID, and ID-only groups. Concerns have been raised regarding the prescribing of psychotropic medications broadly and antipsychotic medications specifically among persons with ID. 43 The current study&#x27;s findings underscore the need to better understand the &quot;off-label&quot; prescribing of antipsychotic medications in autistic persons and persons with ID, as we currently lack a firm knowledgebase regarding the risks and benefits of antipsychotic medications in these populations.</p>
+<h3>Exposure to Medications with AC Effects (vs. No Exposure) and ADRD, Falls, and Mortality Prevalence</h3>
+<p>Across all groups, exposure to medications with AC effects compared to no such exposure was associated with greater frequency of ADRD, falls, and mortality. This finding is consistent with literature demonstrating associations between AC medication exposure and ADRD, 44, 45 falls, 15, 16 and mortality 17 in the general aging population, and extends these links to autism and ID. For example, the findings of associations with AC medications and falls in persons with ID is concordant with a study of 487 Irish adults (aged 40+ years) with ID, which found AC medications were linked to higher odds of falls (1.86 [1.03-3.38], p=.04). 46 However, this prior study in persons with ID identified lower odds of dementia/Alzheimer&#x27;s Disease (0.21 [0.07-0.64], p=.006) with AC medication use, though the authors noted limitations of their study, including the small number of persons reporting dementia/Alzheimer&#x27;s (n=29). 46 In the current study, among individuals prescribed at least one AC medication, pairwise comparisons indicated that the autism-only, autism+ID, and ID-only groups each had higher adjusted prevalences of ADRD, falls, and mortality than the control group.</p>
+<h3>AC Potency and ADRD, Falls, and Mortality Prevalence</h3>
+<p>In addition to findings of associations between AC medication exposure and agingrelated outcomes, results suggested a stepwise pattern, wherein increasing levels of medication potency (AC=1&lt;2&lt;3) are broadly associated with increases in the burden of ADRD, falls, and mortality within the four groups. This finding is aligned with and extends (to autism and ID groups) the literature suggesting that medications with greater AC potency are associated with corresponding greater risks for dementia, falls/fractures and mortality in the general population. [47] [48] [49] Additionally, pairwise comparisons indicated that at each level of AC potency, the autism-only, autism+ID, and ID-only groups broadly demonstrated greater prevalence ratios for ADRD, falls, and mortality relative to controls. For example, among those prescribed at least one medication with an AC potency of 3, prevalence of ADRD was 2.40, 3.09, and 2.94 times that in the control group for those in the autism-only, autism+ID, and ID-only groups, respectively.</p>
+<p>A better understanding of potential reasons that people with neurodevelopmental conditions appear to show higher prevalence of ADRD, falls, and mortality associated with AC medication use relative to the general population is needed. It is possible that medications with AC effects could have differential effects among persons with neurodevelopmental conditions relative to persons without these conditions, in part due to vulnerability of underlying neurological systems in the former.</p>
+<p>In the general aging population reasons for associations between AC medication exposure and fall risk are not fully clear; however, negative impacts of AC medications on balance and gait have been identified as a potential mechanism. 50 with ID may demonstrate differences in motor development; thus, impacts of AC medications on motor functioning may have particularly pronounced effects in persons with developmental motor differences, whether early-onset 51 or emerging later in development. 52 Similarly, persons with neurodevelopmental conditions such as autism and/or ID can demonstrate differences in cognition, including in executive functioning. 53 These differences may render persons with these conditions more vulnerable to the negative cognitive impacts of AC medications.</p>
+<h3>Autistic persons and persons</h3>
+<p>High AC medication exposure is also attested in adults with schizophrenia, a clinical population that, like autistic adults, has both underlying cognitive vulnerabilities such as executive functioning challenges and elevated and early exposure to AC medications. Among adults with schizophrenia, AC medications are associated with poorer verbal memory, working memory, and attention, even after controlling for current symptoms, 54, 55 and discontinuation of AC medications has been associated with improvements in cognition. 56 Our findings suggest that, as in the general population, medications with AC effects may constitute one potential modifiable risk factor for negative aging-related outcomes among persons with autism and/or ID. Therefore, periodic reevaluation of medication regimens over time, particularly if an individual is experiencing changes in cognition, with reference to standards established for prescribing medications with high AC potency in the general population, 57 as well as deprescribing practices 58 may be helpful in this population.</p>
+<h3>Limitations</h3>
+<p>We endeavored to control for indication bias by running sensitivity analyses restricting the samples to persons not prescribed antidepressant and/or antipsychotic medication(s) with AC effects. Nevertheless, possible influences of indication bias cannot be completely eliminated.</p>
+<p>Medicare Part D and Medicaid pharmacy claims captured reimbursed prescription fills but cannot establish whether medications were taken as directed and may not have captured prescriptions obtained outside of these programs. Additionally, the representation of over-thecounter medications is considerably more limited in the claims data presented here. Thus, the prevalence of AC medication exposure may have been underestimated. The resulting exposure misclassification may also have biased the estimated associations, although the direction of that bias cannot be determined. Some classes of medications, for instance antihypertensive agents, may have protective effects in risk for vascular dementia. 59 The examination of specific classes of medications with AC effects as these relate to the outcomes of interest is an important next step. Although we did not examine medication classes, one type of antihypertensive agent, beta-blockers (e.g., atenolol), was common across the four diagnostic groups; however, these medications were confined to the lowest AC potency category (i.e., AC=1).</p>
+<p>Finally, while this is a national sample of autistic adults and adults with ID, it may not be representative of all adults with autism or ID. For instance, Medicaid and/or Medicare enrollees may include an overrepresentation of individuals with relatively complex medical and support needs compared to those with private health insurance.</p>
+<h3>Conclusions</h3>
+<p>Based on nationwide claims data, these findings provide the strongest evidence to date indicating increased exposure to medications with AC effects, and greater prevalence of ADRD, falls, and mortality associated with this exposure (including after removing persons prescribed antipsychotic or antidepressant medications) among persons with autism and/or ID compared to a control group. Future work should take steps to examine onset of AC medication use and its associations with subsequent claims for aging-related outcomes in healthcare records, including incorporating a washout period that excludes or controls for AC medication exposure occurring during a period of time prior to diagnosis of outcomes such as ADRD. Note. In unadjusted models, prevalence ratios include group (autism-only, autism+ID, ID-only, or control), medications (medications with AC effects or no medications with AC effects), and their interaction. In adjusted models, the prevalence ratios are adjusted for age group, sex, race/ethnicity, enrolled months group (12-24, 25-36), enrollment type (Medicaid only, Medicare only, dual enrollment), and state. The reference level in analyses was controls not prescribed medications with AC effects. For pairwise comparisons see Table 3. Abbreviations. AC=anticholinergic; ADRD=Alzheimer disease and related dementias; ID=intellectual disability. Note. In unadjusted models, prevalence ratios include group (autism-only, autism+ID, ID-only, or Control), medications (medications with AC effects or no medications with AC effects), and their interaction. In adjusted models, the prevalence ratios are adjusted for age group, sex, race/ethnicity, enrolled months group (12-24, 25-36), enrollment type (Medicaid only, Medicare only, dual enrollment), and state. The reference level in analyses was Controls prescribed a low potency (AC=1) AC medication. For pairwise comparisons see Table 5. Abbreviations. AC=anticholinergic; ADRD=Alzheimer disease and related dementias; ID=intellectual disability. CRIDECO Anticholinergic Load Scale (CALS) 34 . Note that counts represent the number of persons prescribed at least one medication in a given class with any AC potency and not the count of all AC medications within that class; thus, any given person may have been prescribed more than one medication in a relevant class (e.g., more than one antipsychotic), which is not reflected in the count. Note also that individuals may have been prescribed medications across two or more classes listed here (e.g., an individual may have been prescribed an antipsychotic, an antidepressant, and a benzodiazepine with AC effects).</p>
+<h3>Data extraction for medications</h3>
+<p>For Medicare enrollees, medication information was extracted from &quot;Medicare Part D Event (PDE)/Drug Characteristics&quot;. For Medicaid enrollees, medication information was extracted from the &quot;RX&quot; file of T-MSIS Analytic Files (TAF). Records include fee-for-service (FFS) claims, managed care encounters and supplemental payments for Medicaid, Medicaidexpansion CHIP and separate CHIP. For dually enrolled individuals, medications were identified using all claims in both Medicare and Medicaid. See Table S1. Exposure to medications with AC effects was determined based on medications recorded over the study period (2017-2019).</p>
+<h3>Medication routes excluded in AC potency coding</h3>
+<p>Following prior work 1, 2 and in order to be maximally conservative, in considering AC medications, those with topical, ophthalmic, or nasal routes of administration were excluded due to possible reduced systemic absorption. See Table S2 for details concerning these excluded routes of administration.</p>
+<h3>Coding of Medications for AC potency</h3>
+<p>Medications recorded during the study period (2017-2019) were coded for their AC potency based on the CRIDECO Anticholinergic Load Scale (CALS). 1 Individuals who did not have a claim for a medication with AC effects during the study period were coded as &quot;0&quot;.</p>
+<p>For individuals who took any medication with AC effects during the study period, coding considered the highest potency AC medication taken. For example, if a given individual took three AC medications during the study period where each medication was a different AC potency (1, 2, 3), they were coded according to the highest-potency AC medication taken (i.e., AC=3).</p>
+<h3>Sensitivity analyses removing persons prescribed antidepressant or antipsychotic medications with AC effects</h3>
+<p>Thus, to help ameliorate concerns regarding potential indication bias, sensitivity analyses using Modified Poisson regressions excluded persons for whom antidepressant and/or antipsychotic medication(s) were prescribed. Table S3 indicates those medications considered to be exclusionary in these sensitivity analyses. The final prevalence sample for the sensitivity analyses was comprised of N=44,622,264 persons: autism-only, N=20,176; autism+ ID: N=20,780; ID-only: N=227,703; Control: N=44,353,605. Demographic information for each group for the sensitivity analyses sample is reported in Table S4. Results of analyses are reported in Table S5 and S6.</p>
+<p>Table S1. ICD-10 Codes and/or Claims/Indicators for Variables. Diagnosis Claim(s)/Indicator(s) ICD-10 Autism 1 inpatient claim or 2 non-inpatient claims F84.x Intellectual disability 1 inpatient claim or 2 non-inpatient claims F70-F79 Alzheimer&#x27;s Disease and Related Disorders or Senile Dementia 1 inpatient or 1 noninpatient claim Mortality Medicare: The combination use of Date of Death (BENE_DEATH_DT) and Valid Date of Death Switch (VALID_DEATH_DT_S W); In Medicaid data: The combination use of Medicaid Death Date (EL_DOD), Medicare Death Date (MDCR_DOD), Medicare Death Day Switch (MDCR_DEATH_DAY_ SW). In Medicaid TAF data: The combination use of Death Date (DEATH_DT) and Indicator that Beneficiary Died During the Calendar Year (DEATH_IND); For those dually enrolled and have information in both data sources, both Medicaid and Medicare data were used, and mortality in both sources will be counted. NA Table S2. Medication Routes Excluded from Analyses. Source Variable Excluded Codebook for the T-MSIS Analytic File (TAF) Claims category_name miscellaneous topical agents; ophthalmic anti-infectives; ophthalmic anti-inflammatory agents; ophthalmic antihistamines and decongestants; ophthalmic steroids with anti-infectives; topical antihistamines; topical steroids with anti-infectives T-MSIS Analytic File (TAF) Claims DOSAGE_FORM_CD02=Ointment;03=Cream;13=Lotion;14=Shampoo Search of NDC via RxMix version 3.2.157 ( https://mor.nlm.nih.gov/RxMix/) using the following search: rxnorm.findRxcuiById (idtype:&quot;NDC&quot;, allsrc:&quot;0&quot;):idGroup.rxnormId rxterms.getAllRxTermInfo F2_route Ophthalmic; Topical; Nasal Table S3. Complete List of Medications with Anticholinergic (AC) Effects Listed in Medicaid and/or Medicare Databases for Individuals in the Four Groups (Autism-only, Autism+ID, ID-only, Control) Aged 40+ Years and Potency Score According to the CRIDECO Anticholinergic Load Scale (CALS). Medication name CALS potency score (1=low;2=medium;3=high) Excluded in sensitivity analyses? acetaminophen-dexbrompheniramine 3 N acetaminophen-oxycodone 1 N acetaminophen-tramadol 2 N aclidinium 1 N alogliptin-metformin 1 N Alprazolam 1 N amantadine 2 N amitriptyline 3 Y amlodipine-benazepril 1 N amoxapine 3 Y ampicillin 1 N ampicillin-sulbactam 1 N Aripiprazole 1 Y asenapine 1 Y aspirin-oxycodone 1 N aspirin/caffeine/orphenadrine 3 N atenolol 1 N atropine 3 N azathioprine 1 N azilsartan-chlorthalidone 1 N baclofen 2 N belladonna 3 N benazepril 1 N benztropine 3 N clemastine 3 N clindamycin 1 N clomipramine 3 Y clonazepam 1 N clorazepate 1 N clozapine 3 Y codeine 1 N codeine-guaifenesin 1 N cortisone 1 N cyclobenzaprine 2 N cycloserine 1 N cyclosporine 1 N cyproheptadine 3 N darifenacin 3 N desipramine 3 Y desloratadine 1 N desvenlafaxine 1 Y dexamethasone 1 N dexbrompheniramine 3 N dexbrompheniramine-pseudoephedrine 3 N dexchlorpheniramine 3 N dextromethorphan 1 N dextromethorphan-guaifenesin 1 N diazepam 1 N dicyclomine 3 N digoxin 1 N diltiazem 1 N dimenhydrinate 3 N diphenhydramine 3 N dipyridamole 1 N disopyramide 1 N divalproex sodium 1 N doxepin 3 Y doxylamine 3 N empagliflozin-metformin 1 N entacapone 1 N escitalopram 1 Y estazolam 1 N famotidine 1 N famotidine-ibuprofen 1 N fentanyl 1 N fesoterodine 3 N fexofenadine 1 N flavoxate 3 N fluoxetine 1 Y fluoxetine-olanzapine 3 Y fluphenazine 2 Y flurazepam 1 N fluvoxamine 1 N furosemide 1 N gentamicin 1 N guaifenesin 1 N haloperidol 1 Y hydralazine 1 N hydralazine-hydrochlorothiazide 1 N hydralazine-isosorbide dinitrate 1 N hydrochlorothiazide-metoprolol 1 N hydrocodone 1 N hydrocortisone 1 N hydromorphone 1 N hydroxyzine 3 N hyoscyamine 3 N iloperidone 1 Y imipramine 3 Y ipratropium 1 N isosorbide mononitrate 1 N ketorolac 1 N levocetirizine 1 N linagliptin-metformin 1 N lithium 1 N loperamide 1 N loratadine 1 N lorazepam 1 N loxapine 2 Y maprotiline 2 Y meclizine 3 N meperidine 2 N metformin 1 N metformin-pioglitazone 1 N metformin-repaglinide 1 N metformin-rosiglitazone 1 N metformin-sitagliptin 1 N methadone 2 N methocarbamol 1 N methotrexate 1 N methylprednisolone 1 N metoclopramide 1 N metoprolol 1 N midazolam 1 N mirtazapine 1 Y molindone 2 Y morphine 1 N naproxen-sumatriptan 1 N naratriptan 1 N nefazodone 1 Y nifedipine 1 N nizatidine 1 N nortriptyline 3 Y olanzapine 2 Y orphenadrine 3 N oxazepam 1 N oxcarbazepine 2 N oxybutynin 3 N oxycodone 1 N paliperidone 1 Y paroxetine 2 Y perphenazine 2 Y phenelzine 1 Y phenobarbital 1 N pimozide 2 Y piperacillin 1 N piperacillin-tazobactam 1 N pramipexole 1 N prednisolone 1 N prednisone 1 N prochlorperazine 2 Y procyclidine 3 N promethazine 3 N propantheline 3 N propoxyphene 2 N protriptyline 3 Y pseudoephedrine 1 N pseudoephedrine-triprolidine 2 N quetiapine 2 Y quinidine 1 N ranitidine 2 N risperidone 1 Y rotigotine 1 N scopolamine 3 N selegiline 1 Y sertraline 1 Y solifenacin 3 N sumatriptan 1 N tapentadol 1 N temazepam 1 N theophylline 1 N thioridazine 3 Y thiothixene 1 Y tiotropium 1 Y tizanidine 3 N tolterodine 3 N tramadol 2 N trandolapril 1 N trandolapril-verapamil 1 N trazodone 1 Y triamcinolone 1 N triamterene 1 N triazolam 1 N trifluoperazine 3 Y trihexyphenidyl 3 N trimipramine 3 Y triprolidine 2 N trospium 3 N umeclidinium 1 N valproic acid 1 N vancomycin 1 N venlafaxine 1 Y warfarin 1 N ziprasidone 1 Y zolmitriptan 1 N Note. CALS=CRIDECO Anticholinergic Load Scale (Ramos et al., 2022). ID=intellectual disability. Table S4. Characteristics of participants in the four groups, after removing persons prescribed antidepressant or antipsychotic medications with anticholinergic (AC) effects Autism only N=20,176 Autism + ID N=20,780 ID only N=227,703 Control N=44,353,605 No AC Meds AC Meds No AC Meds AC Meds No AC Meds AC Meds No AC Meds AC Meds n, (%) 9,755 (48.35) 10,421 (51.65) 6,053 (29.13) 14,727 (70.87) 65,495 (28.76) 162,208 (71.24) 23,411,587 (52.78) 20,942,018 (47.22) Age, years Mean (SD) 55.91 (12.95) 56.42 (12.98) 50.46 (9.61) 53.10 (10.42) 54.58 (11.85) 56.63 (11.83) 65.37 (12.59) 65.83 (12.58) Age Group, n (%) 40-44 2,471 (25.33) 2,411 (23.14) 2,089 (34.51) 3,801 (25.81) 16,220 (24.77) 29,373 (18.11) 2,081,112 (8.89) 1,553,719 (7.42) 45-49 1,316 (13.49) 1,407 (13.50) 1,161 (19.18) 2,443 (16.59) 9,841 (15.03) 22,101 (13.63) 1,313,388 (5.61) 1,221,786 (5.83) 50-54 1,288 (13.20) 1,383 (13.27) 1,002 (16.55) 2,481 (16.85) 9,864 (15.06) 24,764 (15.27) 1,231,754 (5.26) 1,407,867 (6.72) 55-59 964 (9.88) 1,246 (11.96) 713 (11.78) 2,129 (14.46) 9,097 (13.89) 24,740 (15.25) 1,284,103 (5.48) 1,602,840 (7.65) 60-64 1,025 (10.51) 1,204 (11.55) 511 (8.44) 1,658 (11.26) 7,263 (11.09) 20,845 (12.85) 3,756,502 (16.05) 2,788,681 (13.32) 65-69 1,113 (11.41) 980 (9.40) 318 (5.25) 1,077 (7.31) 5,467 (8.35) 16,261 (10.02) 5,773,917 (24.66) 4,211,418 (20.11) 70-79 1,103 (11.31) 1,187 (11.39) 207 (3.42) 936 (6.36) 5,383 (8.22) 17,381 (10.72) 5,225,278 (22.32) 5,345,082 (25.52) 80+ 475 (4.87) 603 (5.79) 52 (0.86) 202 (1.37) 2,360 (3.60) 6,743 (4.16) 2,745,533 (11.73) 2,810,625 (13.42) Sex, n (%) Female 2,572 (26.37) 3,563 (34.19) 1,623 (26.81) 4,888 (33.19) 26,257 (40.09) 73,551 (45.34) 11,154,046 (47.64) 11,289,199 (53.91) Male 7,183 (73.63) 6,858 (65.81) 4,430 (73.19) 9,839 (66.81) 39,238 (59.91) 88,657 (54.66) 12,257,541 (52.36) 9,652,819 (46.09) Race/Ethnicity, n (%) Asian/Pacific Islander 198 (2.03) 304 (2.92) 139 (2.30) 367 (2.49) 1,855 (2.83) 4,283 (2.64) 1,063,668 (4.54) 1,290,444 (6.16) Black 1,060 (10.87) 1,318 (12.65) 1,415 (23.38) 3,157 (21.44) 15,374 (23.47) 36,242 (22.34) 2,576,968 (11.01) 2,976,279 (14.21) Hispanic/Latino 436 (4.47) 715 (6.86) 413 (6.82) 981 (6.66) 5,801 (8.86) 14,806 (9.13) 2,700,173 (11.53) 2,566,188 (12.25) Native American/ Alaska Native 60 (0.62) 86 (0.83) 34 (0.56) 94 (0.64) 747 (1.14) 1,623 (1.00) 179,237 (0.77) 147,665 (0.71) Multiracial/Other 57 (0.58) 37 (0.36) 15 (0.25) 18 (0.12) 185 (0.28) 252 (0.16) 180,522 (0.77) 101,512 (0.48) Missing 319 (3.27) 256 (2.46) 67 (1.11) 130 (0.88) 936 (1.43) 1,937 (1.19) 1,267,670 (5.41) 789,060 (3.77) White 7,625 (78.17) 7,705 (73.94) 3,970 (65.59) 9,980 (67.77) 40,597 (61.98) 103,065 (63.54) 15,443,349 (65.96) 13,070,870 (62.41) Enrolled months Mean (SD) 32.48 (6.79) 33.22 (6.08) 33.35 (6.09) 34.15 (5.14) 33.43 (6.00) 34.03 (5.27) 30.96 (7.91) 32.80 (6.41) Enrolled months group 12-24 1,610 (16.50) 1,319 (12.66) 772 (12.75) 1,250 (8.49) 8,137 (12.42) 14,858 (9.16) 5,458,049 (23.31) 3,007,220 (14.36) 25-36 8,145 (83.50) 9,102 (87.34) 5,281 (87.25) 13,477 (91.51) 57,358 (87.58) 147,350 (90.84) 17,953,538 (76.69) 17,934,798 (85.64) Enrollment, n (%) Medicaid Only 2,018 (20.69) 2,881 (27.65) 914 (15.10) 1,854 (12.59) 11,340 (17.31) 26,845 (16.55) 5,027,385 (21.47) 5,090,628 (24.31) Medicare Only 4,700 (48.18) 1,901 (18.24) 912 (15.07) 360 (2.44) 15,604 (23.82) 8,061 (4.97) 16,875,741 (72.08) 10,572,537 (50.48) Dually Enrolled 3,037 (31.13) 5,639 (54.11) 4,227 (69.83) 12,513 (84.97) 38,551 (58.86) 127,302 (78.48) 1,508,461 (6.44) 5,278,853 (25.21) Region, n (%) Midwest 2,023 (20.74) 2,317 (22.23) 1,212 (20.02) 3,241 (22.01) 14,864 (22.69) 39,837 (24.56) 4,421,900 (18.89) 4,497,167 (21.47) Northeast 2,123 (21.76) 2,408 (23.11) 1,676 (27.69) 4,290 (29.13) 14,307 (21.84) 36,956 (22.78) 4,418,282 (18.87) 4,532,759 (21.64) South 2,986 (30.61) 2,787 (26.74) 2,146 (35.45) 4,773 (32.41) 24,150 (36.87) 57,695 (35.57) 8,238,427 (35.19) 7,064,887 (33.74) West 2,623 (26.89) 2,909 (27.91) 1,019 (16.83) 2,423 (16.45) 12,174 (18.59) 27,720 (17.09) 6,332,978 (27.05) 4,847,205 (23.15) Conditions, n (%) ADRD 809 (8.29) 1,019 (9.78) 278 (4.59) 1,500 (10.19) 5,289 (8.08) 20,676 (12.75) 1,258,382 (5.38) 1,344,759 (6.42) Fall 813 (8.33) 1,263 (12.12) 462 (7.63) 2,581 (17.53) 6,168 (9.42) 26,815 (16.53) 1,587,748 (6.78) 1,941,765 (9.27) Mortality 379 (3.89) 545 (5.23) 140 (2.31) 700 (4.75) 2,746 (4.19) 12,195 (7.52) 1,084,893 (4.63) 1,148,402 (5.48) Abbreviations. AC=anticholinergic; ADRD=Alzheimer disease and related dementias; Dually Enrolled=dually enrolled in Medicare and Medicaid; ID=intellectual disability. Table S5. Sensitivity analysis: Prevalence ratios and 95% confidence intervals of Alzheimer disease and related dementias (ADRD), falls, and mortality for persons not prescribed medications with anticholinergic (AC) effects and persons prescribed at least one medication with AC effects for 2017-2019 Medicaid and/or Medicare enrollees aged ≥40 years in the four groups after removing individuals prescribed any antidepressant or antipsychotic medication with AC effects Autism only Autism + ID ID only Control No AC Med AC Med No AC Med AC Med No AC Med AC Med AC Med ADRD Adjusted model 2.637 (2.48,2.81) 2.368 (2.24,2.50) 2.458 (2.19,2.76) 3.638 (3.46,3.83) 2.544 (2.48,2.61) 2.854 (2.81,2.89) 0.942 (0.94,0.94) Falls Adjusted model 1.498 (1.40,1.60) 2.163 (2.06,2.28) 1.579 (1.45,1.72) 3.312 (3.20,3.43) 1.711 (1.67,1.75) 2.808 (2.78,2.84) 1.285 (1.28,1.29) Mortality Adjusted model 1.196 (1.10,1.30) 1.510 (1.40,1.63) 1.125 (0.98,1.30) 1.802 (1.69,1.92) 1.411 (1.37,1.46) 1.881 (1.85,1.91) 1.150 (1.15,1.15) Note. In adjusted models, the prevalence ratios are adjusted for age group, sex, race/ethnicity, enrolled months group (12-24, 25-36), enrollment type (Medicaid only, Medicare only, dual enrollment), and state. The reference level in analyses was Controls not prescribed medication(s) with AC effects. Abbreviations. AC=anticholinergic; ADRD=Alzheimer disease and related dementias; ID=intellectual disability. Mortality Adjusted model 1.318 (1.20,1.45) 1.290 (1.12,1.49) 1.153 (0.97,1.37) 1.254 (1.14,1.37) 1.755 (1.55,1.98) 1.716 (1.52,1.93) 1.455 (1.42,1.49) 1.743 (1.69,1.80) 1.764 (1.71,1.82) 1.063 (1.06,1.07) 1.036 (1.03,1.04)</p>
+<p>Note. In adjusted models, the prevalence ratios are adjusted for age group, sex, race/ethnicity, enrolled months group (12-24, 25-36), enrollment type (Medicaid only, Medicare only, dual enrollment), and state. The reference level in analyses was Controls prescribed a low potency (AC=1) AC medication. Abbreviations. AC=anticholinergic; ADRD=Alzheimer disease and related dementias; ID=intellectual disability.</p>
+<p>Acknowledgements: This study was supported by the National Institute of Mental Health (NIMH) under the Award Number R01MH117653 (PI: L.L.S.). This project was also supported by the Health Resources and Services Administration (HRSA) of the US Department of Health and Human Services (HHS) under cooperative agreement UT2MC39440, Autism Intervention Research Network on Physical Health (AIR-P; PI: L.L.S.). G.A.M. acknowledges support under NIMH K01MH129622. The information, content, and/or conclusions are those of the author and should not be construed as the official position or policy of, nor should any endorsements be inferred by HRSA, HHS or the U.S. Government. This manuscript is the result of funding in whole or in part by the National Institutes of Health (NIH). It is subject to the NIH Public Access Policy. Through acceptance of this federal funding, NIH has been given a right to make this manuscript publicly available in PubMed Central upon the Official Date of Publication, as defined by NIH.</p>
+<h3>Data Availability:</h3>
+<p>Due to data use agreement requirements by the Centers for Medicare and Medicaid Services, sharing of individual data from this study is not permitted.</p>
+<p>Author Contributions: G.A.M. and G.L.W contributed to the conception and design of the study. S.T. and L.L.S. contributed to the acquisition of data. S.T. and G.A.M. contributed to analysis of data. G.A.M., S.T., L.L.S., and G.L.W. contributed to drafting of the text. G.A.M. and S.T. contributed to preparing the figures and tables.</p>
+<h3>Anticholinergic Medications and Health in Adults with Autism or Intellectual Disability</h3>
+<p>Supplemental Methods: Data extraction for medications Supplemental Methods: Medication routes excluded in AC potency coding Supplemental Methods: Coding of medications for AC potency Supplemental Methods: Sensitivity analyses removing persons prescribed antidepressant or antipsychotic medications with AC effects Table S1. ICD-10 codes and/or claims/indicators for Variables Table S2. Medication routes excluded from analyses Table S3. Complete list of medications with AC effects listed in Medicaid and/or Medicare databases for the four groups among adults aged 40+ years and potency score according to the CALS  S4. Characteristics of participants in the four groups, after removing persons prescribed antidepressant or antipsychotic medications with anticholinergic (AC) effects Table S5. Sensitivity analysis: Prevalence ratios and 95% confidence intervals of Alzheimer disease and related dementias (ADRD), falls, and mortality for persons not prescribed medications with anticholinergic (AC) effects and persons prescribed at least one medication with AC effects for 2017-2019 Medicaid and/or Medicare enrollees aged ≥40 years in the four groups after removing individuals prescribed any antidepressant or antipsychotic medication with AC effects Table S6. Sensitivity analysis: Prevalence ratios and 95% confidence intervals of Alzheimer disease and related dementias (ADRD), falls, and mortality for anticholinergic (AC) potency levels of low, medium, and high (AC=1, AC=2, AC=3) for persons prescribed at least one medication with AC effects for 2017-2019 Medicaid and/or Medicare enrollees aged ≥40 years in the four groups after removing individuals prescribed any antidepressant or antipsychotic medication with AC effects This supplemental material has been provided by the authors to give readers additional information about their work.</p>
+<p>betaxolol 1 N bisacodyl 1 N bromocriptine 1 N brompheniramine 3 N brompheniramine-diphenhydramine 3 N brompheniramine-phenylephrine 3 N brompheniramine-pseudoephedrine 3 N brompheniramine/codeine/pseudoephedrine 3 N bupropion 1 Y canagliflozin-metformin 1 N captopril 1 N carbamazepine 2 N carbidopa-levodopa 1 N carbinoxamine 3 N carisoprodol 3 N cefoxitin 1 N celecoxib 1 N cetirizine 1 N cetirizine-pseudoephedrine 1 N chlophedianol/dexchlorpheniramine/PSE 1 N chlordiazepoxide 1 N chlordiazepoxide-clidinium 1 N chlorpheniramine 3 N chlorpheniramine-phenylephrine 2 N chlorpromazine 3 N chlorthalidone 1 N chlorthalidone-clonidine 1 N cimetidine 2 N citalopram 1 Y Table S6. Sensitivity analysis: Prevalence ratios and 95% confidence intervals of Alzheimer disease and related dementias (ADRD), falls, and mortality for anticholinergic (AC) potency levels of low, medium, and high (AC=1, AC=2, AC=3) for persons prescribed at least one medication with AC effects for 2017-2019 Medicaid and/or Medicare enrollees aged ≥40 years in the four groups after removing individuals prescribed any antidepressant or antipsychotic medication with AC effects Autism only Autism + ID ID only Control AC=1 AC=2 AC=3 AC=1 AC=2 AC=3 AC=1 AC=2 AC=3 AC=2 AC=3 ADRD Adjusted model</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Flowchart indicating steps for inclusion/exclusion leading to the final sample for the current study.</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Visual depiction of the 10 most common medication classes with anticholinergic (AC) effects within each group (from top left to bottom right: autism-only, autism+intellectual disability (ID), ID-only, control), where AC classification was based on the</p>
+<h3>F01.50 ,</h3>
+<p>F01.51, F02.80, F02.81, F03.90, F03.91, F04, F05, F06.1, F06.8, G13.8, G30.0, G30.1, G30.8, G30.9, G31.01, G31.09, G31.1, G31.2, G94, R41.81, R54 Falls/Fall risk (ICD-10: Slipping, tripping, stumbling and falls) 1 inpatient or 1 noninpatient claim W00. XXXX-W15. XXXX, W17. XXXX V00111,V00111A,V00111D,V00111S,V00121,V00121A,V00121D,V00121S,V0013 1,V00131A,V00131D,V00131S,V00141,V00141A,V00141D,V00141S,V00151,V00 151A,V00151D,V00151S,V00181,V00181A,V00181D,V00181S,V00211,V00211A, V00211D,V00211S,V00221,V00221A,V00221D,V00221S,V00281,V00281A,V0028 1D,V00281S,V00311,V00311A,V00311D,V00311S,V00321,V00321A,V00321D,V0 0321S,V00381,V00381A,V00381D,V00381S,V00811,V00811A,V00811D,V00811S, V00821,V00821A,V00821D,V00821S,V00831,V00831A,V00831D,V00831S,V0084 1,V00841A,V00841D,V00841S,V00891,V00891A,V00891D,V00891S,W16012,W16 012A,W16012D,W16012S,W16022,W16022A,W16022D,W16022S,W16112,W16112A,W16112D,W16112S,W16122,W16122A,W16122D,W16122S,W16132,W16132 A,W16132D,W16132S,W16212,W16212A,W16212D,W16212S,W16222,W16222A, W16222D,W16222S,W16312,W16312A,W16312D,W16312S,W16322,W16322A,W 16322D,W16322S,W16332,W16332A,W16332D,W16332S,W16512,W16512A,W16 512D,W16512S,W16522,W16522A,W16522D,W16522S,W16532,W16532A,W1653 2D,W16532S,W16612,W16612A,W16612D,W16612S,W16622,W16622A,W16622 D,W16622S,W16712,W16712A,W16712D,W16712S,W16722,W16722A,W16722D, W16722S,W16812,W16812A,W16812D,W16812S,W16822,W16822A,W16822D,W 16822S,W16832,W16832A,W16832D,W16832S,W181,W1811,W1811XA,W1811X D,W1811XS,W1812,W1812XA,W1812XD,W1812XS,W182,W182XXA,W182XXD ,W182XXS,W183,W1830,W1830XA,W1830XD,W1830XS,W1831,W1831XA,W18 31XD,W1831XS,W1839,W1839XA,W1839XD,W1839XS,W19,W19XXXA,W19X XXD,W19XXXS</p>
+<h3>Figure S1.</h3>
+<p>Figure S1. Visual depiction of the most frequent classes of anticholinergic (AC) medications with an AC potency of 1 based on the CRIDECO Anticholinergic Load Scale (CALS; Ramos et al., 2022) within each group (from top left to bottom right: autism-only, autism+intellectual disability (ID), ID-only, control).</p>
+<h3>Figure S2.</h3>
+<p>Figure S2. Visual depiction of the most frequent classes of anticholinergic (AC) medications with an AC potency of 2 based on the CRIDECO Anticholinergic Load Scale (CALS; Ramos et al., 2022) within each group (from top left to bottom right: autism-only, autism+intellectual disability (ID), ID-only, control).</p>
+<h3>Figure S3.</h3>
+<p>Figure S3. Visual depiction of the most frequent classes of anticholinergic (AC) medications with an AC potency of 3 based on the CRIDECO Anticholinergic Load Scale (CALS; Ramos et al., 2022) within each group (from top left to bottom right: autism-only, autism+intellectual disability (ID), ID-only, control).</p>
+<h3>Table 1.</h3>
+<p>57. Nishtala PS, Salahudeen MS, Hilmer SN. Anticholinergics: Theoretical and clinical overview. Expert Opin Drug Saf. 2016;15(6):753-768. doi:10.1517/14740338.2016.1165664 58. Campbell NL, Holden R, Boustani MA. Preventing Alzheimer Disease by deprescribing anticholinergic medications. JAMA Intern Med. 2019;179(8):1093. Characteristics of Participants in the Autism-only, Autism+ID, ID-only, and Control Groups.</p>
+<h3>Table 2.</h3>
+<p>Prevalence Ratios and 95% Confidence Intervals of Alzheimer Disease and Related Dementias (ADRD), Falls, and Mortality for Persons not Prescribed Medications with Anticholinergic (AC) Effects and Persons Prescribed at Least One Medication with AC Effects for 2017-2019 Medicaid and/or Medicare Enrollees aged ≥40 Years in the Four Groups.</p>
+<h3>Table 3.</h3>
+<p>Adjusted Prevalence Ratios (aPR) and 95% Confidence Intervals (CI) of Alzheimer Disease and Related Dementias (ADRD), Falls, and Mortality for Pairwise Comparisons for A) None versus any Anticholinergic (AC) Medication Exposure within each Group (e.g., Autism AC=1 versus Autism AC=0); and B) any AC Medication Use by Group (e.g., Autism AC=1 versus Control AC=1).</p>
+<h3>Table 4.</h3>
+<p>Prevalence Ratios and 95% Confidence Intervals of Alzheimer Disease and Related Dementias (ADRD), Falls, and Mortality for Anticholinergic (AC) Potency Levels of Low, Medium, and High (AC=1, AC=2, AC=3) for Persons Prescribed at Least One Medication with AC Effects for 2017-2019 Medicaid and/or Medicare Enrollees Aged ≥40 Years in the Four Groups.</p>
+<h3>Table 5.</h3>
+<p>Adjusted Prevalence Ratios (aPR) and 95% Confidence Intervals (CI) of Alzheimer Disease and Related Dementias (ADRD), Falls, and Mortality for Pairwise Comparisons for A) Anticholinergic (AC) Medication Exposure Potency (AC=1, AC=2, AC=3) within each Group (e.g., Autism AC=1 vs. Autism AC=2); and B) Medication Exposure Potency between Groups (e.g., Autism AC=3 vs. Control AC=3). Note: Adjusted prevalence ratios are adjusted for age group, sex, race/ethnicity, enrolled months group(12-24, 25-36), enrollment type (Medicaid only, Medicare only, dual enrollment), and state. The reference level for each comparison is indicated in the Reference column. All pairwise comparisons were significant at p&lt;.05.</p>
+<h3>Figure S1.</h3>
+<p>Visual depiction of the most frequent classes of AC medications with an AC potency of 1 based on the CRIDECO Anticholinergic Load Scale (CALS; Ramos et al., 2022) Figure S2. Visual depiction of the most frequent classes of AC medications with an AC potency of 2 based on the CRIDECO Anticholinergic Load Scale (CALS; Ramos et al., 2022) Figure S3. Visual depiction of the most frequent classes of AC medications with an AC potency of 3 based on the CRIDECO Anticholinergic Load Scale (CALS; Ramos et al., 2022) Table</p>
+<h3>References</h3>
+<p>Mason D, Stewart GR, Capp SJ, Happé F. Older age autism research: A rapidly growing field, but still a long way to go. Autism in Adulthood. 2022;4(2):164-172. doi:10.1089/aut.2021.0041</p>
+<p>Hand BN, Angell AM, Harris L, Carpenter LA. Prevalence of physical and mental health conditions in Medicare-enrolled, autistic older adults. Autism. 2020;24(3):755-764. doi:10.1177/1362361319890793</p>
+<p>Vivanti G, Tao S, Lyall K, Robins DL, Shea LL. The prevalence and incidence of early- onset dementia among adults with autism spectrum disorder. Autism Research. 2021;14(10):2189-2199. doi:10.1002/aur.2590</p>
+<p>Vivanti G, Lee WL, Ventimiglia J, Tao S, Lyall K, Shea LL. Prevalence of dementia among US adults with autism spectrum disorder. JAMA Netw Open. 2025;8(1):e2453691. doi:10.1001/jamanetworkopen.2024.53691</p>
+<p>Liu S, Larsson H, Kuja-Halkola R, Lichtenstein P, Butwicka A, Taylor MJ. Age-related physical health of older autistic adults in Sweden: A longitudinal, retrospective, population-based cohort study. Lancet Healthy Longev. 2023;4(7):e307-e315. doi:10.1016/S2666-7568(23)00067-3</p>
+<p>Bishop L, Blake M, Nikahd M, et al. Falls and fall-related injuries and hospitalizations in autistic older adults: A Medicare data study. Autism. 2026;30(6):1443-1451. doi:10.1177/13623613261433988</p>
+<p>Catalá-López F, Hutton B, Page MJ, et al. Mortality in persons with autism spectrum disorder or attention-deficit/hyperactivity disorder. JAMA Pediatr. 2022;176(4):e216401. doi:10.1001/jamapediatrics.2021.6401</p>
+<p>Forsyth L, McSorley M, Rydzewska E. All-cause and cause-specific mortality in people with autism spectrum disorder: A systematic review. Res Autism Spectr Disord. 2023;105:102165. doi:10.1016/j.rasd.2023.102165</p>
+<p>Hirvikoski T, Mittendorfer-Rutz E, Boman M, Larsson H, Lichtenstein P, Bölte S. Premature mortality in autism spectrum disorder. British Journal of Psychiatry. 2016;208(03):232-238. doi:10.1192/bjp.bp.114.160192</p>
+<p>Krantz M, Dalmacy D, Bishop L, Hyer JM, Hand BN. Mortality rate and age of death among Medicare-enrolled autistic older adults. Res Autism Spectr Disord. 2023;100:102077. doi:10.1016/j.rasd.2022.102077</p>
+<p>Mintzer J, Burns A. Anticholinergic side-effects of drugs in elderly people. J R Soc Med. 2000;93(9):457-462. doi:10.1177/014107680009300903</p>
+<p>Boustani MA, Campbell NL, Munger S, Maidment I, Fox C. Impact of anticholinergics on the aging brain: A review and practical application. Aging health. 2008;4(3):311-320. doi:10.2217/1745509X.4.3.311</p>
+<p>Gray SL, Anderson ML, Dublin S, et al. Cumulative use of strong anticholinergics and incident dementia: A prospective cohort study. JAMA Intern Med. 2015;175(3):401-407. doi:10.1001/jamainternmed.2014.7663</p>
+<p>Coupland CAC, Hill T, Dening T, Morriss R, Moore M, Hippisley-Cox J. Anticholinergic Drug Exposure and the Risk of Dementia: A Nested Case-Control Study. JAMA Intern Med. 2019;179(8):1084-1093. doi:10.1001/jamainternmed.2019.0677</p>
+<p>Stewart C, Taylor-Rowan M, Soiza RL, Quinn TJ, Loke YK, Myint PK. Anticholinergic burden measures and older people&#x27;s falls risk: A systematic prognostic review. Ther Adv Drug Saf. 2021;12:204209862110166. doi:10.1177/20420986211016645</p>
+<p>Xu XJ, Tan MP. Anticholinergics and falls in older adults. Expert Rev Clin Pharmacol. 2022;15(3):285-294. doi:10.1080/17512433.2022.2070474</p>
+<p>Ali S, Peterson GM, Bereznicki LR, Salahudeen MS. Association between anticholinergic drug burden and mortality in older people: A systematic review. Eur J Clin Pharmacol. 2020;76(3):319-335. doi:10.1007/s00228-019-02795-x</p>
+<p>Lai MC, Kassee C, Besney R, et al. Prevalence of co-occurring mental health diagnoses in the autism population: A systematic review and meta-analysis. Lancet Psychiatry. 2019;6(10):819-829. doi:10.1016/S2215-0366(19)30289-5</p>
+<p>Weir E, Allison C, Warrier V, Baron-Cohen S. Increased prevalence of non- communicable physical health conditions among autistic adults. Autism. 2021;25(3):681- 694. doi:10.1177/1362361320953652</p>
+<p>Frazier TW, Shattuck PT, Narendorf SC, Cooper BP, Wagner M, Spitznagel EL. Prevalence and correlates of psychotropic medication use in adolescents with an autism spectrum disorder with and without caregiver-reported attention-deficit/hyperactivity disorder. J Child Adolesc Psychopharmacol. 2011;21(6):571-579. doi:10.1089/cap.2011.0057</p>
+<p>Mandell DS, Morales KH, Marcus SC, Stahmer AC, Doshi J, Polsky DE. Psychotropic medication use among Medicaid-enrolled children with autism spectrum disorders. Pediatrics. 2008;121(3):e441-e448. doi:10.1542/peds.2007-0984</p>
+<p>Esbensen AJ, Greenberg JS, Seltzer MM, Aman MG. A longitudinal investigation of psychotropic and non-psychotropic medication use among adolescents and adults with autism spectrum disorders. J Autism Dev Disord. 2009;39(9):1339-1349. doi:10.1007/s10803-009-0750-3</p>
+<p>Ritter C, Hewitt K, McMorris CA. Psychotropic polypharmacy among children and youth with autism: A systematic review. J Child Adolesc Psychopharmacol. 2021;31(4):244- 258. doi:10.1089/cap.2020.0110</p>
+<p>Jobski K, Höfer J, Hoffmann F, Bachmann C. Use of psychotropic drugs in patients with autism spectrum disorders: A systematic review. Acta Psychiatr Scand. 2017;135(1):8-28. doi:10.1111/acps.12644</p>
+<p>Vohra R, Madhavan S, Sambamoorthi U, et al. Prescription drug use and polypharmacy among Medicaid-enrolled adults with autism: A retrospective cross-sectional analysis. Drugs Real World Outcomes. 2016;3(4):409-425. doi:10.1007/s40801-016-0096-z</p>
+<p>Rast JE, Tao S, Schott W, et al. Psychotropic medication use in children and youth with autism enrolled in Medicaid. J Autism Dev Disord. 2025;55(1):258-266. doi:10.1007/s10803-023-06182-5</p>
+<p>McQuaid GA, Duane SC, Ahmed N, Lee NR, Charlton R, Wallace GL. Increased anticholinergic medication use in middle-aged and older autistic adults and its associations with self-reported memory difficulties and cognitive decline. Autism Research. 2024;17(4):852-867. doi:10.1002/aur.3076</p>
+<p>McQuaid GA, Lee NR, Wallace GL. Characterization of anticholinergic medication use and its associations with everyday memory problems and cognitive decline in autistic adults with higher support needs. Autism Research. 2026;19(10). doi:10.1002/aur.70342</p>
+<p>Fortea J, Zaman SH, Hartley S, Rafii MS, Head E, Carmona-Iragui M. Alzheimer&#x27;s disease associated with Down syndrome: A genetic form of dementia. Lancet Neurol. 2021;20(11):930-942. doi:10.1016/S1474-4422(21)00245-3</p>
+<p>Lusk JB, Choi S, Clark AG, et al. Dementia and Parkinson&#x27;s disease diagnoses in electronic health records vs. Medicare claims data: A study of 101,980 linked patients. BMC Neurol. 2023;23(1):325. doi:10.1186/s12883-023-03361-w</p>
+<p>Grosse SD, Nichols P, Nyarko K, Maenner M, Danielson ML, Shea L. Heterogeneity in autism spectrum disorder case-finding algorithms in United States health administrative database analyses. J Autism Dev Disord. 2022;52(9):4150-4163. doi:10.1007/s10803-021-05269-1</p>
+<p>Burke JP, Jain A, Yang W, et al. Does a claims diagnosis of autism mean a true case? Autism. 2014;18(3):321-330. doi:10.1177/1362361312467709</p>
+<p>McCarthy EP, Chang CH, Tilton N, Kabeto MU, Langa KM, Bynum JPW. Validation of claims algorithms to identify Alzheimer&#x27;s Disease and related dementias. Magaziner J, ed. The Journals of Gerontology: Series A. 2022;77(6):1261-1271. doi:10.1093/gerona/glab373</p>
+<p>Ramos H, Moreno L, Pérez-Tur J, Cháfer-Pericás C, García-Lluch G, Pardo J. CRIDECO Anticholinergic Load Scale: An updated anticholinergic burden scale. Comparison with the ACB Scale in Spanish individuals with subjective memory complaints. J Pers Med. 2022;12(2):207. doi:10.3390/jpm12020207</p>
+<p>Zou G. A modified Poisson regression approach to prospective studies with binary data. Am J Epidemiol. 2004;159(7):702-706. doi:10.1093/aje/kwh090</p>
+<p>Csizmadi I, Collet J, Boivin J, Hoffman B, Lefkowitz R. Bias and confounding. In: Strom B, ed. Pharmacoepidemiology. John Wiley &amp; Sons, Ltd; 2007:791-809.</p>
+<p>Bennett S, Thomas AJ. Depression and dementia: Cause, consequence or coincidence? Maturitas. 2014;79(2):184-190. doi:10.1016/j.maturitas.2014.05.009</p>
+<p>Brzezińska A, Bourke J, Rivera-Hernández R, Tsolaki M, Woźniak J, Kaźmierski J. Depression in dementia or dementia in depression? Systematic review of studies and hypotheses. Curr Alzheimer Res. 2020;17(1):16-28. doi:10.2174/1567205017666200217104114</p>
+<p>Zuidema SU, Johansson A, Selbaek G, et al. A consensus guideline for antipsychotic drug use for dementia in care homes. Bridging the gap between scientific evidence and clinical practice. Int Psychogeriatr. 2015;27(11):1849-1859. doi:10.1017/S1041610215000745</p>
+<p>Laura Ward M, Cooper SA, Henderson A, et al. A study on prescriptions contributing to the risk of high anticholinergic burden in adults with intellectual disabilities: Retrospective record linkage study. Ann Gen Psychiatry. 2022;21(1):41. doi:10.1186/s12991-022-00418-x</p>
+<p>Pelen K, Hagenimana WB, Baroud ML, et al. Prevalence and factors associated with anticholinergic medication use in community-dwelling older adults: A systematic review. Int J Clin Pharm. 2025;47(6):1646-1659. doi:10.1007/s11096-025-02012-z</p>
+<p>Vaughan RM, O&#x27;Dwyer M, Tyrrell J, Kennelly SP, McCarron M. Drug burden index of people ageing with intellectual disability and cognitive complaints attending a specialist memory service. Journal of Intellectual Disability Research. 2024;68(12):1386-1395. doi:10.1111/jir.13180</p>
+<p>Marquis S, O&#x27;Leary R, Marquis NE, Baumbusch J. A rapid mapping review of medication burden in adults with an intellectual disability: What we know and what we do not know. Drug Healthc Patient Saf. 2026;Volume 18:1-24. doi:10.2147/DHPS.S558001</p>
+<p>Coupland CAC, Hill T, Dening T, Morriss R, Moore M, Hippisley-Cox J. Anticholinergic drug exposure and the risk of dementia. JAMA Intern Med. 2019;179(8):1084. doi:10.1001/jamainternmed.2019.0677</p>
+<p>Zheng YB, Shi L, Zhu XM, et al. Anticholinergic drugs and the risk of dementia: A systematic review and meta-analysis. Neurosci Biobehav Rev. 2021;127:296-306. doi:10.1016/j.neubiorev.2021.04.031</p>
+<p>Al Shuhaimi L, Maidment ID, Henman MC, et al. Ten-year outcomes of anticholinergic use among older adults with intellectual disability: Findings from the intellectual disability supplement to the Irish Longitudinal Study on Ageing (IDS-TILDA). Journal of Intellectual Disability Research. 2025;69(11):1284-1294. doi:10.1111/jir.70018</p>
+<p>Poonawalla IB, Xu Y, Gaddy R, et al. Anticholinergic exposure and its association with dementia/Alzheimer&#x27;s disease and mortality in older adults. BMC Geriatr. 2023;23(1):401. doi:10.1186/s12877-023-04095-7</p>
+<p>Szabo SM, Gooch K, Schermer C, et al. Association between cumulative anticholinergic burden and falls and fractures in patients with overactive bladder: US-based retrospective cohort study. BMJ Open. 2019;9(5):e026391. doi:10.1136/bmjopen-2018-026391</p>
+<p>Fox C, Richardson K, Maidment ID, et al. Anticholinergic medication use and cognitive impairment in the older population: The medical research council cognitive function and ageing study. J Am Geriatr Soc. 2011;59(8):1477-1483. doi:10.1111/j.1532-5415.2011.03491.x</p>
+<p>Zia A, Kamaruzzaman S, Myint PK, Tan MP. Anticholinergic burden is associated with recurrent and injurious falls in older individuals. Maturitas. 2016;84:32-37. doi:10.1016/j.maturitas.2015.10.009</p>
+<p>Licari MK, Alvares GA, Varcin K, et al. Prevalence of motor difficulties in autism spectrum disorder: Analysis of a population-based cohort. Autism Research. 2020;13(2):298-306. doi:10.1002/aur.2230</p>
+<p>Wallace GL, Klein CB, Tao S, Carey ME, Shea LL, Klinger LG. The co-occurrence of autism and parkinsonism in a national sample of autistic adults in Medicaid and Medicare. Autism. In press. doi: 10.1177/13623613261480394</p>
+<p>Demetriou EA, Lampit A, Quintana DS, et al. Autism spectrum disorders: A meta- analysis of executive function. Mol Psychiatry. 2018;23(5):1198-1204. doi:10.1038/mp.2017.75</p>
+<p>Haddad C, Salameh P, Sacre H, Clément JP, Calvet B. Effects of antipsychotic and anticholinergic medications on cognition in chronic patients with schizophrenia. BMC Psychiatry. 2023;23(1):61. doi:10.1186/s12888-023-04552-y</p>
+<p>Joshi YB, Thomas ML, Braff DL, et al. Anticholinergic medication burden-associated cognitive impairment in schizophrenia. American Journal of Psychiatry. 2021;178(9):838- 847. doi:10.1176/appi.ajp.2020.20081212</p>
+<p>Mancini V, Latreche C, Fanshawe JB, et al. Anticholinergic burden and cognitive function in psychosis: A systematic review and meta-analysis. American Journal of Psychiatry. 2025;182(4):349-359. doi:10.1176/appi.ajp.20240260</p>
+<p>Ramos H, Moreno L, Pérez-Tur J, Cháfer-Pericás C, García-Lluch G, Pardo J. CRIDECO Anticholinergic Load Scale: An updated anticholinergic burden scale. Comparison with the ACB Scale in Spanish individuals with subjective memory complaints. J Pers Med. 2022;12(2):207. doi:10.3390/jpm12020207</p>
+<p>Salahudeen MS, Duffull SB, Nishtala PS. Anticholinergic burden quantified by anticholinergic risk scales and adverse outcomes in older people: A systematic review. BMC Geriatr. 2015;15(1):31. doi:10.1186/s12877-015-0029-9</p>
 </div>
 </details>
 </div>
