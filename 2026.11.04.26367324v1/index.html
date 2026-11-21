@@ -196,7 +196,7 @@ Risk-benefit assessment of oral anticoagulation in atrial fibrillation
 using virtual clinical trials
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.04.26367324
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.04.26367324
 </p>
 </header>
 <div class="mc-main">
@@ -371,8 +371,8 @@ Your Statistical Inferences</a>.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 15 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 15 detected.</p>
 </div>
 </div>
 </div>
@@ -457,8 +457,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -796,9 +797,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -820,7 +825,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -835,9 +841,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -850,13 +874,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -876,6 +903,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -883,12 +916,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -989,6 +1028,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1008,6 +1067,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1263,19 +1357,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1385,6 +1561,120 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Oral anticoagulation (OAC) reduces stroke risk in patients with atrial fibrillation (AF), and screening can enable earlier AF detection and OAC initiation. However, the population-level tradeoff between stroke prevention and OAC-related major bleeding for different types of AF and OAC therapy remains uncertain, and large randomized trials to resolve this are costly and time-consuming.</p>
+<p>Methods: A state-transition Markov-like model was developed to: 1) simulate the lifetime course of AF, stroke, major bleeding, and death in different virtual populations; 2) quantify benefits (stroke reduction) and harms (major bleeding) of systematic AF screening with screening-triggered OAC across CHA2DS2-VA scores; and 3) compare rhythm-guided, time-delimited (&quot;pill-in-pocket&quot;) OAC with continuous OAC.</p>
+<p>Results: The model synthesized information from multiple clinical sources and reproduced stroke and bleeding incidence across clinical scenarios. At CHA₂DS₂-VA=2, long-term continuous rhythm monitoring (LT-CRM) with OAC lowered stroke risk (HR, 0.92 [95%CI, 0.88-0.96]) but raised bleeding risk (HR, 1.17 [95%CI, 1.07-1.27]) versus no screening. Time-to-benefit was shorter than time-to-harm for CHA₂DS₂-VA≥4, but longer for CHA₂DS₂-VA=0. Pill-in-pocket OAC vs continuous OAC showed no difference in stroke/mortality (HR, 1.03, 95%CI [0.91-1.16]) but lower bleeding risk (HR, 0.81, 95%CI: 0.68-0.96]) in patients with elevated bleeding risk, but not at baseline. Sensitivity analyses revealed that the risk-benefit profiles of screening or pill-in-pocket OAC strategy further depend on OAC adherence and bleeding risks.</p>
+<p>Conclusions: Our model highlights a trade-off between stroke reduction and bleeding for systematic screening-initiated OAC, with net benefit for CHA₂DS₂-VA≥4. We provide the first virtual implementation of an ongoing rhythm-guided OAC trial, showing that pill-in-pocket OAC may lower bleeding risk compared to continuous OAC, highlighting the potential of virtual clinical trials to guide clinical trial design.</p>
+<h3>Introduction</h3>
+<p>Atrial fibrillation (AF) is associated with a 2.3-fold increase in ischemic stroke risk. 1 Oral anticoagulation (OAC) is a cornerstone of AF management, reducing the risk of stroke or thromboembolic events (TE) by 64-80%. 2, 3 However, the timely diagnosis of AF is challenging due to the highly dynamic and heterogeneous occurrence of AF episodes and weak symptom-rhythm correlation, often precluding timely initiation of OAC. In theory, systematic AF screening would be expected to facilitate early detection of AF, enabling timely OAC initiation and potentially reducing the incidence of stroke/TE. In agreement, several randomized controlled clinical trials (RCTs) have shown increased AF detection and subsequent OAC use with systematic screening. [4] [5] [6] [7] [8] [9] However, to date, no AF-screening studies have demonstrated a specific reduction in stroke/TE, 4, 6, 7 although one reported a slight reduction in the composite endpoint of ischemic/hemorrhagic stroke, systemic embolism, bleeding leading to hospitalization, and all-cause mortality. 9 In patients with subclinical AF detected by implantable cardiac devices, OAC was associated with a significantly higher risk of major bleeding. [10] [11] [12] These findings highlight the uncertain risk-benefit profiles of systematic AF screening with subsequent continuous OAC. 13 Rhythm-guided, time-delimited anticoagulation strategies (&quot;pill-in-pocket&quot; OAC) enabled by recent advances in wearable technologies may offer opportunities to mitigate bleeding risk, but their long-term safety and effectiveness remain unknown and are currently being tested in ongoing RCTs (e.g., Rhythm Evaluation for AntiCoagulaTion with</p>
+<h3>Continuous Monitoring of Atrial Fibrillation [REACT-AF], ClinicalTrials.gov NCT05836987).</h3>
+<p>While RCTs remain the gold standard to address such therapeutic uncertainties, the high medical costs, long timelines, and ethical constraints of large-scale screening studies make rapid answers based on real-world studies impractical or even impossible. In contrast, computational modeling offers precise control of variables and the ability to simulate complicated disease dynamics, which provides an efficient and ethical alternative for comprehensive intervention assessment. [14] [15] [16] We therefore developed a state-of-the-art computational framework to address the abovementioned unresolved clinical and public health questions using virtual clinical trials. In particular, our study aims to i): evaluate the benefits and harms of systematic AF screening and subsequent OAC; ii) characterize how baseline stroke risk modifies time-to-benefit and time-to-harm of systematic AF screening-initiated OAC; and iii): explore whether a &quot;pill-in-pocket&quot; OAC strategy can improve the risk-benefit profile of OAC following AF detection.</p>
+<h3>Methods</h3>
+<h3>Patient-level model of AF</h3>
+<p>The current framework builds on our recently developed Markov-like patient-level computational model comprising 7 different clinical states, including pre-or post-stroke sinus rhythm (SR), preor post-stroke symptomatic and asymptomatic AF (sAF and aAF), and death. 17 The model was extended with an explicit representation of the stroke risk, represented by the CHA2DS2-VA(Sc) scores, and a new parallel component capturing non-bleeding and major bleeding states (Figure 1A; Figure S1). OAC initiation decreased the probability of switching to stroke/TE states and increased the probability of switching to the major bleeding state. Entering the major bleeding state caused an immediate and persistent increase of the probability of death. Key assumptions of this model are listed in Table S1. Parameter optimization, model calibration, and independent validation are further described in the Supplemental methods and Tables S2-S3.</p>
+<h3>Risk-benefit assessment of AF screening</h3>
+<p>Three systematic AF screening protocols were simulated: Long-term continuous rhythm monitoring (LT-CRM, e.g., based on implantable loop recorders), yearly 14-day Holter monitoring, and intensive (wearable-based) intermittent screening based on thrice-daily ECGs (Table S4). OAC was initiated immediately for virtual patients with either clinical AF (defined as a symptomatic AF episode lasting ≥3 hours) or screening-detected AF. Upon a clinical AF diagnosis, the virtual patient would no longer be eligible for AF screening. Stroke and major bleeding incidence in control and screening groups were compared using Kaplan-Meier (K-M) curves and Cox regression. The main analysis was conducted in a virtual population with an average CHA2DS2-VA score of 2, and sensitivity analyses were conducted in populations with average CHA2DS2-VA scores of 0-5, and with real-world OAC adherence (66%), screening sensitivity (95%), and permanent OAC discontinuation after major bleeding. Time-to-benefit (TTB) and time-to-harm (TTH) were calculated at a threshold of 1/500=0.002 (reflecting how many years are needed to observe 1 fewer stroke event and 1 more major bleeding event per 500 individuals screened) to quantify how fast the benefits and harms of AF screening could be incurred, as previously reported. 18, 19 Predicting efficacy and safety of pill-in-pocket OAC therapy The REACT-AF trial (NCT05836987) aims to test the efficacy and safety of intermittent OAC guided by continuous smartwatch-based AF monitoring. 21 Patients with paroxysmal or persistent AF and CHA2DS2-VASc scores of 1 to 4 (for males) or 2 to 4 (for females) will be randomized to an intervention group receiving time-delimited OAC guided by an AF-sensing smartwatch or a control group receiving standard continuous OAC. Non-inferiority of the primary outcome (stroke and all-cause mortality) and superiority of the secondary outcome (major-bleeding events) will be tested after 5 years follow-up. The trial is scheduled to be completed in 2029. The comprehensive knowledge of all AF episodes and outcomes during lifetime follow-up for every individual enabled us to implement REACT-AF as a virtual RCT in the current model. The parameter settings and virtual patient selection are provided in Table S5, mimicking the protocols of REACT-AF as closely as possible in a virtual population with CHA2DS2-VASc score of 2. Sensitivity analyses were conducted by simulating limited OAC adherence (90%), permanent discontinuation after major bleeding and/or altered baseline bleeding risk in virtual RCTs.</p>
+<h3>Statistical analyses</h3>
+<p>Five independent datasets were simulated with optimized parameters and mean ± standard deviation was calculated for all metrics. P values in K-M plots were derived by Log-rank test and hazard ratios (HRs) with 95% confidence intervals (95%CIs) were calculated in Cox regression models. Medians and 95%CIs of TTB and TTH analysis were estimated using Weibull models and 4000 Monte-Carlo simulations. Calibration bar plots with error bars, K-M plots, Cox regression models, and TTB/TTH analyses were conducted using ggplot2, survival, survminer, and brms packages in the statistical software R v4.3.0 (R core team, 2023) and R studio v2023.06.1.</p>
+<h3>Results</h3>
+<h3>Patient-level AF model</h3>
+<p>A representative example of a virtual patient (Figure 1B) shows the model&#x27;s ability to capture all (a)symptomatic AF episodes during an individual&#x27;s lifetime, with significant AF progression from paroxysmal to persistent AF, and the occurrence of stroke, major bleeding and death events. Simulated continuous OAC was initiated after the virtual patient&#x27;s clinical AF diagnosis and either continued indefinitely or halted after the occurrence of a major bleeding (Figure 1B, red boxes).</p>
+<h3>Model calibration and validation</h3>
+<p>We evaluated the extended model&#x27;s ability to reproduce key AF characteristics. The simulated AF incidence, prevalence, progression rate, episode duration and burden were consistent with clinical data (Figure S2). Importantly, when simulating study-specific patient inclusion criteria, the model accurately reproduced stroke incidence in the general population (Figure 2A), post-stroke acute fatality (Figure 2B), non-fatal (Figure 2C) and fatal major bleeding (Figure 2D) incidences in the general population without OAC, as well as major bleeding in AF patients without (Figure 2E) or with OAC (Figure 2F). Both stroke/TE and major bleeding incidence were significantly agedependent in the general population.</p>
+<p>Subsequently, stroke/TE incidence was further calibrated in virtual populations without (Figure 3A) and with OAC (Figure 3B), which showed excellent agreement between computed and observed incidences over a wide range of CHA2DS2-VASc scores. Independent model validation was conducted by comparing simulated and observed stroke/TE incidence in anticoagulation-naive AF patients with different CHA2DS2-VA scores from 0 to 5, reproducing the increasing trend of stroke/TE risk from 1 to 8 per 100 person-years (Figure 3C).</p>
+<h3>Benefits and harms of AF screening-guided OAC</h3>
+<p>The model was used to assess the benefits and harms of different AF screening strategies and subsequent OAC. In a virtual population with life-time follow-up and an average CHA2DS2-VA score of 2, K-M curves showed slightly lower cumulative stroke risk (P=0.002, Figure 4A) while significantly higher major bleeding risk in screening groups (P=0.001, Figure 4B), especially with LT-CRM (HRLT-CRM (95%CI): 0.92 (0.88-0.96), P&lt;0.001 for stroke; HRLT-CRM: 1.17 (1.07-1.27), P&lt;0.001 for major bleeding compared to no screening). Sensitivity analyses showed that LT-CRM with screening-triggered OAC was associated with both significant stroke reduction and major bleeding increment across CHA2DS2-VA scores during a 35-year follow-up period (Table S6).</p>
+<p>However, these effects were diluted when simulating real-world OAC adherence, screening sensitivity, and permanent OAC discontinuation after bleeding (Figure S3, Table S7).</p>
+<p>TTB/TTH analyses with LT-CRM showed a progressive decrease in years needed to observe 1 fewer stroke event per 500 screened individuals with increasing CHA2DS2-VA scores, compared with similar years to observe 1 more major bleeding event. Consequently, TTB was markedly shorter than TTH in individuals with CHA2DS2-VA≥4 and significantly longer in individuals with CHA2DS2-VA=0 (Figure 4C). Real-world OAC adherence, screening sensitivity, and permanent discontinuation after bleeding did not change this pattern (Figure S3), suggesting a net benefit for screening in individuals with CHA2DS2-VA≥4.</p>
+<h3>Continuous versus pill-in-pocket OAC strategies</h3>
+<p>The model was used to simulate the REACT-AF protocol and predict its outcomes, while adding an additional reference group without any OAC for comparison. The predicted occurrence of the composite primary endpoint (stroke or all-cause mortality) at 5 years in patients was significantly higher in non-anticoagulated patients with AF and CHA2DS2-VASc=2 compared with those with either pill-in-pocket or continuous OAC (log-rank P&lt;0.001, Figure 5A), while no significant difference was identified between pill-in-pocket and continuous OAC (HR: 1.04, 95%CI: 0.93-1.16, P=0.48, Table S8). The risk of major bleeding at 5 years was significantly lower in AF patients without OAC compared to continuous OAC (HR: 0.41, 95%CI: 0.31-0.55, P&lt;0.001; Table S8; logrank P&lt;0.001, Figure 5B). In the baseline model, pill-in-pocket OAC did not lower major-bleeding incidence compared to continuous OAC (HR: 0.92, 95%CI: 0.74-1.15, P=0.47; Table S8). Of note, when assessing the individual components of the primary endpoint, the stroke risk was also significantly higher (HR: 1.50, 95%CI: 1.17-1.92, P=0.0014) while mortality was similar (HR:0.98, 95%CI: 0.87-1.10, P=0.69) with pill-in-pocket versus continuous OAC (Figure S4A-B and Table S8). However, in virtual populations with doubled baseline bleeding risk, the difference in stroke incidence between continuous and rhythm-guided OAC was diminished (HR: 0.92, 95% CI: 0.71-1.19, P=0.52) and major bleeding was significantly lower (HR: 0.81, 95% CI: 0.68-0.96, P=0.014) in pill-in-pocket strategy compared with continuous OAC (Figure S4C-D, Figure 5C-D and Table S9). Sensitivity analyses considering perfect OAC adherence and no OAC discontinuation after major bleeding showed higher stroke (HR: 1.84, 95% CI: 1.38-2.45, P&lt;0.001) and lower major bleeding (HR: 0.80, 95% CI: 0.65-0.99, P=0.04) in pill-in-pocket compared with continuous OAC (Figure S5-6 and Table S10). Importantly, lower OAC adherence significantly reduced the differences in stroke and major bleeding risks between both strategies, but the influence on stroke was larger than that on major bleeding (Figure S7). These simulations of an ongoing RCT suggest that rhythm-guided OAC might be beneficial in certain populations.</p>
+<h3>Discussion</h3>
+<p>We presented a well-calibrated computational model incorporating lifetime AF episodes, disease progression, and patient-level clinical outcomes. 17 Virtual screening RCTs employing this model suggested that LT-CRM-initiated OAC led to modest long-term stroke reduction and significantly increased major bleeding across CHA2DS2-VA scores from 0 to 5. These effects were influenced by real-world limitations, including imperfect OAC adherence, screening sensitivity, and OAC discontinuation after major bleeding. In populations with CHA2DS2-VA≥4, TTB was much shorter than TTH, indicating a net benefit of LT-CRM-initiated OAC that was not present with lower CHA2DS2-VA. Furthermore, a rhythm-guided pill-in-pocket OAC strategy was non-inferior to standard continuous OAC for the combined endpoint of stroke and mortality in patients with CHA2DS2-VASc=2, but was superior in major bleeding prevention in patients with high bleeding risk.</p>
+<p>Strengths of the current model While computational models have been commonly used to simulate the outcomes of OAC therapy, e.g., to perform cost-effectiveness analyses, 22, 23 these approaches lacked dynamic modeling of individual AF episodes, limiting their suitability for evaluating AF screening. Other modeling approaches used to analyze benefits of AF screening, 24, 25 similarly omitted individual AF episodes or AF progression, missing key elements of AF pathophysiology and precluding the assessment of rhythm-guided OAC therapy. Our model is the first to capture the dynamic and progressive occurrence of AF episodes and associated outcomes with or without OAC therapy, enabling simulation of virtual RCTs comparing different OAC therapies.</p>
+<p>The stroke-reduction benefit of systematic AF screening remains uncertain, while concerns persist regarding the potential major bleeding risk after screening-triggered OAC. 4, 6, 7, 9, 26 Although pooled data showed a modest 7% reduction in stroke/systemic embolism without significant impacts on major bleeding or all-cause mortality, larger RCTs with longer follow-up would be needed to confirm these results and identify the subgroups with the largest benefit. 27 However, such RCTs are costly and time-consuming, hindering advances in clinical practice. Our well-calibrated and independently validated model provides an efficient and cost-free method for risk/benefit analyses of AF screening and OAC therapy, enabling long-term follow up of virtual patients and head-tohead comparison of therapeutic strategies.</p>
+<h3>Clinical implications: role of screening-induced OAC in AF</h3>
+<p>Our simulations revealed modest long-term stroke reduction with LT-CRM-initiated OAC across CHA2DS2-VA scores. Other screening modalities including daily 1-minute ECGs and yearly 14-day Holter monitoring had minimal impact on stroke prevention, consistent with the relatively low yield of AF screening in our previous simulations 17 and clinical data. 7, 9 Although simulated LT-CRMbased screening decreased stroke risk, it also strongly promoted major OAC-related bleeding. This is consistent with findings from RCTs in subclinical AF patients with continuous monitoring and OAC, 11, 12, 19 and supports the conclusion from the LOOP study that not everyone benefits from screening and not every screening-detected AF benefits from OAC. 6 Better risk stratification is urgently needed to identify subgroups who may benefit from continuous screening. Baseline stroke risk (CHA2DS2-VA scores) may help to improve the risk/benefit profiles of such interventions. Our analyses showed a progressive shortening of TTB and comparable TTH of LT-CRM-initiated OAC with increasing CHA2DS2-VA scores, leading to significantly shorter TTB than TTH in those with CHA2DS2-VA≥4. This finding is consistent with the conclusion from a subgroup analysis of ARTESIA, showing that continuous OAC might be beneficial in patients with CHA2DS2-VASc≥4 and subclinical AF detected by continuous monitoring devices. 28 It should be noted that these analyses assume perfect OAC therapy. In the analyses accounting for real-world OAC adherence, screening sensitivity, and OAC discontinuation after major bleeding, the between-group difference of stroke and major bleeding risks observed were diluted across CHA2DS2-VA scores for all screening strategies, although the general trend remained. Together, these findings argue for a riskstratified approach that prioritizes individuals most likely to derive net benefit, e.g., based on CHA2DS2-VA scores. Moreover, our simulations show that the risk-benefit profiles of AF screening will strongly depend on the interaction of real-world OAC adherence, post-bleeding OAC discontinuation, and screening technology accuracy, which are difficult to control in real-world studies.</p>
+<p>Clinical implications: role of pill-in-pocket OAC in AF Besides enabling screening for previously undiagnosed AF, wearable devices have enabled better monitoring of patients with known AF, potentially enabling rhythm-based, time-delimited (pill-inpocket) OAC to reduce major bleeding risk. Several pilot studies with pill-in-pocket OAC have shown promising results, [29] [30] [31] [32] [33] [34] [35] giving rise to the large REACT-AF trial. REACT-AF is an ongoing non-inferiority study comparing pill-in-pocket OAC with usual, continuous OAC in terms of stroke or all-cause mortality (primary endpoint) and major bleeding prevention (secondary, superiority endpoint). However, REACT-AF results will only be available in 2029. 36 By simulating the REACT-AF protocol, our model predicts that a pill-in-pocket OAC strategy results in a significant 20% reduction in major bleeding while maintaining a similar incidence of the combined primary endpoint of stroke and all-cause mortality compared with the traditional continuous OAC after clinical AF diagnosis, at least in patients with a sufficiently large bleeding risk. Additionally, our model enabled a comparison to virtual patients without OAC, something that would be unethical in real-world studies, to provide insights into the absolute risk/benefit of each approach, showing a significantly higher risk of stroke and a lower risk of major bleeding compared with either OAC strategies.</p>
+<p>These results suggest that REACT-AF might successfully achieve the predefined non-inferiority in efficacy and superiority in safety of pill-in-pocket strategy, indicating that the potential adverse effects of continuous OAC usage, especially in those with low AF burden and low stroke risks, can be partially ameliorated by rhythm-guided anticoagulation therapy. However, our sensitivity analyses show that the differences between intermittent OAC and continuous OAC depend on bleeding risk, OAC adherence and post-bleeding OAC discontinuation. Thus, real-world OAC treatment limitations may dilute or even overturn the effects derived from RCTs. These results highlight the importance of carefully monitoring long-term safety of this new OAC approach and a potential need to identify subgroups of patients with preferential risk/benefit profile. Discrimination based on overall AF burden might represent an interesting strategy based on recent data suggesting its modulating role on stroke risk. 37 Moreover, the quantitative information provided by the model may facilitate shared decision making on the potential trade-off between increased stroke risk and decreased major bleeding risk.</p>
+<p>Importantly, at present, our model predictions are fully hypothesis-generating and not direct evidence to support clinical implementation. While computational models are valuable for exploratory analysis in costly, infeasible, or unethical scenarios, and may support trial design by comparing different options, they cannot replace real-world RCTs. Our modeling results should be validated against the outcomes of real trials, including REACT-AF, when the results are available.</p>
+<h3>Limitations</h3>
+<p>Some limitations of the current study have to be considered. Firstly, the components underlying the CHA2DS2-VASc / CHA2DS2-VA scores were not explicitly modeled. Instead, all different risk factors were integrated into a single parameter modifying the baseline stroke risk. As such, the current model can only capture the average population-level stroke risk dynamics rather than the individual risk profiles and the interpretation of these scores is somewhat different from the traditional risk evaluation for an individual patient with AF. Thus, results should be interpreted cautiously as population-level inferences. Secondly, major bleeding and stroke were considered as irreversible processes and recurrent events were ignored in the current model. However, only time to the first occurrence of clinical outcomes was used for data analysis in our study, in line with previous clinical trials, limiting the impact of this limitation. 38, 39 Thirdly, the model focused only on OAC initiation after either clinical or screening-detected AF diagnosis, without considering riskfactor modification or rhythm control, which are fundamental components of comprehensive AF management. 1 This limitation might underestimate the benefits of AF screening and pill-in-pocket OAC strategy on stroke and bleeding risk, although the simulated results reflect the situation evaluated in most recent trials.</p>
+<h3>Conclusions</h3>
+<p>The model confirms that OAC treatment after systematic AF screening using LT-CRM is a doubleedged sword with a higher major bleeding risk offsetting a lower stroke incidence. Individuals with CHA2DS2-VA≥4 may benefit from systematic AF screening followed by OAC initiation. A LT-CRM-guided pill-in-pocket OAC strategy after AF diagnosis may significantly reduce the major bleeding risk while maintaining a similar combined primary outcome of stroke and all-cause mortality after 5 years follow-up. Limitations of real-world OAC treatment and screening technology may interact with the risk-benefit profiles of screening-controlled OAC and may dilute the outcomes observed in RCTs. More generally, this study provides the first computational prediction of the outcome of an ongoing OAC RCT and shows how our approach can be used in the future to facilitate clinical trial design. bleeding in 182 678 patients with atrial fibrillation: the Swedish Atrial Fibrillation cohort study. Eur Heart J 2012; 33: 1500-1510.</p>
+<p>[49] Lip GY, Nieuwlaat R, Pisters R, Lane DA, Crijns HJ. Refining clinical risk stratification for predicting stroke and thromboembolism in atrial fibrillation using a novel risk factor-based approach: the euro heart survey on atrial fibrillation. Chest 2010; 137: 263-272.</p>
+<p>[50] Forslund T, Wettermark B, Wandell P, von Euler M, Hasselstrom J, Hjemdahl P. Risks for stroke and bleeding with warfarin or aspirin treatment in patients with atrial fibrillation at different CHA( 2</p>
+<h3>Acknowledgements</h3>
+<p>The authors thank Chuanyi Huang and Xin Zhou for insightful statistical suggestions, and Paul Volders for helpful discussions.</p>
+<h3>Source of funding</h3>
+<p>This work was supported by Cardiovascular Research Institute Maastricht, the European Union (MAESTRIA: Machine Learning Artificial Intelligence Early Detection Stroke Atrial Fibrillation, scheme to predict ischemic stroke and other thromboembolism in atrial fibrillation: the ATRIA study stroke risk score.</p>
+<p>J Am Heart Assoc 2013; 2: e000250. [52] Johnson LS, Benz AP, Shoamanesh A, Eikelboom JW, Ezekowitz M, Giugliano RP, et al. Residual Stroke Risk Among Patients With Atrial Fibrillation Prescribed Oral Anticoagulants: A Patient-Level Meta-Analysis From COMBINE AF. J Am Heart Assoc 2024; 13: e034758. [53] Teppo K, Lip GYH, Airaksinen KEJ, Halminen O, Haukka J, Putaala J, et al. Comparing CHA(2)DS(2)-VA and CHA(2)DS(2)-VASc scores for stroke risk stratification in patients with atrial fibrillation: a temporal trends analysis from the retrospective Finnish AntiCoagulation in Atrial Fibrillation (FinACAF) cohort. Lancet Reg Health Eur 2024; 43: 100967.</p>
+<h3>Figure and figure legends</h3>
+<p>Figure and figure legends</p>
+<h3>Fig 1.</h3>
+<p>Fig.1. Schematic overview of the Markov-like patient-level model and an example virtual patient with atrial fibrillation (AF) episodes and clinical outcomes. A: Two Markov-like models were integrated, one with 7 clinical states including sinus rhythm, symptomatic AF, and asymptomatic AF, each with or without previous stroke, as well as death. The other one represents non-bleeding and major bleeding states. Transition probabilities were age/sex dependent. AF-related remodeling was also incorporated in the model as function of the time in AF, and modulated the likelihood of AF development, cardioversion, and the occurrence of stroke and death. Oral anticoagulant (OAC) usage was simulated after confirmed clinical AF diagnosis or screeningdetected AF by increasing the incidence of major bleeding and reducing the stroke risk. The occurrence of major bleeding would increase the mortality risk. B: An example virtual patient with multiple symptomatic or asymptomatic AF episodes, stroke event, major bleeding event, and death during 100-year follow-up (Top). The bottom panel shows an expanded view from 70 to 90 years of age with progression from paroxysmal AF to persistent and long-standing persistent AF.Continuous OAC was initiated after clinical AF diagnosis (red triangle), and both stroke (red asterisk) and major bleeding (red cross) events occurred afterwards. The length of the bar represented the duration of each AF episode and a complete vertical bar represents 1 month.</p>
+<h3>Fig 4.</h3>
+<p>Fig.4. Risk-benefit assessment of three population-level systematic screening strategies with continuous oral anticoagulation therapy after diagnosed atrial fibrillation. A-B: Simulated cumulative risk of stroke (A) and major bleeding (B) in the control group without screening and systematic screening groups with a CHA2DS2-VA score of 2. P values in (A) and (B) are produced by Wald test of Cox regression models comparing screening groups to control groups with 10,000 individuals simulated in each arm. The numbers in risk tables are number of patients after selection based on the AF screening setting. C: Violin plots showing medians and 95% confidence intervals of time-to-benefit (stroke prevention) and time-to-harm (major bleeding) of LT-CRM with oral anticoagulation therapy at a threshold of 0.002 (i.e., 1 event in 500 screened individuals) across different CHA2DS2-VA scores. LT-CRM: continuous rhythm monitoring; Yearly Holter: yearly 14day Holter monitoring; Daily ECG: daily three times 1-minute ECG monitoring.</p>
+<p>grant number 965286), the Netherlands Organization for Scientific Research (NWO/ZonMW Vidi 09150171910029) and the Dutch Heart Foundation (CVON2014-09, RACE V Reappraisal of Atrial Fibrillation: Interaction between Hypercoagulability, Electrical Remodeling, and Vascular Destabilisation in the Progression, and grant number 01-002-2022-0118, EmbRACE consortium). Disclosures U.S. received consultancy fees or honoraria from Università della Svizzera Italiana (USI, Switzerland), Roche Diagnostics (Switzerland), EP Solutions Inc. (Switzerland), Johnson &amp; Johnson Medical Limited, (United Kingdom), Bayer Healthcare (Germany). U.S. is co-founder and shareholder of YourRhythmics BV, a spin-off company of the University Maastricht. M.R. received Consultancy fees from Bayer (OCEANIC-AF national PI), InCarda Therapeutics (RESTORE-SR national PI), Novartis to the institution, and Speaker fees from Daiichi-Sankyo, Pfizer to the institution. The other authors have nothing to declare.</p>
+<h3>References</h3>
+<p>Van Gelder IC, Rienstra M, Bunting KV, Casado-Arroyo R, Caso V, Crijns H, et al. 2024 ESC Guidelines for the management of atrial fibrillation developed in collaboration with the European Association for Cardio-Thoracic Surgery (EACTS). Eur Heart J 2024; 45: 3314-3414.</p>
+<p>Hart RG, Pearce LA, Aguilar MI. Meta-analysis: Antithrombotic therapy to prevent stroke in patients who have nonvalvular atrial fibrillation. Ann Intern Med 2007; 146: 857-867.</p>
+<p>Ruff CT, Giugliano RP, Braunwald E, Hoffman EB, Deenadayalu N, Ezekowitz MD, et al. Comparison of the efficacy and safety of new oral anticoagulants with warfarin in patients with atrial fibrillation: a meta-analysis of randomised trials. Lancet 2014; 383: 955-962.</p>
+<p>Lopes RD, Atlas SJ, Go AS, Lubitz SA, McManus DD, Dolor RJ, et al. Effect of Screening for Undiagnosed Atrial Fibrillation on Stroke Prevention. J Am Coll Cardiol 2024; 84: 2073-2084.</p>
+<p>Ellins EA, Wareham K, Harris DE, Hanney M, Akbari A, Gilmore M, et al. Incident atrial fibrillation and adverse clinical outcomes during extended follow-up of participants recruited to the remote heart rhythm sampling using the AliveCor heart monitor to screen for atrial fibrillation: the REHEARSE-AF study. Eur Heart J Open 2023; 3: oead047.</p>
+<p>Svendsen JH, Diederichsen SZ, Hojberg S, Krieger DW, Graff C, Kronborg C, et al. Implantable loop recorder detection of atrial fibrillation to prevent stroke (The LOOP Study): a randomised controlled trial. Lancet 2021; 398: 1507-1516.</p>
+<p>Kemp Gudmundsdottir K, Svennberg E, Friberg L, Hygrell T, Frykman V, Al-Khalili F, et al. Randomized Invitation to Systematic NT-proBNP and ECG Screening in 75-Year-Olds to Detect Atrial Fibrillation: STROKESTOP II. Circulation 2024; 150: 1837-1846.</p>
+<p>Gladstone DJ, Wachter R, Schmalstieg-Bahr K, Quinn FR, Hummers E, Ivers N, et al. Screening for Atrial Fibrillation in the Older Population: A Randomized Clinical Trial. JAMA Cardiol 2021; 6: 558- 567.</p>
+<p>Svennberg E, Friberg L, Frykman V, Al-Khalili F, Engdahl J, Rosenqvist M. Clinical outcomes in systematic screening for atrial fibrillation (STROKESTOP): a multicentre, parallel group, unmasked, randomised controlled trial. Lancet 2021; 398: 1498-1506.</p>
+<p>McIntyre WF, Benz AP, Becher N, Healey JS, Granger CB, Rivard L, et al. Direct Oral Anticoagulants for Stroke Prevention in Patients With Device-Detected Atrial Fibrillation: A Study-Level Meta-Analysis of the NOAH-AFNET 6 and ARTESiA Trials. Circulation 2024; 149: 981-988.</p>
+<p>Healey JS, Lopes RD, Granger CB, Alings M, Rivard L, McIntyre WF, et al. Apixaban for Stroke Prevention in Subclinical Atrial Fibrillation. N Engl J Med 2024; 390: 107-117.</p>
+<p>Kirchhof P, Toennis T, Goette A, Camm AJ, Diener HC, Becher N, et al. Anticoagulation with Edoxaban in Patients with Atrial High-Rate Episodes. N Engl J Med 2023; 389: 1167-1179.</p>
+<p>McKenzie K, Jacob A, Freedman B, Kilkelly M, Modi RN, Lowres N. Key stakeholder views on atrial fibrillation screening: a systematic mixed-studies review and interpretive analysis. Europace 2026;</p>
+<p>Azzolin L, Eichenlaub M, Nagel C, Nairn D, Sanchez J, Unger L, et al. Personalized ablation vs. conventional ablation strategies to terminate atrial fibrillation and prevent recurrence. Europace 2023; 25: 211-222.</p>
+<p>Trayanova NA, Lyon A, Shade J, Heijman J. Computational modeling of cardiac electrophysiology and arrhythmogenesis: toward clinical translation. Physiol Rev 2024; 104: 1265-1333.</p>
+<p>Dasi A, Nagel C, Pope MTB, Wijesurendra RS, Betts TR, Sachetto R, et al. In Silico TRials guide . optimal stratification of ATrIal FIbrillation patients to Catheter Ablation and pharmacological medicaTION: the i-STRATIFICATION study. Europace 2024; 26.</p>
+<p>Cai M, Barrios-Espinosa C, Rienstra M, Crijns HJGM, Schotten U, Heijman J. Optimizing atrial fibrillation management using a novel patient-level computational model. Med.</p>
+<p>Tang V, Boscardin WJ, Stijacic-Cenzer I, Lee SJ. Time to benefit for colorectal cancer screening: survival meta-analysis of flexible sigmoidoscopy trials. BMJ 2015; 350: h1662.</p>
+<p>Huang C, Li L, Liu W, Fang Y, Jiang S, Li Y, et al. Time to benefit and harm of direct oral anticoagulants in device-detected atrial fibrillation: A pooled analysis of the NOAH-AFNET 6 and ARTESiA trials. Heart Rhythm 2024; 21: 2422-2428.</p>
+<p>Lee SJ, Leipzig RM, Walter LC. Incorporating lag time to benefit into prevention decisions for older adults. JAMA 2013; 310: 2609-2610.</p>
+<p>REACT-AF: Rhythm Evaluation for AntiCoagulaTion With Continuous Monitoring of Atrial Fibrillation. In: National Heart L and Blood I, eds. 2023.</p>
+<p>Lamy A, Sandhu RK, Tong W, McIntyre WF, Lopes RD, Granger CB, et al. Cost-effectiveness of apixaban vs. aspirin for the reduction of thrombo-embolism in high-risk patients with device-detected atrial fibrillation: insights from the ARTESiA trial. Europace 2025; 27.</p>
+<p>Winsten AK, Langen V, Airaksinen KEJ, Teppo K. Estimating the Stroke Risk Threshold for Initiating Non-Vitamin K Antagonist Oral Anticoagulation in Atrial Fibrillation: Markov Decision Model Analysis. Circ Cardiovasc Qual Outcomes 2025; 18: e012090.</p>
+<p>Khurshid S, Chen W, Singer DE, Atlas SJ, Ashburner JM, Choi JG, et al. Comparative Clinical Effectiveness of Population-Based Atrial Fibrillation Screening Using Contemporary Modalities: A Decision-Analytic Model. J Am Heart Assoc 2021; 10: e020330.</p>
+<p>Lars Bernfort L, Lyth J, Appelberg K, Boriani G, Buckley CM, Diederichsen SZ, et al. Cost- Effectiveness of Atrial Fibrillation Screening Programmes Across European Nations. Eur Heart J Qual Care Clin Outcomes 2025.</p>
+<p>Lyth J, Svennberg E, Bernfort L, Aronsson M, Frykman V, Al-Khalili F, et al. Cost-effectiveness of population screening for atrial fibrillation: the STROKESTOP study. Eur Heart J 2023; 44: 196-204.</p>
+<p>Langen V, Winsten AK, Airaksinen KEJ, Teppo K. Clinical outcomes of atrial fibrillation screening: a meta-analysis of randomized controlled trials. Ann Med 2025; 57: 2457522.</p>
+<p>Lopes RD, Granger CB, Wojdyla DM, McIntyre WF, Alings M, Mani T, et al. Apixaban vs Aspirin According to CHA(2)DS(2)-VASc Score in Subclinical Atrial Fibrillation: Insights From ARTESiA. J Am Coll Cardiol 2024; 84: 354-364.</p>
+<p>Pothineni NVK, Amankwah N, Santangeli P, Schaller RD, Supple GE, Deo R, et al. Continuous rhythm monitoring-guided anticoagulation after atrial fibrillation ablation. J Cardiovasc Electrophysiol 2021; 32: 345-353.</p>
+<p>Zuern CS, Kilias A, Berlitz P, Seizer P, Gramlich M, Muller K, et al. Anticoagulation after catheter ablation of atrial fibrillation guided by implantable cardiac monitors. Pacing Clin Electrophysiol 2015; 38: 688-693.</p>
+<p>Waks JW, Passman RS, Matos J, Reynolds M, Thosani A, Mela T, et al. Intermittent anticoagulation guided by continuous atrial fibrillation burden monitoring using dual-chamber pacemakers and implantable cardioverter-defibrillators: Results from the Tailored Anticoagulation for Non-Continuous Atrial Fibrillation (TACTIC-AF) pilot study. Heart Rhythm 2018; 15: 1601-1607.</p>
+<p>Stavrakis S, Stoner JA, Kardokus J, Garabelli PJ, Po SS, Lazzara R. Intermittent vs. Continuous Anticoagulation theRapy in patiEnts with Atrial Fibrillation (iCARE-AF): a randomized pilot study. J Interv Card Electrophysiol 2017; 48: 51-60.</p>
+<p>Passman R, Leong-Sit P, Andrei AC, Huskin A, Tomson TT, Bernstein R, et al. Targeted Anticoagulation for Atrial Fibrillation Guided by Continuous Rhythm Assessment With an Insertable Cardiac Monitor: The Rhythm Evaluation for Anticoagulation With Continuous Monitoring (REACT.COM) Pilot Study. J Cardiovasc Electrophysiol 2016; 27: 264-270.</p>
+<p>Mascarenhas DAN, Sharma M, Ziegler PD, Kantharia BK. Role of cardiovascular implantable electronic devices in delivering individualized disease-guided management of patients with non-valvular atrial fibrillation and high bleeding risk. Acta Cardiol 2019; 74: 131-139.</p>
+<p>Mascarenhas DA, Farooq MU, Ziegler PD, Kantharia BK. Role of insertable cardiac monitors in anticoagulation therapy in patients with atrial fibrillation at high risk of bleeding. Europace 2016; 18: 799-806.</p>
+<p>Rod Passman DH. The Rhythm Evaluation for AntiCoagulaTion With Continuous Monitoring of Atrial Fibrillation (REACT-AF): Johns Hopkins University 2023-04-19.</p>
+<p>Becher N, Metzner A, Toennis T, Kirchhof P, Schnabel RB. Atrial fibrillation burden: a new outcome predictor and therapeutic target. Eur Heart J 2024; 45: 2824-2838.</p>
+<p>Modig K, Talback M, Ziegler L, Ahlbom A. Temporal trends in incidence, recurrence and prevalence of stroke in an era of ageing populations, a longitudinal study of the total Swedish population. BMC Geriatr 2019; 19: 31.</p>
+<p>Selak V, Kerr A, Poppe K, Wu B, Harwood M, Grey C, et al. Annual Risk of Major Bleeding Among Persons Without Cardiovascular Disease Not Receiving Antiplatelet Therapy. JAMA 2018; 319: 2507- 2520.</p>
+<p>Vaartjes I, Reitsma JB, de Bruin A, Berger-van Sijl M, Bos MJ, Breteler MM, et al. Nationwide incidence of first stroke and TIA in the Netherlands. Eur J Neurol 2008; 15: 1315-1323.</p>
+<p>Vaartjes I, O&#x27;Flaherty M, Capewell S, Kappelle J, Bots M. Remarkable decline in ischemic stroke mortality is not matched by changes in incidence. Stroke 2013; 44: 591-597.</p>
+<p>Lopes LC, Spencer FA, Neumann I, Ventresca M, Ebrahim S, Zhou Q, et al. Systematic review of observational studies assessing bleeding risk in patients with atrial fibrillation not using anticoagulants. PLoS One 2014; 9: e88131.</p>
+<p>Roskell NS, Samuel M, Noack H, Monz BU. Major bleeding in patients with atrial fibrillation receiving vitamin K antagonists: a systematic review of randomized and observational studies. Europace 2013; 15: 787-797.</p>
+<p>Wicke FS, Schaller MA, Karymova K, Beyer M, Muller BS. Ischemic stroke risk estimation in patients without oral anticoagulation: an observational cohort study based on secondary data from Germany. BMC Cardiovasc Disord 2019; 19: 94.</p>
+<p>Allan V, Banerjee A, Shah AD, Patel R, Denaxas S, Casas JP, et al. Net clinical benefit of warfarin in individuals with atrial fibrillation across stroke risk and across primary and secondary care. Heart 2017; 103: 210-218.</p>
+<p>Olesen JB, Lip GY, Hansen ML, Hansen PR, Tolstrup JS, Lindhardsen J, et al. Validation of risk stratification schemes for predicting stroke and thromboembolism in patients with atrial fibrillation: nationwide cohort study. BMJ 2011; 342: d124.</p>
+<p>van den Ham HA, Klungel OH, Singer DE, Leufkens HG, van Staa TP. Comparative Performance of ATRIA, CHADS2, and CHA2DS2-VASc Risk Scores Predicting Stroke in Patients With Atrial Fibrillation: Results From a National Primary Care Database. J Am Coll Cardiol 2015; 66: 1851-1859.</p>
+<p>Friberg L, Rosenqvist M, Lip GY. Evaluation of risk stratification schemes for ischaemic stroke and . Fig.2. Study-specific model calibration for stroke and major bleeding events. A: Comparison between computed (black) and observed (orange) stroke incidence in the general population. 38 B: 486 Comparison between computed (black) and observed (orange) acute or long-term fatality after stroke in the general population. 40, 41 C-D: The comparison between computed (black) and observed (orange) non-fatal major bleeding incidence (patient did not die within 28 days after major bleeding;</p>
+<p>C) and percentage of fatal major-bleeding in the general population without atrial fibrillation (AF) and oral anticoagulants (OAC; D). 39 E-F: Comparison between computed (black) and observed (orange) major bleeding incidence in AF patients without OAC 42 (E) or AF patients with OAC (F). 43</p>
+<p>All error bars are produced by 5 different repetitions with 10000 virtual individuals simulated. Fig.3. Stroke/thromboembolic events (TE) in atrial fibrillation (AF) patients with different CHA2DS2-VASc scores and model validation using CHA2DS2-VA scores. A-B: Comparison between computed and observed stroke/TE incidence in AF patients without 44-51 (A) or with 52 (B) oral anticoagulation across different CHA2DS2-VASc groups. C: Independent model validation of stroke/TE incidence for different CHA2DS2-VA scores in non-anticoagulated AF patients by simulating the inclusion criteria in Teppo et al, 2024.53 All error bars are produced by 5 different repetitions with 10000 virtual individuals simulated 23</p>
+<p>Fig.5. Predicted stroke/mortality and major bleeding risk of different oral anticoagulation (OAC) strategies based on the REACT-AF trial, with 90% OAC adherence and OAC discontinuation after major bleeding. A-B: Comparison of predicted stroke/mortality risk (A) and bleeding risk (B) in patients without oral anticoagulation, standard continuous oral anticoagulation or a pill-in-pocket oral anticoagulation strategy with rhythm-guided time-delimited OAC defined by the REACT-AF trial. 21 C-D: The same comparison in virtual populations with doubled baseline bleeding risks. All P values are produced by Wald test of Cox regression models comparing pill-in-pocket or none OAC strategy to continuous OAC strategy with 10000 individuals simulated at beginning in each arm. The numbers in risk tables are number of patients after selection against inclusion criteria of REACT-AF trial.</p>
 </div>
 </details>
 </div>
