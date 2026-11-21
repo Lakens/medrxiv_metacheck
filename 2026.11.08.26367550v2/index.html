@@ -197,7 +197,7 @@ Impact of transnational gentrification on the health of adults from the
 EPIPorto cohort: a quasi-experimental study
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.08.26367550
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.08.26367550
 </p>
 </header>
 <div class="mc-main">
@@ -480,8 +480,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -866,9 +869,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -890,7 +897,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -905,9 +913,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -920,13 +946,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -946,6 +975,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -953,12 +988,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1059,6 +1100,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1078,6 +1139,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1333,19 +1429,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1455,6 +1633,170 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Gentrification is a global, accelerating urban process involving complex socio-spatial transformations.</p>
+<p>Although increasingly recognised as a determinant of urban health, quantitative evidence on its population health impacts remains scarce and inconsistent, limiting evidence-informed urban policymaking, especially in rapidly gentrifying contexts. Thus, we assessed the health impact of neighbourhood-level gentrification among adults in Porto (Northern Portugal), a hotspot of transnational gentrification. A quasi-experimental study was conducted using data from the EPIPorto population-based cohort (1999-2022), with 2,485 participants at baseline. A validated, context-sensitive 16-variable index of transnational gentrification, derived from 2011 and 2021 census and tourism-accommodation data through Principal Component Analysis, enabled neighbourhood classification as gentrifying or non-gentrifying. Difference-in-differences models estimated the effect of living in gentrifying neighbourhoods on ten cardiometabolic and behavioural outcomes. Inverse probability of censoring weighting was used to account for loss to follow-up and missing data. At baseline, 26.2% of participants resided in gentrifying neighbourhoods. Residence in a gentrifying neighbourhood was associated with a statistically significant reduction in nightly sleep duration (-0.346 h; 95% CI -0.650, -0.042), with statistically significant reductions in the lower-education and ≥65-year subgroups. No significant effects were observed for body mass index, overweight/obesity, total/HDL/LDL cholesterol, blood pressure, and tobacco or alcohol use. Transnational gentrification in Porto showed limited effects on most cardiometabolic outcomes but was associated with reduced sleep duration, suggesting that the health impacts of gentrification may initially emerge through psychosocial pathways before translating into measurable cardiometabolic changes.</p>
+<h3>1. Introduction</h3>
+<p>With nearly two-thirds of the world&#x27;s population projected to live in urban areas by 2050 (United Nations Department of Economic and Social Affairs, 2018) and up to 80% by 2100 (Jones et al., 2020), cities have become central to contemporary public health (Kadakia &amp; Galea, 2023). Growing attention has therefore been directed towards the urban environment as a determinant of population health and to the neighbourhood-level processes that reshape it (Kadakia &amp; Galea, 2023; Ribeiro, 2018), among which gentrification has become prominent in urban health research (Cole, 2020).</p>
+<p>Gentrification is a socio-spatial process in which reinvestment in the built environment to suit the preferences of higher-socioeconomic-status residents and users (Cole, 2020) is typically accompanied by the in-migration of more affluent newcomers, rising housing costs and, frequently, the displacement of long-standing residents (Sigler &amp; Wachsmuth, 2020). By reshaping both the physical and social dimensions of the urban environment (Bryson, 2013) -including the food environment (Breyer &amp; Voss-Andreae, 2013), green spaces (Jelks et al., 2021), social cohesion and safety (Schnake-Mahl, Jahn, et al., 2020) -gentrification can plausibly affect a broad range of health outcomes, acting as a double-edged process that may simultaneously create health-promoting opportunities and undermine health (Schnake-Mahl, Jahn, et al., 2020).</p>
+<p>The local food environment and access to health-promoting resources illustrate these opposing influences. Gentrification may improve access to healthier food options and to renovated spaces for physical activity, such as public parks. However, as prices rise and the commercial offer changes, such amenities may become unaffordable to, or poorly aligned with the needs of, long-standing residents, who may also lose established local resources and services that supported their daily routines and healthrelated behaviours (Breyer &amp; Voss-Andreae, 2013; Schroeder et al., 2019). Displaced residents may not benefit from these improvements at all. Conceptual frameworks on gentrification and urban health describe several pathways through which neighbourhood change may influence physical and mental health, and emphasise that these effects may be unevenly distributed across residents (Cole et al., 2021; Cole et al., 2024). Through psychosocial and neighbourhood-level mechanisms, gentrification may shape health-related behaviours such as alcohol and tobacco use (Pennay et al., 2014), impair sleep (Bozick et al., 2021) and affect downstream cardiometabolic outcomes such as body weight and blood pressure (Chen et al., 2023; Cole et al., 2021). Reflecting this complexity, previous studies have reported beneficial, null and harmful health effects of gentrification, and reviews have found no consensus as to whether its net influence on population health is positive or negative (Bhavsar et al., 2020; Delong, 2023; Schnake-Mahl, Jahn, et al., 2020; Tulier et al., 2019). In Los Angeles County, for example, gentrification was associated with modestly better hypertension control, more markedly among non-Hispanic white and older residents, but not with diabetes control (Chen et al., 2023).</p>
+<p>In a large prospective cohort of Hispanic/Latino adults, neighbourhood socioeconomic change was not associated with the six-year incidence of metabolic syndrome (Pichardo et al., 2023), whereas adverse associations, including poorer self-rated health and greater psychological distress, have been consistently documented among historically marginalised residents (Anguelovski et al., 2021). This heterogeneity suggests that the health effects of gentrification depend on individual vulnerability, local context and the specific pathways involved. Reviews and conceptual work indicate that the benefits of neighbourhood upgrading accrue mainly to more privileged groups, while socioeconomically disadvantaged residents are harmed or fail to benefit (Cole et al., 2021; Cole et al., 2024). Age may further shape this vulnerability, as older adults tend to be more exposed to neighbourhood change owing to longer residential tenure, reduced mobility and more constrained financial resources (Torres, 2020).</p>
+<p>Because beneficial and adverse influences may operate simultaneously within the same population, and even on the same outcome (Delong, 2023), they may offset one another when effects are estimated for residents as a whole, masking both the concentration of harm among the most disadvantaged and the resulting widening of health inequities (Cole et al., 2024).</p>
+<p>Part of this inconsistency may also be methodological. Most studies have relied on cross-sectional designs that cannot distinguish the effects of gentrification from pre-existing neighbourhood differences (Delong, 2023), and the operationalisation of gentrification remains heterogeneous (Bhavsar et al., 2020).</p>
+<p>Because gentrification unfolds gradually and its health effects accrue over time, longitudinal and quasiexperimental designs are better suited to disentangling its impact from underlying temporal trends and confounding (Delong, 2023; Schnake-Mahl, Sommers, et al., 2020; Tulier et al., 2019).</p>
+<p>Although gentrification is a global phenomenon, its health impacts remain comparatively understudied in European settings (Delong, 2023; Schnake-Mahl, Sommers, et al., 2020). In the city of Porto, northern Portugal, gentrification has intensified rapidly over the past decade and a half, driven by three interlinked factors: the expansion of Francisco Sá Carneiro Airport from 2007 onwards, increased real-estate investment following the 2008 financial crisis, and growing national and international student inflows (Carvalho et al., 2019). Its transnational character, reflected both in the origin of capital and in the international composition of newcomers (Silva et al., 2023; Sousa &amp; Barcón, 2021), makes Porto a particularly relevant European setting in which to study the health impacts of gentrification (Ribeiro et al., 2025).</p>
+<p>In Porto, two recent qualitative studies have documented both perceived benefits (e.g., urban renewal, improved transport) and harms (e.g., insecurity, mental health concerns, reduced social ties) attributed to gentrification (Santos, Silva, et al., 2024; Silva et al., 2023), and a cross-sectional analysis reported an association between housing insecurity and several health and well-being outcomes in older adults (Santos, Henriques, et al., 2024). However, no quantitative study has yet assessed the health impacts of gentrification in Portugal. Against this background, we aimed to estimate the health effects of transnational gentrification in Porto, measured between 2011 and 2021, among adults in the EPIPorto cohort. Secondarily, we assessed whether these effects were modified by educational attainment and age.</p>
+<h3>2. Methods</h3>
+<p> &gt;Methods</p>
+<h3>2.1 Study design and participants</h3>
+<p>A quasi-experimental longitudinal study was conducted within the EPIPorto population-based cohort, which enrolled 2,485 community-dwelling Portuguese adults aged 18 years or older living in Porto between 1999 and 2003 (baseline). Participants were identified through random-digit dialling of household landlines, which covered approximately 97% of households at the time, and one eligible noninstitutionalised adult was randomly selected from each household (Ramos et al., 2004). Residences were georeferenced using ArcGIS Online World Geocoding Service and Google Maps, following rigorous geoprivacy-preserving guidelines (Ribeiro, Dias, et al., 2022), enabling spatial linkage with census block group characteristics.</p>
+<p>Follow-up assessments were conducted in five waves (Figure 1). As the current gentrification process in Porto was considered to have started around 2013, after the economic crisis (Carvalho et al., 2019), baseline and wave 1 formed the pre-exposure period and subsequent waves the post-exposure period.</p>
+<p>Wave 2 was excluded from the primary analysis because it occurred early in the gentrification process, when cumulative exposure may not yet have been sufficiently established; its re-inclusion was examined in a sensitivity analysis (Supplementary Material Section E). Wave 4 was not included because none of the outcomes was assessed in that wave. All EPIPorto participants were eligible for inclusion. Participants who moved to a census block group with a different gentrification classification during the post-exposure period were excluded from the primary analysis; in a sensitivity analysis, they were retained and classified according to their census block group of residence at wave 3, the first post-exposure wave analysed (Supplementary Material Section G).</p>
+<p>Participants were allocated to study groups (exposed vs unexposed) according to the gentrification status of their census block group of residence (gentrifying vs non-gentrifying), and repeated measurements of ten health outcomes obtained between 1999 and 2022 were used to compare outcome trajectories between groups. This study is reported in accordance with the Strengthening the Reporting of Observational Studies in Epidemiology (STROBE) guideline (von Elm et al., 2007).</p>
+<h3>2.2 Exposure assessment</h3>
+<p>Neighbourhood-level gentrification was operationalised through a multidimensional index derived by Principal Component Analysis (PCA), previously developed and validated for the Porto Metropolitan Area (Alves et al., 2026). The unit of analysis was the census block group, the second smallest geographical unit of the Portuguese census, which in 2021 had, on average, 1,203 residents and an area of 1.41 km² Fifteen candidate indicators, each expressed as its 2011 value and its absolute change between 2011 and 2021 (30 variables), were considered. Following exploratory analysis of correlations and communalities, 16 standardised (z-score) variables were retained, reflecting both a census block group&#x27;s baseline status and its temporal trajectory and covering conceptual domains commonly identified in the literature (Bilal et al., 2020; Cocola-Gant et al., 2020): educational attainment, occupational class, employment status, housing (high rents), demographic composition (older adults, young adults and foreign residents from high-income countries) and tourism (short-term accommodation). The variables included in the index and the spatial distribution of gentrifying census block groups are shown in Supplementary Table S1 and Supplementary Figure S1, respectively.</p>
+<p>The principal component selected as the basis of the gentrification index showed high positive loadings for increases in higher-education attainment, foreign residents from high-income countries, young adult population, housing units with high rents, and short-term rentals, alongside a negative loading for change in the proportion of residents aged ≥65 years. It was also effective in distinguishing census block groups with lower socioeconomic status at baseline (Alves et al., 2026), known to be more susceptible to gentrification (Freeman, 2005).</p>
+<p>The transnational gentrification index was then standardised (mean=0, SD=1) and dichotomised using a threshold of &gt;1 SD, approximately corresponding to the 90th percentile. Compared with alternative thresholds (+0.5 SD, +2 SD and the 75th, 90th and 95th percentiles), this cut-off showed a strong and consistent association with Property Tax Value, one of the external indicators used to validate the index, while classifying approximately 10% of census block groups as gentrifying (Alves et al., 2026), and most closely matched the spatial distribution of areas previously described as undergoing intense gentrification in Porto (Carvalho et al., 2019; Sousa &amp; Barcón, 2021). Participants residing in census block groups above this threshold (gentrifying) were considered exposed, and those residing in the remaining census block groups (non-gentrifying) unexposed. In sensitivity analyses, gentrifying census block groups were alternatively defined as those scoring ≥1.5 SD above the mean or belonging to the upper quartile of the index (Supplementary Material Section F).</p>
+<h3>2.3 Outcomes</h3>
+<p>Guided by conceptual frameworks on gentrification and population health (Cole et al., 2021; Cole et al., 2024), ten cardiometabolic and behavioural outcomes with repeated, comparable measurements across follow-up waves were selected. Continuous outcomes were body mass index (BMI, kg/ m² ), total/HDL/LDL cholesterol (mg/dL), systolic and diastolic blood pressure (mmHg), and average nightly sleep duration (hours). Binary outcomes were overweight/obesity, defined as BMI ≥ 25 kg/ m² (World Health Organization, 2019), current tobacco use and current alcohol use (Supplementary Material, Section B). BMI, overweight/obesity, total, HDL and LDL cholesterol, and tobacco use were available at baseline and waves 1, 2, 3 and 5; systolic and diastolic blood pressure and alcohol use at baseline and waves 1, 2 and 3; and sleep duration at baseline and waves 1, 3 and 5.</p>
+<h3>2.4 Covariates</h3>
+<p>Based on previous conceptual frameworks linking gentrification and neighbourhood change to health (Bhavsar et al., 2020; Cole et al., 2021; Cole et al., 2024; Ribeiro, 2022), age, sex, educational attainment, employment status and marital status were treated as potential confounders and included in the adjusted models. All covariates entered the models with their pre-exposure values, so that adjustment was restricted to characteristics that could not have been affected by the exposure. Educational attainment was classified according to the International Standard Classification of Education (ISCED 2011) as low (ISCED 0-2), medium (ISCED 3-4) or high (ISCED 5-8); employment status as employed, unemployed or other (e.g., retired, homemaker or student); and marital status as with or without partner.</p>
+<p>Covariate categories were harmonised across waves.</p>
+<p>Age and educational attainment were additionally examined as potential effect modifiers in stratified analyses. These two roles are not mutually exclusive: adjusting for a variable removes the bias it would otherwise introduce into the overall estimate, whereas examining it as an effect modifier assesses whether the magnitude of that effect differs across its levels (Hernán &amp; Robins, 2020).</p>
+<p>Both effect modifiers were selected a priori, given previous evidence that the health impacts of gentrification are unevenly distributed, with benefits accruing mainly to more socioeconomically privileged residents and harms concentrating among socioeconomically disadvantaged and older ones (Cole et al., 2021; Cole et al., 2024). Educational attainment was used as an individual-level marker of socioeconomic position, since lower educational attainment may reflect fewer material and social resources with which to absorb negative consequences of gentrification. Older residents may be particularly susceptible to neighbourhood disruption, owing to longer residential attachment, greater reliance on local social networks and greater baseline health vulnerability (Smith et al., 2018), a pattern also described among older adults in Porto (Santos, Henriques, et al., 2024). Sex was retained as a covariate but was not examined as an effect modifier, as we identified no specific theoretical or empirical basis for expecting differential susceptibility to gentrification-related neighbourhood change by sex, and further stratification would have reduced precision.</p>
+<h3>2.5 Statistical analysis</h3>
+<p>Each outcome-specific analytical sample was described using means and standard deviations for continuous variables and counts and percentages for categorical variables. Participants living in gentrifying and non-gentrifying census block groups were compared at each wave using Welch&#x27;s t-tests and Pearson&#x27;s chi-squared tests, as were participants included in and excluded from the complete-case analyses, to assess potential selective loss to follow-up and missingness.</p>
+<p>Effects were estimated using the Callaway and Sant&#x27;Anna difference-in-differences (DiD) estimator for multiple time periods, which provides the average treatment effect on the treated (ATT) at each postexposure wave and an aggregated ATT across post-exposure waves, used as the main effect estimate.</p>
+<p>Compared with traditional two-way fixed-effects models, this estimator accommodates heterogeneous treatment effects, multiple pre-and post-treatment periods, and covariate-conditional assessment of the parallel-trends assumption (Callaway &amp; Sant&#x27;Anna, 2021).</p>
+<p>Inverse probability of censoring weighting (IPCW) was defined as the primary analytical approach, to reduce potential selection bias arising from loss to follow-up and missing outcome or covariate data, under the assumption that censoring was independent of the potential outcomes conditional on measured covariates. Pooled logistic regression was used to estimate the wave-specific probability of remaining under observation conditional on baseline covariates, and stabilised cumulative weights, truncated at the 1st and 99th percentiles, were incorporated into the DiD models (Cole &amp; Hernán, 2008; Hernán &amp; Robins, 2020; Robins &amp; Finkelstein, 2000).</p>
+<p>The parallel-trends assumption, which requires that, in the absence of exposure, outcome trajectories would have evolved similarly in the exposed and unexposed groups, was formally assessed over the preexposure period using Wald tests. A non-significant test (p&gt;0.05) was interpreted as consistent with the assumption; otherwise, the corresponding ATT was not interpretable as a causal effect. Complete-case analyses were conducted as a secondary analysis to assess the sensitivity of the findings to the exclusion of participants with incomplete data.</p>
+<p>The stability of the complete-case estimates was further assessed through cluster-bootstrap resampling by participant (2,000 and 5,000 replicates), with sign consistency defined as the proportion of replicates yielding an estimate in the same direction as the complete-case point estimate. For the subgroup analyses, participants were stratified by educational attainment (low vs. high) and age at the end of follow-up (&lt;65 vs. ≥65 years), and the Callaway and Sant&#x27;Anna estimator was applied separately within each stratum. Given the modest and variable stratum sizes, these analyses were regarded as exploratory and hypothesis-generating rather than as formal tests of interaction. All analyses were performed in R</p>
+<h3>2.6 Ethics</h3>
+<p>The EPIPorto study protocol was approved by the Ethics Committee of Hospital de São João, Porto, in 1996, and by the Portuguese Data Protection Authority (Comissão Nacional de Proteção de Dados). All participants provided written informed consent at every wave, and the study was conducted in accordance with the Declaration of Helsinki.</p>
+<h3>3. Results</h3>
+<p> &gt;Results</p>
+<h3>3.1 Sample characteristics</h3>
+<p>After excluding 40 participants who moved to a census block group with a different gentrification classification during the post-exposure period and 47 whose census block group of residence during that period could not be determined, analytical samples ranged from 207 to 620 participants, depending on the availability of complete repeated measurements and covariate data (Table 1). At baseline, 26.2% of participants with a determinable exposure classification lived in gentrifying census block groups.</p>
+<p>For most outcomes, participants included in the complete-case analyses were significantly younger, had higher educational attainment, and were more likely to be partnered and employed than those excluded because of missing data or loss to follow-up, although age and educational attainment did not differ for blood pressure (Table 1), suggesting selective loss to follow-up and supporting the use of IPCW.</p>
+<p>Participants living in gentrifying census block groups had lower educational attainment than those living in non-gentrifying ones, whereas age, sex, marital status and employment status were broadly comparable between groups (Table 2). Characteristics by study group at subsequent waves and unadjusted outcome means and proportions by wave and study group are reported in Supplementary Tables S2-S5 and S6, respectively. Alcohol use, tobacco use, and total, HDL and LDL cholesterol. Alcohol use (n=2485) Tobacco use (n=2485) Total cholesterol (n=2485) HDL cholesterol (n=2485) LDL cholesterol (n=2485) Classification Included Excluded p Included Excluded p Included Excluded p Included Excluded p Included Excluded p n 607 1,878 620 1,865 214 2,271 209 2,276 207 2,278 Age (mean ± SD) 47.0 ± 11.2 54.8 ± 16.2 &lt;0.001 47.1 ± 11.1 54.8 ± 16.2 &lt;0.001 43.5 ± 8.9 53.8 ± 15.7 &lt;0.001 43.5 ± 9.0 53.8 ± 15.7 &lt;0.001 43.6 ± 9.0 53.7 ± 15.7 &lt;0.001 Sex, n (%) Female 384 (63.3) 1,157 (61.6) 0.495 391 (63.1) 1,150 (61.7) 0.565 125 (58.4) 1,416 (62.4) 0.288 124 (59.3) 1,417 (62.3) 0.447 123 (59.4) 1,418 (62.2) 0.467 Male 223 (36.7) 721 (38.4) 229 (36.9) 715 (38.3) 89 (41.6) 855 (37.6) 85 (40.7) 859 (37.7) 84 (40.6) 860 (37.8) Education, n (%) Low 282 (46.5) 1,233 (65.7) &lt;0.001 287 (46.3) 1,228 (65.8) &lt;0.001 93 (43.5) 1,422 (62.6) &lt;0.001 91 (43.5) 1,424 (62.6) &lt;0.001 90 (43.5) 1,425 (62.6) &lt;0.001 Medium 110 (18.1) 261 (13.9) 113 (18.2) 258 (13.8) 46 (21.5) 325 (14.3) 45 (21.5) 326 (14.3) 45 (21.7) 326 (14.3) High 215 (35.4) 384 (20.4) 220 (35.5) 379 (20.3) 75 (35.0) 524 (23.1) 73 (34.9) 526 (23.1) 72 (34.8) 527 (23.1) Marital status, n (%) Without partner 153 (25.2) 649 (34.6) &lt;0.001 154 (24.8) 648 (34.7) &lt;0.001 49 (22.9) 753 (33.2) 0.003 48 (23.0) 754 (33.1) 0.003 49 (23.7) 753 (33.1) 0.007 With partner 454 (74.8) 1,229 (65.4) 466 (75.2) 1,217 (65.3) 165 (77.1) 1,518 (66.8) 161 (77.0) 1,522 (66.9) 158 (76.3) 1,525 (66.9) Employment, n (%) Employed 447 (73.6) 861 (45.8) &lt;0.001 453 (73.1) 855 (45.8) &lt;0.001 173 (80.8) 1,135 (50.0) &lt;0.001 168 (80.4) 1,140 (50.1) &lt;0.001 165 (79.7) 1,143 (50.2) &lt;0.001 Unemployed 20 (3.3) 77 (4.1) 22 (3.5) 75 (4.0) 10 (4.7) 87 (3.8) 10 (4.8) 87 (3.8) 11 (5.3) 86 (3.8) Other 140 (23.1) 940 (50.1) 145 (23.4) 935 (50.1) 31 (14.5) 1,049 (46.2) 31 (14.8) 1,049 (46.1) 31 (15.0) 1,049 (46.0) Panel B. Body mass index, overweight/obesity, systolic and diastolic blood pressure, and nightly sleep duration. Body mass index (n=2485) Overweight/obesity (n=2485) Systolic blood pressure (n=2485) Diastolic blood pressure (n=2485) Nightly sleep duration (n=2485) Classification Included Excluded p Included Excluded p Included Excluded p Included Excluded p Included Excluded p n 587 1,898 587 1,898 545 1,940 544 1,941 599 1,886 Age (mean ± SD) 46.7 ± 10.9 54.8 ± 16.2 &lt;0.001 46.7 ± 10.9 54.8 ± 16.2 &lt;0.001 52.9 ± 8.7 52.9 ± 16.9 0.933 53.0 ± 8.7 52.9 ± 16.9 0.880 46.6 ± 10.9 54.9 ± 16.2 &lt;0.001 Sex, n (%) Female 365 (62.2) 1,176 (62.0) 0.962 365 (62.2) 1,176 (62.0) 0.962 336 (61.7) 1,205 (62.1) 0.884 335 (61.6) 1,206 (62.1) 0.854 379 (63.3) 1,162 (61.6) 0.496 Male 222 (37.8) 722 (38.0) 222 (37.8) 722 (38.0) 209 (38.3) 735 (37.9) 209 (38.4) 735 (37.9) 220 (36.7) 724 (38.4) Education, n (%) Low 272 (46.3) 1,243 (65.5) &lt;0.001 272 (46.3) 1,243 (65.5) &lt;0.001 318 (58.3) 1,197 (61.7) 0.351 318 (58.5) 1,197 (61.7) 0.387 276 (46.1) 1,239 (65.7) &lt;0.001 Medium 106 (18.1) 265 (14.0) 106 (18.1) 265 (14.0) 85 (15.6) 286 (14.7) 85 (15.6) 286 (14.7) 110 (18.4) 261 (13.8) High 209 (35.6) 390 (20.5) 209 (35.6) 390 (20.5) 142 (26.1) 457 (23.6) 141 (25.9) 458 (23.6) 213 (35.6) 386 (20.5) Marital status, n (%) Without partner 142 (24.2) 660 (34.8) &lt;0.001 142 (24.2) 660 (34.8) &lt;0.001 112 (20.6) 690 (35.6) &lt;0.001 112 (20.6) 690 (35.5) &lt;0.001 150 (25.0) 652 (34.6) &lt;0.001 With partner 445 (75.8) 1,238 (65.2) 445 (75.8) 1,238 (65.2) 433 (79.4) 1,250 (64.4) 432 (79.4) 1,251 (64.5) 449 (75.0) 1,234 (65.4) Employment, n (%) Employed 438 (74.6) 870 (45.8) &lt;0.001 438 (74.6) 870 (45.8) &lt;0.001 355 (65.1) 953 (49.1) &lt;0.001 354 (65.1) 954 (49.1) &lt;0.001 445 (74.3) 863 (45.8) &lt;0.001 Unemployed 22 (3.7) 75 (4.0) 22 (3.7) 75 (4.0) 25 (4.6) 72 (3.7) 25 (4.6) 72 (3.7) 21 (3.5) 76 (4.0) Other 127 (21.6) 953 (50.2) 127 (21.6) 953 (50.2) 165 (30.3) 915 (47.2) 165 (30.3) 915 (47.1) 133 (22.2) 947 (50.2) &quot;Included&quot; denotes participants in the complete-case analysis of the corresponding outcome; &quot;Excluded&quot; denotes cohort participants without complete data for that outcome. Continuous variables (age) as mean ± SD; categorical variables as n (%). p-values from Welch&#x27;s t-tests (age) and chi-squared tests (categorical variables). Education: low (≤9 years, ISCED 0-2), medium (10-12 years, ISCED 3-4), high (&gt;12 years, ISCED 5-8); ISCED, International Standard Classification of Education.</p>
+<p>Table 2. Characteristics by study group within the analytical sample of each health outcome, at baseline. Panel A. Alcohol use, tobacco use, and total, HDL and LDL cholesterol. Alcohol use (n=607) Tobacco use (n=620) Total cholesterol (n=214) HDL cholesterol (n=209) LDL cholesterol (n=207) Study group Non-gentrifying Gentrifying p Non-gentrifying Gentrifying p Non-gentrifying Gentrifying p Non-gentrifying Gentrifying p Non-gentrifying Gentrifying p n 452 155 462 158 154 60 152 57 152 55 Age (mean ± SD) 46.8 ± 11.4 47.7 ± 10.4 0.392 46.8 ± 11.4 47.8 ± 10.3 0.348 43.2 ± 9.4 44.1 ± 7.3 0.438 43.2 ± 9.5 44.2 ± 7.5 0.451 43.3 ± 9.5 44.4 ± 7.5 0.424 Sex, n (%) Female 283 (62.6) 101 (65.2) 0.637 288 (62.3) 103 (65.2) 0.585 89 (57.8) 36 (60.0) 0.889 89 (58.6) 35 (61.4) 0.829 90 (59.2) 33 (60.0) 1.000 Male 169 (37.4) 54 (34.8) 174 (37.7) 55 (34.8) 65 (42.2) 24 (40.0) 63 (41.4) 22 (38.6) 62 (40.8) 22 (40.0) Education, n (%) Low 197 (43.6) 85 (54.8) &lt;0.001 199 (43.1) 88 (55.7) &lt;0.001 62 (40.3) 31 (51.7) 0.037 62 (40.8) 29 (50.9) 0.033 62 (40.8) 28 (50.9) 0.060 Medium 73 (16.2) 37 (23.9) 76 (16.5) 37 (23.4) 30 (19.5) 16 (26.7) 29 (19.1) 16 (28.1) 30 (19.7) 15 (27.3) High 182 (40.3) 33 (21.3) 187 (40.5) 33 (20.9) 62 (40.3) 13 (21.7) 61 (40.1) 12 (21.1) 60 (39.5) 12 (21.8) Marital status, n (%) Without partner 119 (26.3) 34 (21.9) 0.327 119 (25.8) 35 (22.2) 0.424 39 (25.3) 10 (16.7) 0.241 39 (25.7) 9 (15.8) 0.185 40 (26.3) 9 (16.4) 0.193 With partner 333 (73.7) 121 (78.1) 343 (74.2) 123 (77.8) 115 (74.7) 50 (83.3) 113 (74.3) 48 (84.2) 112 (73.7) 46 (83.6) Employment, n (%) Employed 330 (73.0) 117 (75.5) 0.826 336 (72.7) 117 (74.1) 0.928 122 (79.2) 51 (85.0) 0.620 120 (78.9) 48 (84.2) 0.686 119 (78.3) 46 (83.6) 0.672 Unemployed 15 (3.3) 5 (3.2) 17 (3.7) 5 (3.2) 8 (5.2) 2 (3.3) 8 (5.3) 2 (3.5) 9 (5.9) 2 (3.6) Other 107 (23.7) 33 (21.3) 109 (23.6) 36 (22.8) 24 (15.6) 7 (11.7) 24 (15.8) 7 (12.3) 24 (15.8) 7 (12.7) Panel B. Body mass index, overweight/obesity, systolic and diastolic blood pressure, and nightly sleep duration. Body mass index (n=587) Overweight/obesity (n=587) Systolic blood pressure (n=545) Diastolic blood pressure (n=544) Nightly sleep duration (n=599) Study group Non-gentrifying Gentrifying p Non-gentrifying Gentrifying p Non-gentrifying Gentrifying p Non-gentrifying Gentrifying p Non-gentrifying Gentrifying p n 436 151 436 151 388 157 387 157 445 154 Age (mean ± SD) 46.4 ± 11.1 47.4 ± 10.3 0.316 46.4 ± 11.1 47.4 ± 10.3 0.316 52.6 ± 8.6 53.9 ± 8.9 0.112 52.6 ± 8.5 53.9 ± 8.9 0.123 46.4 ± 11.3 47.3 ± 9.8 0.323 Sex, n (%) Female 268 (61.5) 97 (64.2) 0.612 268 (61.5) 97 (64.2) 0.612 231 (59.5) 105 (66.9) 0.134 230 (59.4) 105 (66.9) 0.128 278 (62.5) 101 (65.6) 0.553 Male 168 (38.5) 54 (35.8) 168 (38.5) 54 (35.8) 157 (40.5) 52 (33.1) 157 (40.6) 52 (33.1) 167 (37.5) 53 (34.4) Education, n (%) Low 187 (42.9) 85 (56.3) &lt;0.001 187 (42.9) 85 (56.3) &lt;0.001 210 (54.1) 108 (68.8) 0.002 210 (54.3) 108 (68.8) 0.002 192 (43.1) 84 (54.5) &lt;0.001 Medium 72 (16.5) 34 (22.5) 72 (16.5) 34 (22.5) 61 (15.7) 24 (15.3) 61 (15.8) 24 (15.3) 73 (16.4) 37 (24.0) High 177 (40.6) 32 (21.2) 177 (40.6) 32 (21.2) 117 (30.2) 25 (15.9) 116 (30.0) 25 (15.9) 180 (40.4) 33 (21.4) Marital status, n (%) Without partner 110 (25.2) 32 (21.2) 0.374 110 (25.2) 32 (21.2) 0.374 76 (19.6) 36 (22.9) 0.449 76 (19.6) 36 (22.9) 0.457 116 (26.1) 34 (22.1) 0.380 With partner 326 (74.8) 119 (78.8) 326 (74.8) 119 (78.8) 312 (80.4) 121 (77.1) 311 (80.4) 121 (77.1) 329 (73.9) 120 (77.9) Employment, n (%) Employed 324 (74.3) 114 (75.5) 0.931 324 (74.3) 114 (75.5) 0.931 257 (66.2) 98 (62.4) 0.296 256 (66.1) 98 (62.4) 0.302 329 (73.9) 116 (75.3) 0.939 Unemployed 17 (3.9) 5 (3.3) 17 (3.9) 5 (3.3) 20 (5.2) 5 (3.2) 20 (5.2) 5 (3.2) 16 (3.6) 5 (3.2) Other 95 (21.8) 32 (21.2) 95 (21.8) 32 (21.2) 111 (28.6) 54 (34.4) 111 (28.7) 54 (34.4) 100 (22.5) 33 (21.4) Continuous variables (age) as mean ± SD; categorical variables as n (%). p-values from Welch&#x27;s t-tests (age) and chi-squared tests (categorical variables). Education: low (≤9 years, ISCED 0-2), medium (10-12 years, ISCED 3-4), high (&gt;12 years, ISCED 5-8); ISCED, International Standard Classification of Education.</p>
+<h3>3.2 Impact of gentrification on health outcomes</h3>
+<p>In the primary IPCW analysis, the pre-test detected departures from parallel trends for current tobacco use and LDL cholesterol in the adjusted model and for systolic blood pressure in both models (p&lt;0.05; Supplementary Table S7), whose ATTs were therefore not interpreted causally, but not for the remaining outcomes, including nightly sleep duration. Residence in a gentrifying neighbourhood was associated with a statistically significant reduction in nightly sleep duration (adjusted ATT = -0.346 h; 95% CI -0.650, -0.042), corresponding to about 21 fewer minutes of sleep. No statistically significant associations were observed for the remaining outcomes in either model (Table 3; wave-specific estimates in Supplementary Table S8). Bold denotes statistically significant results. † Parallel-trends assumption not supported (pre-test p&lt;0.05; Supplementary Table S7); the ATT is not interpretable as a causal effect.</p>
+<h3>3.3 Impact of gentrification on health outcomes: exploratory subgroup analyses</h3>
+<p>In the adjusted IPCW model, residence in a gentrifying census block group was associated with shorter nightly sleep duration among participants aged ≥65 years (-0.433 h; 95% CI -0.859, -0.007) and those with lower educational attainment (-0.415 h; 95% CI -0.806, -0.024), but not among participants aged &lt;65 years or those with higher educational attainment (Table 4). Nightly sleep duration was the only outcome with statistically significant estimates within any stratum, and the unadjusted IPCW model showed the same pattern (Supplementary Table S20). The parallel-trends assumption was supported for nightly sleep duration in all four strata but not for a few non-significant estimates of other outcomes, mostly systolic blood pressure among participants aged ≥65 years (Supplementary Tables S18-S19).</p>
+<h3>3.4 Sensitivity and robustness analyses</h3>
+<p>The results for nightly sleep duration were robust across alternative exposure definitions. Under both the stricter (≥1.5 SD above the mean) and the broader (upper quartile of the index) definitions, nightly sleep duration remained the only outcome significantly associated with gentrification in the adjusted and unadjusted IPCW analyses, with adjusted estimates similar to the primary analysis (-0.349 h; 95% CI -0.658, -0.040 and -0.350 h; 95% CI -0.697, -0.003, respectively), and the parallel-trends assumption was supported for all outcomes (Supplementary Tables S25-S29). The corresponding complete-case estimates for sleep duration were in the same direction but smaller and not statistically significant (-0.129 h; 95% CI -0.445, 0.187 and -0.158 h; 95% CI -0.431, 0.115, respectively; Supplementary Table S27).</p>
+<p>Within subgroups, alternative exposure definitions generally reproduced the pattern observed in the primary subgroup analysis, although statistical significance varied across specifications (Supplementary Tables S38-S45). Under the upper-quartile definition, the parallel-trends assumption was supported for nightly sleep duration in all strata (Supplementary Tables S34-S37). The unadjusted IPCW estimates remained statistically significant among participants aged ≥65 years (-0.424 h; 95% CI -0.775, -0.073) and those with lower educational attainment (-0.418 h; 95% CI -0.819, -0.016). The corresponding adjusted estimates were similar in magnitude but no longer statistically significant (-0.382 h; 95% CI -0.820, 0.057 and -0.326 h; 95% CI -0.803, 0.152, respectively).</p>
+<p>Under the ≥1.5 SD definition, IPCW estimates among participants aged ≥65 years were larger in both the unadjusted (-0.501 h; 95% CI -0.893, -0.109) and adjusted models (-0.543 h; 95% CI -1.048, -0.038).</p>
+<p>However, the parallel-trends assumption was violated in this stratum under both models (p=0.013 and p=0.005, respectively; Supplementary Tables S32 and S33). In the corresponding complete-case analyses, estimates among participants aged ≥65 years were statistically significant and the paralleltrends assumption was supported in both the unadjusted (-0.401 h; 95% CI -0.775, -0.028) and adjusted models (-0.373 h; 95% CI -0.685, -0.061) (Supplementary Tables S30, S31, S38 and S39).</p>
+<p>Isolated statistically significant estimates for other outcomes were observed only under the alternative exposure definitions. Under the ≥1.5 SD definition, these involved total and HDL cholesterol and systolic blood pressure among participants with lower educational attainment or aged ≥65 years, and total and LDL cholesterol and diastolic blood pressure among participants aged &lt;65 years. Under the upperquartile definition, they involved systolic blood pressure among participants aged &lt;65 years and diastolic blood pressure among those with higher educational attainment and occurred only in the unadjusted models (Supplementary Tables S38-S42 and S44). None was reproduced in the primary analysis, several were accompanied by violations of the parallel-trends assumption, and their directions were inconsistent across exposure definitions and model specifications. As these subgroup analyses were exploratory, not powered to formally test interaction effects, and not corrected for multiple comparisons, they should be interpreted as hypothesis-generating.</p>
+<p>When follow-up wave 2 was re-included as the first post-exposure wave, no statistically significant associations were observed for any outcome in either the IPCW or complete-case analyses, adjusted or unadjusted, and the parallel-trends assumption was supported throughout (Supplementary Tables S21-S24). This analysis was not informative for nightly sleep duration, which was not assessed at wave 2.</p>
+<p>Retaining the 40 participants who moved between differently classified census block groups did not materially change the results: nightly sleep duration remained the only outcome significantly associated with gentrification (adjusted IPCW ATT = -0.316 h; 95% CI -0.605, -0.027), and the pattern of paralleltrends pre-test results was largely unchanged (Supplementary Table S46).</p>
+<p>In the complete-case analyses of the overall effect, no statistically significant associations were observed for any outcome (Supplementary Tables S9-S12). For nightly sleep duration, the adjusted (-0.252 h; 95% CI -0.509, 0.005) and unadjusted (-0.244 h; 95% CI -0.513, 0.025) estimates were in the same direction as in the primary analysis but smaller, and the parallel-trends assumption was not supported in either model (p=0.030 and p=0.032, respectively). Within subgroups, complete-case sleep estimates were in the same direction as the IPCW estimates, of similar magnitude among participants with lower educational attainment (adjusted -0.351 h; 95% CI -0.766, 0.063) but attenuated among those aged ≥65 years (adjusted -0.188 h; 95% CI -0.529, 0.154), and not statistically significant in any subgroup or model (Supplementary Tables S14-S17).</p>
+<p>Cluster-bootstrap resampling of the complete-case estimates yielded confidence intervals that included the null for all outcomes (Supplementary Table S13). Sign consistency was highest for nightly sleep duration (0.93 with 2,000 and 0.92 with 5,000 replicates), whereas the direction of most other estimates was unstable, consistent with their limited precision. Overall, the reduction in sleep duration was consistent in direction across analytical approaches and exposure definitions but, at the overall level, reached statistical significance only in the IPCW analyses, whereas the null findings for the remaining outcomes were consistent across all sensitivity analyses.</p>
+<h3>4. Discussion</h3>
+<p>To our knowledge, this is the first quantitative quasi-experimental study to estimate the health impacts of gentrification in Portugal and one of the few conducted in Europe. In this population-based cohort of adults from Porto, residence in a gentrifying neighbourhood was associated with a statistically significant reduction in nightly sleep duration of approximately 21 minutes, after adjustment for individual-level covariates and accounting for selective loss to follow-up, whereas no statistically significant effects were observed for the remaining outcomes.</p>
+<p>The observed reduction in sleep is consistent with conceptual frameworks linking gentrification and neighbourhood disruption to health. Gentrification may affect sleep through several mutually reinforcing pathways, including increased nocturnal noise, the expansion of nightlife and tourism-related activity, the growth of short-term rental accommodation and greater housing insecurity, all of which have been linked to poorer sleep among urban residents (Anguelovski et al., 2021; Cole et al., 2021; Santos, Henriques, et al., 2024). In Porto, qualitative studies conducted within the same cohort have documented nocturnal noise, perceived insecurity and housing-related stress as resident-reported consequences of tourism-and student-driven neighbourhood change (Santos, Silva, et al., 2024; Silva et al., 2023), for which the present findings provide quantitative support.</p>
+<p>Quantitative evidence linking neighbourhood change to sleep remains scarce and has generally addressed neighbourhood reinvestment rather than gentrification itself. In two low-income Pittsburgh neighbourhoods, residents living closest to major public and private investments were protected against the decline in sleep duration observed among those living farther away, a difference of 18.3 minutes per night, although the neighbourhood-level comparison was null (Dubowitz et al., 2021). In contrast with our findings, an ecological analysis of US census tracts reported a small decline in the prevalence of insufficient sleep in gentrifying areas, although its aggregate design cannot separate improvement among remaining residents from population replacement, and its threshold-based outcome is not directly comparable with mean sleep duration (Candipan et al., 2023).</p>
+<p>Most longitudinal studies have instead focused on proximal features of neighbourhood change, such as socioeconomic disadvantage, residential instability, housing insecurity and environmental noise (Kim et al., 2022). Neighbourhood disadvantage and disorder have been associated with shorter and more fragmented sleep, while housing insecurity has been prospectively associated with shorter sleep duration among low-income adults (Bozick et al., 2021). Against this background, the reduction observed in this study is potentially important at the population level: its magnitude is comparable to that reported by Dubowitz et al. (2021), which those authors considered policy-relevant, and insufficient sleep is associated with cardiovascular morbidity and mortality (Cappuccio et al., 2011), although whether a change of this magnitude translates into measurable cardiometabolic effects over the period examined remains uncertain.</p>
+<p>In exploratory subgroup analyses, the effect on sleep was statistically significant among older adults and participants with lower educational attainment, the groups considered a priori to be most vulnerable to neighbourhood change, but not among younger or more highly educated participants. Although these analyses were not powered to formally test interaction effects nor adjusted for multiple comparisons, this pattern is consistent with previous evidence of greater susceptibility to neighbourhood change and environmental stressors in these groups (Ribeiro, Fraga, et al., 2022; Santos, Henriques, et al., 2024) and with the expectation that the burdens of neighbourhood upgrading fall disproportionately on those with fewer resources to adapt or relocate (Cole et al., 2021; Cole et al., 2024).</p>
+<p>The absence of statistically significant effects on most cardiometabolic and behavioural outcomes is consistent with the broader international literature, in which beneficial, adverse and null effects of gentrification on cardiometabolic health have been reported without a consistent pattern in the direction or magnitude of associations (Delong, 2023; Schnake-Mahl, Jahn, et al., 2020; Tulier et al., 2019), including modestly improved hypertension control in Los Angeles County (Chen et al., 2023) and no association with incident metabolic syndrome among Hispanic/Latino adults (Pichardo et al., 2023).</p>
+<p>Several non-mutually exclusive explanations may account for these findings. First, gentrification may exert opposing effects on the same outcome (Breyer &amp; Voss-Andreae, 2013), which may cancel out at the population level. Second, the relevant pathways may operate over different time horizons: the psychosocial mechanisms most directly engaged by transnational gentrification, such as nocturnal noise, insecurity and housing-related stress, may act on sleep over a relatively shorter period, whereas body mass index, cholesterol and blood pressure are shaped by cumulative life-course exposures and change more gradually (Lynch &amp; Smith, 2005). The post-exposure follow-up may therefore have been sufficient to detect effects on sleep but not on downstream cardiometabolic risk factors, for which sleep may itself represent an upstream determinant.</p>
+<p>Third, and most importantly, the precision of the estimates was limited by the small size of the exposed group. Confidence intervals for the cardiometabolic outcomes were wide and compatible with effects in either direction, and cluster-bootstrap resampling showed that the direction of most estimates was unstable. Because IPCW reduces bias arising from differential loss to follow-up but does not increase the effective sample size, the null estimates, particularly those for blood pressure and cholesterol, should be interpreted as inconclusive rather than as evidence of no effect.</p>
+<p>The discrepancy between the IPCW and complete-case estimates for sleep duration warrants consideration. Both approaches yielded estimates in the same direction, and the difference in statistical significance stemmed not from greater precision of the IPCW analysis, whose confidence interval was in fact wider, but from a larger point estimate (-0.346 h vs -0.252 h). Participants retained in the completecase samples were younger, more highly educated and more often employed than those lost to followup or with missing data (Table 1), whereas the effect on sleep appeared to concentrate among older and less educated participants. By up-weighting retained participants who resembled those lost to followup, IPCW restores the contribution of these under-represented groups, which may explain the larger overall estimate; consistently, the complete-case estimate was most attenuated among participants aged ≥65 years (-0.188 h vs -0.433 h in the IPCW analysis). Both complete-case estimates were further limited by violations of the parallel-trends assumption.</p>
+<p>Nevertheless, IPCW relies on the assumption that, conditional on measured baseline covariates, loss to follow-up is unrelated to the outcomes; if attrition depended on unmeasured factors, such as health status or residential displacement, residual selection bias cannot be excluded.</p>
+<h3>4.1 Strengths</h3>
+<p>This study has several methodological strengths. First, its longitudinal, quasi-experimental design, combined with the Callaway and Sant&#x27;Anna estimator, addressed key limitations of previous crosssectional research. Second, combining IPCW to address selective loss to follow-up with clusterbootstrap resampling to assess estimate stability provided a more rigorous evaluation than is common in gentrification research.</p>
+<p>Third, the estimated reduction in sleep duration remained similar and statistically significant in the IPCW analyses when gentrifying neighbourhoods were defined using other thresholds, reducing concerns about the arbitrariness of the primary cut-off. Fourth, the PCA-based gentrification index, previously validated against objective indicators of neighbourhood change and residents&#x27; perceptions (Alves et al., 2026), integrated multiple dimensions of neighbourhood change within a reproducible and theoretically informed framework. Unlike generic measures of socioeconomic change, it incorporated high-income foreign residents and short-term tourist accommodation, capturing the transnational, tourism-driven character of gentrification particularly salient in Southern European cities such as Porto, which may affect health through mechanisms not captured by a purely socioeconomic index.</p>
+<p>Finally, the simultaneous assessment of ten outcomes provided a broad overview of potential health impacts within the same population, and five follow-up waves spanning more than two decades enabled the construction of the pre-exposure trajectories required for valid DiD inference.</p>
+<h3>4.2 Limitations</h3>
+<p>Several limitations should be acknowledged. First, the operationalisation of gentrification remains heterogeneous across studies, limiting direct cross-study comparability (Bhavsar et al., 2020; Mujahid et al., 2019), although this was partly addressed by combining domains frequently used in previous research and by empirically assessing the structure and construct validity of the index (Alves et al., 2026).</p>
+<p>Second, outcome selection was constrained by the availability of repeated and comparable measurements, which precluded mental health outcomes such as depression and anxiety, for which associations with gentrification have previously been reported (Anguelovski et al., 2021). This is particularly relevant because our results are compatible with an important role of psychosocial pathways, which could therefore only be assessed indirectly.</p>
+<p>Third, the post-exposure follow-up period was shorter for blood pressure and alcohol use than for the remaining outcomes, reducing comparability across estimates and potentially limiting the detection of longer-term changes. Fourth, exposure classification was based on residential address and was therefore subject to the Uncertain Geographic Context Problem (Kwan, 2012), as participants&#x27; daily exposure to gentrification-related changes may extend beyond their residential neighbourhood. Fifth, the few participants who moved between differently classified census block groups were excluded from the primary analysis, although retaining them did not materially change the estimates. More importantly, the estimates do not capture the health consequences of displacement, a central mechanism through which gentrification may affect health (Anguelovski et al., 2021), also documented in Porto (Silva et al., 2025), and may therefore underestimate its overall health impact.</p>
+<p>Sixth, the small size of the exposed group limited the ability to distinguish the absence of an effect from insufficient statistical precision. Finally, although the difference-in-differences design accounts for timeinvariant differences between study groups and the analyses adjusted for measured individual-level covariates, residual confounding due to unmeasured time-varying individual-or neighbourhood-level factors remains possible.</p>
+<h3>Funding</h3>
+<p>This study is integrated in the HUG project, supported by the Foundation for Science and Technology (FCT), I.P., through the projects with references UID/04750/2025 and LA/P/0064/2020 and DOI identifiers https://doi.org/10.54499/UID/04750/2025 and https://doi.org/10.54499/LA/P/0064/2020, and project PTDC/GES-OUT/1662/2020 (https://doi.org/10.54499/PTDC/GES-OUT/1662/2020). Ana Isabel Ribeiro was supported by FCT under the Stimulus of Scientific Employment programme (CEECIND/02386/2018). Henrique Alves was supported by National Funds through the FCT grant 2024.06298. BD. This research also received support from the Centre of Studies in Geography and Spatial Planning (CEGOT), funded by National Funds through the FCT under the reference UIDB/04084/2025. Further funding was provided by the Social Observatory of &quot;La Caixa&quot; through the project Health Outcomes of Touristification and Gentrification in Portuguese Cities: A Nationwide Survey (HOT-CITIES; FP25-1B113), funded under the FP25-1B Quantitative Surveys in the Social Sciences call.</p>
+<h3>Data availability</h3>
+<p>The EPIPorto data are not publicly available because they contain sensitive health information protected under data protection regulations. Data are available from the corresponding author upon reasonable request, subject to approval by the EPIPorto cohort coordinators and to the applicable ethical and data protection requirements.</p>
+<h3>Declaration of competing interests</h3>
+<p>The authors declare no competing interests.</p>
+<h3>Declaration of generative AI and AI-assisted technologies in the manuscript preparation process</h3>
+<p>During the preparation of this work, the authors used Claude (Anthropic) to review the manuscript text and to assist with the R code used in the statistical analyses. After using this tool, the authors reviewed and edited the content as needed and take full responsibility for the content of the published article.</p>
+<h3>CRediT author statement</h3>
+<p>José António Figueiredo: Conceptualization, Data curation, Methodology, Software, Formal analysis, Investigation, Writing -original draft, Writing -review &amp; editing. Henrique Alves: Conceptualization, Methodology, Software, Formal analysis, Investigation, Writing -original draft, Writing -review &amp; editing. Carla Moreira: Methodology, Formal analysis, Supervision, Validation, Writing -review &amp; editing. Ana Isabel Ribeiro: Conceptualization, Methodology, Funding acquisition, Resources, Project administration, Supervision, Validation, Writing -review &amp; editing.</p>
+<h3>4.3 Conclusions</h3>
+<p>In this population-based cohort, living in a neighbourhood undergoing transnational gentrification in Porto was associated with a reduction of approximately 21 minutes in nightly sleep duration. This effect was consistent in direction across analytical approaches, robust to alternative exposure definitions, and appeared to be concentrated among older adults and those with lower educational attainment. No effects were detected on body mass index, cholesterol, blood pressure, or tobacco and alcohol use, although limited precision and, for some outcomes, violations of the parallel-trends assumption do not allow such effects to be ruled out. Sleep may thus be an early and sensitive marker of the health impact of gentrification and a plausible pathway through which it may widen health inequities among the most vulnerable residents.</p>
+<p>The methodological framework applied in this study provides a reproducible approach for examining urban processes as population health exposures. Replication in cohorts with larger exposed groups and longer post-exposure follow-up is needed to clarify the long-term health consequences of gentrification and to support evidence-informed urban policy.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Flow diagram of the EPIPorto cohort showing baseline and the follow-up assessment waves.</p>
+<h3>(</h3>
+<p>range 0.03-44.38 km²) in the Porto Metropolitan Area. Indicators were obtained from the 2011 and 2021 national censuses (Instituto Nacional de Estatística [Statistics Portugal, INE]) and the national tourism accommodation register (Turismo de Portugal, I.P. [Tourism of Portugal]).</p>
+<p>version 4.4.2 using tidyverse version 2.0.0, readxl version 1.4.5, did version 2.3.0 and boot version 1.3.32.</p>
+<h3>Table 1.</h3>
+<p>Baseline characteristics of participants included in or excluded from the complete-case analysis.</p>
+<h3>Table 3.</h3>
+<p>ATT of gentrification on the ten health outcomes in the IPCW analysis (adjusted and unadjusted models).</p>
+<h3>Table 4.</h3>
+<p>Final aggregate ATT for the IPCW analysis within subgroups (adjusted models). Models adjusted for sex, age, education, marital status, and employment. Bold denotes statistically significant results. Within each stratum, the stratifying variable was omitted from the adjustment set because it was constant.</p>
+<h3>References</h3>
+<p>Alves, H. T., Silva, J. P., &amp; Ribeiro, A. I. (2026). Mapping transnational gentrification in the Porto Metropolitan Area (Portugal): Development and validation of a multidimensional index. Urban Science, 10(10), 554. https://doi.org/10.3390/urbansci10100554</p>
+<p>Anguelovski, I., Cole, H. V. S., O&#x27;Neill, E., Baro, F., Kotsila, P., &amp; Sekulova, F. (2021). Gentrification pathways and their health impacts on historically marginalized residents in Europe and North America: global qualitative evidence from 14 cities. Health &amp; Place, 72, 102698.</p>
+<p>Bhavsar, N. A., Kumar, M., &amp; Richman, L. (2020). Defining gentrification for epidemiologic research: A systematic review. PLoS One, 15(5), e0233361. https://doi.org/10.1371/journal.pone.0233361</p>
+<p>Bilal, U., Franco, M., Lau, B., Celentano, D., &amp; Glass, T. (2020). Measuring neighbourhood social and economic change for urban health studies. Urban Studies, 57(15), 3134-3153.</p>
+<p>Bozick, R., Troxel, W. M., &amp; Karoly, L. A. (2021). Housing insecurity and sleep among welfare recipients in California. Sleep, 44(7). https://doi.org/10.1093/sleep/zsab005</p>
+<p>Breyer, B., &amp; Voss-Andreae, A. (2013). Food mirages: Geographic and economic barriers to healthful food access in Portland, Oregon. Health &amp; Place, 24, 131-139. https://doi.org/10.1016/j.healthplace.2013.07.008</p>
+<p>Bryson, J. (2013). The nature of gentrification. Geography Compass, 7(8), 578-587. https://doi.org/10.1111/gec3.12056</p>
+<p>Callaway, B., &amp; Sant&#x27;Anna, P. H. C. (2021). Difference-in-Differences with multiple time periods. Journal of Econometrics, 225(2), 200-230. https://doi.org/10.1016/j.jeconom.2020.12.001</p>
+<p>Candipan, J., Riley, A. R., &amp; Easley, J. A. (2023). While Some Things Change, Do Others Stay the Same? The Heterogeneity of Neighborhood Health Returns to Gentrification. Hous Policy Debate, 33(1), 129-163. https://doi.org/10.1080/10511482.2022.2076715</p>
+<p>Cappuccio, F. P., Cooper, D., D&#x27;Elia, L., Strazzullo, P., &amp; Miller, M. A. (2011). Sleep duration predicts cardiovascular outcomes: a systematic review and meta-analysis of prospective studies. Eur Heart J, 32(12), 1484-1492. https://doi.org/10.1093/eurheartj/ehr007</p>
+<p>Carvalho, L., Chamusca, P., Fernandes, J., &amp; Pinto, J. (2019). Gentrification in Porto: Floating city users and internationally-driven urban change. Urban Geography, 40(4), 565-572. https://doi.org/10.1080/02723638.2019.1585139</p>
+<p>Chen, K. L., Zimmerman, F. J., Ong, P. M., Jones, A., Nuckols, T. K., Ponce, N. A., Choi, K. R., Li, X. X., Padilla, A., &amp; Nau, C. L. (2023). Association of neighborhood gentrification and residential moves with hypertension and diabetes control in Los Angeles County, 2014-2019: A retrospective cohort study. Health Place, 83, 103109. https://doi.org/10.1016/j.healthplace.2023.103109</p>
+<p>Cocola-Gant, A., Hof, A., Yrigoy, I., &amp; Czaiba, P. (2020). Short-term rentals as a new urban frontier: evidence from European cities. Environment and Planning A, 52(8), 1606-1632.</p>
+<p>Cole, H. V. S. (2020). A call to engage: Considering the role of gentrification in public health research. Cities &amp; Health, 4(3), 278-287.</p>
+<p>Cole, H. V. S., Mehdipanah, R., Gullón, P., &amp; Triguero-Mas, M. (2021). Breaking down and building up: Gentrification, its drivers, and urban health inequality. Current Environmental Health Reports, 8(2), 157-166. https://doi.org/10.1007/s40572-021-00309-5</p>
+<p>Cole, H. V. S., Vásquez-Vera, H., Triguero-Mas, M., Sánchez, A. F., Oliveras, L., Carrere, J., Aviñó, C. J., &amp; Mehdipanah, R. (2024). Causes, consequences and health impacts of gentrification in the Global North: a conceptual framework. Journal of Housing and the Built Environment, 39(2), 1081-1102. https://doi.org/10.1007/s10901-023-10086-2</p>
+<p>Cole, S. R., &amp; Hernán, M. A. (2008). Constructing inverse probability weights for marginal structural models. Am J Epidemiol, 168(6), 656-664. https://doi.org/10.1093/aje/kwn164</p>
+<p>Delong, S. (2023). Urban health inequality in shifting environment: systematic review on the impact of gentrification on residents&#x27; health. Front Public Health, 11, 1154515. https://doi.org/10.3389/fpubh.2023.1154515</p>
+<p>Dubowitz, T., Haas, A., Ghosh-Dastidar, B., Collins, R. L., Beckman, R., Brooks Holliday, S., Richardson, A. S., Hale, L., Buysse, D. J., Buman, M. P., &amp; Troxel, W. M. (2021). Does investing in low-income urban neighborhoods improve sleep? Sleep, 44(6). https://doi.org/10.1093/sleep/zsaa292</p>
+<p>Freeman, L. (2005). Displacement or Succession?:Residential Mobility in Gentrifying Neighborhoods. Urban Affairs Review, 40(4), 463-491. https://doi.org/10.1177/1078087404273341</p>
+<p>Hernán, M. A., &amp; Robins, J. M. (2020). Causal inference: What if. Chapman &amp; Hall/CRC.</p>
+<p>Jelks, N. O., Jennings, V., &amp; Rigolon, A. (2021). Green Gentrification and Health: A Scoping Review. Int J Environ Res Public Health, 18(3). https://doi.org/10.3390/ijerph18030907</p>
+<p>Jones, B., Balk, D., Leyk, S., Montgomery, M., &amp; Engin, H. (2020). Projecting Global Population Grids to 2100: Final Report [Report prepared for the European Commission, contract no. 2018.CE.16.BAT.0505]. https://human- settlement.emergency.copernicus.eu/documents/Projecting%20Global%20Population%20Grids%20t o%202100.pdf</p>
+<p>Kadakia, K. T., &amp; Galea, S. (2023). Urbanization and the Future of Population Health. Milbank Q, 101(S1), 153- 175. https://doi.org/10.1111/1468-0009.12624</p>
+<p>Kim, B., Branas, C. C., Rudolph, K. E., Morrison, C. N., Chaix, B., Troxel, W. M., &amp; Duncan, D. T. (2022). Neighborhoods and sleep health among adults: A systematic review. Sleep Health, 8(3), 322-333. https://doi.org/10.1016/j.sleh.2022.03.005</p>
+<p>Kwan, M.-P. (2012). The uncertain geographic context problem. Annals of the Association of American Geographers, 102(5), 958-968. https://doi.org/10.1080/00045608.2012.687349</p>
+<p>Lynch, J., &amp; Smith, G. D. (2005). A life course approach to chronic disease epidemiology. Annu Rev Public Health, 26, 1-35. https://doi.org/10.1146/annurev.publhealth.26.021304.144505</p>
+<p>Mujahid, M. S., Sohn, E. K., Izenberg, J., Gao, X., Tulier, M. E., &amp; Lee, M. M. (2019). Gentrification and displacement in the San Francisco Bay Area: a comparison of measurement approaches. International Journal of Environmental Research and Public Health, 16(12), 2246.</p>
+<p>Pennay, A., Manton, E., &amp; Savic, M. (2014). Geographies of exclusion: Street drinking, gentrification and contests over public space. International Journal of Drug Policy, 25(6), 1084-1093. https://doi.org/10.1016/j.drugpo.2014.06.001</p>
+<p>Pichardo, C. M., Chambers, E. C., Sanchez-Johnsen, L. A. P., Pichardo, M. S., Gallo, L., Talavera, G. A., Pirzada, A., Roy, A., Castañeda, S. F., Durazo-Arvizu, R. A., Perreira, K. M., Teng, Y., Rodriguez, C. B., Allison, M., Carlson, J. A., Daviglus, M. L., &amp; Plascak, J. J. (2023). Association of census-tract level gentrification and income inequality with 6-year incidence of metabolic syndrome in the Hispanic Community Health Study/Study of Latinos, an epidemiologic cohort study. Soc Sci Med, 336, 116222. https://doi.org/10.1016/j.socscimed.2023.116222</p>
+<p>Ramos, E., Lopes, C., &amp; Barros, H. (2004). Investigating the effect of nonparticipation using a population-based case-control study on myocardial infarction. Ann Epidemiol, 14(6), 437-441. https://doi.org/10.1016/j.annepidem.2003.09.013</p>
+<p>Ribeiro, A. I. (2018). Public health: why study neighborhoods? Porto Biomed J, 3(1), e16. https://doi.org/10.1016/j.pbj.0000000000000016</p>
+<p>Ribeiro, A. I. (2022). Gentrificação urbana na cidade do Porto: um problema de saúde pública? Plataforma Barómetro Social, Instituto de Sociologia da Universidade do Porto. https://www.barometro.com.pt/2022/08/01/gentrificacao-urbana-na-cidade-do-porto-um- problema-de-saude-publica/</p>
+<p>Ribeiro, A. I., Dias, V., Ribeiro, S., Silva, J. P., &amp; Barros, H. (2022). Geoprivacy in Neighbourhoods and Health Research: A Mini-Review of the Challenges and Best Practices in Epidemiological Studies. Public Health Rev, 43, 1605105. https://doi.org/10.3389/phrs.2022.1605105</p>
+<p>Ribeiro, A. I., Fraga, S., Severo, M., Kelly-Irving, M., Delpierre, C., Stringhini, S., Kivimaki, M., Joost, S., Guessous, I., Severi, G., Giles, G., Sacerdote, C., Vineis, P., &amp; Barros, H. (2022). Association of neighbourhood disadvantage and individual socioeconomic position with all-cause mortality: a longitudinal multicohort analysis. Lancet Public Health, 7(5), e447-e457. https://doi.org/10.1016/s2468-2667(22)00036-6</p>
+<p>Ribeiro, A. I., Silva, J. P., Santos, C. J., &amp; Alves, H. (2025). Transnational gentrification and health: Evidence from Porto, Portugal. In A. I. Ribeiro, J. P. Silva, P. Gullón, &amp; T. Astell-Burt (Eds.), Gentrification and public health. Routledge. https://doi.org/10.4324/9781003496953-19</p>
+<p>Robins, J. M., &amp; Finkelstein, D. M. (2000). Correcting for noncompliance and dependent censoring in an AIDS Clinical Trial with inverse probability of censoring weighted (IPCW) log-rank tests. Biometrics, 56(3), 779-788. https://doi.org/10.1111/j.0006-341x.2000.00779.x</p>
+<p>Santos, C. J., Henriques, A., Moreira, C., &amp; Ribeiro, A. I. (2024). Housing Insecurity and Older Adults&#x27; Health and Well-Being in a Gentrifying City: Results from the EPIPorto Cohort Study. Journal of Urban Health. https://doi.org/10.1007/s11524-024-00921-4</p>
+<p>Santos, C. J., Silva, J. P., Astell-Burt, T., Barros, H., Torres, E., &amp; Ribeiro, A. I. (2024). The influence of gentrification on the health and well-being of older adults: a qualitative study. Cities &amp; Health, 8(3), 360-373. https://doi.org/10.1080/23748834.2024.2308372</p>
+<p>Schnake-Mahl, A. S., Jahn, J. L., Subramanian, S. V., Waters, M. C., &amp; Arcaya, M. (2020). Gentrification, Neighborhood Change, and Population Health: a Systematic Review. J Urban Health, 97(1), 1-25. https://doi.org/10.1007/s11524-019-00400-1</p>
+<p>Schnake-Mahl, A. S., Sommers, B. D., Subramanian, S. V., Waters, M. C., &amp; Arcaya, M. (2020). Effects of gentrification on health status after Hurricane Katrina. Health &amp; Place, 61, 102237. https://doi.org/10.1016/j.healthplace.2019.102237</p>
+<p>Schroeder, K., Klusaritz, H., Dupuis, R., Bolick, A., Graves, A., Lipman, T. H., &amp; Cannuscio, C. (2019). Reconciling opposing perceptions of access to physical activity in a gentrifying urban neighborhood. Public Health Nurs, 36(4), 461-468. https://doi.org/10.1111/phn.12602</p>
+<p>Sigler, T., &amp; Wachsmuth, D. (2020). New directions in transnational gentrification: Tourism-led, state-led and lifestyle-led urban transformations. Urban Studies, 57(15), 3190-3201. https://doi.org/10.1177/0042098020944041</p>
+<p>Silva, J. P., Carvalheiro, R., Torres, E., Santos, C. J., &amp; Ribeiro, A. I. (2025). Health impacts of direct displacement in a context of housing crisis and transnational gentrification: findings from Porto, Portugal. Social Science &amp; Medicine, 384, 118525. https://doi.org/10.1016/j.socscimed.2025.118525</p>
+<p>Silva, J. P., Santos, C. J., Torres, E., Martínez-Manrique, L., Barros, H., &amp; Ribeiro, A. I. (2023). A double-edged sword: Residents&#x27; views on the health consequences of gentrification in Porto, Portugal. Social Science &amp; Medicine, 336, 116259. https://doi.org/10.1016/j.socscimed.2023.116259</p>
+<p>Smith, R. J., Lehning, A. J., &amp; Kim, K. (2018). Aging in place in gentrifying neighborhoods: Implications for physical and mental health. The Gerontologist, 58(1), 26-35. https://doi.org/10.1093/geront/gnx105</p>
+<p>Sousa, S., &amp; Barcón, A. (2021). Narrativas sobre gentrificação turística e contração urbana: uma abordagem qualitativa ao caso do Porto. Finisterra, 56, 115-136. https://doi.org/10.18055/Finis19829</p>
+<p>Torres, S. (2020). &quot;For a younger crowd&quot;: Place, belonging, and exclusion among older adults facing neighborhood change. Qualitative Sociology, 43(1), 1-20. https://doi.org/10.1007/s11133-019-09441-z</p>
+<p>Tulier, M. E., Reid, C., Mujahid, M. S., &amp; Allen, A. M. (2019). &quot;Clear action requires clear thinking&quot;: A systematic review of gentrification and health research in the United States. Health &amp; Place, 59, 102173. https://doi.org/10.1016/j.healthplace.2019.102173</p>
+<p>United Nations Department of Economic and Social Affairs. (2018). 68% of the world population projected to live in urban areas by 2050, says UN [Press release]. https://www.un.org/development/desa/en/news/population/2018-revision-of-world-urbanization- prospects.html von Elm, E., Altman, D. G., Egger, M., Pocock, S. J., Gøtzsche, P. C., &amp; Vandenbroucke, J. P. (2007). The Strengthening the Reporting of Observational Studies in Epidemiology (STROBE) statement: guidelines for reporting observational studies. Lancet, 370(9596), 1453-1457.</p>
+<p>World Health Organization. (2019). ICD-11 for Mortality and Morbidity Statistics. International Classification of Diseases, Eleventh Revision (ICD-11). https://icd.who.int/browse11</p>
 </div>
 </details>
 </div>
