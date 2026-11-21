@@ -197,7 +197,7 @@ Challenges and Health Disparities in Prostate Cancer: Healthcare Access
 as a Driver of Inequities in a Rural Hospital Network
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.05.26367368
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.05.26367368
 </p>
 </header>
 <div class="mc-main">
@@ -469,8 +469,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -821,9 +822,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -845,7 +850,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -860,9 +866,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -875,13 +899,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -901,6 +928,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -908,12 +941,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1014,6 +1053,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1033,6 +1092,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1288,19 +1382,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1410,6 +1586,109 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Background: Prostate cancer is the most common male cancer, and second most common cause of cancer mortality in the US. Disparities abound in this disease for reasons that need further study, including social and ethnic barriers, geographic barriers, and biological differences. North Carolina is the second largest state by rural population measures (3.5 million), which provides ample geography to study these disparities.</p>
+<p>A dataset containing all patients with a medical record documenting a diagnosis of and/or treatment for de novo prostate cancer within the mostly rural ECU Health 9hospital system was characterized over a 20-year period for structural inequities, access barriers, and biological differences.</p>
+<p>Results: Stages and outcomes of prostate cancer changed temporally, reflecting changes in screening, treatment, and inclusion of prognostic factors such as prostate-specific antigen, Gleason score, and other factors. Late stage (4) prostate cancer disproportionately affected our system as a whole and smaller community hospitals, with higher death rates seen in community, mostly rural programs that lack access to all required components of care.</p>
+<p>Conclusion: Stages of prostate cancer changed considerably over the study period, reflecting changes in screening recommendations, and staging criteria. Late stage (4) disease increased over the analytic period, was higher than NCDB references by period, and disproportionately affected community programs where resources were sparse, correlating with worse outcomes.</p>
+<h3>INTRODUCTION</h3>
+<p>Prostate cancer (PCa) is the most common cancer and the second leading cause of cancer-related deaths among men in the US 1 . While PCa mortality rates have declined over the last few decades, these improvements are not proportional across populations groups 2 . PCa has the largest racial disparity of any cancer, with Black men diagnosed at a higher rate than White men in the US, and twice as likely to die from it 3 . These differences likely relate to structural inequities, uneven access to quality care, genetic/biological differences, and other factors 4.</p>
+<p>Mortality from PCa is preventable 5 given the existence of screening and early detection techniques 6 and its relation to lifestyle and environmental factors 7 . The most common approach to identify at-risk patients for PCa detection is prostate-specific antigen (PSA) testing 8 . However, screening for PCa using PSA alone is controversial due to a potential risk of over diagnosis and overtreatment of indolent disease 9 . Current American Urological Association guidelines recommend using PSA as the first screening test, offering the screening to all men aged 50 to 69 years, and starting at 40 or 45 years for men at increased risk of PCa. Increased risk men include: Black men, men with known mutations, or men with family history of PCa 6 . Risk factors including environmental conditions, personal actions or habits, and family history increase an individual&#x27;s likelihood of developing cancer 10 . In addition, individuals living in economically distressed areas experience higher cancer mortality rates, partly due to reduced access to providers, diagnostics, and treatments 11 . North Carolina (NC) is the ninth largest state by total population, and second largest by rural population volume 12 . Eastern North Carolina (ENC), the easternmost region of the state, represents a mostly rural and socially vulnerable region: poverty levels in ENC are higher than both state and national averages, where median income and educational attainment are low 13 . Consequently, health indicators in ENC reflect significant health disparities: from life expectancy 14 to cancer incidence and mortality 15 and overall experience of healthcare 16.</p>
+<p>ECU Health is the largest healthcare system in ENC, providing service to 29 counties through a hub-in-spoke model of care involving nine hospitals: ECU Health Medical Center serves as a central urban hub, with eight community hospitals serving as rural providers of some urological cancer care. Because few programs contain all needed providers, patients face additional barriers to access care including logistical challenges of transportation, lodging, support and navigation. This study reviews clinical outcomes for all patients diagnosed or treated in a single health care network to understand factors that link outcomes to social vulnerabilities.</p>
+<h3>MATERIALS AND METHODS</h3>
+<h3>Data Source and Study Population</h3>
+<p>Our dataset comprises data for 5,857 patients diagnosed with PCa that accessed any of nine ECU Health hospitals between 2005 and 2025. Patient data included de-identified ECU Health System cancer registry records abstracted at ECU Health Medical Center, with analytic cases defined as patients diagnosed and/or treated at one of the nine hospitals. Some patients were analytic at duplicate hospitals if they received a portion of their primary diagnosis and/or therapy at more than one hospital: in total, the dataset contains ≤ 5.0% of registries with the same values in the fields of &quot;Date of Diagnosis&quot;, &quot;Age at Diagnosis&quot;, &quot;Race&quot;, and &quot;Ethnicity&quot;. This study was approved by the University and Medical Center Institutional Review Board at ECU Health.</p>
+<p>For primary analysis we examined the AJCC summary stage of cancer at diagnosis and other known prognostic factors for PCa, including pre-treatment PSA levels, patients age distributions, Gleason score (GS), hospital location, diagnosis year, county of residence, self-declared ethnicity, and observed survival/death rates.</p>
+<h3>Statistical Analysis</h3>
+<p>All statistical analyses were performed in Python (version 3.12.2). Comparisons between distributions were performed using Mann-Whitney (MW) non-parametric tests as implemented in the SciPy 17 package (version 1.17.1). Significance threshold was set to α = 0.05 modified using a Bonferroni correction to account for multiple hypothesis testing. Effect sizes were analyzed using the Common Language Effect Size (CLES) f. In this context, f equals the probability of a random element from one group having a higher value than a random element from the second group. To study the distribution of times from diagnostic to death we performed fitting of uncensored data and goodness-of-fit testing to exponential distributions using the Anderson-Darling test implemented in the SciPy package. Kernel density estimates for distributions were plotted using the Seaborn 18 package (version 0.13.2). Values are reported as mean ± standard error unless otherwise noted.</p>
+<p>Survival ratios were calculated using the Kaplan-Meyer (KM) estimator and differences in survivability where quantified using a log-rank test as implemented in the lifelines 19 package (version 0.30.3).</p>
+<h3>RESULTS</h3>
+<p>Among 5,857 cases from 2005 to 2025, 51.4% were self-identified White, 47.4% Black, and 0.8% other. Race was not self-identified in ≤ 0.5% of patients. The median age at diagnosis was 66 years. Sixty-three percent (63.3%) of patients were analytic from ECU Health Medical Center, while 36.7% of patients were from eight community partner hospitals. Analytic patients came from all 29 counties, ranging in numbers from N=1 (Columbus County) to 1395 patients (Pitt County), with 10 counties accounting for 74% of patients.</p>
+<h3>Prognostic Factors</h3>
+<p>Analysis by stage revealed that the majority of patients in the dataset were stage 2 PCa, followed by stage 3, stage 4 and stage 1, (Error! Reference source not found.) with 20.2% of the patients not having a cancer stage assigned in the dataset. Temporal patterns occurred with staging. In 2005, 82.7% of the patients with documented stage were stage 2 cancers, and that proportion decreased to 43.7% by 2024. This large decrease was accompanied by an increase in the other stages: stage 1 new diagnoses increased from 1.8% in 2005 to 12.1% in 2024; stage 3 new diagnoses increased from 8.9% in 2005 to 28.2% in 2024, and stage 4 new diagnoses increased from 6.5% to 15.9% in the same period (Figure 1).</p>
+<p>PSA levels are also associated with PCa stage (Figure 2), with higher PSA levels corresponding to later stages (Error! Reference source not found.). Differences between PSA levels for the four stages were all significant (P &lt; 0.001, f = 0.19 ± 0.04). Patients presented with GS ranging from 3-10 over the period. The median Gleason score was GS 7 but varied temporally. Rare patients with GS &lt; 5 occurred in later years (&lt;0.3%). No significant differences in GS occurred between Black and White patients.</p>
+<h3>Age Distribution of Patients</h3>
+<p>Age distributions were also distinct for each of the PCa stages: stages 1, 2 and 3 have similar means and standard deviations (Table 1). Stage 4, however, displayed an elevated mean and standard deviation (Figure 3). Pairwise MW tests with Bonferroni correction uncovered no significant differences among stages 1, 2 and 3 (1 vs. 2: P = 0.787, f = 0.50; 1 vs. 3: P = 0.440, f = 0.49; 2 vs. 3: P = 0.465, f = 0.49). Stage 4 differed significantly from all three remaining stages (1 vs. 4: P &lt; 0.001, f = 0.37; 2 vs. 4: P &lt; 0.001, f = 0.38; 3 vs. 4: P &lt; 0.001, f = 0.38). It is worth noting that 15.7% of all patients presented at diagnosis above the age of 75 (stage1: 12.7%, stage 2: 12.1%, stage 3: 12.3%, stage 4: 31.0% of the patients). The proportion of patients being diagnosed at the age of 70 is even larger: 30.9% of the patients were diagnosed at the age of 70 or above (stage 1: 28.4%, stage 2: 28.1%, stage 3: 26.1%, stage 4: 47.2% of the patients, see Supplementary Figure SF1). Age distributions slightly shifted toward older ages from 2005 (65.3 ± 0.6 y) to 2025 (69.0 ± 0.5 y). Significant differences (Supplementary Figure SF2) only begin to appear between age distributions that are at least 7 years apart (largest significance: 2010 vs. 2024, P &lt; 0.001, f = 0.36; smallest significance: 2014 vs. 2021, P &lt; 0.001, f = 0.41), with the proportion of comparisons yielding significant differences increasing as the difference between years increases (7 years difference: 21.4% of comparisons yield significant differences; 14 years difference: 71.4% of all comparisons display significant differences; 20 years difference: 100.0% of comparisons display significant differences). Black patients present consistently at a significantly younger age than White patients (Table 1) for all stages of PCa (stage 1: P = 0.001, f = 0.37; stage 2: P &lt; 0.001, f = 0.42; stage 3: P &lt; 0.001, f = 0.38; stage 4: P &lt; 0.001, f = 0.38), yet they present a higher number and proportion of stage 4 PCa in the latter years (Figure 4).</p>
+<h3>Survival rates</h3>
+<p>Probability of survival depends on stage (Figure 5). Median survival times for stage 1, 2 and 3 patients are 5 times higher than for stage 4 (Error! Reference source not found.). The survival function for stage 4 was significantly different than for the rest of stages (P &lt; 0.001). The 5-year survival rate further evidences the singularity of stage 4 PCa: survival rates for stage 1,2 and 3 patients are almost three times higher than for stage 4 patients (Error! Reference source not found.). Observed survival rates are similar between Black and White patients (Supplementary Figure SF4). Even though the distribution of time from diagnosis to death for those patients that died for stages 1, 2 and 3 do not resemble any known distribution, the time from diagnosis to death for patients with stage 4 PCa follows an exponential distribution (β = 30.9, A2 = 1.333, P ≤ 0.05; see Supplementary Material for a complete discussion).</p>
+<h3>Hospital Location and Size</h3>
+<p>By hospital catchment area, diagnoses are not equitably distributed. Smaller hospitals see a disproportionate number of late-stage PCa when compared to larger hospitals (Figure 6): while in the central hospital the proportion of stage 4 is 12.5%, the proportion of stage 4 increases to 33.3% ± 9.1% in the smaller community hospitals. Patients accessing community hospitals are also more likely to experience an increase in their GS following primary surgery (pathologic grade higher than clinical grade): 20.8% of patients accessing the community hospitals had their GS increased after surgery, compared to 14.8% of patients accessing the central hospital in the network (see Supplementary Figure SF5). Survival odds are also different when comparing the central hospital with the community hospitals (Supplementary Figure SF7): while the 5-year survival odds for the central hospital are 83.7%, for community hospitals the odds decrease to 77.6% (P &lt; 0.001).</p>
+<h3>DISCUSSION</h3>
+<p>Our analyses describe patterns in PCa in the 2005-2025 period within a 9-hospital network in rural ENC. The changes in the incidence of by stages over a twenty-year period are a consequence of several occurrences which culminate in two inflection points (Figure 1). First, in 2010, stage 2 cases drop precipitously as stages 1, 3 and 4 increase. This change reflects the inclusion of better prognosticators in staging (Gleason score consensus, inclusion in stage) and improved imaging modalities (MRI of prostate, PSMA PET scan) which now allow better prognostication and risk stratification into stages 6 . At the same time, new guidelines from the US Preventive Services Task Force (USPSTF) in 2012 recommended against PSA-based screening for PCa 21 . Although the USPSTF was criticized for underestimating the benefits of PCa screening while overestimating the risks 22 , its decision effectively decreased the diagnoses of PCa especially in rural areas where patients have limited access to specialists 23 . In 2018, the USPSTF changed its guidelines and endorsed individual decision-making 24 . This resulted in an overall increase in the number of cases 25 , which led to the second inflection point in our system. Starting in 2018 our data evidences an increase particularly in stages 3 and 4 cases, accompanied by a decrease in stages 1 and 2 cases, confirming the effectiveness of an active surveillance system despite the fewer options to have detailed discussions on screening.</p>
+<p>It is possible that changes observed over time in the dataset are a result of the aging patient population, and, in fact, our analyses reveal that the age distribution of patients with PCa has shifted towards older ages, which is consistent with current demographic trends 26 . However, the small effect sizes found in our analyses when comparing age distributions and the fact that significant differences in age distributions of patients can only be observed in 7-year span periods or above, indicate that differences in age distributions alone cannot explain the differences observed in the dataset.</p>
+<p>Nevertheless, we found a significant difference with medium effect size between the age distribution of patients with stage 4 PCa and the rest of the patients. These findings suggest that stage 4 patients constitute a distinct population with substantially older patients, which might indicate a failure to detect the cancer at an earlier stage and age. Our results are consistent with national trends of increasing distant disease at diagnosis for men over age 75 following current screening recommendations 27 . Since the ability to detect cancer at an earlier stage is conditioned by a patient&#x27;s knowledge about screening, access to healthcare providers for screening, and transportation to appointments 28 , this failure to detect PCa at an earlier stage might be evidencing limitations in access to early detection. Furthermore, current recommendations for PCa screening (stop screening at 75 y) leave 12% of the population with non-stage 4 PCa out of the screening process (27% if the recommendation followed is to stop screening at the age of 70 y), which leads to patients with undetected PCa presenting with a late-stage PCa at a later age.</p>
+<p>The connection between rural areas and limited access to testing is supported by our analysis of hospital sizes. The results of those analyses evidence that community hospitals in predominantly rural areas see a disproportionate amount of stage 4 PCa cases when compared to the central hospital, which might indicate a lack of adequate access to primary care or specialists in the area.</p>
+<p>In rural areas where the hospital serving that community is small and does not have a specialist, patients may not request or obtain regular testing in the primary care setting, and only present to their nearest hospital when the pain or discomfort levels from an advanced cancer are severe.</p>
+<p>The existence of disparities between rural and urban hospitals is also confirmed by the observed changes in GS after surgery: patients from rural areas presenting at community hospitals are more likely to see their GS increased after primary surgery. A plausible explanation for this difference is that there is a bias towards lower clinical GS in smaller community hospitals, probably due to the lack of adequate testing equipment or specialists. This bias is then corrected after primary surgery, which explains the difference in increase in GS between patients accessing community hospitals and patients accessing the central hospital. One of the consequences of these disparities between central hospital and community hospitals can be found in the survival ratio of patients, which is significantly lower for patients accessing the community hospitals.</p>
+<p>The importance of early detection can be seen in Figure 5, where the odds of survival in the first 5 years after diagnosis are 6 times higher for non-stage 4 PCa than for stage 4 PCa. For stage 4 PCa, the treatment options are very limited and frequently involve palliative care only, which leads to worst outcomes for patients 29 . Moreover, the time span from diagnosis to death for those patients diagnosed with stage 4 PCa that died after diagnosis follows an exponential distribution. In this context, our results indicate that deaths after stage 4 PCa diagnosis occur continuously and at a fixed common average rate for all patients. Furthermore, since exponential distributions are memoryless, the probability of dying only depends on the timespan under consideration regardless of the time since diagnosis.</p>
+<p>Demographic distribution of patients across geography can also be a contributing factor to the differences observed: smaller community hospitals in rural areas tend to have a predominantly Black patient population.</p>
+<p>It is worth noting, though, that while detection of PCa happens at an earlier age for Black patients than for White patients for all stages of PCa, a higher proportion of Black patients are diagnosed with late-stage PCa. It is unclear from the data what is driving this inequity between Black and White patients, and a deeper analysis using other social drivers of health should be carried out in order to extract accurate conclusions. No differences in survival rates between Black and White patients are observed.</p>
+<p>Limitations of this study include changes in staging that are not fully reflected in the cancer registry. Even though AJCC staging has recommended stage 4A and 4B since the 6 th edition in 2004 30 , many rural providers are still using generic stage 4, so subset analysis is problematic. Furthermore, stage information was lacking or unknown for 966 patients, representing nearly 20% of the population. However, survival analysis of these patients shows 5-year results consistent with early-stage patients, suggesting they were not stage 4.</p>
+<h3>CONCLUSIONS</h3>
+<p>Our results evidence the complexity of healthcare in predominantly rural areas and suggest that rural healthcare access is a potential driver of disparities. Smaller hospitals serving rural communities saw a substantially higher proportion of late-stage PCa diagnoses and lower survival rates than larger hospitals, consistent with limited local access to specialists and routine screening. These findings suggest that health systems serving rural communities should consider targeted interventions to reduce the burden of late-stage diagnosis in underserved populations.</p>
+<p>This study was supported by a partnership between the American Urological Association and Pfizer-Astellas Alliance through a Quality Improvement Grant.</p>
+<h3>Data Availability:</h3>
+<p>Non-identifiable data is available from the authors upon reasonable request and with permission of ECU Health.</p>
+<h3>Conflict of Interest Disclosures:</h3>
+<p>The authors declare no conflicts of interest.</p>
+<h3>Author Contributions:</h3>
+<p>Conception and design: Aguilar-Mogas, Hamilton, Ju, Lea, Shelton. Data acquisition: Shelton. Data analysis and interpretation: Aguilar-Mogas, Hamilton, Ju, Lea, Shelton.</p>
+<h3>Statistical analysis: Aguilar-Mogas.</h3>
+<p>Drafting the manuscript: Aguilar-Mogas, Lea, Shelton. Critical revision of the manuscript for scientific and factual content: Aguilar-Mogas, Hamilton, Ju, Lea, Shelton. Supervision: Aguilar-Mogas, Hamilton, Ju, Lea, Shelton.</p>
+<h3>Ethics Statement:</h3>
+<p>This study was approved by the University and Medical Center Institutional Review Board at ECU Health.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Proportion of new diagnoses of PCa by stage from 2005 to 2025.</p>
+<h3>Figure 2.</h3>
+<p>Figure2. PSA levels of patients according to their cancer stage. Values for patients in the second and third quartile are enclosed by each box, while whiskers extend to include values in the first and fourth quartile. Points beyond 1.5 times the Interquartile Range (IQR) are considered outliers and are depicted in the figure by empty circles.</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Kernel density estimates of the age distribution of patients according to their diagnosed stage.</p>
+<p>Effect sizes are small or negligible except for five cases (2006 vs. 2025, P &lt; 0.001, f = 0.33; 2008 vs. 2025: P &lt; 0.001, f = 0.34; 2010 vs. 2025, P &lt; 0.001, f = 0.34; 2012 vs. 2025: P &lt; 0.001, f = 0.34; and 2006 vs. 2024, P &lt; 0.001, f = 0.35) where they are medium 20.</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Kernel density estimates of age distributions of patients according to their race and stage diagnosis.</p>
+<h3>Figure 5.</h3>
+<p>Figure 5. Kaplan-Meyer plot of the survival function by stage. Shaded area represents 95% confidence interval.</p>
+<h3>Figure 6.</h3>
+<p>Figure 6. Volume and proportion of new diagnoses by hospital and stage. Each panel corresponds to a different hospital, and each bar represents the new diagnoses of each stage. Percentages for each stage are displayed on top of the bars. Hospitals are presented in order of total volume of new diagnoses (left to right and top to bottom).</p>
+<h3>Table 1.</h3>
+<p>Characteristics of the patients by stage.</p>
+<h3>References</h3>
+<p>Ehdaie B, Carlsson S, Vickers A. Racial Disparities in Low-Risk Prostate Cancer. JAMA. 2019;321(17):1726-1727.</p>
+<p>Kratzer TB, Mazzitelli N, Star J, Dahut WL, Jemal A, Siegel RL. Prostate cancer statistics, 2025. CA: A Cancer Journal for Clinicians;75(6):485-497.</p>
+<p>Iyengar S, Hall IJ, Sabatino SA. Racial/Ethnic Disparities in Prostate Cancer Incidence, Distant Stage Diagnosis, and Mortality by U.S. Census Region and Age Group, 2012- 2015. Cancer Epidemiology, Biomarkers &amp; Prevention. 2020;29(7):1357-1364.</p>
+<p>Fleshner N, Zlotta AR. Prostate cancer prevention: past, present, and future. Cancer. 2007;110(9):1889-1899.</p>
+<p>Lin DW, Carlsson S, Filson CP, et al. Updates to Early Detection of Prostate Cancer: AUA/SUO Guideline. Journal of Urology. 2026;215(5):491-501.</p>
+<p>Ziglioli F, Patera A, Isgro G, Campobasso D, Guarino G, Maestroni U. Impact of modifiable lifestyle risk factors for prostate cancer prevention: a review of the literature. Frontiers in Oncology. 2023;13:1203791.</p>
+<p>Catalona WJ, Smith DS, Ratliff TL, et al. Measurement of Prostate-Specific Antigen in Serum as a Screening Test for Prostate Cancer. New England Journal of Medicine. 1991;324(17):1156-1161.</p>
+<p>Duffy MD. Biomarkers for prostate cancer: prostate-specific antigen and beyond. Clinical Chemistry and Laboratory Medicine (CCLM). 2020;58(3):326-339.</p>
+<p>Akushevich I, Kravchenko J, Akushevich L, Ukraintseva S, Arbeev K, Yashin A. Cancer Risk and Behavioral Factors, Comorbidities, and Functional Status in the US Elderly Population. ISRN Oncology. 2011;2011:415790.</p>
+<p>Shenoy DA, Lusk JB, Mahoney H, et al. Associations between neighborhood socioeconomic status, readmission, and mortality for patients with cancer: A nationwide cohort study. Cancer Epidemiology. 2025;98:102907.</p>
+<p>U.S. Census Bureau. Nation&#x27;s urban and rural populations shift following 2020 census. 2022. Available at: https://www.census.gov/newsroom/press-releases/2022/urban- rural-populations.html. Accessed 2026.</p>
+<p>Pascual-Gonzalez J, Aguilar-Mogas A, Paynter SR. Regional Transofrmation Data. East Carolina University. 2022. Available at: https://regional-transformation-data.ecu.edu/.</p>
+<p>NC State Center for Health Statistics. North Carolina Life Expectancy Since Birth 2021- 2023. SCHS: North Carolina Life Expectancy Reports. 2025. Available at: https://schs.dph.ncdhhs.gov/data/lifexpectancy/.</p>
+<p>Lea CS, King A. Cancer in a 29-County Area in Eastern North Carolina: An Opportunity to Reduce Health Inequities. North Carolina Medical Journal. 2014;75(4):287-290.</p>
+<p>Aguilar-Mogas A, Oehlert JK, Hill K, Woodward J, Keene KL. The impact of social drivers of health on the experience of the caring process: how the perceived quality of care can help identify health inequities. Journal of Health Equity. 2025;2(1):2532645.</p>
+<p>Virtanen , Gommers , Oliphant E, et al. SciPy 1.0: Fundamental Algorithms for Scientific Computing in Python. Nature Methods. 2020;17(3):261-272.</p>
+<p>Waskom L. seaborn: statistical data visualization. Journal of Open Source Software. 2021;6(60):3021.</p>
+<p>Davidson-Pilon C. lifelines: survival analysis in Python. Journal of Open Source Software. 2019;4(40):1317.</p>
+<p>Vargha A, Delaney HD. A Critique and Improvement of the &quot;CL&quot; Common Language Effect Size Statistics of McGraw and Wong. Journal of Educational and Behavioral Statistics. 2000;25(2):101-132.</p>
+<p>Moyer VA, US Preventive Services Task Force. Screening for Prostate Cancer: U.S. Preventive Services Task Force Recommendation Statement. Annals of Internal Medicine. 2012;157:120-134.</p>
+<p>Catalona WJ, D&#x27;Amico AV, Fitzgibbons WF, et al. What the U.S. Preventive Services Task Force Missed in Its Prostate Cancer Screening Recommendation. Annals of Internal Medicine. 2012;157(2):137-139.</p>
+<p>Cohn JA, Wang CE, Lakeman JC, et al. Primary carephysician PSA screening practices before and after the final U.S. Preventive Services Task Force recommendation. Urologic Oncology: Seminars and Original Investigations. 2014;32:41.e23-41.e30.</p>
+<p>US Preventive Services Task Force. Screening for Prostate Cancer: US Preventive Services Task Force Recommendation Statement. JAMA. 2018;319(18):1901-1913.</p>
+<p>Leapman MS, Wang R, Park H, et al. Changes in Prostate-Specific Antigen Testing Relative to the Revised US Preventive Services Task Force Recommendation on Prostate Cancer Screening. JAMA Oncology. 2022;8(1):41-47.</p>
+<p>Ogura S, Jakovljevic MM. Editorial: Global Population Aging -Health Care, Social and Economic Consequences. Frontiers in Public Health. 2018;6(335).</p>
+<p>Jemal A, Culp MB, Ma J, Islami F, Fedewa SA. Prostate Cancer Incidence 5 Years After US Preventive Services Task Force Recommendations Against Screening. JNCI: Journal of the National Cancer Institute. 2021;113(1):64-71.</p>
+<p>Weinrich S, Reynolds W, Tingen M, Starr C. Barriers to Prostate Cancer Screening. Cancer Nursing. 2000;23(2):1538-9804.</p>
+<p>Naponelli V, Bettuzzi S, Venerando A. Editorial: Challenges in the prevention of prostate cancer. Frontiers in Oncology. 2023;13:1342733.</p>
+<p>American Joint Committee on Cancer. AJCC Cancer Staging Manual. 6th ed. New York: Springer Science+Business Media; 2002.</p>
 </div>
 </details>
 </div>
