@@ -196,7 +196,7 @@ Polygenic overlap of physical activity with schizophrenia and
 Parkinson’s disease
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.06.23.26356304
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.06.23.26356304
 </p>
 </header>
 <div class="mc-main">
@@ -219,7 +219,7 @@ P-Values</span></p>
 <p>What we found</p>
 </div>
 <div class="text">
-<p>We found 2 imprecise <em>p</em> values out of 7 detected <em>p</em>
+<p>We found 2 imprecise <em>p</em> values out of 11 detected <em>p</em>
 values.</p>
 </div>
 </div>
@@ -496,8 +496,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -889,9 +890,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -913,7 +918,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -928,9 +934,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -943,13 +967,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -969,6 +996,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -976,12 +1009,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1082,6 +1121,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1101,6 +1160,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1356,19 +1450,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1478,6 +1654,178 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Physical activity levels are increasingly investigated as candidate digital biomarkers across a range of psychiatric and neurological disorders. Physical activity is heritable, with associated genetic variants implicating genes expressed in the central nervous system. However, its shared genetic architecture with disorders such as schizophrenia and Parkinson&#x27;s disease (PD) remains poorly understood. Here, we applied complementary genome-wide methods to investigate the genetic overlap between physical activity and these disorders. We used a genome-wide association study (GWAS) of objectively measured physical activity (n = 89,683), enhanced through multi-trait GWAS incorporating self-reported activity measures (n = 124,842-377,234). In cross-trait analysis with recent GWAS of schizophrenia (n = 53,386 cases, 77,258 controls) and PD (63,555 cases, 17,700 proxy cases, and 1,746,386 controls), we find that while genetic correlations are negligible (rg=-0.02-0.02, p&gt;0.05), polygenic overlap was substantial, with the majority of traitinfluencing variants shared between the three traits. This contrast reflects mixed effect directions, which we show through convergent results from causal mixture modelling, local genetic correlations, and conjunctional false discovery rate analysis. Genes shared between activity and schizophrenia were differentially expressed in the amygdala and several basal ganglia structures, and associated with a range of cognitive-affective traits. In contrast, genes shared between activity and PD were largely associated with neurodegenerative disorders and structural brain phenotypes.</p>
+<p>Together, these findings suggest that activity draws on genes involved in motor, cognitive, affective and neurodegenerative processes, providing a genetic basis for its alteration across diverse neuropsychiatric disorders.</p>
+<h3>Main Text 1. Introduction</h3>
+<p>Physical activity levels are altered across diverse neurological and psychiatric disorders [1] [2] [3].</p>
+<p>Objectively measured activity is thus emerging as an informative transdiagnostic biomarker for outcomes including early diagnosis, disease progression, and functional status [1, [4] [5] [6] [7]. The neurobehavioural processes underlying physical activity span motivation, arousal, and reward processing through to motor execution and control, many of which are disrupted in neuropsychopathology [8]. Consistent with a neural contribution, genome-wide association studies (GWAS) estimate that common variants account for ~15% of population-level variance in physical activity, with associated loci enriched for genes expressed in the central nervous system [9] [10] [11].</p>
+<p>Yet, few studies have investigated the shared genetic underpinnings of physical activity levels and neuropsychiatric disorders, which may yield insights into shared biological pathways that govern activity in both health and disease [12, 13].</p>
+<p>Schizophrenia and Parkinson&#x27;s disease (PD) may be particularly informative comparisons for characterising this shared genetic architecture [5, 7, 14, 15]. Both disorders involve aberrant dopaminergic functioning within mesolimbic and nigrostriatal circuitry, which may reduce physical activity through overlapping mechanisms, including hypokinesia and amotivational syndromes [16] [17] [18] [19]. These disturbances often correlate with clinically salient outcomes, such as negative symptoms in schizophrenia and quality of life in PD [2, 6, 7, 15]. Yet, the disorders are etiologically distinct. Schizophrenia is a highly polygenic neurodevelopmental disorder that affects synaptic function, whereas PD is substantially less polygenic and is primarily characterised by neurodegeneration of dopaminergic neurons in the substantia nigra [20] [21] [22] Existing literature examining the genetic overlap between physical activity, schizophrenia, and PD is sparse and difficult to interpret [12, 13]. Polygenic risk scores for schizophrenia are associated with reduced overall activity, yet genetic correlation analyses point in the opposite direction, showing small positive correlations with time spent walking and negative correlations with sedentary behaviour [12]. Genetic correlations between activity and PD are negligible [13]. One possible explanation for these inconsistencies is that shared variants have a mixture of concordant and discordant effect directions, which cancel out to produce weak, null, or conflicting estimates in standard genetic correlation analyses [23]. Such a pattern was recently shown between PD and schizophrenia, where methods agnostic to effect directions estimated substantial polygenic overlap despite negligible genetic correlations [24, 25]. This consideration may be particularly relevant to schizophrenia, where motor dysfunction encompasses both hyperkinetic (e.g., psychomotor agitation, catatonic excitement) and hypokinetic (e.g., psychomotor slowing, stuporous catatonia) presentations, potentially implicating shared genetic variants with opposing effects on overall activity levels [26].</p>
+<p>Here, we used GWAS summary statistics to characterise the genetic overlap among objectively measured physical activity, schizophrenia, and PD, using methods designed to detect shared genetic architecture irrespective of bulk genetic correlation [27] [28] [29]. We further sought to characterise the brain regions, biological pathways and associated traits implicated by specific shared loci [30]. To attain sufficient statistical power to apply these methods, we first enhanced existing accelerometer-derived activity GWAS by jointly analysing them with self-reported physical activity data [31, 32].</p>
+<h3>2. Methods and Materials</h3>
+<p> &gt;Methods and Materials</p>
+<h3>2.1 GWAS Summary Statistics</h3>
+<p>We used publicly available GWAS summary statistics for physical activity, schizophrenia, and PD, restricting analyses to European ancestry samples to match the available accelerometerderived activity data (Supplementary Table 1).</p>
+<h3>Physical activity</h3>
+<p>Summary statistics for accelerometer-derived and self-reported physical activity came from GWAS in the UK Biobank (UKB), a prospective cohort of ~500,000 participants aged 40-69 years [33]. The accelerometer GWAS used a UKB subsample who wore wrist-worn accelerometers continuously for 7 days [34]. Overall activity was derived as the mean acceleration vector magnitude across valid epochs, excluding non-wear time, a metric which has been validated against established measures of energy expenditure, and shows good long-term reproducibility [34] [35] [36]. The GWAS included 89,683 European-ancestry participants after quality control [10].</p>
+<p>Three self-reported physical activity phenotypes were available from touchscreen questionnaires about frequency, intensity and duration of activity administered to the larger UKB cohort [11]: (1) Moderate to vigorous physical activity (MVPA), a continuous phenotype derived from the sum of total minutes per week of moderate physical activity multiplied by four, and vigorous physical activity multiplied by eight (corresponding to their respective metabolic equivalents); (2) Vigorous physical activity (VPA), a dichotomized phenotype where minutes per week of VPA were collapsed into those that reported more than 3 days of at least 25 minutes of VPA per week, and those that reported less than 3 days; (3) Strenuous Sports, a dichotomized measure, in which participants were collapsed into those that spend 2-3 days/week or more doing strenuous sports or other exercises, for a duration of 15-30 min or greater. After quality control, the sample sizes were: n = 377,234 for MVPA; n = 98,060 cases and 162,995 controls for VPA; n =124,842 cases and 225,650 controls for Strenuous Sports [11].</p>
+<h3>Schizophrenia</h3>
+<p>Summary statistics were obtained from the European-ancestry subsample of the Psychiatric Genomics Consortium wave 3 schizophrenia GWAS (53,386 cases, 77,258 controls) [21].</p>
+<h3>Parkinson&#x27;s disease</h3>
+<p>Summary statistics were obtained from the European-ancestry subsample of the Global Parkinson&#x27;s Genetics Program [37]. We used GWAS of both the overall sample (63,555 cases, 17,700 proxy cases, and 1,746,386 controls), which combines biobank and case-control studies, and a case-control-only subset (34,933 cases, 31,009 controls). The subset was used where sample overlap with UKB could inflate overlap estimates (see Section 2.6).</p>
+<h3>2.2 Multi-trait analysis of GWAS</h3>
+<p>We applied Multi-trait analysis of GWAS (MTAG) to boost the statistical power of our primary accelerometer-derived activity GWAS [32]. MTAG models the variance-covariance structure of effect estimates across traits, allowing correlated traits to share information and increase power.</p>
+<p>Sample overlap is accounted for by estimating the residual covariance from the intercepts of univariate and bivariate linkage disequilibrium score regression (LDSC). A genetic variancecovariance matrix is then estimated using a method of moments, conditional on this residual covariance. Bivariate linkage disequilibrium score regression (LDSC) is used to estimate these parameters. MTAG assumes all single-nucleotide polymorphisms (SNPs) share the same variancecovariance matrix across traits. While this assumption is rarely satisfied in practice, MTAG remains a consistent estimator with a lower genome-wide mean squared error than single-trait GWAS. However, effect estimates may be biased away from zero when SNPs have true effects on one trait but not another. We thus calculated a maximum false discovery rate (maxFDR) as an upper bound under potential assumption violations. Lead SNPs were identified following the FUMA protocol [30]. Independent significant SNPs were defined as those independent from one another at r²&lt;0.6, and lead SNPs as the subset of these that were further independent at r²&lt;0.1.</p>
+<p>Candidate SNPs, defined as those in linkage disequilibrium (r²≥0.6) with an independent significant SNP, were used to define the boundaries of each locus, and loci within 250 kb of one another were merged into a single locus.</p>
+<h3>2.3 SNP heritability and Genetic correlation</h3>
+<p>We used LDSC to estimate SNP heritability for the physical activity MTAG summary statistics and to calculate genetic correlations between activity, schizophrenia and PD [38].</p>
+<h3>2.4 Causal Mixture Modeling</h3>
+<p>We used the MiXeR toolset to characterize the polygenicity of physical activity, and its genetic overlap with schizophrenia and PD [28, 39, 40]. Univariate MiXeR models genetic architecture using point-normal mixture prior with &quot;null&quot; variants having no effect and &quot;trait-influencing&quot; variants having normally distributed effects [28, 31]. Maximum likelihood estimation yields parameters including polygenicity (proportion of trait-influencing variants), discoverability (variance of trait-influencing variant effect sizes), observed SNP heritability, and the number of trait-influencing variants explaining 90% of SNP heritability. Trivariate MiXeR extends this framework to three phenotypes, modeling SNP effects as a mixture of eight components: variants null for all three traits, variants influencing only one trait, variants shared by each pair of traits but not the third, and variants shared across all three traits, while accounting for sample overlap between GWAS [40]. Stability was assessed by examining the variation in polygenicity estimates across 16 independent runs, each using a different random subset of 300,000 SNPs. The median was taken as the point estimate, and the run with the smallest deviation from the median pattern was used to visualize the data as an Euler diagram, with ellipses scaled to the polygenicity of the corresponding phenotype. For each pair of traits, we further estimated the fraction of variants with concordant effects from the correlation of effect sizes within each shared component. An LD reference panel based on European individuals from 1000 Genomes Phase 3 was used.</p>
+<h3>2.5 Local analysis of covariate association</h3>
+<p>We used Local Analysis of [co]Variant Association (LAVA v0.1.5) for local genetic correlation analysis [29]. LAVA calculates local genetic correlation at semi-independent genomic regions defined by recombination boundaries (~1-2.5 Mb in size). It first tests local SNP heritability in each region. Where regions are significantly heritable for both traits, bivariate genetic correlations are computed from local genetic covariances using a method of moments, while accounting for sample overlap. Statistical significance is assessed using simulation-based p-values. To correct for multiple testing across 2,495 regions, we applied a Bonferroni threshold of p&lt;2×10 -5 . We used the UKB LD reference files provided for LAVA, and estimated sample overlap from LDSC intercepts.</p>
+<h3>2.6 Conjunctional False Discovery Rate</h3>
+<p>We used the conjunctional false discovery rate (conjFDR) approach to identify genomic loci jointly associated with each trait in the analysed pair of traits [41]. Cross-trait enrichment was assessed using conditional QQ plots, which visualise the expected versus observed p-values for a primary trait across SNP subsets stratified by their association strength with a secondary trait. The conjFDR statistic was computed for each genetic variant, defined as the posterior probability that a variant is not associated with one or both phenotypes, given that the p-values for both phenotypes are at least as small as their observed values. In the presence of cross-trait enrichment, this identified shared variants associated with both traits beyond genome-wide significance. Variants with conjFDR&lt;0.05 were considered statistically significant. Lead SNPs and locus boundaries were identified following the FUMA protocol, as described in Section 2.2.</p>
+<h3>2.7 Functional annotation</h3>
+<p>Lead SNPs were mapped to genes using the Variant-to-Gene (v2g) tool from Open Targets Genetics [42]. V2g prioritises variants and identifies potential causal genes by integrating multiple types of evidence, including positional information, chromatin interaction data, expression, protein, and splicing quantitative trait loci, and in silico functional predictions, into a single composite score. The highest-scoring gene was assigned to each lead SNP. FUMA&#x27;s Gene2Func function was then used for gene-set enrichment analyses via hypergeometric tests [30]. Genes were investigated for enrichment in the Molecular Signatures database gene sets [43], comprising Gene Ontology terms (biological processes, molecular functions, and cellular components) and curated canonical pathways (KEGG and Reactome). Additionally, the genes were tested for enrichment in differentially expressed gene sets from the Genotype-Tissue Expression (GTEx) version 8 [44] and in genes previously reported in the GWAS Catalog as associated with other traits [45]. Multiple testing correction was applied within each gene set category using the Benjamini-Hochberg procedure.</p>
+<h3>2.8 Ethical Considerations</h3>
+<p>This study analysed only publicly available, de-identified GWAS summary-level data. The present  &gt;Results</p>
+<h3>3.1 Multi-Trait Analysis of GWAS boosts the power of physical activity GWAS</h3>
+<p>The accelerometer-derived activity trait was moderately correlated with each self-reported trait (rg=0.41-0.5, all p&lt;0.001; Supplementary Table 2), supporting the use of MTAG to boost discovery using self-report GWAS. The resulting physical activity MTAG showed an increased effective sample size (n=107,489 versus 89,683) and mean chi-squared (1.25 versus 1.21; Supplementary Table 3) relative to accelerometer-derived activity alone. A maxFDR value of 0.01 supported the reliability of these results. Clumping produced 15 lead SNPs (of 27 independent significant SNPs) in 14 genome-wide significant loci, versus 9 independent significant SNPs in the original GWAS [10] (Figure 1a; Supplementary Table 4). Lead SNPs mapped to 14 genes, based on the top v2g score for each SNP using Open Targets (Supplementary Table 5).</p>
+<h3>3.2 Physical activity is moderately heritable and highly polygenic</h3>
+<p>The physical activity MTAG had a SNP heritability of 0.15 (SE=0.0072) as per LDSC (Figure 1b).</p>
+<p>Univariate MiXeR indicated that the trait was highly polygenic, with ~9K (SD: 0.5K) traitinfluencing variants estimated to account for 90% of the SNP heritability (Figure 1c, Supplementary Table 6). At the present sample size, genome-wide significant SNPs explain approximately 0.3% of the SNP heritability of physical activity (Supplementary Figure 1).</p>
+<p>Robustness checks supported the suitability of the MTAG-boosted summary statistics for univariate MiXeR analysis over the non-boosted version (Supplementary Table 6; Supplementary Figure 2).</p>
+<h3>3.3 Trivariate MiXeR revealed extensive polygenic overlap</h3>
+<p>Genetic correlations between physical activity and both schizophrenia and PD traits were negligible (rg=-0.01-0.02, p&gt;0.05; Supplementary Table 7). Nevertheless, the trivariate MiXeR model revealed extensive shared genetic architecture (Figure 2). Of the total variants influencing the three traits, 9% were shared across all three, and 56% between schizophrenia and physical activity. Variants shared between PD and activity were entirely subsumed within the schizophrenia overlap. Less than 1% of variants were unique to PD, and only 12% and 29% of variants were unique to physical activity and schizophrenia, respectively. The proportion of shared variants with concordant effect directions was 50% between physical activity and PD, 53% between physical activity and schizophrenia, and 54% between schizophrenia and PD. Across 16 runs, estimates of the SCZ-specific component and of the PA-SCZ, PD-SCZ and three-way overlaps were stable (relative half interquartile range [RHIQR] 0.17-0.47). In contrast, the smaller PA-specific and PD-specific components and the PA-PD overlap showed greater run-to-run variability (RHIQR 0.70 1.88) and should be interpreted with caution (Supplementary Table 9).</p>
+<h3>3.4 Bivariate LAVA implicated the 17q21.31 region as a pleiotropic hotspot</h3>
+<p>Among genomic regions with significant univariate heritability for both traits, 33% (15/45) showed positive local genetic correlations between physical activity and PD, 44% (25/57) between physical activity and schizophrenia, and 61% (525/924) between schizophrenia and PD (Figure 2b-d). In the PD-activity analysis, one region on chromosome 17 (positions 43460501-44865831) surpassed the Bonferroni threshold (rho=-0.86; p=1.1×10 -8 ) (Figure 3a). The same region was nominally significant in the schizophrenia-activity (rho=-0.83; p=5×10 -4 ) and schizophrenia-PD analyses (rho=0.42; p=6. 1 2 3 4). Nominally significant genetic regions across each trait pair are reported in Supplementary Tables 10-12.</p>
+<h3>3.5 Conjunctional FDR identified specific shared variants with physical activity</h3>
+<p>ConjFDR identified 32 lead SNPs in 31 loci shared between schizophrenia and physical activity (FDR &lt; 0.05), of which 38% had concordant effect directions, and 11 lead SNPs in 10 loci shared between PD and physical activity, of which 64% had concordant effect directions (Supplementary Tables 13 and 14). Genes mapped to each SNP by Open Targets top v2g score are listed in Supplementary Tables S15 and S16. Variant rs55938136, which maps to the MAPT gene, showed pleiotropy across both trait pairs. This variant falls within the chromosome 17 region implicated in the LAVA analyses (positions 43,460,501-44,865,831). Other independent pleiotropic SNPs within the same locus included rs62062288, mapping to KANSL1 (schizophrenia and physical activity), and rs55915917, mapping to CRHR1 (PD and physical activity).</p>
+<h3>3.6 Gene-set enrichment of pleiotropic genes</h3>
+<h3>Differential tissue expression</h3>
+<p>Genes overlapping between schizophrenia and physical activity showed significant differential expression between brain and non-brain tissues, most strongly in the amygdala and several basal ganglia structures (putamen, nucleus accumbens, caudate, and substantia nigra), with additional enrichments in the hippocampus and anterior cingulate cortex (Supplementary Figure 3). In contrast, genes overlapping between PD and physical activity did not show any significant differential expression across tissue types (Supplementary Figure 4).</p>
+<h3>Molecular signatures database</h3>
+<p>A single gene ontology term, &quot;neuron projection,&quot; was enriched in the PD pleiotropic gene set (adjusted p=0.01), driven by 6 of 11 shared genes (CRIPT, PHLPP2, CRHR1, MAPT, ACTG1, and RIT2). No other gene sets surpassed the significance threshold.</p>
+<h3>GWAS catalogue</h3>
+<p>Enrichment for previously associated traits revealed both shared and gene-set-specific signals (Figure 4; Supplementary Figures 5 6). Both gene sets were enriched for substance use and neuroticism. The schizophrenia-activity set was additionally enriched for mental health, cognitive, and anthropometric traits (including BMI), and the PD-activity set for neurological disorders and structural brain phenotypes. Nearly all PD-activity enrichments were driven by CRHR1 and MAPT, both within the 17q21.31 region.</p>
+<h3>4. Discussion</h3>
+<p>Physical activity levels are altered across neuropsychiatric disorders, yet the genetic basis for this link is poorly characterised. Here, we found that physical activity is highly polygenic and draws from a largely shared pool of common variants with schizophrenia and PD. These shared variants had mixed effect directions that cancel out in aggregate, yielding negligible genetic correlations.</p>
+<p>Resolving the overlap to individual genomic regions identified a pleiotropic hotspot within 17q21.31. Gene set analyses of shared genes implicated brain regions involved in both motor and cognitive-affective function, and associated traits across structural brain phenotypes, neurological and psychiatric disorders, cognition, and behaviour.</p>
+<p>Joint analysis of the accelerometer-derived physical activity GWAS and the self-reported activity GWAS using MTAG boosted the power of the original GWAS while preserving its higher heritability relative to self-reported data. This extends previous work using MTAG to boost power for more deeply phenotyped samples via scalable proxies, here applied to a wearable-derived phenotype [32]. The resulting increase in power enabled us to characterise the genetic overlap of physical activity with schizophrenia and PD using tools such as MiXeR [31].</p>
+<p>Physical activity is highly polygenic, with univariate MiXeR estimating 9000 trait-influencing variants, on the order of other complex behavioural traits such as smoking initiation and mental disorders such as schizophrenia (both ~9,600 variants) [23, 46]. In contrast, PD involves a tenfold lower polygenicity (~900 variants), comparable to other neurodegenerative disorders such as Alzheimer&#x27;s disease (~400 variants) (Figure 1c) [25]. Across all three traits, few variants were trait-specific. This was most pronounced for PD, though this should be interpreted in the context of its lower polygenicity. Nearly all variants influencing PD were shared with schizophrenia (&lt;1% unique to PD), as was the entire PD-physical activity overlap. Likewise, schizophrenia-and physical-activity-specific variants each made up a small share of the total variation across the three traits (29% and 12%, respectively). Critically, this overlap was characterised by mixed effect directions, accounting for the negligible genetic correlations between these traits.</p>
+<p>These results add to a growing body of evidence of genetic overlap extending beyond genetic correlation among complex psychiatric, neurological, and behavioural traits [23, 25, 47]. Rather than being distinguished by trait-unique variants, these traits may differ in the particular configuration of effect directions and magnitudes across a largely shared pool of variants [23]. To the extent that these variants do converge on shared biological pathways, complex neuropsychiatric phenotypes may be better understood as aggregates of shared mechanisms than as discrete entities, consistent with transdiagnostic frameworks such as the Research Domain Criteria [23, 48]. Physical activity may represent a behavioural dimension on which multiple shared mechanisms converge [49, 50].</p>
+<p>At finer resolution, one shared locus showed significant discordant local genetic correlations between activity and PD, with nominal correlations between schizophrenia and both PD and activity. The locus spans the well-characterised 17q21.31 inversion polymorphism, a ~900kb segment exhibiting extended linkage disequilibrium across multiple genes [51]. ConjFDR analysis identified multiple pleiotropic variants within this region. While the region&#x27;s unusual LD structure complicates causal attribution to a single gene, it is notable that Open Targets prioritised the genes CRHR1, MAPT, and KANSL1, which have all been previously linked to neurodevelopmental or neurodegenerative phenotypes [52] [53] [54]. These findings highlight the 17q21.31 region as a potential point of convergence between reduced physical activity and neuropsychiatric traits.</p>
+<p>Variants shared with schizophrenia mapped to genes differentially expressed in the amygdala and several basal ganglia structures. The convergence of schizophrenia and physical activity loci in these regions may relate to the roles of the basal ganglia and amygdala in linking motivational and affective processing, respectively, to motor output. The basal ganglia integrate motor, cognitive, and motivational control through parallel cortico-striatal loops and, notably, pharmacological perturbation of nigrostriatal circuitry produces motor symptoms in schizophrenia [55] [56] [57] [58] [59]. The amygdala, in turn, drives motor behaviour in response to emotional stimuli, as in the &#x27;fight, flight, or freeze&#x27; response [60, 61]. Abnormal motor behaviours across psychiatric disorders have been conceptualised as aberrant or extreme manifestations of these responses under severe psychological distress [62, 63].</p>
+<p>Genes shared between physical activity and both disorders converged on enrichment for substance use and neuroticism. Such enrichments could plausibly arise through at least two routes. They may reflect shared upstream mechanisms. For example, reward pathways may independently influence substance use and normal variation in physical activity [64]. This aligns with the conceptualisation of aberrant activity alongside comorbid substance use, negative symptoms in schizophrenia, and the related symptoms of amotivation and anhedonia in PD as symptomatic manifestations of dopaminergic dysfunction [17, [65] [66] [67]. Alternatively, they may reflect causal links between the phenotypes themselves. Mood disturbances, which are common in both schizophrenia and PD, may reduce activity, while reduced activity may in turn worsen mood [68] [69] [70]. Both routes likely contribute to these enrichments.</p>
+<p>Relatedly, genes shared between schizophrenia and physical activity were enriched for multiple BMI-related traits, with nearly all underlying genes (ERBB4, CADM2, MEF2C, DOCK1, NCAM1, PCDH17) showing concordant effect directions. Genes enriched for associations with BMI were linked to increased schizophrenia risk and increased activity. This is notable given the paradoxically negative genetic correlations previously reported between schizophrenia and BMI, despite substantial clinical comorbidity, which is thought to reflect the impact of lifestyle factors over genetic factors in driving this comorbidity [71].</p>
+<p>Gene-set analyses also revealed contrasting enrichments between schizophrenia-and PD-shared genes. Variants shared between activity and schizophrenia were generally enriched for traits related to cognition, mental health, and behaviour (e.g., cognitive ability, bipolar disorder, chronotype). In contrast, variants shared between activity and PD were primarily enriched for genes associated with neurological disorders and structural brain phenotypes (e.g., Alzheimer&#x27;s Disease, multiple system atrophy, white matter integrity, subcortical brain volumes). Taken together, these shared and distinct enrichments are consistent with the psychomotor nature of physical activity, a phenotype shaped by motivational, cognitive, and affective influences as well as the structural substrates of movement.</p>
+<h3>Limitations</h3>
+<p>This study has some limitations. First, the GWAS summary statistics were derived from samples of European ancestry, limiting generalisability to other populations. Second, trivariate MiXeR estimates involving Parkinson&#x27;s disease showed substantial run-to-run variability and should therefore be interpreted with caution. Finally, tissue-level gene-set enrichment analyses capture aggregate patterns that do not account for cell-type specificity, cell state or developmental timing.</p>
+<p>Inferences regarding shared biological mechanisms therefore remain hypothesis-generating.</p>
+<h3>Conclusions</h3>
+<p>Physical activity is highly polygenic and shares substantial genetic architecture with schizophrenia and PD, despite negligible genetic correlations. This overlap is characterised by mixed effect directions and gene-set enrichments spanning motor, cognitive, affective and neurological phenotypes. Together, these findings highlight the complex genetic architecture underlying physical activity and suggest that it reflects the convergence of multiple neurobehavioural processes also implicated in neuropsychiatric disorders. (a) Miami plot comparing MTAG physical activity GWAS (green) with accelerometer-derived physical activity alone (grey), demonstrating the power boost from MTAG. The y-axis indicates chromosomal position; the x-axis shows -log₁₀(p). Dashed lines mark the suggestive (1×10 -5 ) and genomewide significance (5×10 -8 ) thresholds. Lead SNPs are annotated with associated genes based on the top Open Targets v2g score. (b) SNP heritability (h²) plotted against effective sample size. MTAG PA (green) achieves a boost in sample size over accelerometer PA while preserving high heritability, in contrast to self-reported traits (VPA, SS, MVPA; grey), which have larger samples but lower heritability. (c) Bar plot comparing the polygenicity of the PA GWAS (turquoise) to polygenicity estimates, provided as the number of trait-influencing variants explaining 90% SNP-based heritability of selected psychiatric, behavioral and neurological traits adapted from published reports (grey). Error bars show standard deviations across multiple independent runs. PA, physical activity. VPA, vigorous physical activity. SS, strenuous sports. MVPA, moderate to vigorous physical activity. ALS, amyotrophic lateral sclerosis. ADHD, attention deficit hyperactivity disorder.  (a) Network plot of local genetic correlations at the 17q21.31 locus. Edge values show local genetic correlations; edge width and opacity reflect association strength. *p&lt;0.05; **p&lt;2×10 -5 . (b) Gene map of a portion of the 17q21.31 locus (~43.7-44.9 Mb) with protein-coding genes on forward (+) and reverse (-) strands. Triangles indicate conjFDR-significant SNPs in this region. PD, physical activity. Chr., chromosome. 9. Figures Figure 1: The Genetic Architecture of Physical Activity (a) Miami plot comparing MTAG physical activity GWAS (green) with accelerometer-derived physical activity alone (grey), demonstrating the power boost from MTAG. The y-axis indicates chromosomal position; the x-axis shows -log₁₀(p). Dashed lines mark the suggestive (1×10 -5 ) and genome-wide significance (5×10 -8 ) thresholds. Lead SNPs are annotated with associated genes based on the top Open Targets v2g score. (b) SNP heritability (h²) plotted against effective sample size. MTAG PA (green) achieves a boost in sample size over accelerometer PA while preserving high heritability, in contrast to self-reported traits (VPA, SS, MVPA; grey), which have larger samples but lower heritability. (c) Bar plot comparing the polygenicity of the PA GWAS (turquoise) to polygenicity estimates, provided as the number of trait-influencing variants explaining 90% SNP-based heritability of selected psychiatric, behavioral and neurological traits adapted from published reports (grey). Error bars show standard deviations across multiple independent runs. PA, physical activity. VPA, vigorous physical activity. SS, strenuous sports. MVPA, moderate to vigorous physical activity. ALS, amyotrophic lateral sclerosis. ADHD, attention deficit hyperactivity disorder.  (a) Network plot of local genetic correlations at the 17q21.31 locus. Edge values show local genetic correlations; edge width and opacity reflect association strength. *p&lt;0.05; **p&lt;2×10 -5 . (b) Gene map of a portion of the 17q21.31 locus (~43.7-44.9 Mb) with protein-coding genes on forward (+) and reverse (-) strands. Triangles indicate conjFDR-significant SNPs in this region. PD, physical activity. Chr., chromosome.  6 7.</p>
+<h3>8. Figures Legends</h3>
+<p> &gt;Figures Legends</p>
+<h3>5. Acknowledgements</h3>
+<p>The work reported herein was made possible through funding by the South African Medical Research Council (SAMRC) through its Division of Research Capacity Development under the SAMRC Clinician Researcher Development Programme, with funding received from the National Department of Health. We thank Associate Professor Henk Temmingh for his feedback on later drafts and stimulating discussions on the clinical interpretation of these findings. We dedicate this work to the memory of Professor Dan Stein, whose mentorship was foundational to this project.</p>
+<p>The authors used Claude Opus 4.6 (Anthropic) to provide suggestions to improve the flow and readability of the text. All suggestions were critically reviewed by the authors, who take full responsibility for the scientific content and final manuscript.</p>
+<p>6. Conflict of Interest OAA is a consultant to Precision-Health.ai and has received speaker&#x27;s honoraria from Eli Lilly and Company, Bristol Myers Squibb, H. Lundbeck A/S, Otsuka Pharmaceutical Co., Sunovion Pharmaceuticals Inc., and Janssen Pharmaceuticals, all outside the submitted work. The remaining authors declare no competing interests.</p>
+<p>secondary analyses were approved by the University of Cape Town Faculty of Health Sciences Human Research Ethics Committee (HREC ref. 012/2025).</p>
+<h3>Figure 1 :</h3>
+<p>Figure 1: The Genetic Architecture of Physical Activity</p>
+<h3>Figure 2 :</h3>
+<p>Figure 2: Genome-wide genetic overlap between physical activity, schizophrenia and Parkinson&#x27;s disease (a) Venn diagram showing trivariate MiXeR-modeled genome-wide genetic overlap between physical activity (green), schizophrenia (grey) and Parkinson&#x27;s disease (orange). Percentages represent each region&#x27;s proportion of the total trait-influencing variants estimated across the three phenotypes. (b) Volcano plots showing LAVA local genetic correlation results. Each point represents a genomic region; the x-axis shows local genetic correlation (ρ) and the y-axis shows significance (-log₁₀(p)). Points are coloured by the direction and magnitude of the correlation (blue = negative, red = positive). Dashed lines indicate the nominal significance level (0.05) and Bonferroni-corrected significance level (2×10 -5 ). Each plot is labelled with its trait pair, with the two coloured dots matching the phenotype colours in panel (a); the genome-wide genetic correlation (rg) for each pair is shown at top right. SCZ, schizophrenia. PA, physical activity. PD, Parkinson&#x27;s disease.</p>
+<h3>Figure 3 :</h3>
+<p>Figure 3: Convergence of signal at 17q21.31</p>
+<h3>Figure 4 :FiguresFigure 1 :</h3>
+<p>Figure4: Venn diagram of GWAS catalogue trait enrichments for genes shared between schizophrenia and physical activity (left) and between Parkinson&#x27;s disease and physical activity (right). The overlap (green) shows traits enriched in both gene sets. Traits are colour-coded by category (legend). Full results in Supplementary Figures6-7.</p>
+<h3>Figure 2 :</h3>
+<p>Figure 2: Genome-wide genetic overlap between physical activity, schizophrenia and Parkinson&#x27;s disease (a) Venn diagram showing trivariate MiXeR-modeled genome-wide genetic overlap between physical activity (green), schizophrenia (grey) and Parkinson&#x27;s disease (orange). Percentages represent each region&#x27;s proportion of the total trait-influencing variants estimated across the three phenotypes. (b) Volcano plots showing LAVA local genetic correlation results. Each point represents a genomic region; the x-axis shows local genetic correlation (ρ) and the y-axis shows significance (-log₁₀(p)). Points are coloured by the direction and magnitude of the correlation (blue = negative, red = positive). Dashed lines indicate the nominal significance level (0.05) and Bonferroni-corrected significance level (2×10 -5 ). Each plot is labelled with its trait pair, with the two coloured dots matching the phenotype colours in panel (a); the genome-wide genetic correlation (rg) for each pair is shown at top right. SCZ, schizophrenia. PA, physical activity. PD, Parkinson&#x27;s disease.</p>
+<h3>Figure 3 :</h3>
+<p>Figure 3: Convergence of signal at 17q21.31</p>
+<h3>Figure 4 :</h3>
+<p>Figure4: Venn diagram of GWAS catalogue trait enrichments for genes shared between schizophrenia and physical activity (left) and between Parkinson&#x27;s disease and physical activity (right). The overlap (green) shows traits enriched in both gene sets. Traits are colour-coded by category (legend). Full results in Supplementary Figures6-7.</p>
+<h3>References</h3>
+<p>References</p>
+<p>Block VAJ, Pitsch E, Tahir P, Cree BAC, Allen DD, Gelfand JM. Remote Physical Activity Monitoring in Neurological Disease: A Systematic Review. PLOS ONE. 2016;11:e0154335.</p>
+<p>Wee ZY, Yong SWL, Chew QH, Guan C, Lee TS, Sim K. Actigraphy studies and clinical and biobehavioural correlates in schizophrenia: a systematic review. J Neural Transm. 2019;126:531-558.</p>
+<p>Wüthrich F, Nabb CB, Mittal VA, Shankman SA, Walther S. Actigraphically measured psychomotor slowing in depression: systematic review and meta-analysis. Psychol Med. 2022;52:1208-1221.</p>
+<p>Firth J, Stubbs B, Vancampfort D, Schuch FB, Rosenbaum S, Ward PB, et al. The validity and value of self-reported physical activity and accelerometry in people with schizophrenia: a population-scale study of the UK Biobank. Schizophr Bull. 2018;44:1293-1300.</p>
+<p>Schalkamp A-K, Peall KJ, Harrison NA, Sandor C. Wearable movement-tracking data identify Parkinson&#x27;s disease years before clinical diagnosis. Nat Med. 2023;29:2048-2056.</p>
+<p>Strauss GP, Raugh IM, Zhang L, Luther L, Chapman HC, Allen DN, et al. Validation of accelerometry as a digital phenotyping measure of negative symptoms in schizophrenia. Schizophrenia. 2022;8:37.</p>
+<p>van Uem JMT, Cerff B, Kampmeyer M, Prinzen J, Zuidema M, Hobert MA, et al. The association between objectively measured physical activity, depression, cognition, and health-related quality of life in Parkinson&#x27;s disease. Parkinsonism Relat Disord. 2018;48:74- 81.</p>
+<p>Gerber M, Cheval B, Cody R, Colledge F, Hohberg V, Klimentidis YC, et al. Psychophysiological foundations of human physical activity behavior and motivation: theories, systems, mechanisms, evolution, and genetics. Physiol Rev. 2025;105:1213-1290.</p>
+<p>Doherty A, Smith-Byrne K, Ferreira T, Holmes MV, Holmes C, Pulit SL, et al. GWAS identifies 14 loci for device-measured physical activity and sleep duration. Nat Commun. 2018;9:5257.</p>
+<p>Hanscombe KB, Persyn E, Traylor M, Glanville KP, Hamer M, Coleman JRI, et al. The genetic case for cardiorespiratory fitness as a clinical vital sign and the routine prescription of physical activity in healthcare. Genome Med. 2021;13:180.</p>
+<p>Klimentidis YC, Raichlen DA, Bea J, Garcia DO, Wineinger NE, Mandarino LJ, et al. Genome-wide association study of habitual physical activity in over 377,000 UK Biobank participants identifies multiple variants including CADM2 and APOE. Int J Obes. 2018;42:1161-1176.</p>
+<p>Dennison CA, Legge SE, Bracher-Smith M, Menzies G, Escott-Price V, Smith DJ, et al. Association of genetic liability for psychiatric disorders with accelerometer-assessed physical activity in the UK Biobank. PLOS ONE. 2021;16:e0249189.</p>
+<p>Qi G, Dutta D, Leroux A, Ray D, Muschelli J, Crainiceanu C, et al. Genome-wide association studies of 27 accelerometry-derived physical activity measurements identified novel loci and genetic mechanisms. Genet Epidemiol. 2022;46:122-138.</p>
+<p>Vancampfort D, Firth J, Stubbs B, Schuch F, Rosenbaum S, Hallgren M, et al. The efficacy, mechanisms and implementation of physical activity as an adjunctive treatment in mental disorders: a meta-review of outcomes, neurobiology and key determinants. World Psychiatry. 2025;24:227-239.</p>
+<p>Ellingson LD, Zaman A, Stegemöller EL. Sedentary behavior and quality of life in individuals with Parkinson&#x27;s disease. Neurorehabil Neural Repair. 2019;33:595-601.</p>
+<p>Husain M. Transdiagnostic neurology: neuropsychiatric symptoms in neurodegenerative diseases. Brain. 2017;140:1535-1536.</p>
+<p>den Brok MGHE, van Dalen JW, van Gool WA, Moll van Charante EP, de Bie RMA, Richard E. Apathy in Parkinson&#x27;s disease: a systematic review and meta-analysis. Mov Disord. 2015;30:759-769.</p>
+<p>McCutcheon RA, Abi-Dargham A, Howes OD. Schizophrenia, dopamine and the striatum: from biology to symptoms. Trends Neurosci. 2019;42:205-220.</p>
+<p>Walther S, Strik W. Motor symptoms and schizophrenia. Neuropsychobiology. 2012;66:77- 92.</p>
+<p>Hall J, Bray NJ. Schizophrenia genomics: convergence on synaptic development, adult synaptic plasticity, or both? Biol Psychiatry. 2022;91:709-717.</p>
+<p>Trubetskoy V, Pardiñas AF, Qi T, Panagiotaropoulou G, Awasthi S, Bigdeli TB, et al. Mapping genomic loci implicates genes and synaptic biology in schizophrenia. Nature. 2022;604:502-508.</p>
+<p>Vázquez-Vélez GE, Zoghbi HY. Parkinson&#x27;s disease genetics and pathophysiology. Annu Rev Neurosci. 2021;44:87-108.</p>
+<p>Hindley G, Frei O, Shadrin AA, Cheng W, O&#x27;Connell KS, Icick R, et al. Charting the landscape of genetic overlap between mental disorders and related traits beyond genetic correlation. Am J Psychiatry. 2022;179:833-843.</p>
+<p>Smeland OB, Shadrin A, Bahrami S, Broce I, Tesli M, Frei O, et al. Genome-wide association analysis of Parkinson&#x27;s disease and schizophrenia reveals shared genetic architecture and identifies novel risk loci. Biol Psychiatry. 2021;89:227-235.</p>
+<p>Smeland OB, Kutrolli G, Bahrami S, Fominykh V, Parker N, Fuhrer J, et al. A genome-wide analysis of the shared genetic risk architecture of complex neurological and psychiatric disorders. Nat Neurosci. 2025;28:2439-2450.</p>
+<p>Fritze S, Sambataro F, Kubera KM, Brandt GA, Meyer-Lindenberg A, Wolf RC, et al. Characterizing the sensorimotor domain in schizophrenia spectrum disorders. Eur Arch Psychiatry Clin Neurosci. 2022;272:1097-1108.</p>
+<p>Andreassen OA, Thompson WK, Schork AJ, Ripke S, Mattingsdal M, Kelsoe JR, et al. Improved detection of common variants associated with schizophrenia and bipolar disorder using pleiotropy-informed conditional false discovery rate. PLOS Genet. 2013;9:e1003455.</p>
+<p>Frei O, Holland D, Smeland OB, Shadrin AA, Fan CC, Maeland S, et al. Bivariate causal mixture model quantifies polygenic overlap between complex traits beyond genetic correlation. Nat Commun. 2019;10:2417.</p>
+<p>Werme J, van der Sluis S, Posthuma D, de Leeuw CA. An integrated framework for local genetic correlation analysis. Nat Genet. 2022;54:274-282.</p>
+<p>Watanabe K, Taskesen E, van Bochoven A, Posthuma D. Functional mapping and annotation of genetic associations with FUMA. Nat Commun. 2017;8:1826.</p>
+<p>van der Meer D, Hindley G, Shadrin AA, Smeland OB, Parker N, Dale AM, et al. Mapping the genetic landscape of psychiatric disorders with the MiXeR toolset. Biol Psychiatry. 2025;98:455-465.</p>
+<p>Turley P, Walters RK, Maghzian O, Okbay A, Lee JJ, Fontana MA, et al. Multi-trait analysis of genome-wide association summary statistics using MTAG. Nat Genet. 2018;50:229-237.</p>
+<p>Sudlow C, Gallacher J, Allen N, Beral V, Burton P, Danesh J, et al. UK Biobank: an open access resource for identifying the causes of a wide range of complex diseases of middle and old age. PLOS Med. 2015;12:e1001779.</p>
+<p>Doherty A, Jackson D, Hammerla N, Plötz T, Olivier P, Granat MH, et al. Large scale population assessment of physical activity using wrist worn accelerometers: the UK Biobank study. PLOS ONE. 2017;12:e0169649.</p>
+<p>White T, Westgate K, Hollidge S, Venables M, Olivier P, Wareham N, et al. Estimating energy expenditure from wrist and thigh accelerometry in free-living adults: a doubly labelled water study. Int J Obes. 2019;43:2333-2342.</p>
+<p>Zisou C, Calvin C, Taylor H, Lacey B, Hammami I, Walmsley R, et al. Reproducibility and associated regression dilution bias of accelerometer-derived physical activity and sleep in UK Biobank. Int J Epidemiol. 2026;55:dyag014.</p>
+<p>Leonard HL. Novel Parkinson&#x27;s disease genetic risk factors within and across European populations. MedRxiv. 2025.2025. https://doi.org/10.1101/2025.03.14.24319455.</p>
+<p>Bulik-Sullivan BK, Loh P-R, Finucane HK, Ripke S, Yang J, Patterson N, et al. LD Score regression distinguishes confounding from polygenicity in genome-wide association studies. Nat Genet. 2015;47:291-295.</p>
+<p>Holland D, Frei O, Desikan R, Fan C-C, Shadrin AA, Smeland OB, et al. Beyond SNP heritability: polygenicity and discoverability of phenotypes estimated with a univariate Gaussian mixture model. PLOS Genet. 2020;16:e1008612.</p>
+<p>Shadrin AA, Hindley G, Hagen E, Parker N, Tesfaye M, Jaholkowski P, et al. Distinct patterns of genetic overlap among multimorbidities revealed with trivariate MiXeR. Genome Med. 2025;17:106.</p>
+<p>Smeland OB, Frei O, Shadrin A, O&#x27;Connell K, Fan C-C, Bahrami S, et al. Discovery of shared genomic loci using the conditional false discovery rate approach. Hum Genet. 2020;139:85-94.</p>
+<p>Ghoussaini M, Mountjoy E, Carmona M, Peat G, Schmidt EM, Hercules A, et al. Open Targets Genetics: systematic identification of trait-associated genes using large-scale genetics and functional genomics. Nucleic Acids Res. 2021;49:D1311-D1320.</p>
+<p>Liberzon A, Subramanian A, Pinchback R, Thorvaldsdóttir H, Tamayo P, Mesirov JP. Molecular signatures database (MSigDB) 3.0. Bioinformatics. 2011;27:1739-1740.</p>
+<p>The GTEx Consortium, Aguet F, Anand S, Ardlie KG, Gabriel S, Getz GA, et al. The GTEx Consortium atlas of genetic regulatory effects across human tissues. Science. 2020;369:1318-1330.</p>
+<p>MacArthur J, Bowler E, Cerezo M, Gil L, Hall P, Hastings E, et al. The new NHGRI-EBI Catalog of published genome-wide association studies (GWAS Catalog). Nucleic Acids Res. 2017;45:D896-D901.</p>
+<p>Campbell ML, Shadrin A, van der Meer D, Tesfaye M, Smeland OB, O&#x27;Connell KS, et al. Regional genetic architecture of the corpus callosum and its overlap with psychiatric and substance use phenotypes. medRxiv. 2023:2023.12.03.23299351.</p>
+<p>Grotzinger AD, Werme J, Peyrot WJ, Frei O, de Leeuw C, Bicks LK, et al. Mapping the genetic landscape across 14 psychiatric disorders. Nature. 2026;649:406-415.</p>
+<p>Insel T, Cuthbert B, Garvey M, Heinssen R, Pine DS, Quinn K, et al. Research Domain Criteria (RDoC): toward a new classification framework for research on mental disorders. Am J Psychiatry. 2010;167:748-751.</p>
+<p>Garvey MA, Cuthbert BN. Developing a motor systems domain for the NIMH RDoC program. Schizophr Bull. 2017;43:935-936.</p>
+<p>Osborne KJ, Walther S, Mittal VA. Motor actions across psychiatric disorders: a research domain criteria (RDoC) perspective. Clin Psychol Rev. 2024;114:102511.</p>
+<p>Stefansson H, Helgason A, Thorleifsson G, Steinthorsdottir V, Masson G, Barnard J, et al. A common inversion under selection in Europeans. Nat Genet. 2005;37:129-137.</p>
+<p>Hill WD, Marioni RE, Maghzian O, Ritchie SJ, Hagenaars SP, McIntosh AM, et al. A combined analysis of genetically correlated traits identifies 187 loci and a role for neurogenesis and myelination in intelligence. Mol Psychiatry. 2019;24:169-181.</p>
+<p>Zhang C-C, Xing A, Tan M-S, Tan L, Yu J-T. The role of MAPT in neurodegenerative diseases: genetics, mechanisms and therapy. Mol Neurobiol. 2016;53:4893-4904.</p>
+<p>Zollino M, Marangi G, Ponzi E, Orteschi D, Ricciardi S, Lattante S, et al. Intragenic KANSL1 mutations and chromosome 17q21.31 deletions: broadening the clinical spectrum and genotype-phenotype correlations in a large cohort of patients. J Med Genet. 2015;52:804.</p>
+<p>Albin RL, Young AB, Penney JB. The functional anatomy of basal ganglia disorders. Trends Neurosci. 1989;12:366-375.</p>
+<p>DeLong MR. Primate models of movement disorders of basal ganglia origin. Trends Neurosci. 1990;13:281-285.</p>
+<p>Ginovart N, Kapur S. Role of dopamine D2 receptors for antipsychotic activity. Curr. Antipsychotics, vol. 212, Springer; 2012. p. 27-52.</p>
+<p>Siafis S, Wu H, Wang D, Burschinski A, Nomura N, Takeuchi H, et al. Antipsychotic dose, dopamine D2 receptor occupancy and extrapyramidal side-effects: a systematic review and dose-response meta-analysis. Mol Psychiatry. 2023;28:3267-3277.</p>
+<p>Haber SN. Corticostriatal circuitry. Dialogues Clin Neurosci. 2016;18:7-21.</p>
+<p>Grèzes J, Valabregue R, Gholipour B, Chevallier C. A direct amygdala-motor pathway for emotional displays to influence action: a diffusion tensor imaging study. Hum Brain Mapp. 2014;35:5974-5983.</p>
+<p>Sagaspe P, Schwartz S, Vuilleumier P. Fear and stop: a role for the amygdala in motor inhibition by emotional signals. NeuroImage. 2011;55:1825-1835.</p>
+<p>Moskowitz AK. &#x27;Scared stiff&#x27;: catatonia as an evolutionary-based fear response. Psychol Rev. 2004;111:984.</p>
+<p>Northoff G, Hirjak D, Wolf RC, Magioncalda P, Martino M. All roads lead to the motor cortex: psychomotor mechanisms and their biochemical modulation in psychiatric disorders. Mol Psychiatry. 2021;26:92-102.</p>
+<p>Ruiz-Tejada A, Neisewander J, Katsanos CS. Regulation of voluntary physical activity behavior: a review of evidence involving dopaminergic pathways in the brain. Brain Sci. 2022;12:333.</p>
+<p>Correll CU, Schooler NR. Negative symptoms in schizophrenia: a review and clinical guide for recognition, assessment, and treatment. Neuropsychiatr Dis Treat. 2020;16:519-534.</p>
+<p>Hunt GE, Large MM, Cleary M, Lai HMX, Saunders JB. Prevalence of comorbid substance use in schizophrenia spectrum disorders in community and clinical settings, 1990-2017: systematic review and meta-analysis. Drug Alcohol Depend. 2018;191:234-258.</p>
+<p>Zhou ZD, Yi LX, Wang DQ, Lim TM, Tan EK. Role of dopamine in the pathophysiology of Parkinson&#x27;s disease. Transl Neurodegener. 2023;12:44.</p>
+<p>Cong S, Xiang C, Zhang S, Zhang T, Wang H, Cong S. Prevalence and clinical aspects of depression in Parkinson&#x27;s disease: a systematic review and meta-analysis of 129 studies. Neurosci Biobehav Rev. 2022;141:104749.</p>
+<p>Upthegrove R, Marwaha S, Birchwood M. Depression and schizophrenia: cause, consequence, or trans-diagnostic issue? Schizophr Bull. 2017;43:240-244.</p>
+<p>Wüthrich F, Nabb CB, Mittal VA, Shankman SA, Walther S. Actigraphically measured psychomotor slowing in depression: systematic review and meta-analysis. Psychol Med. 2022;52:1208-1221.</p>
+<p>Bahrami S, Steen NE, Shadrin A, O&#x27;Connell K, Frei O, Bettella F, et al. Shared genetic loci between body mass index and major psychiatric disorders: a genome-wide association study. JAMA Psychiatry. 2020;77:503-512.</p>
 </div>
 </details>
 </div>
