@@ -195,7 +195,7 @@ MetaCheck Report
 Cortical activity for narrative production in aphasia
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.06.05.26354921
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.06.05.26354921
 </p>
 </header>
 <div class="mc-main">
@@ -583,8 +583,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -1017,9 +1018,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -1041,7 +1046,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -1056,9 +1062,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -1071,13 +1095,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1097,6 +1124,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -1104,12 +1137,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1210,6 +1249,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1229,6 +1288,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1484,19 +1578,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1606,6 +1782,211 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Introduction: Aphasia is an acquired language disorder with a significant negative functional impact. Much of the research on aphasia has focused on word-level language comprehension and production. Further evaluation of discourse-level tasks, both at behavioral and neural levels, will allow for an ecologically valid understanding of the functional implications of language impairment in this population.</p>
+<p>Method: This study evaluated bilateral frontal, temporal, and parietal cortical activity during computer-based narrative production in 14 young neurotypical individuals, 17 individuals with post-stroke aphasia, and 15 age-matched neurotypical participants using functional nearinfrared spectroscopy (fNIRS). Oxygenated hemoglobin (HbO) was measured during narrative production following short video clips and compared to HbO during counting aloud. In addition, behavioral measures quantifying in-task performance were correlated with averaged HbO values.</p>
+<p>Results: Across primary ROIs (bilateral frontal and temporal), there was greater cortical activity for narrative production than counting aloud. Between group differences were seen in right frontal and left temporal ROIs. In the left temporal ROI, there was a condition-related effect for the young neurotypical group only. In the right frontal ROI, there was a condition-related effect for both the young neurotypical group and the individuals with aphasia. Each group showed different patterns in relationships between cortical activity and discourse performance measures.</p>
+<p>Conclusion: Overall, young participants showing more consistent condition-related effects for narrative discourse production than individuals with aphasia and age-matched controls. This study shows the potential for fNIRS to evaluate cortical activity for ecologically valid language tasks in individuals with post-stroke aphasia.</p>
+<h3>1. Introduction</h3>
+<p>Aphasia is a language disorder which affects approximately a third of stroke survivors and which has a significant negative impact on communication and quality of life (Flowers et al., 2016). Further understanding of the cognitive and neural underpinnings of impairment in aphasia could potentially assist researchers and clinicians with developing more targeted and effective assessments and intervention.</p>
+<p>Behavioral characterization and evaluation of aphasia have often focused on word retrieval given that anomia is a hallmark feature of aphasia. However, communication ultimately involves discourse (i.e., a unit of language longer than a single sentence; Dipper et al., 2021) and individuals with aphasia present with discourse impairments (Stark, 2019). Evaluation of discourse production allows for better understanding of the functional implications of anomia and other features of language impairment in context (Stark, 2019). Furthermore, identification of discourse production impairment may help to identify individuals with more subtle impairment not identified by standardized assessment relying heavily on word-level evaluation.</p>
+<p>There are many different types of discourse production, all of which vary in cognitivelinguistic demand. Discourse can involve one speaker (monologue) or two speakers (dialogue).</p>
+<p>Monologic discourse specifically can be broken into narrative (i.e., story), procedural (i.e., how to do something), and expositional (informational or descriptive; Stark, 2019; Stark et al., 2021).</p>
+<p>All of these types of monologic discourse involve a variety of complex cognitive skills and require speakers to successfully convey macrostructural (e.g., organization, topic maintenance) and microstructural (i.e., phonological, lexical-semantic, and syntactic) elements of language in order to communicate their message (Dipper et al., 2021). All three of these discourse types are employed by speakers in everyday life. Given that different components of the language system are variably employed across these types of discourse (Stark, 2019), there is value in evaluating multiple discourse types in order to fully understand discourse skills and identify intervention targets.</p>
+<p>In parallel to behavioral characterization of aphasia, studies evaluating the neural underpinnings of aphasia, mostly using functional magnetic resonance imaging (fMRI), have also largely focused on single-word tasks (LaCroix et al., 2021; Wilson &amp; Schneck, 2021).</p>
+<p>Neuroimaging evidence in healthy individuals supports a dual stream model involving frontal, temporal and parietal regions, in which a left-lateralized dorsal stream supports phonological processing and a more bilateral ventral stream supports lexical-semantic processing (Hickok &amp; Poeppel, 2007). Individuals with aphasia tend to show less left-hemisphere activation than controls (Wilson &amp; Schneck, 2021) presumably as a result of the stroke lesion as well as negative impacts of the stroke lesion on the left-hemisphere language network. Furthermore, there is modest evidence that individuals with aphasia may recruit right-hemisphere homologues of damaged regions during language tasks (LaCroix et al., 2021; Wilson &amp; Schneck, 2021).</p>
+<p>Discourse processing and production would presumably involve a similar network of fronto-temporoparietal cortical regions and underlying white matter. However, activation patterns during discourse may vary as a result of the unique cognitive-linguistic demands imposed by comprehension and production of connected speech. Furthermore, there is evidence that activation patterns differ for comprehension vs. production of connected speech (Giglio et al., 2024), indicating that comprehension cannot always act as a proxy for production or general language processing. While the majority of the existing neuroimaging literature has used functional magnetic resonance imaging (fMRI) to evaluate cortical hemodynamics, functional near-infrared spectroscopy (fNIRS) is another non-invasive method that can capture task-based hemodynamic responses. While fNIRS is not as spatially sensitive as fMRI, there are several positive aspects, including 1) relatively less susceptibility to motion artifacts; 2) lack of acoustic noise; 3) ability for participants to be seated in a clinic environment; and 4) relative ease of repeated measures (Quaresima &amp; Ferrari, 2019).</p>
+<p>The neurotypical literature using fNIRS to evaluate cortical activity for language production has largely focused on naming tasks; however, limited studies have evaluated discourse. Specifically, greater frontotemporal activity has been found for structured dialogue relative to rote speech production (Suda et al., 2010) and greater prefrontal activity has been found for discourse production relative to discourse comprehension (Cannizzaro et al., 2016).</p>
+<p>These results suggest greater cognitive-linguistic demand for formulating verbal discourse than tasks that involve limited or no formulation demands.</p>
+<p>While the use of fNIRS has increased in recent years, there are few studies specifically examining cortical activity for language tasks in individuals with aphasia. These few studies have highly variable design, task demand, and patterns of results. Most have evaluated confrontation naming (Chang et al., 2022; Gan et al., 2024; Gilmore et al., 2021; Li et al., 2023 Li et al., , 2024 Li et al., , 2026;; Sakatani et al., 1998; Xu et al., 2025) or repetition (Hara et al., 2015; Li et al., 2023 Li et al., , 2024)), with limited examination of discourse-level production (Braun et al., 2026; Sakatani et al., 1998). Most relevant to the current investigation, Braun and colleagues evaluated cortical activity in individuals with aphasia and control participants during two structured conversational tasks which involved dialogue. This study found, in part, that young control participants tended to show robust, bilateral frontotemporal cortical activity during dialogue that was not seen to the same extent in older control participants and individuals with aphasia. This underscores the importance of considering both age-related and stroke-related effects in evaluating cortical functioning in adults with post-stroke aphasia. At the neural level, individuals with aphasia may be experiencing stroke-related maladaptive or compensatory mechanisms on top of age-related effects on cortical function such as dedifferentiation (Koen &amp; Rugg, 2019).</p>
+<p>Further investigation of cortical activity vis fNIRS during a variety of language tasks in people with aphasia and controls, including different types of monologic discourse production (i.e., narrative, procedural, and expositional) relevant to everyday communication would provide additional information about task demand at the neural level. This would allow us to characterize underlying neural mechanisms supporting (or interfering with) successful discourse production in post-stroke aphasia.</p>
+<p>The purpose of the current study is to evaluate cortical activity for monologic narrative discourse production in individuals with aphasia as well as neurotypical control participants using fNIRS and relate this activity to behavioral performance.</p>
+<p>Research Questions: 1.</p>
+<p>Across three group of participants (young neurotypical, age-matched neurotypical, individuals with aphasia), are there differences in cortical activity for narrative production (experimental task) vs. counting aloud (control task) in bilateral fronto-temporoparietal ROIs as measured via fNIRS?</p>
+<p>It is hypothesized that in bilateral frontotemporal ROIs that there will be a significant condition by group interaction such that a) there is greater cortical activity for narrative vs. counting across groups reflective of greater cognitive-linguistic demand for narrative production than counting; and b) there is greater cortical activity for young neurotypical than age-matched neurotypical and for age-matched neurotypical than people with aphasia overall and in the narrative condition specifically reflective of reduced cortical activity during cognitive-linguistic tasks for older individuals as a result of aging and for those with neural damage following stroke. These hypotheses are supported by previous studies with neurotypical participants showing greater cortical activity for discourse production than speech and language tasks with less formulation demands (Cannizzaro et al., 2016; Suda et al., 2010) and by prior studies showing lower left-hemisphere cortical activity for language tasks in people with aphasia compared to controls (Schneck et al., 2026; Wilson &amp; Schneck, 2021).</p>
+<p>Bilateral parietal regions are exploratory ROIs given their known involvement in language processing (Hickok &amp; Poeppel, 2007) but lack of robust evidence for consistent activation trends in the post-stroke aphasia literature (Kiran et al., 2019). It is hypothesized that bilateral precentral gyri will not show by-condition differences given hypothesized similar speech production demands for narrative and counting.</p>
+<p>2. In three groups (young neurotypical, age-matched neurotypical, individuals with aphasia), are there relationships between cortical activity during narrative production and in-task behavioral performance in bilateral fronto-temporoparietal ROIs?</p>
+<p>It is hypothesized that, for each group, there will be a significant positive relationship between macrostructural and microstructural linguistic measures of online behavioral performance in narrative production and cortical activity in bilateral frontotemporal ROIs and precentral ROIs reflective of a benefit on behavioral performance of greater task-based cortical engagement. This hypothesis is supported by prior literature showing a positive relationship between cortical activity and language task performance in people with aphasia (Schneck et al., 2026; Wilson &amp; Schneck, 2021). As above, bilateral parietal regions are exploratory ROIs.</p>
+<h3>2. Materials and Methods</h3>
+<p> &gt;Materials and Methods</p>
+<h3>2.1 Participants</h3>
+<p>The study was approved by the Institutional Review Board at Boston University and all participants provided written informed consent prior to study participation. Eligibility was determined by participant history questionnaires (all participants), review of medical records requested from participants (individuals with aphasia), and behavioral assessments (individuals with aphasia and age-matched neurotypical adults). Participants were 14 young neurotypical adults (mean age = 23.5 years, SD = 4.1), 17 individuals with chronic post-stroke aphasia (mean age = 61.6, SD = 9.2), and 15 age-matched neurotypical adults (mean age = 59.5 years, SD = 9.6). Young neurotypical individuals (6 female; 8 male) were recruited from a university setting (See Table 1 for individual demographics for the young neurotypical group). Three young participants reported a history of depression.</p>
+<p>Table 1: Young Neurotypical Participant Demographics ID Age Sex Handedness Race Ethnicity Native Language Other Languages Years Education Y1 male R white NH English -14 Y2 male R white Hispanic English Spanish 14 Y3 female R white NH English Russian 20 Y4 male R white NH English French* 19 Y5 female R Asian NH English Korean 13 Y6 female R white NH English Italian* 19 Y7 female R Asian NH English Korean 15 Y8 female R white NH English -18 Y9 male R Asian Hispanic English Spanish 13 Y10 female R Black NH Igbo English 20 Y12 male R white Hispanic English Spanish 16 Y13 male Ambidextrous Black NH English French, Patois 15 Y14 male R Asian NH English Urdu 18 Y15 male R white Hispanic English Spanish, Danish, Japanese 15 Mean 23.5 *basic 16.4 SD 4.2 2.6 NH: non-Hispanic Age-matched neurotypical participants (9 female; 6 male) were recruited via contacting individuals from an existing database in the Center for Brain Recovery at Boston University and through self-referral to the Center for Brain Recovery (See Table 2 for individual demographics for the age-matched group). One age-matched participant reported a history of dyscalculia as a child. All age-matched neurotypical participants scored within normal limits on the Mini Metal State Examination, 2 nd Edition Expanded Version (MMSE-2; Folstein &amp; Folstein, 2010) as a cognitive screening (average t-score = 56, standard deviation = 6, range = [46, 63]).</p>
+<p>Table 2: Age-Matched Neurotypical Participant Demographics ID Age Sex Handedness Race Ethnicity Native Language Other Languages Years Education AM1 male R white NH English -16 AM2 male R white NH English -16 AM3 female R white NH English -17 AM4 female R white NH English French* 16 AM5 female R white NH English Spanish, French 17 AM6 female R white NH English -16 AM7 male R white NH English -16 AM8 male R white NH Portuguese English, Spanish 12 AM9 male R Black NH English -16 AM10 male R white NH English Spanish, French, Portuguese, Arabic 16 AM11 female R Black NH English -12 AM12 female R white NH English -18 AM13 female R white NH English -14 AM14 female R white NH English -19 AM15 female R white NH English -17 Mean 59.5 *basic 15.9 SD 9.6 1.9 NH: non-Hispanic</p>
+<p>Individuals with aphasia (4 female; 13 male) were recruited from an existing database in the Center for Brain Recovery at Boston University as well as through contacting local clinicians, aphasia groups, and community groups (see Table 3 for individual demographics for the individuals with aphasia). All individuals with aphasia met the following inclusion criteria: 1) chronic aphasia due to a left-hemisphere stroke, 2) mild-moderate aphasia severity (i.e., Western Aphasia Battery -Revised (WAB-R) Aphasia Quotient (AQ) &gt; 50) (Kertesz, 2007) given the task demand, and 3) no significant neurological or psychiatric history prior to stroke.</p>
+<p>A pure tone audiometric screening was performed at 30 dB HL at 500, 1000, 2000, and 4000 Hz for the individuals with aphasia and the age-matched neurotypical individuals given the possibility of age-related hearing loss. For the hearing screening, 12/15 age-matched participants and 11/17 individuals with aphasia passed in at least one ear. For individuals who failed the hearing screening, increased volume during all study tasks was offered and the experimenter verified with the participants whether they perceived the volume was adequate throughout administration. Ethnicityall participants were non-Hispanic; Native languagenative language English for all participants</p>
+<h3>2.2 Behavioral assessment for individuals with aphasia</h3>
+<p>Behavioral assessment was completed with individuals with aphasia to determine study eligibility and to characterize their impairment and its functional impact.</p>
+<p>Assessment included the Western Aphasia Battery Revised Aphasia Quotient (WAB-R AQ; Kertesz, 2007) to measure aphasia severity; Cognitive Linguistic Quick Test -Plus (CLQT+; Helm-Estabrooks, 2017) to measure non-linguistic cognitive skills; Boston Naming Test, 2 nd Edition (BNT-2; Kaplan et al., 2001) to measure confrontation naming; Apraxia of Speech Rating Scale v3.5 (ASRS v3.5; Duffy et al., 2023) to evaluate presence and severity of motor speech impairment; the Stroke and Aphasia Quality of Life Scale (SAQOL-39; Hilari et al., 2003) to measures quality of life across physical, communication, and social domains; and the Communicative Effectiveness Inventory (CETI; Lomas et al., 1989), a measure of communication completed by a care partner.</p>
+<h3>2.3 Experimental task design</h3>
+<p>The task was comprised of two runs of 13 minutes and 16 seconds each. Each run contained four 68-second silent narrative video clips each followed by a 15-second response period and four 68-second non-narrative clips each followed by a 15-second response period (four experimental and four control episodes per run). During the 15-second response period, participants either summarized a narrative video clip (experimental condition) or counted aloud from 1 to 15 after watching a non-narrative video clip (control condition). During the response period, participants saw a progress bar on the screen to allow them to gauge how much time remained. A 15-second baseline with a fixation cross was presented at the beginning and end of each run and between conditions in the run (four blocks of one condition were presented consecutively, followed by four blocks of the other condition, to minimize cognitive switching demands for the individuals with aphasia). After each answer block within a condition, an interstimulus interval varying among 5, 10 and 15 seconds was presented (See Figure 1 for task design). Figure 1: Within each of two runs, participants saw four experimental condition blocks and four control condition blocks.</p>
+<p>In the experimental condition blocks, participants watched narrative video clips in 68second increments and then were asked to summarize the narrative in a 15-second time period. In the control condition blocks, participants watched a 68-second non-narrative video clip and were asked to count aloud from 1 to 15 in a 15-second time period.</p>
+<p>Following the two runs of the task, 10 yes/no questions per silent narrative video set (10 questions for each run) pertaining to the plot were presented via written sentences and corresponding audio recordings. Participants were asked to answer via button press offline (after taking off the fNIRS cap) for each run (20 questions total) to verify attention to the task and comprehension of the story.</p>
+<p>To promote comfort with task demands, participants were first provided with verbal instructions prior to completing a practice task. Individuals with aphasia and age-matched participants were additionally provided with a pictorial version of the instructions. Then, a practice task was administered prior to the experiment. Participants were then given an opportunity to ask questions about task completion. The practice task could be completed as many times as necessary until participants were comfortable with the task.</p>
+<p>The experiment was first completed with the young neurotypical group and then modified to accommodate individuals with aphasia. Additional visual representation of the experimental conditions was included in the instructions to promote comprehension of task demand.</p>
+<p>Increased pause time (controlled by the experimenter) was included between conditions in a run to minimize cognitive switching demands. One individual with more severe production impairment was provided with choral cues (i.e., speaking aloud in unison with clinician) during the counting condition as needed to promote greater accuracy.</p>
+<p>During the experiment, auditory information was presented using a Jabra speaker and verbal responses were recorded using a Jabra microphone.</p>
+<h3>2.4 Experimental task development</h3>
+<p>For the stimuli videos, audio was first removed from the Pixar shorts Partly Cloudy and Presto (Sohn, 2009; Sweetland, 2008). The beginning and end of the videos were cut and then the central portion of the videos was split into four 68-second clips. The clips were presented sequentially so that they followed a logical story sequence. Non-narrative videos were drawn from Inscapes, originally designed for use in fMRI (Vanderwal et al., 2015). Follow-up yes/no comprehension questions were generated by the author and tested with one speaker of American English. Following feedback from this speaker, questions were curated and modified for clarity. Questions were audio-recorded as separate .wav files. Audio editing was done using Apple iMovie software.</p>
+<p>The behavioral task was programmed by two research assistants using PsychoPy3 2021.1.2, experimental presentation software that allows for time-locking of experimental events to fNIRS data via LSL triggers (PsychoPy3, 2021). This process included creating PsychoPy experiments for two runs of the experimental task and one run of the practice task with use of the edited Pixar short video clips and mp3 audio files (yes/no questions). The programmed experiment included two counterbalance conditions for each of the two runs of the task (four experimental video clips plus responses followed by four control video clips plus responses or vice versa). The behavioral task was piloted with three fluent English speakers. Slight adjustments to timing and computer screen lighting were made based on pilot participant feedback.</p>
+<h3>2.5 Evaluation of task performance</h3>
+<p>All audio recordings were broadly transcribed in English orthography by the first author and trained research assistants. For the young neurotypical individuals, the first author reviewed 100% of summary condition transcriptions and made corrections as needed. For the individuals with aphasia, the first author reviewed 50-100% of summary condition transcriptions for 9/17 participants at the beginning of and mid-way through the transcription process and provided feedback to the scorer to promote improved consistency and accuracy. The scorer revised transcriptions based on this discussion.</p>
+<p>During transcription, the individual transcribing made a manual marking rounded to the nearest second at the beginning and end of the participant response in each block. The talk time annotations at the end of talking in each block were then averaged within each participant to create two values per participant for this experiment (one value for each condition). These values were used as regressors in statistical models to account for varying talk times across conditions and participants.</p>
+<p>Transcribed language samples were analyzed with discourse measures at the macrostructural level to evaluate broad planning and organization of discourse as well as at the microstructural level to evaluate lexical-semantic and syntactic aspects of linguistic content. At the language macrostructural level, global coherence, a measure indicating how well the response maintains the overall topic, was evaluated (Harris Wright &amp; Capilouto, 2012).</p>
+<p>Transcribed responses were separated into c-units (syntactic unit consisting of an independent clause with all dependent clauses), each given a global coherence rating on an ordinal scale (from 1 (low coherence) to 4 (high coherence)) indexing adherence to overall topic, and then averaged within and across trials to create one averaged global coherence rating for each participant ranging from 1 to 4. The method follows that outlined by Wright and Capilouto (Harris Wright &amp; Capilouto, 2012). One modification was made to the procedure such that utterances that were not a complete independent clause could be considered a separate c-unit if they represented a complete idea.</p>
+<p>The coherence ratings were made by the first author and trained research assistants.</p>
+<p>For the young neurotypical group, a second rater independently completed c-unit separations and global coherence ratings for 60% of the data (9/15 participants). Reliability for averaged coherence ratings was 100%. For the age-matched group, a second rater made c-unit separations and coherence ratings for 27% of the data (4/15 participants). Reliability between the two scorers for averaged coherence ratings was 88%. For the individuals with aphasia, the first author reviewed all c-unit separations and coherence ratings for 35% of the data (6/17 participants) mid-way through completion and then discussed and resolved discrepancies with the rater.</p>
+<p>At the language microstructure level, mean length of utterances (MLU) in morphemes, type token ratio (a measure of lexical diversity), and ratio of nouns to verbs (a measure of syntactic complexity), were analyzed. To accomplish this, transcriptions were converted to Computerized Language Analysis (CLAN) format (MacWhinney, 2000) and the mor command was used to generate the linguistic metrics.</p>
+<h3>2.6 Structural MRI</h3>
+<p>When available for individuals with aphasia, pre-existing T1-weighted structural MRI scans were used, either from previous research participation (N = 11) or from clinical MRI scans (N = 5). For the 11 participants who had completed a previous study in the laboratory, T1weighted structural MRI scans and corresponding lesion maps drawn using ITK-Snap were available (ITK-Snap, 2018). Separately for these 11 participants, head measurements were input into AtlasViewer (Aasted et al., 2015) and estimated individual MNI coordinates for the center of each channel were generated. Following this, channel center coordinates falling within lesioned tissue were identified using MRIcron. Subsequently, channels identified using MRIcron were manually excluded at the participant level in Homer3 prior to running the data processing stream to minimize any potential contribution of spurious signal from the area of lesion (Gilmore et al., 2021). For four participants with clinical MRIs, the scans were reviewed and general lesion location was confirmed. Subsequently, all channels in the lobe(s) of the lesion were manually excluded prior to running the processing stream (see fNIRS data processing). For the remaining participant with a clinical MRI, all left-hemisphere channels were manually excluded given cranial implants that would likely impact signal detection. For the participant without an available research or clinical scan, although clinical records indicated a left-hemisphere stroke, exact lesion location in relation to fNIRS channels was unknown. For this participant, all lefthemisphere channels were excluded.</p>
+<h3>2.7 fNIRS probe design</h3>
+<p>The fNIRS probe was designed in AtlasViewer (Aasted et al., 2015) to cover bilateral frontal (IFG and MFG), precentral, temporal (STG and MTG), and parietal (AG and SMG) ROIs.</p>
+<p>This included 36 long channels and eight short separation channels (See Figure 2). Figure 2: Panel (a) indicates bilateral channel location and ROI membership (bilateral frontal, precentral, parietal, and temporal) for each channel. Panel (b) indicates the bilateral sensitivity profile for the probe generated in AtlasViewer (Aasted et al., 2015) with dark red indicating the highest levels of sensitivity.</p>
+<h3>2.8 fNIRS data collection</h3>
+<p>FNIRS data was collected using a NIRx NIRSport2 (NIRx NIRSport2) . Data collection took place in a relatively quiet, well-lit room with participants seated at a computer screen. Prior to cap placement, head measurements were taken to ensure proper cap size selection and for use in later analyses. Head measurements included head circumference, distance from nasion to inion, and distance from left preauricular to right preauricular points. Following this, cap placement and adjustment was made to promote the best possible signal quality with adequate scalp to optode coupling. After initial calibration, an opaque shower cap was placed on the participant&#x27;s head to reduce effects of ambient light on the detectors. Then, an additional check for signal quality was completed with adjustments as needed. All participants completed a fiveminute resting trial prior to the experimental task. In-home assessment was completed with 3/17 participants with aphasia who reported difficulty traveling to the laboratory.</p>
+<h3>2.9 fNIRS data processing</h3>
+<p>Prior to running the fNIRS processing stream, blocks with no response or responses in error (i.e., participant counted aloud instead of summarizing) were omitted. Total omitted blocks due to no response or counting during the summary condition amounted to 4% of blocks in the individuals with aphasia. The processing stream included 1) pruning of channels with SNR &lt; 5 dB; 2) conversion of raw light intensity data to optical density; 3) motion artifact correction using a spline interpolation method with Savitsky-Golay filtering (frame size = 10 seconds; p = .99; Jahani et al., 2018); 4) lowpass filtering to remove high-frequency noise (filter frequency = of 0.5 Hz); 5) conversion of optical density to concentration units using the modified Beer-Lambert Law without path-length correction; and 6) estimation of the hemodynamic response function using a generalized linear model at the run level for changes in HbO and HbR across the block time course with short separation regression (using the short separation channel with the greatest correlation to each channel) and signal drift correction (trange = -2 to 20 seconds; Huppert et al., 2009). See Supplemental Material Figure 1 for processing stream parameters. After running the processing stream, channels that were highly aberrant at the run level (i.e., substantially greater periodicity or amplitude in post-processed data than other channels in that run) were manually excluded and the processing stream was re-run. This included one channel of data for one age-matched participant across both runs due to known equipment malfunction (3% of long channels for this participant).</p>
+<h3>2.10 Statistical analysis</h3>
+<p>For each participant, channel-level data were averaged across channels into eight broad ROIs: bilateral frontal (IFG and MFG), bilateral PCG, bilateral temporal (MTG and STG) and bilateral parietal (AG and SMG). Statistical analysis and data visualization was completed in R v4.3.2 (R Core Team, 2021) and RStudio (RStudio Team, 2020) with the use of the following packages: tidyverse, dplyr, ggplot2, lme4, and emmeans (Bates et al., 2015; Lenth, 2024; Wickham et al., 2019 Wickham et al., , 2023)). Across models, a random intercept for participant was included to account for individual differences. In cases where a model did not converge, the random intercept was removed.</p>
+<p>Research Question 1: Across three group of participants (young neurotypical, agematched neurotypical, individuals with aphasia), are there differences in cortical activity for narrative production vs. counting aloud in bilateral fronto-temporoparietal ROIs as measured via fNIRS?</p>
+<p>Estimated oxygenated hemoglobin (HbO) and deoxygenated hemoglobin (HbR) were binned into averaged 3-second intervals (Epoch 1: -2 to 1 second; Epoch 2: 1-4 seconds; Epoch 3: 4-7 seconds; Epoch 4: 7-10 seconds; Epoch 5: 10-13 seconds; Epoch 6: 13-16 seconds;</p>
+<p>Epoch 7: 16-19 seconds). A separate mixed effects model was fit to predict HbO and HbR for each of the eight ROIs with predictors being the condition x group interaction and all lower terms of that interaction. Epoch was included as a covariate. Average talk time per condition for each participant was included as a covariate to account for differences in response length by individual and condition. Significant interactions were followed up with pairwise comparisons using the emmeans packages with Tukey&#x27;s method for multiple comparison correction (Lenth, 2024). When the condition x group interaction was not significant, it was removed from the model and the model was refit. FDR correction for multiple comparisons (Benjamini &amp; Hochberg, 1995) was completed across models within a chromophore (i.e., correction for HbO based upon all p-values for covariates of interest within the HbO models). Given the preliminary nature of the study, both uncorrected and corrected results are reported.</p>
+<p>Research Question 2: In three groups (young neurotypical, age-matched neurotypical, individuals with aphasia), are there relationships between cortical activity during narrative production and in-task behavioral performance in bilateral frontotemporoparietal ROIs?</p>
+<p>For each group separately, a correlation matrix was generated relating linguistic measures based upon in-task performance to averaged HbO from 5-15 seconds in each of the Table 6: Summary of Research Question 1 significant simple effects of epoch, condition, group, and group x condition interactions. *Survives multiple comparison correction; PWA: People with aphasia; N: narrative condition; C: control condition.</p>
+<p>NS: not significant. In Research Question 1, the group x condition interaction in the left temporal ROI showed a condition effect (narrative &gt; counting) in the young group not seen in the age-matched group. The group x condition interaction in the right frontal ROI, showed condition effects (narrative &gt; counting) in the young and aphasia groups not seen in the agematched group. Follow-up pairwise comparisons for a left precentral interaction were not significant after correction.</p>
+<h3>3.2.1</h3>
+<p>Research Question 1: Across the three group of participants (young neurotypical, age-matched neurotypical, individuals with aphasia) are there differences in cortical activity for narrative production vs. counting aloud in bilateral fronto-temporoparietal ROIs as measured via fNIRS?</p>
+<h3>3.2.1.1 Uncorrected results</h3>
+<p>Group and Condition:</p>
+<p>Primary ROIs: Before multiple comparison correction, in the left frontal ROI there was a simple effect of condition (narrative &gt; counting; p &lt; .001). In the left temporal ROI, there was a significant group (young vs. age-matched) by condition interaction (p = .039). Follow-up pairwise comparison showed that the young neurotypical group had greater HbO for narrative vs. counting (adjusted p = .005) that was not seen in the age-matched group (adjusted p = .91). In the right frontal ROI, there were significant group (young vs. age-matched and PWA vs. age-matched) by condition interactions (both p &lt; .05). Follow-up pairwise comparison showed greater HbO for narrative vs. counting for the young neurotypical group (adjusted p &lt; .001) and the individuals with aphasia (adjusted p &lt; .001) that was not seen in the age-matched group (adjusted p = .646). In addition, there was greater HbO for narrative in the individuals with aphasia than the age-matched group (adjusted p = .027). In the right temporal ROI, there was a simple effect of condition (narrative &gt; counting; p = .007).</p>
+<p>Exploratory ROIs: There were no significant interactions or effects of group or condition in bilateral parietal ROIs (all unadjusted p &gt; .05).</p>
+<p>Control ROIs: In the left precentral (control) ROI, there was a significant group (PWA vs.</p>
+<p>age-matched) x condition interaction (p = .018). Although follow-up pairwise comparison did not show any significant differences after multiple comparison correction (all adjusted p &gt; .05), the trend was toward individuals with aphasia showing greater cortical activity for counting than narrative.</p>
+<p>Epoch: There were simple effects of epoch (with later epochs having greater HbO than Epoch 1) to some extent in all ROIs (all p &lt; .05): Ieft frontal (Epoch 3 &gt; 1, 5 &gt; 1, 6 &gt; 1, 7 &gt; 1); left temporal (Epoch 5 &gt; 1, 6 &gt; 1, 7 &gt; 1); right frontal (Epoch 3 &gt; 1, 4 &gt; 1, 5 &gt; 1, 6 &gt; 1, 7 &gt; 1); right temporal (Epoch 2 &gt; 1, 3 &gt; 1, 4 &gt; 1, 5 &gt; 1, 6 &gt; 1, 7 &gt; 1); left parietal (Epoch 6 &gt; 1, 7 &gt; 1); right parietal (Epoch 2 &gt; 1, 3 &gt; 1, 6 &gt; 1, 7 &gt; 1); left precentral (Epoch 5 &gt; 1, 6 &gt; 1, 7 &gt; 1); and right precentral (Epoch 2 &gt; 1, 3 &gt; 1, 5 &gt; 1, 6 &gt; 1, 7 &gt; 1). Figure 3: Research Question 1 results, with solid lines indicating narrative condition and dashed lines indicating counting condition. The young neurotypical group is represented in red, the age-matched group in green, and the people with aphasia in purple. *indicates significant effect of condition (narrative &gt; counting (left frontal and right temporal) or significant group x condition interaction (where narrative &gt; counting in a subset of groups).</p>
+<h3>3.2.1.2 Corrected results</h3>
+<h3>Group</h3>
+<p>For the left temporal ROI, the young neurotypical group showed a condition effect (narrative &gt; counting) not seen in the age-matched group. For the right frontal ROI, the young neurotypical group and people with aphasia showed condition effects (narrative &gt; counting) not seen in the age-matched group. Follow-up pairwise comparisons for a left precentral interaction were not significant. ▴ indicates significant effect of epoch (as compared to Epoch 1).</p>
+<h3>3.2.2 Research Question 2:</h3>
+<p>In three groups (young neurotypical, age-matched neurotypical, individuals with aphasia), are there relationships between cortical activity during narrative production and in-task behavioral performance in bilateral frontotemporoparietal ROIs?</p>
+<p>Exploratory ROIs: In the young neurotypical group in the left parietal ROI, mean length of utterance in morphemes was a positive predictor of HbO (i.e., longer utterances length was associated with greater HbO; p = .003; R² = .53; See Figure 4a).</p>
+<p>Primary ROIs: In the age-matched group in the left frontal ROI, noun-verb ratio was a positive predictor of HbO (p = .004; R² = .52). In other words, individuals with a higher noun-verb ratio (proxy for less complex sentences) tended to show greater HbO (See Figure 4b).</p>
+<p>In the people with aphasia in the left precentral ROI, type-token ratio (a proxy for lexical diversity) was a positive predictor of HbO (p = .002; R² = .63, i.e., participants with higher type token ratio tended to show greater HbO; See Figure 4c). In the people with aphasia in the right frontal ROI, global coherence was a negative predictor of HbO (p = .024; R² = .32; i.e., participants with lower average global coherence tended to show greater HbO; See Figure 4d). 4. Discussion</p>
+<h3>4.1 Overall Summary</h3>
+<p>Overall, this study showed bilateral frontotemporal cortical activity during narrative production when evaluated relative to counting aloud, with the strongest effects in young individuals. Across ROIs, cortical activity increased over the course of the response periods, reflective of task-based cortical engagement. For the left frontal and right temporal ROIs, narrative production resulted in significantly greater cortical activity than counting, without statistical support for between-group differences. In the left temporal ROI, narrative production resulted in significantly greater cortical activity than counting aloud for the young neurotypical, with neither the age-matched group nor the individuals with aphasia showing a significant effect.</p>
+<p>In the right frontal ROI, narrative production resulted in significantly greater cortical activity than counting aloud in the young group and the individuals with aphasia, but not the age-matched group. For control ROIs (bilateral precentral gyri), there were not group and condition effects in the right precentral gyrus. However, there was evidence in the left precentral gyrus in the individuals with aphasia of a trend toward greater activity for counting aloud than narrative.</p>
+<p>4.2 Research Question 1: Across three group of participants (young neurotypical, agematched neurotypical, individuals with aphasia), are there differences in cortical activity for narrative production (experimental task) vs. counting aloud (control task) in bilateral fronto-temporoparietal ROIs as measured via fNIRS?</p>
+<p>For the primary ROIs, these results are broadly consistent with initial hypotheses and prior literature implicating a left-lateralized network of cortical regions needed for the complex task of speech and language processing in young, healthy individuals (Hickok &amp; Poeppel, 2007; Price, 2012). Specifically, the condition effects for HbO in bilateral frontotemporal ROIs are consistent with the hypothesis that participants would show greater responses for the narrative condition across ROIs given the greater linguistic demand of narrative production. These results also confirm the suitability of fNIRS for capturing task-based cortical activity for verbal narrative discourse tasks and provide support for the contrast validity of this novel task.</p>
+<p>In the age-matched group, the more limited condition-related effects in the primary ROIs were unexpected. These could be due to generally reduced cortical activity with aging. There is some prior literature to suggest that older adults display under-recruitment of neural resources during cognitive tasks (Maillet &amp; Rajah, 2014); however, there are also a number of studies showing increased cortical activity in this population potentially reflective of neural compensation (Maillet &amp; Rajah, 2014; McDonough et al., 2022). Further study with a larger sample size would help determine if the results in this study are anomalous.</p>
+<p>In the primary ROIs in the individuals with aphasia, results were consistent with hypotheses, with greater HbO for narrative vs. counting in bilateral frontal and right temporal</p>
+<p>ROIs. This could be due to a reliance on right hemisphere homologues of damaged regions. This is consistent with modest prior evidence of recruitment of right-hemisphere homologues of left-hemisphere language regions during language tasks in people with aphasia in fMRI literature (Kiran et al., 2019; Schneck et al., 2026; Wilson &amp; Schneck, 2021). Another possibility is that left temporal effects could not be detected due to small sample size, given that ROIs falling within lesioned tissue were excluded. It may be the case that with a larger sample size, a similar significant pattern would be seen in the left temporal ROI for people with aphasia.</p>
+<p>In the control ROIs (bilateral precentral gyri), results were largely consistent with hypotheses that there would not be a significant difference between conditions. However, the finding of a trend toward greater cortical activity for counting vs. narrative in the individuals with aphasia was unexpected. One possibility is that, unlike the neurotypical individuals, the people with aphasia were producing more content in the counting condition leading to greater articulatory effort and precentral activity.</p>
+<h3>4.3 Research Question 2:</h3>
+<p>In three groups (young neurotypical, age-matched neurotypical, individuals with aphasia), are there relationships between cortical activity during narrative production and in-task behavioral performance in bilateral frontotemporoparietal ROIs?</p>
+<p>For Research Question 2, relationships between cortical activity and in-task behavioral measures were explored to evaluate whether and how the patterns of cortical activity seen in Research Question 1 were supporting task performance across groups. The young neurotypical group showed a positive relationship between mean length of utterance and HbO in the left parietal ROI (i.e., greater HbO in the left parietal ROI was related to longer mean length of utterance). This is consistent with the hypothesis that language performance would be positively related to greater cortical activity across groups. This is also broadly consistent with theory and extensive fMRI evidence for left-hemisphere lateralization of language (Hickok &amp; Poeppel, 2007). A lack of relationships for other measures may be due to a ceiling effect in some cases.</p>
+<p>For example, in the case of global coherence scores, where the scale ranges from 1-4, across the board young neurotypical individuals tended to produced discourse rated at 4.</p>
+<p>The age-matched group showed a relationship in the left frontal ROI in which higher noun-verb ratio (proxy for less syntactically complex sentences) were related to greater HbO.</p>
+<p>The inverse relationship between cortical activity in the left frontal ROI and syntactic complexity in the age-matched group is unexpected. One possibility is that left frontal HbO is indexing linguistic demand as well as cognitive effort, with greater cortical activity in participants with less complex output reflective of greater cognitive effort for task completion given the prefrontal cortex&#x27;s involvement in managing cognitive demands (e.g., Shirzadi et al., 2025).</p>
+<p>The people with aphasia showed a) a relationship in the left precentral ROI in which higher type-token ratio (proxy for lexical diversity) was related to greater HbO; and b) a relationship in the right frontal ROI in which higher global coherence was related lower HbO.</p>
+<p>The relationship between left precentral cortical activity and type-token ratio in the people with aphasia is consistent with prior research showing greater left-hemisphere cortical activity positively linked to productive language performance in people with aphasia (Wilson &amp; Schneck, 2021). The inverse relationship between cortical activity and global coherence in the individuals with aphasia in the right frontal ROI is unexpected. Post-hoc tests show that global coherence was correlated both with Western Aphasia Battery Aphasia Quotient (WAB-R AQ) and mean length of utterance in the people with aphasia (i.e., individuals with lower global coherence scores in the discourse task also tend to be those with shorter utterances and more severe aphasia). This may be reflective of right hemisphere recruitment, consistent with some prior evidence of increased recruitment for language processing in general in those with larger lesions and more severe aphasia (Kiran et al., 2019).</p>
+<h3>4.4 Limitations and Future Directions</h3>
+<p>Some limitations of this study should be mentioned. First, there were confounds in the experimental contrast that likely influenced results. Variable response times for the narrative vs.</p>
+<p>the counting condition could have contributed to differences in cortical responses. This was mitigated by incorporating average talk time per condition at the participant level as a regressor into statistical models. In addition, the control condition was inherently less difficult than the experimental condition for neurotypical participants, which makes it difficult to know if cortical activity differences between conditions is reflective of language-specific effort or domain-general cognitive demand in these groups. This is a pervasive issue in neuroimaging research and particularly difficult to solve when examining narrative production.</p>
+<p>Second, subject-level digitization of optode locations was not completed due to inconsistency of the 3D digitization equipment available to the investigators. Future work should incorporate digitization for more accuracy in verifying subject-specific ROIs.</p>
+<p>Third, an additional consideration is potential between-group differences other than age.</p>
+<p>All groups were convenience samples and the young neurotypical group in particular was more racially and ethnically diverse than the individuals with aphasia and age-matched controls. The racial and ethnic composition of the young neurotypical individuals was reflective of the university population from which they were recruited. This is of particular note for fNIRS research given that hair and skin pigmentation can differ between these groups and darker hair color in particular can lead to reduce signal quality (Yücel et al., 2025). Care was taken to maximize signal quality during data acquisition. In addition, data channels with poor signal quality were excluded by the data processing stream. However, future work should be mindful of matching groups on extraneous factors that may influence between-group comparisons.</p>
+<p>Future work could explore more sophisticated task design with a) attempts to balance domain-general cognitive difficulty across conditions; and b) adjustments to task difficulty based upon severity of verbal expression impairment for people with aphasia. This would help control domain-general cognitive demand in order to better examine cortical underpinnings of narrative language production specifically. In addition, future work could explore cortical activity for discourse production across contexts. For example, different types of monologic discourse production (i.e., procedural, expositional) could be evaluated given the varying linguistic demands of these tasks and potentially different underlying cortical activity needed to support these tasks. Furthermore, evaluation of discourse production in increasingly naturalistic contexts could provide insight into the underlying neural activity supporting communication in real-world situations.</p>
+<p>Acknowledgements: The authors thank Natalie Gilmore for training team members in fNIRS methodology; Fatemeh Abdollahi, Michael Scimeca, and Manuel Marte for contributions to task design; Nelson Leonardo Gonzalez Dantas and Kylie Isenburg for task programming; Nishaat Mukadam and Ollie Combs for project management; Grace Mooradian for stimuli recording; Kassidy Bate for stimuli editing; Natalie Peterman, Saicharan Kasetti, Yashvi Grover, Erin Shivers, Madeline Silverstein, Grace Nesbitt, Makenzie Meier, and Nicole Tonyan for language sample transcription; Sreekanth Kura for fNIRS cap printing and welding; Boston University Research Computing Services for consultation on R code optimization; Anne Billot and Isaac Falconer for lesion drawing; Alexander von Lühmann for grant conceptualization; Shalom Henderson for consultation on statistical analysis; and Tyler Perrachione and Sofia Vallila Rohter for feedback as part of the first author&#x27;s dissertation committee.</p>
+<p>Funding Sources: This work was supported by the BRAIN Initiative through NIH/NIBIB U01EB029856 awarded to Dr. David A. Boas and Dr. Swathi Kiran and a Boston University Sargent College Student Research Grant awarded to Dr. Emily J. Braun.</p>
+<p>Data Statement: Raw data and statistical analysis code for this study are available in on Open Science Framework.</p>
+<h3>Declaration of Competing Interests:</h3>
+<p>The authors have no competing interests to declare.</p>
+<h3>Declaration of Generative AI use:</h3>
+<p>ChatGPT was used for R code optimization. Generative AI was not otherwise used in preparation of this manuscript.</p>
+<h3>Declaration of Competing Interests:</h3>
+<p>The authors have no competing interests to declare.</p>
+<p>Author Contributions (CRediT) Emily J. Braun: Formal analysis, Investigation, Data curation, Writingoriginal draft, Writing -Review and Editing, Visualization Erin A. Carpenter: Formal analysis, Investigation Yuanyuan Gao: Methodology, Software, Investigation, Writing -review and editing Meryem Yücel: Conceptualization, Methodology, Software, Writingreview and editing, Supervision, Funding acquisition David A. Boas: Conceptualization, Methodology, Software, Resources, Writingreview and editing, Supervision, Funding acquisition Swathi Kiran: Conceptualization, Methodology, Resources, Writingoriginal draft, Writingreview and editing, Supervision, Project administration, Funding acquisition</p>
+<p>Abbreviated title: Cortical activity for narrative production in aphasia 21 eight ROIs for the narrative condition. For each ROI with significant correlations to behavioral data, behavioral metrics were input into a backward stepwise regression predicting HbO. Nonsignificant predictors were removed in a stepwise fashion starting with the predictor with the highest p-value until all predictors were significant at an alpha level of .05.</p>
+<h3>3.1 Behavioral assessment and behavioral performance</h3>
+<p>Individuals with aphasia had an average WAB-R AQ score of 82.8 (SD = 15.7) ranging from 54.1 (moderately impaired) to 100 (not aphasic by WAB-R). See Table 4 for standardized test scores. For follow-up yes/no comprehension questions, the young neurotypical group&#x27;s average accuracy was 98% (Range: 90-100%); the age-matched group&#x27;s average accuracy was 94% (Range: 85-100%); and the aphasia group&#x27;s average accuracy was 88% (Range: 65-100%), indicative of generally good basic comprehension of the story across groups.</p>
+<h3>3.2 fNIRS results</h3>
+<p>Full statistical output for HbO and HbR and results for HbR analysis are reported in the Supplemental Material. See Table 5 for summary of sample size for each ROI and each group after channel loss due to lesioned tissue in people with aphasia. See Table 6 for brief summary of Research Question 1 HbO results.</p>
+<p>Abbreviated title: Cortical activity for narrative production in aphasia</p>
+<h3>Figure 1 :</h3>
+<p>Figure 1: Task Design</p>
+<h3>Figure 2 :</h3>
+<p>Figure 2: fNIRS Probe Design and Condition: After multiple comparison correction, there remained a simple effect of condition (narrative &gt; counting) in the left frontal and right temporal ROIs (all adjusted p &lt; .05).</p>
+<p>There also remained significant condition by group interactions in the right frontal and left precentral ROIs (all adjusted p &lt; .05). Epoch: There remained simple effects of epoch (with later epochs having greater HbO than Epoch 1) to some extent in all ROIs (all adjusted p &lt; .05): Ieft frontal (Epoch 3 &gt; 1, 6 &gt; 1, 7 &gt; 1); left temporal (Epoch 6 &gt; 1, 7 &gt; 1); right frontal (Epoch 3 &gt; 1, 5 &gt; 1, 6 &gt; 1, 7 &gt; 1); right temporal (Epoch 3 &gt; 1, 5 &gt; 1, 6 &gt; 1, 7 &gt; 1); left parietal (Epoch 7 &gt; 1); right parietal (Epoch 2 &gt; 1, 3 &gt; 1, 6 &gt; 1, 7 &gt; 1); left precentral (Epoch 5 &gt; 1, 6 &gt; 1, 7 &gt; 1); and right precentral (Epoch 2 &gt; 1, 3 &gt; 1, 5 &gt; 1, 6 &gt; 1, 7 &gt; 1). (See Table6and Figure3for summary of results).</p>
+<h3>Figure 3 :</h3>
+<p>Figure 3: HbO across groups and conditions</p>
+<h3>Figure 4 :</h3>
+<p>Figure 4: Relationships between discourse measures and HbO</p>
+<h3>Table 3 :</h3>
+<p>Participant Demographics for People with Aphasia</p>
+<h3>Table 5 :</h3>
+<p>Summary of sample size for each ROI after channel loss</p>
+<h3>Table 6 :</h3>
+<p>Summary of Research Question 1 HbO Results</p>
+<h3>References</h3>
+<p>Aasted, C. M., Yücel, M. A., Cooper, R. J., Dubb, J., Tsuzuki, D., Becerra, L., Petkov, M. P., Borsook, D., Dan, I., &amp; Boas, D. A. (2015). Anatomical guidance for functional near-infrared spectroscopy: AtlasViewer tutorial. Neurophotonics, 2(2), 020801. https://doi.org/10.1117/1.NPh.2.2.020801</p>
+<p>Bates, D., Maechler, M., &amp; Walker, S. (2015). Fitting Linear Mixed-Effects Models Using {lme4} [Computer software]. 10.18637/jss.v067.i01</p>
+<p>Benjamini, Y., &amp; Hochberg, Y. (1995). Controlling the False Discovery Rate: A Practical and Powerful Approach to Multiple Testing. Journal of the Royal Statistical Society Series B: Statistical Methodology, 57(1), 289-300. https://doi.org/10.1111/j.2517-6161.1995.tb02031.x</p>
+<p>Braun, E. J., Carpenter, E. A., Gao, Y., Yücel, M. A., Boas, D. A., &amp; Kiran, S. (2026). Cortical activity for conversational responses in young neurotypical individuals, older neurotypical individuals, and individuals with aphasia: A functional near-infrared spectroscopy study. Imaging Neuroscience, 4, IMAG.a.1125. https://doi.org/10.1162/IMAG.a.1125</p>
+<p>Cannizzaro, M. S., Stephens, S. R., Breidenstein, M., &amp; Crovo, C. (2016). Prefrontal Cortical Activity During Discourse Processing: An Observational fNIRS Study. Topics in Language Disorders, 36(1), 65-79. https://doi.org/10.1097/TLD.0000000000000082</p>
+<p>Chang, W. K., Park, J., Lee, J.-Y., Cho, S., Lee, J., Kim, W.-S., &amp; Paik, N.-J. (2022). Functional Network Changes After High-Frequency rTMS Over the Most Activated Speech-Related Area Combined With Speech Therapy in Chronic Stroke With Non-fluent Aphasia. Frontiers in Neurology, 13((Chang W.K.; Park J.; Lee J.-Y.; Cho S.; Lee J.; Kim W.-S.; Paik N.-J., njpaik@snu.ac.kr) Department of Rehabilitation Medicine, Seoul National University College of Medicine, Seoul National University Bundang Hospital, Seongnam-si, South Korea). https://doi.org/10.3389/fneur.2022.690048</p>
+<p>Dipper, L., Marshall, J., Boyle, M., Hersh, D., Botting, N., &amp; Cruice, M. (2021). Creating a Theoretical Framework to Underpin Discourse Assessment and Intervention in Aphasia. Brain Sciences, 11(2), 183. https://doi.org/10.3390/brainsci11020183</p>
+<p>Duffy, J. R., Martin, P. R., Clark, H. M., Utianski, R. L., Strand, E. A., Whitwell, J. L., &amp; Josephs, K. A. (2023). The Apraxia of Speech Rating Scale: Reliability, Validity, and Utility. American Journal of Speech- Language Pathology, 32(2), 469-491. https://doi.org/10.1044/2022_AJSLP-22-00148</p>
+<p>Flowers, H. L., Skoretz, S. A., Silver, F. L., Rochon, E., Fang, J., Flamand-Roze, C., &amp; Martino, R. (2016). Poststroke Aphasia Frequency, Recovery, and Outcomes: A Systematic Review and Meta-Analysis. Archives of Physical Medicine and Rehabilitation, 97(12), 2188-2201.e8. https://doi.org/10.1016/j.apmr.2016.03.006</p>
+<p>Folstein, M., &amp; Folstein, S. (2010). Mini-Mental State Examination, 2nd Edition (MMSE-2) (2nd edition). PAR. Gan, L., Huang, L., Zhang, Y., Yang, X., Li, L., Meng, L., &amp; Wei, Q. (2024). Effects of low-frequency rTMS combined with speech and language therapy on Broca&#x27;s aphasia in subacute stroke patients. Frontiers in Neurology, 15, 1473254. https://doi.org/10.3389/fneur.2024.1473254</p>
+<p>Giglio, L., Ostarek, M., Sharoh, D., &amp; Hagoort, P. (2024). Diverging neural dynamics for syntactic structure building in naturalistic speaking and listening. Proceedings of the National Academy of Sciences, 121(11), e2310766121. https://doi.org/10.1073/pnas.2310766121</p>
+<p>Gilmore, N., Yücel, M. A., Li, X., Boas, D. A., &amp; Kiran, S. (2021). Investigating Language and Domain- General Processing in Neurotypicals and Individuals With Aphasia-A Functional Near-Infrared Spectroscopy Pilot Study. Frontiers in Human Neuroscience, 15, 728151. https://doi.org/10.3389/fnhum.2021.728151</p>
+<p>Hara, T., Abo, M., Kobayashi, K., Watanabe, M., Kakuda, W., &amp; Senoo, A. (2015). Effects of Low- Frequency Repetitive Transcranial Magnetic Stimulation Combined with Intensive Speech Therapy on Cerebral Blood Flow in Post-Stroke Aphasia. Translational Stroke Research, 6(5), 365-374. https://doi.org/10.1007/s12975-015-0417-7</p>
+<p>Harris Wright, H., &amp; Capilouto, G. J. (2012). Considering a multi-level approach to understanding maintenance of global coherence in adults with aphasia. Aphasiology, 26(5), 656-672. https://doi.org/10.1080/02687038.2012.676855</p>
+<p>Helm-Estabrooks, N. (2017). Cognitive Linguistic Quick Test-Plus. Pearson.</p>
+<p>Hickok, G., &amp; Poeppel, D. (2007). The cortical organization of speech processing. Nature Reviews Neuroscience, 8(5), 393-402. https://doi.org/10.1038/nrn2113</p>
+<p>Hilari, K., Byng, S., Lamping, D. L., &amp; Smith, S. C. (2003). Stroke and Aphasia Quality of Life Scale-39 (SAQOL-39): Evaluation of Acceptability, Reliability, and Validity. Stroke, 34(8), 1944-1950. https://doi.org/10.1161/01.STR.0000081987.46660.ED</p>
+<p>Huppert, T. J., Diamond, S. G., Franceschini, M. A., &amp; Boas, D. A. (2009). HomER: A review of time-series analysis methods for near-infrared spectroscopy of the brain. Applied Optics, 48(10), D280. https://doi.org/10.1364/AO.48.00D280</p>
+<p>ITK-Snap (Version 3.2). (2018). [Computer software].</p>
+<p>Jahani, S., Setarehdan, S. K., Boas, D. A., &amp; Yücel, M. A. (2018). Motion artifact detection and correction in functional near-infrared spectroscopy: A new hybrid method based on spline interpolation method and Savitzky-Golay filtering. Neurophotonics, 5(01), 1. https://doi.org/10.1117/1.NPh.5.1.015003</p>
+<p>Kaplan, E., Goodglass, H., &amp; Weintraub, S. (2001). Boston Naming Test-Second Edition. Lippincott Williams &amp; Wilkins.</p>
+<p>Kertesz, A. (2007). Western Aphasia Battery-Revised. Pearson.</p>
+<p>Kiran, S., Meier, E. L., &amp; Johnson, J. P. (2019). Neuroplasticity in Aphasia: A Proposed Framework of Language Recovery. Journal of Speech, Language, and Hearing Research, 62(11), 3973-3985. https://doi.org/10.1044/2019_JSLHR-L-RSNP-19-0054</p>
+<p>Koen, J. D., &amp; Rugg, M. D. (2019). Neural Dedifferentiation in the Aging Brain. Trends in Cognitive Sciences, 23(7), 547-559. https://doi.org/10.1016/j.tics.2019.04.012</p>
+<p>LaCroix, A. N., James, E., &amp; Rogalsky, C. (2021). Neural Resources Supporting Language Production vs. Comprehension in Chronic Post-stroke Aphasia: A Meta-Analysis Using Activation Likelihood Estimates. Frontiers in Human Neuroscience, 15, 680933. https://doi.org/10.3389/fnhum.2021.680933</p>
+<p>Lenth, R. V. (2024). emmeans: Estimated Marginal Means, aka Least-Squares Means (Version R package version 1.10.3) [Computer software]. https://CRAN.R-project.org/package=emmeans</p>
+<p>Li, H., Fan, S., Wu, Y., Fang, D., Hu, R., &amp; Lu, R. (2024). Intermittent theta-burst stimulation in aphasia caused by right side cerebral lesions after stroke: A case report with 2-year follow-up. Heliyon, 10(15), e35206. https://doi.org/10.1016/j.heliyon.2024.e35206</p>
+<p>Li, H., Fang, D., Chen, Y., Xu, S., Wang, Y., Wei, W., Zhao, R., Lai, Y., Wu, Y., Yang, Q., &amp; Hu, R. (2026). fNIRS-Guided neuronavigated rTMS augments naming recovery in subacute post-stroke aphasia: A double-blind randomized controlled trial. Frontiers in Human Neuroscience, 20, 1810169. https://doi.org/10.3389/fnhum.2026.1810169</p>
+<p>Li, H., Liu, J., Tian, S., Fan, S., Wang, T., Qian, H., Liu, G., Zhu, Y., Wu, Y., &amp; Hu, R. (2023). Language reorganization patterns in global aphasia-evidence from fNIRS. Frontiers in Neurology, 13, 1025384. https://doi.org/10.3389/fneur.2022.1025384</p>
+<p>Lomas, J., Pickard, L., Bester, S., Elbard, H., Finlayson, A., &amp; Zoghaib, C. (1989). The Communicative Effectiveness Index: Development and Psychometric Evaluation of a Functional Communication Measure for Adult Aphasia. Journal of Speech and Hearing Disorders, 54(1), 113-124. https://doi.org/10.1044/jshd.5401.113</p>
+<p>MacWhinney, B. (2000). The CHILDES Project: Tools for analyzing talk (Third Edition). Lawrence Erlbaum Associates. 10.21415/T5G10R</p>
+<p>Maillet, D., &amp; Rajah, M. N. (2014). Age-related differences in brain activity in the subsequent memory paradigm: A meta-analysis. Neuroscience &amp; Biobehavioral Reviews, 45, 246-257. https://doi.org/10.1016/j.neubiorev.2014.06.006</p>
+<p>McDonough, I. M., Nolin, S. A., &amp; Visscher, K. M. (2022). 25 years of neurocognitive aging theories: What have we learned? Frontiers in Aging Neuroscience, 14, 1002096. https://doi.org/10.3389/fnagi.2022.1002096</p>
+<p>NIRx Medical Technologies. (n.d.). NIRx NIRSport2 [Computer software].</p>
+<p>Price, C. J. (2012). A review and synthesis of the first 20years of PET and fMRI studies of heard speech, spoken language and reading. NeuroImage, 62(2), 816-847. https://doi.org/10.1016/j.neuroimage.2012.04.062</p>
+<p>PsychoPy3. (2021). [Computer software]. https://www.psychopy.org/ Quaresima, V., &amp; Ferrari, M. (2019). Functional Near-Infrared Spectroscopy (fNIRS) for Assessing Cerebral Cortex Function During Human Behavior in Natural/Social Situations: A Concise Review. Organizational Research Methods, 22(1), 46-68. https://doi.org/10.1177/1094428116658959</p>
+<p>R Core Team. (2021). R: A language and environment for statistical ## computing. R Foundation for Statistical Computing [Computer software]. https://www.R-project.org/ RStudio Team. (2020). RStudio: Integrated Development for R. RStudio, PBC [Computer software]. http://www.rstudio.com/</p>
+<p>Sakatani, K., Xie, Y., Lichty, W., Li, S., &amp; Zuo, H. (1998). Language-Activated Cerebral Blood Oxygenation and Hemodynamic Changes of the Left Prefrontal Cortex in Poststroke Aphasic Patients: A Near-Infrared Spectroscopy Study. Stroke, 29(7), 1299-1304. https://doi.org/10.1161/01.STR.29.7.1299</p>
+<p>Schneck, S. M., Levy, D. F., Entrup, J. L., Yen, M., Eriksson, D. K., Casilio, M., Kasdan, A. V., Walljasper, L., Onuscheck, C. F., Davis, L. T., Kirshner, H. S., De Riesthal, M., &amp; Wilson, S. M. (2026). Independent contributions of language activations in left and right temporal cortex to aphasia outcomes after stroke. Imaging Neuroscience, 4, IMAG.a.1225. https://doi.org/10.1162/IMAG.a.1225</p>
+<p>Shirzadi, S., Dadgostar, M., Hosseinzadeh, H., &amp; Einalou, Z. (2025). Dynamics of frontal cortex functional connectivity during cognitive tasks: Insights from fNIRS analysis in the Dual n-back Paradigm. Cognitive Processing, 26(3), 555-566. https://doi.org/10.1007/s10339-025-01275-8</p>
+<p>Sohn, P. (Director). (2009). Partly Cloudy [Video recording].</p>
+<p>Pixar.</p>
+<p>Stark, B. C. (2019). A Comparison of Three Discourse Elicitation Methods in Aphasia and Age-Matched Adults: Implications for Language Assessment and Outcome. American Journal of Speech-Language Pathology, 28(3), 1067-1083. https://doi.org/10.1044/2019_AJSLP-18-0265</p>
+<p>Stark, B. C., Dutta, M., Murray, L. L., Bryant, L., Fromm, D., MacWhinney, B., Ramage, A. E., Roberts, A., den Ouden, D. B., Brock, K., McKinney-Bock, K., Paek, E. J., Harmon, T. G., Yoon, S. O., Themistocleous, C., Yoo, H., Aveni, K., Gutierrez, S., &amp; Sharma, S. (2021). Standardizing Assessment of Spoken Discourse in Aphasia: A Working Group With Deliverables. American Journal of Speech-Language Pathology, 30(1S), 491-502. https://doi.org/10.1044/2020_AJSLP-19-00093</p>
+<p>Suda, M., Takei, Y., Aoyama, Y., Narita, K., Sato, T., Fukuda, M., &amp; Mikuni, M. (2010). Frontopolar activation during face-to-face conversation: An in situ study using near-infrared spectroscopy. Neuropsychologia, 48(2), 441-447. https://doi.org/10.1016/j.neuropsychologia.2009.09.036</p>
+<p>Sweetland, D. (Director). (2008). Presto [Video recording].</p>
+<p>Pixar.</p>
+<p>Vanderwal, T., Kelly, C., Eilbott, J., Mayes, L. C., &amp; Castellanos, F. X. (2015). Inscapes: A movie paradigm to improve compliance in functional magnetic resonance imaging. NeuroImage, 122, 222-232. https://doi.org/10.1016/j.neuroimage.2015.07.069</p>
+<p>Wickham, H., Averick, M., Bryan, J., Chang, W., McGowan, L., François, R., Grolemund, G., Hayes, A., Henry, L., Hester, J., Kuhn, M., Pedersen, T., Miller, E., Bache, S., Müller, K., Ooms, J., Robinson, D., Seidel, D., Spinu, V., … Yutani, H. (2019). Welcome to the Tidyverse. Journal of Open Source Software, 4(43), 1686. https://doi.org/10.21105/joss.01686</p>
+<p>Wickham, H., François, R., Henry, L., Müller, K., &amp; Vaughan, D. (2023). dplyr: A Grammar of Data Manipulation (Version R package version 1.1.4) [Computer software]. https://github.com/tidyverse/dplyr</p>
+<p>Wilson, S. M., &amp; Schneck, S. M. (2021). Neuroplasticity in Post-Stroke Aphasia: A Systematic Review and Meta-Analysis of Functional Imaging Studies of Reorganization of Language Processing. Neurobiology of Language, 2(1), 22-82. https://doi.org/10.1162/nol_a_00025</p>
+<p>Xu, X., Chen, S., Li, Z., Zhang, L., Pan, T., Long, S., Yang, T., Li, M., Li, Q., Chen, N., Chen, S., &amp; Zeng, Q. (2025). Efficacy of cerebellar cathodal transcranial direct current stimulation for post-stroke aphasia: A randomized controlled trial. Clinical Neurophysiology Practice, 10, 464-473. https://doi.org/10.1016/j.cnp.2025.10.001</p>
+<p>Yücel, M. A., Anderson, J. E., Rogers, D., Hajirahimi, P., Farzam, P., Gao, Y., Kaplan, R. I., Braun, E. J., Mukadam, N., Duwadi, S., Carlton, L., Beeler, D., Butler, L. K., Carpenter, E., Girnis, J., Wilson, J., Tripathi, V., Zhang, Y., Sorger, B., … Boas, D. A. (2025). Quantifying the impact of hair and skin characteristics on fNIRS signal quality for enhanced inclusivity. Nature Human Behaviour, 9(12), 2651-2668. https://doi.org/10.1038/s41562-025-02274-7</p>
 </div>
 </details>
 </div>
