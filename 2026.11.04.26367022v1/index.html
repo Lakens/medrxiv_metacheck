@@ -197,7 +197,7 @@ Real-World Use, Dosing, and Reported Side Effects of BPC-157 and TB-500
 for Musculoskeletal Injury: An Analysis of Online Communities
 </p>
 <p class="meta">
-2026-11-14 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.04.26367022
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.04.26367022
 </p>
 </header>
 <div class="mc-main">
@@ -311,8 +311,8 @@ ethics approval statement.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 2 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 2 detected.</p>
 </div>
 </div>
 </div>
@@ -397,8 +397,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -755,9 +756,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -779,7 +784,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -794,9 +800,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -809,13 +833,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -835,6 +862,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -842,12 +875,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -948,6 +987,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -967,6 +1026,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1222,19 +1316,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1344,6 +1520,130 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Objective To describe how people use the unapproved peptides BPC-157 and TB-500 for tendon, ligament and muscle injury and what side effects they report.</p>
+<p>Using a large language model validated against physician review, we analyzed 92,254 posts and comments from 28,652 users in Reddit&#x27;s peptide communities from 2021 to 2026. We compared side effects with those reported by users of four other peptides in the same communities.</p>
+<p>In all, 5,588 users described using BPC-157 and/or TB-500 for a specific musculoskeletal injury, most often a chronic tendon problem of the shoulder, knee or elbow.</p>
+<p>Only 3.8% of users described physician involvement, and 90.9% of those naming a source bought from research-chemical vendors. The median BPC-157 dose (366 µg per injection) was about 2.7 times the human-equivalent dose of the 10 µg/kg rat regimen, and among new users it rose from 300 µg in 2024 to 500 µg in 2025. Of those stating an outcome, 79.3% reported improvement, and 36.6% of all users were also in physical therapy. Overall, 27.2% described at least one side effect, most often fatigue, anxiety, anhedonia and insomnia. Anhedonia was more common than among users of the four other peptides (10.2% versus 1.3% of those with side effects).</p>
+<p>Use of these unapproved peptides for musculoskeletal injury is largely unsupervised, relying on grey-market products at self-selected, rising doses without established safety or efficacy.</p>
+<p>• Evidence that BPC-157 and TB-500 help tendon, ligament or muscle injury comes almost entirely from animal studies.</p>
+<p>• Both are prohibited in sport by the World Anti-Doping Agency, and in July 2026 a US Food and Drug Administration advisory committee voted to recommend them for pharmacy compounding.</p>
+<p>• We analyzed over 90,000 Reddit posts from 5,588 users taking these peptides for a specific injury, most often a chronic tendon problem of the shoulder, knee or elbow.</p>
+<p>• Only 3.8% described physician involvement, and 90.9% of those naming a source bought from research-chemical vendors.</p>
+<p>• The median BPC-157 dose was about 2.7 times the human-equivalent dose of the rat regimen, and 27.2% of users reported a side effect.</p>
+<p>• Anhedonia was about eight times as common as among users of four other peptides in the same communities.</p>
+<p>• Clinicians treating chronic tendon problems should ask about peptide use and counsel patients on the lack of human efficacy data, unregulated supply, anti-doping status and reported side effects.</p>
+<p>• Trials with prespecified neuropsychiatric outcomes are needed before any benefit or dose can be claimed.</p>
+<p>• These findings may inform regulatory decisions on pharmacy compounding.</p>
+<p>.</p>
+<h3>Introduction</h3>
+<p>Two unapproved peptides, BPC-157 and TB-500, have rapidly gained popularity as &quot;healing peptides&quot; for tendon, ligament and muscle injury. [1] [2] [3] [4] BPC-157, a synthetic 15-amino acid fragment of a protein isolated from human gastric juice, promotes the survival and migration of tendon fibroblasts and increases their growth hormone receptor expression in cultured rat cells. 5, 6 In rats, it accelerated healing of transected or detached Achilles tendons, transected ligaments and injured myotendinous junctions, in studies almost entirely from a single research group. [7] [8] [9] [10] Its half-life in rats and dogs is under 30 minutes. 11 Human data are limited to a retrospective series in which 7 of 12 patients reported relief of knee pain after intra-articular injection 12 and a small intravenous safety pilot, 13 and a 2025 systematic review found 35 preclinical studies, one clinical study and no controlled trials or clinical safety data. 14 TB-500 is a synthetic version of the acetylated 17-23 fragment of thymosin β4, 15 an actin-sequestering protein that promotes wound repair in animal models. 16 Full-length thymosin β4 has been tested in clinical trials of eye and skin wound healing, 17 but we found no published clinical study of the TB-500 fragment.</p>
+<p>Despite this popularity, there are no systematic data on how these peptides are used, and no study has established an effective or safe human dose. Products are sold online as research chemicals, 1, 4 so their use is unlikely to be captured by health records or spontaneous adverse event reporting. Both peptides are prohibited at all times by the World Anti-Doping Agency, 18 yet in July 2026 a US Food and Drug Administration (FDA) advisory committee voted to recommend both for pharmacy compounding. 19 Clinicians, athletes and regulators therefore have little information on how these peptides are used or what harm they cause.</p>
+<p>Online health communities are one source of such data: users describe their own treatment experiences in detail and without prompting, and analyses of such posts can detect side effects under-recognized in trials and post-marketing surveillance. 20 Large language models now allow such posts to be analyzed at scale. Using this approach, Sehgal and colleagues described self-reported side effects among more than 67,000 Reddit users of semaglutide and tirzepatide, identifying menstrual and temperature-related symptoms not recognized in drug labeling, 21 and then studied retatrutide. 22 Similar analyses have described side effects of grey-market selective androgen receptor modulators. 23 We therefore analyzed 92,254 posts and comments from Reddit&#x27;s peptide communities with three objectives: to describe (1) the injuries treated, regimens, sources, physician involvement and reported outcomes of people using BPC-157 and TB-500 for musculoskeletal injury, and (2) the side effects they attribute to these peptides; and (3) to test whether any side effect is specific to BPC-157 and TB-500 rather than a feature of how these communities report side effects, by comparing their users with users of four other peptides discussed in the same communities.</p>
+<h3>Methods</h3>
+<h3>Data source</h3>
+<p>We collected all posts and comments from 1 January 2021 to 31 August 2026 in the six subreddits dedicated to peptide use (r/Peptides, r/bpc_157, r/peptidesource, r/PeptideGuide, r/TB500 and r/Semax) from Arctic Shift, a public archive of Reddit data, and kept those mentioning BPC-157, TB-500 or four other peptides considered by the FDA advisory committee (Supplementary Appendix). Following prior work, 21 we excluded deleted and removed content, bot accounts, texts under 10 words and texts with fewer than 50% alphabetic characters, leaving 92,254 posts and comments from 28,652 users (6.6 million words). We followed the</p>
+<h3>Strengthening the Reporting of Observational Studies in Epidemiology (STROBE) guidelines.</h3>
+<h3>Language-model extraction</h3>
+<p>We used a large language model (Qwen3-235B-A22B-Instruct-2507) to identify posts describing the author&#x27;s own use of a study peptide and, for BPC-157 and TB-500 users describing a musculoskeletal problem, to extract the injury&#x27;s location, tissue and chronicity, the dose, route and source, concurrent treatments, physician involvement and the reported outcome.</p>
+<p>Each side effect the author attributed to the peptide was mapped to a Medical Dictionary for Regulatory Activities (MedDRA) Preferred Term (PT) and system organ class (SOC) and classed as serious or non-serious using the regulatory definition. Further details are in the Supplementary Appendix.</p>
+<h3>Validation</h3>
+<p>Physicians blinded to the model&#x27;s output annotated 400 randomly selected posts. Against these annotations, the model identified musculoskeletal use with a sensitivity of 94% and a precision of 96% (κ=0.90), physician involvement with κ=0.89, the reported outcome with κ=0.67, self-use with a sensitivity of 75% and a precision of 91%, and posts describing a side effect with a sensitivity of 85% and a precision of 79%. A physician reviewed every event the model flagged as serious.</p>
+<h3>Statistical analysis</h3>
+<p>Side-effect percentages were calculated among users reporting at least one side effect, as in prior work, 21 and percentages for injuries, injection site and source among users who stated each item, with 95% Wilson confidence intervals. Sensitivity analyses excluded injection-site terms, excluded users reporting co-use of incretin-based drugs, androgens or selective androgen receptor modulators, growth hormone or its secretagogues, or stimulants, and examined BPC-157 with and without TB-500. As a negative control, we compared users who reported only BPC-157 and/or TB-500 with users who reported only one of the other four peptides, using risk ratios among users reporting side effects and odds ratios adjusted for posting volume. Physicianinvolved and other users, and users taking 500 µg or more of BPC-157 per injection and other users, were compared by logistic regression adjusted for posting volume and, for dose, year of first post. A user was counted as having had surgery if either the injury or the treatment extraction said so, and growth in new users was compared with the number of authors posting about any study peptide each year. Analyses used Python 3.13.</p>
+<h3>Equity, diversity and inclusion statement</h3>
+<p>The author team includes senior and early career researchers from diverse medical specialties, including orthopaedics and rehabilitation medicine, and is majority female-led. We did not extract race, ethnicity or income. Fewer than one in ten users stated their age or sex, and those who did were mostly male, so our findings may not apply equally to women, older adults or people who do not post in English. We report only aggregate data.</p>
+<h3>Patient and public involvement</h3>
+<p>Patients and the public were not involved in the design, conduct or reporting of this study.</p>
+<h3>Results</h3>
+<p>The model classified all 92,254 posts and comments; 34,071 described personal use by 13,456 users. Of these, 6,281 described using BPC-157 and/or TB-500 for a musculoskeletal problem, and the 5,588 who named a specific body region or tissue formed the cohort (Figure 1). Where stated, users were mostly male (69.7% of 373), with a median age of 42 years (interquartile range [IQR] 33-50; n=455).</p>
+<h3>Injuries and regimens</h3>
+<p>Injuries were mostly chronic (75.2%) and tendinous (50.4%), most often of the shoulder (38.9%), knee (24.8%), elbow (18.4%) and lumbar or thoracic spine (17.6%) (Table 1; Figure 2).</p>
+<p>Over a third of users (36.6%) were also receiving physical therapy, and 17.4% had undergone surgery for the same problem. The median BPC-157 dose was 366 µg per injection (IQR 250-500), or about 4.3 µg/kg for an 85 kg adult: less than half the 10 µg/kg regimen of rat tendon and ligament studies, [7] [8] [9] [10] which only 9.0% reached (Figure 3), but about 2.7 times its humanequivalent dose of 1.6 µg/kg by body-surface-area conversion, which 98.0% met or exceeded. 24 Most users injected subcutaneously (76.3%) and, where a site was stated, away from the injury (86.4%). Of users naming a source, 90.9% bought from research-chemical vendors (90.8% excluding r/peptidesource, a vendor-review community). Physician prescribing or administration was described by only 3.8% of all users, including 5.9% of those who had undergone surgery and 6.4% of those receiving physical therapy.</p>
+<h3>Reported outcomes</h3>
+<p>Among 4,832 users stating an outcome, 79.3% reported improvement, 12.7% no change, 4.0% worsening, 2.0% that it was too early to tell and 1.9% mixed results. The median time to a perceived effect was 10.5 days (IQR 7-21).</p>
+<h3>Side effects</h3>
+<p>Overall, 1,519 users (27.2%) reported at least one side effect, with a mean of 2.8 PTs each (Table 2). Among them, the most common were fatigue (13.2%), anxiety (12.8%), anhedonia (11.0%), insomnia (10.1%) and injection site pain (9.8%). A psychiatric symptom was reported by 33.2% and a nervous system symptom by 28.3%, compared with 15.4% for gastrointestinal symptoms.</p>
+<p>The model flagged 173 potentially serious events from 59 users. On physician review, 29 users (0.5%) described an event meeting the regulatory definition of serious, most often a new or progressing cancer (6 users, 4 with basal cell carcinoma), a persistent or disabling illness (5) or a cardiovascular emergency (5) (Supplementary Table S12); excluding basal cell carcinoma, which not every definition counts as serious, 25 users (0.4%) did.</p>
+<p>The profile was similar after excluding the 21.6% of users reporting co-use of the drugs listed in the Methods (11.6% with a psychiatric or nervous system effect versus 13.4% overall), and fatigue, anxiety and anhedonia remained among the four most common PTs in every subgroup, including users of BPC-157 without TB-500 (Supplementary Table S7). Including 693 users who described only an unspecified injury changed no main result by more than 1.3 percentage points (Supplementary Table S11).</p>
+<p>In the negative control, users of BPC-157 and/or TB-500 alone (n=9,065) reported side effects about as often as users of KPV, MOTS-c, Epitalon or Semax alone (26.1% versus 20.2% to 27.6%), but anhedonia was described by 10.2% of BPC-157/TB-500 users reporting side effects versus 1.3% of other peptide users (risk ratio 7.7, 95% CI 3.4-17.1; odds ratio adjusted for posting volume 6.7, 2.9-15.1) and 2.9% of users of the nootropic Semax. The excess was similar among BPC-157/TB-500 users with no musculoskeletal use (10.2%) or using the peptides for gut problems (12.9%), and users of BPC-157/TB-500 plus another peptide attributed anhedonia to BPC-157/TB-500 (76 users) far more often than to the other peptide (11). Combining anhedonia with depression, depressed mood and apathy reduced the excess (12.6% versus 3.8%; risk ratio 3.3, 2.1-5.4) to a level similar to Semax (9.6%). Fatigue (11.7% versus 15.8%) and insomnia (8.0% versus 8.0%) were not more common with BPC-157/TB-500, and anxiety was modestly more common (13.0% versus 8.0%) (Supplementary Table S13).</p>
+<p>Physician-involved users reported side effects more often than other users (36.3% versus 26.8%; odds ratio 1.55, 95% CI 1.17-2.06), but they also posted more, and the difference was not significant after adjustment for posting volume (adjusted odds ratio 1.14, 0.83-1.55). Physician involvement did not change significantly over time (2.8% to 4.7% by year; P=0.09). The median BPC-157 dose among new users was 250 to 300 µg from 2021 to 2024 and 500 µg in 2025, when 50.9% of new users stating a dose took 500 µg or more, compared with 28.1% in 2021 (Supplementary Table S8). Users taking 500 µg or more reported side effects less often than those taking less (29.1% versus 38.6% below 300 µg and 40.9% at 300 to 499 µg; odds ratio adjusted for posting volume and year 0.64, 0.53-0.78). New users increased from 471 in 2021 to 1,883 in 2025 (Figure 4), in step with the number of people posting about any study peptide (2,258 to 10,606), so the share of active posters describing musculoskeletal use was stable at 17.8 to 20.9 per 100; the 2021 count also includes users active before the archive began. Among users reporting side effects, the proportion describing anhedonia varied by year (8.7% to 15.6%; P=0.017) without a consistent upward trend.</p>
+<h3>Discussion</h3>
+<p>In this analysis of 92,254 Reddit posts and comments, more than 5,500 users described using BPC-157 and/or TB-500 for a musculoskeletal injury, most often chronic tendinopathy of the shoulder, knee or elbow, often alongside physical therapy or surgery and rarely under physician supervision. Most bought their peptides from research-chemical vendors, doses rose over time, and 27% reported side effects, among which anhedonia was specific to these peptides. To our knowledge, this is the first systematic description of how these peptides are used for musculoskeletal injury outside research settings.</p>
+<p>The injuries users reported treating differ in important ways from those modeled in preclinical studies, which created acute injuries surgically in healthy rats and began treatment at or shortly after injury. [7] [8] [9] [10] Chronic tendinopathy is a degenerative condition with different biology from an acute surgical wound, and whether a peptide that speeds repair of such a wound in rats affects it in people has never been tested. Because chronic tendon pain fluctuates and often improves with time, rehabilitation and the concurrent treatments many users received, the 79% who reported improvement cannot be taken as evidence that the peptides worked.</p>
+<p>Users&#x27; doses have no empirical basis in humans. Because drug exposure scales with bodysurface area rather than weight, the 10 µg/kg rat regimen corresponds to about 1.6 µg/kg in humans, or roughly 140 µg for an 85 kg adult. 24 This conversion guides starting doses in first-inhuman trials and does not account for route, frequency or pharmacokinetics, none of which have been characterized in humans, so it does not identify a safe or effective dose. Doses are also rising: the median among new users rose from 300 µg in 2024 to 500 µg in 2025. Higher doses were not associated with more reported side effects, but this cross-sectional comparison cannot exclude harm: users who tolerated the peptides may have increased their dose while those with side effects reduced or stopped it. Most users also injected subcutaneously away from the injury, assuming that the peptide reaches injured tissue through the circulation, which has not been tested in people.</p>
+<p>Nine in ten of those naming a source bought from research-chemical vendors, whose products are not approved by the FDA, are labeled not for human use and are not made to pharmaceutical standards, 1, 4 so their identity, purity, sterility and content are unknown. Only one in 25 users described a physician prescribing or administering the peptide. Users may simply not have mentioned such involvement. The FDA advisory committee&#x27;s recommendation to permit pharmacy compounding 19 could improve product quality but would not provide evidence of efficacy or an evidence-based dose, and in our data physician involvement was not associated with fewer side effects. In addition, 5.7% of users were competitive athletes, for whom any use is an anti-doping violation. 18 We also identified a side-effect profile not described in the limited human studies of these peptides, which were small, uncontrolled and not designed to detect uncommon effects. 12, 13 Fewer users reported side effects than Reddit users of semaglutide and tirzepatide in a similar analysis (43.5%), 21 although this may reflect posting behavior as much as tolerability, and the profile differed: in place of the gastrointestinal symptoms that dominate reports for glucagon-like peptide-1 receptor agonists, reports were dominated by fatigue, anxiety, anhedonia and insomnia, although BPC-157 is derived from a gastric protein. 25 This pattern is consistent with a non-peerreviewed analysis of a single community. 26 Several findings suggest that the type of person using these peptides does not fully explain the anhedonia signal. It persisted after excluding users of co-administered agents most likely to cause neuropsychiatric symptoms, was about eight times as common as with four other peptides discussed in the same communities, and did not depend on whether the peptides were used for an injury. Anhedonia was also reported by only 0.7% of Reddit users describing side effects of semaglutide or tirzepatide. 21 BPC-157 interacts with central dopaminergic and serotonergic systems in rodents, 25, 27 which could plausibly affect reward, but its effects in rat models of depression and anxiety were antidepressant-like and anxiolytic-like, 25 so no mechanism for anhedonia has been established. Reporting increases after a suspected effect is publicized, 28 and a narrative attached to one peptide could prompt users to attribute their symptoms to it, which a negative-control comparison cannot exclude; the smaller excess for lowmood terms combined suggests that part of the signal reflects the words users choose. The proportion describing anhedonia did not rise consistently over time, which argues against, but cannot exclude, earlier posts prompting later reports. Nocebo effects are also possible, and misattribution of the low mood that accompanies chronic pain is less likely given that anhedonia was as common among users without an injury. Serious events were rare (0.5% of users), and their reporting cannot establish causality, but reports of new or progressing cancers merit attention. BPC-157 promotes angiogenesis through vascular endothelial growth factor receptor 2, 29 which may contribute to healing but could in principle support tumor growth. Most cancers described were basal cell carcinomas, which are common in middle-aged adults, but with no long-term human safety data, this theoretical concern argues for caution in people with a history of cancer and for long-term surveillance.</p>
+<p>The main strengths of this study are its scale and its subject: no trials, registries or surveillance systems capture how these peptides are used, and pseudonymous posting may lead users to describe more candidly than in a clinic what they do. Other strengths are physician validation of each extraction step and a negative-control comparison.</p>
+<h3>Limitations</h3>
+<p>This study has limitations. Users of peptide communities may differ from all users of these peptides, and fewer than one in ten disclosed demographic characteristics. Because side effects and outcomes were volunteered rather than elicited, we cannot estimate their true frequency or establish causality; posting may favor more severe experiences, beliefs about attribution may shape reports, and product identity, dose and diagnoses could not be verified.</p>
+<p>Reported outcomes are especially vulnerable to selection, expectation, regression to the mean and concurrent treatment. Finally, each validation post was rated by one physician, agreement on specific side-effect terms was modest, and the cohort is more likely undercounted than inflated.</p>
+<p>Our findings should be treated as hypothesis-generating signals that require confirmation by surveillance systems and prospective studies. 20 Randomized trials in chronic tendinopathy, with pharmacokinetic sampling and prespecified neuropsychiatric outcomes, are needed before any benefit or dose can be claimed, and analytical</p>
+<h3>Conclusions</h3>
+<p>This study provides the largest description to date of how BPC-157 and TB-500 are used for musculoskeletal injury. Sports medicine clinicians should ask patients with chronic tendinopathy about peptide use and counsel them on the absence of human efficacy data, unregulated supply, anti-doping status and reported side effects, including anhedonia. Table 2. Most frequent self-reported side effects (MedDRA Preferred Terms) among 1,519 users reporting any side effect (5,588 users in the cohort). Preferred Term System Organ Class Users, n % of cohort (95% CI) % of users with side effects Fatigue General disorders 201 3.6 (3.1-4.1) 13.2 Anxiety Psychiatric disorders 194 3.5 (3.0-4.0) 12.8 Anhedonia Psychiatric disorders 167 3.0 (2.6-3.5) 11.0 Insomnia Psychiatric disorders 153 2.7 (2.3-3.2) 10.1 Injection site pain General disorders 149 2.7 (2.3-3.1) 9.8 Headache Nervous system disorders 120 2.1 (1.8-2.6) 7.9 Palpitations Cardiac disorders 90 1.6 (1.3-2.0) 5.9 Cognitive disorder Nervous system disorders 90 1.6 (1.3-2.0) 5.9 Injection site erythema General disorders 87 1.6 (1.3-1.9) 5.7 Pain in extremity Musculoskeletal disorders 76 1.4 (1.1-1.7) 5.0 Nausea Gastrointestinal disorders 67 1.2 (0.9-1.5) 4.4 Dizziness Nervous system disorders 60 1.1 (0.8-1.4) 3.9 Figure 1. Study flow. Counts are texts (posts and comments) unless stated as users. more than one cell. body weight (n=2,158 users), against the two rat regimens used in the musculoskeletal studies (10 µg/kg and 10 ng/kg). 7-10 The dotted line marks the human-equivalent dose of the 10 µg/kg rat regimen by body-surface-area conversion (1.6 µg/kg). 24 Logarithmic scale. 2025.</p>
+<p>Detailed methods, Supplementary Tables S1 to S13, and the STROBE 30 checklist are in the Supplementary Appendix.</p>
+<h3>Funding</h3>
+<p>We have no funding to disclose.</p>
+<h3>Data availability statement</h3>
+<p>All data used in this study are publicly available from Reddit.com or are accessible via Arctic Shift. Due to Reddit&#x27;s Terms of Use, we are unable to share the raw data. All Reddit data in this study were used in accordance with Reddit&#x27;s Terms of Use. Code, prompts, schemas and annotation guides to reproduce the analyses are available from the corresponding author on reasonable request.</p>
+<h3>Competing interests</h3>
+<p>The authors declare no competing interests.</p>
+<h3>Author contributions</h3>
+<p>JC conceived and designed the study, built the data pipeline, performed the analysis, annotated the self-use, side-effect, physician-involvement and outcome validation samples, adjudicated serious events, and wrote the manuscript. CC and CL independently reviewed the</p>
+<h3>Ethics</h3>
+<p>Data were collected from publicly accessible Reddit posts and comments. No attempts were made to access private or password-protected content. As data were public and non-identifiable, the Colorado Multiple Institutional Review Board determined that this study was exempt from review.</p>
+<h3>Consent</h3>
+<p>Not applicable; no participants were recruited, no identifiers are reported, and quotations are not reproduced.</p>
+<h3>Use of artificial intelligence</h3>
+<p>Large language models were the extraction method. The authors also used large language models to edit the manuscript. The authors reviewed all output and take full responsibility for the content. musculoskeletal validation samples. CC, CL and VW critically reviewed the manuscript. JC is the guarantor.</p>
+<p>testing of products sold by research-chemical vendors would establish what users are injecting. If compounding is permitted, a registry of patients receiving compounded peptides would allow prospective follow-up, and clinicians should report suspected adverse effects to the FDA MedWatch program.</p>
+<h3>FiguresFigure 1.</h3>
+<p>Figures</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Users reporting each combination of injury region and tissue. A user may contribute</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Self-reported BPC-157 dose per injection, expressed per kilogram assuming 85 kg</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Users first describing musculoskeletal use of BPC-157 or TB-500, by year, 2021 to</p>
+<h3>Table 1 . Characteristics, injuries, and regimens of 5,588 Reddit users describing musculoskeletal use of BPC-157 and/or TB-500.</h3>
+<p>Categories are not mutually exclusive. Injury, injection-site, and source percentages use users who stated the item as the denominator.</p>
+<h3>References</h3>
+<p>Mendias CL, Awan TM. Safety and efficacy of approved and unapproved peptide therapies for musculoskeletal injuries and athletic performance. Sports Med. 2026;56(8):1921-1935.</p>
+<p>Mayfield CK, Bolia IK, Feingold CL, et al. Injectable peptide therapy: a primer for orthopaedic and sports medicine physicians. Am J Sports Med. 2026;54(1):223-229.</p>
+<p>Tewari K, Liu TP, Im C, et al. Peptide supplements and their therapeutic applications in sports medicine. Am J Sports Med. 2026. doi:10.1177/03635465261464420</p>
+<p>Coutinho LFD, de Oliveira Neves LF, Camilo RP. A new era of doping? Use of peptide and peptide-analog drugs in recreational and professional sport and bodybuilding: a critical review. J Sports Med Phys Fitness. 2026;66(7):880-885.</p>
+<p>Chang CH, Tsai WC, Lin MS, et al. The promoting effect of pentadecapeptide BPC 157 on tendon healing involves tendon outgrowth, cell survival, and cell migration. J Appl Physiol (1985). 2011;110(3):774-780.</p>
+<p>Chang CH, Tsai WC, Hsu YH, Pang JH. Pentadecapeptide BPC 157 enhances the growth hormone receptor expression in tendon fibroblasts. Molecules. 2014;19(11):19066-19077.</p>
+<p>Staresinic M, Sebecic B, Patrlj L, et al. Gastric pentadecapeptide BPC 157 accelerates healing of transected rat Achilles tendon and in vitro stimulates tendocytes growth. J Orthop Res. 2003;21(6):976-983.</p>
+<p>Krivic A, Anic T, Seiwerth S, et al. Achilles detachment in rat and stable gastric pentadecapeptide BPC 157: promoted tendon-to-bone healing and opposed corticosteroid aggravation. J Orthop Res. 2006;24(5):982-989.</p>
+<p>Cerovecki T, Bojanic I, Brcic L, et al. Pentadecapeptide BPC 157 (PL 14736) improves ligament healing in the rat. J Orthop Res. 2010;28(9):1155-1161.</p>
+<p>Japjec M, Horvat Pavlov K, Petrovic A, et al. Stable gastric pentadecapeptide BPC 157 as a therapy for the disable myotendinous junctions in rats. Biomedicines. 2021;9(11):1547.</p>
+<p>He L, Feng D, Guo H, et al. Pharmacokinetics, distribution, metabolism, and excretion of body- protective compound 157, a potential drug for treating various wounds, in rats and dogs. Front Pharmacol. 2022;13:1026182.</p>
+<p>Lee E, Padgett B. Intra-articular injection of BPC 157 for multiple types of knee pain. Altern Ther Health Med. 2021;27(4):8-13.</p>
+<p>Lee E, Burgess K. Safety of intravenous infusion of BPC157 in humans: a pilot study. Altern Ther Health Med. 2025;31(5):20-24.</p>
+<p>Vasireddi N, Hahamyan H, Salata MJ, et al. Emerging use of BPC-157 in orthopaedic sports medicine: a systematic review. HSS J. 2025;21(4):485-495.</p>
+<p>Esposito S, Deventer K, Goeman J, Van der Eycken J, Van Eenoo P. Synthesis and characterization of the N-terminal acetylated 17-23 fragment of thymosin beta 4 identified in TB- 500, a product suspected to possess doping potential. Drug Test Anal. 2012;4(9):733-738.</p>
+<p>Goldstein AL, Hannappel E, Kleinman HK. Thymosin beta4: actin-sequestering protein moonlights to repair injured tissues. Trends Mol Med. 2005;11(9):421-429.</p>
+<p>Goldstein AL, Kleinman HK. Advances in the basic and clinical applications of thymosin β4. Expert Opin Biol Ther. 2015;15(suppl 1):S139-S145.</p>
+<p>World Anti-Doping Agency. The 2026 Prohibited List. Montreal: WADA; 2026. https://www.wada-ama.org/en/prohibited-list</p>
+<p>Liang L. Peptides: US advisory committee recommends six for FDA &quot;compounding list&quot;. BMJ. 2026;394:e100422.</p>
+<p>Golder S, O&#x27;Connor K, Wang Y, Klein A, Gonzalez Hernandez G. The value of social media analysis for adverse events detection and pharmacovigilance: scoping review. JMIR Public Health Surveill. 2024;10:e59167.</p>
+<p>Sehgal NKR, Tronieri JS, Ungar L, Guntuku SC. Self-reported side effects of semaglutide and tirzepatide in online communities. Nat Health. 2026;1(8):806-811.</p>
+<p>Sehgal NKR, Tronieri JS, Rader B, Ungar L, Guntuku SC. Self-reported adverse effects among social media users taking nonapproved retatrutide. JAMA Netw Open. 2026;9(10):e2638929. doi:10.1001/jamanetworkopen.2026.38929</p>
+<p>Joshi A, Kaune DF, Leff P, et al. Self-reported side effects associated with selective androgen receptor modulators: social media data analysis. J Med Internet Res. 2025;27:e65031. doi:10.2196/65031</p>
+<p>Nair AB, Jacob S. A simple practice guide for dose conversion between animals and human. J Basic Clin Pharm. 2016;7(2):27-31. doi:10.4103/0976-0105.177703</p>
+<p>Sikiric P, Seiwerth S, Rucman R, et al. Brain-gut axis and pentadecapeptide BPC 157: theoretical and practical implications. Curr Neuropharmacol. 2016;14(8):857-865.</p>
+<p>Staj A. Digital public pharmacovigilance: BPC-157 adverse events. Substack; 19 July 2026. https://anthonystaj.substack.com/p/digital-public-pharmacovigilance</p>
+<p>Vukojevic J, Milavic M, Perovic D, et al. Pentadecapeptide BPC 157 and the central nervous system. Neural Regen Res. 2022;17(3):482-487.</p>
+<p>Pariente A, Gregoire F, Fourrier-Reglat A, Haramburu F, Moore N. Impact of safety alerts on measures of disproportionality in spontaneous reporting databases: the notoriety bias. Drug Saf. 2007;30(10):891-898. doi:10.2165/00002018-200730100-00007</p>
+<p>Hsieh MJ, Liu HT, Wang CN, et al. Therapeutic potential of pro-angiogenic BPC157 is associated with VEGFR2 activation and up-regulation. J Mol Med (Berl). 2017;95(3):323-333. doi:10.1007/s00109-016-1488-y</p>
+<p>von Elm E, Altman DG, Egger M, et al. The Strengthening the Reporting of Observational Studies in Epidemiology (STROBE) statement: guidelines for reporting observational studies. Lancet. 2007;370(9596):1453-1457.</p>
 </div>
 </details>
 </div>
