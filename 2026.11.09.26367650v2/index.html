@@ -199,7 +199,7 @@ of Acute Intermittent Hypoxia Is Safe and Improves Somatic Motor
 Function in Persons with Multiple Sclerosis
 </p>
 <p class="meta">
-2026-11-13 · Metacheck 0.4.3.28 · DOI 10.64898/2026.11.09.26367650
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.09.26367650
 </p>
 </header>
 <div class="mc-main">
@@ -948,8 +948,11 @@ statistics written in APA format.</p>
 </div>
 <div class="d">
 <p>We found no links to repositories on the Open Science Framework,
-Github, ResearchBox, DSpace, Zenodo, Dataverse, Figshare, Dryad,
-ReShare, 4TU.ResearchData, Mendeley Data, DataONE, or LDbase.</p>
+Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
+Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -1387,9 +1390,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -1411,7 +1418,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -1426,9 +1434,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -1441,13 +1467,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1467,6 +1496,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -1474,12 +1509,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -1580,6 +1621,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -1599,6 +1660,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1854,19 +1950,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1976,6 +2154,177 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>[div-01]</h3>
+<p>BACKGROUND/OBJECTIVES Walking impairment affects up to 75% of persons with multiple sclerosis (MS), and the benefits of rehabilitation are constrained by limited capacity for training-induced neuroplasticity. Acute intermittent hypoxia (AIH), brief repeated exposures to low inspired oxygen, triggers serotonin-dependent spinal plasticity that enhances motor output. In spinal cord injury, daily AIH paired with walking training has produced larger walking gains than training alone, positioning AIH as a promising primer for rehabilitation. Before AIH can be combined with training in MS, its safety and stand-alone effects with repeated daily dosing must be established in a population with demyelinating disease. We therefore conducted the first multi-day AIH trial in persons with MS to characterize safety and tolerability and to evaluate preliminary effects on ankle strength and walking.</p>
+<h3>METHODS</h3>
+<p>Twenty-three ambulatory adults with MS (Expanded Disability Status Scale [EDSS] 3.0-6.5; 15 relapsing-remitting, 8 secondary-progressive) completed a randomized, double-masked, placebocontrolled crossover trial. Participants received AIH (15 × ~60 s episodes; FiO₂ = 0.09; SpO₂ target 84-88%) and Sham in a counterbalanced order, separated by a ≥4-week washout. Assessments at preintervention, post-intervention, and follow-up included ankle plantarflexion and dorsiflexion torque, 6-Minute Walk Test (6MWT), Timed 25-Foot Walk (T25FW), and MS Walking Scale-12 (MSWS-12). Treatment effects were estimated using analysis of covariance (ANCOVA) with participant as a random effect.</p>
+<h3>RESULTS</h3>
+<p>No serious adverse events related to the intervention were reported, and follow-up MRI showed no new MS activity in either arm. Mean nadir SpO₂ during AIH was 84.7 ± 0.2%, and cardiovascular parameters returned to baseline within minutes of each session completion. Ankle plantarflexion torque was significantly greater following AIH than Sham (β = 8.74 N•m, p &lt; 0.001), with mean increases of 17.5% at post-intervention and 29.2% at follow-up. Six-minute walk distance was also significantly greater after AIH (β = 10.14 m, p = 0.039). Dorsiflexion torque (p = 0.202), T25FW time (p = 0.239), and MSWS-12 score (p = 0.564) did not differ significantly between conditions. Greater elevation in heart rate during hypoxic episodes was associated with larger strength gains at follow-up (r = 0.58, p = 0.009).</p>
+<h3>CONCLUSIONS</h3>
+<p>Daily AIH sessions are safe and well tolerated in persons with MS across a clinically heterogeneous disability range and produce significant improvements in ankle plantarflexion strength and walking endurance. These findings support combining AIH with task-specific gait training in future trials.</p>
+<h3>1. Introduction</h3>
+<p>Walking impairment is among the most common and disabling consequences of multiple sclerosis (MS), affecting up to three-quarters of persons with MS at some point during their lifetime. 1, 2 Weakness, spasticity, and impaired motor coordination reduce walking speed, endurance, and independence, and walking difficulty is consistently rated by patients as the most burdensome aspect of the disease. 2, 3 Although disease-modifying therapies have reduced relapse rates, their effectiveness in addressing established motor impairments remains limited, and current rehabilitative approaches are constrained by insufficient neural activation as a result of multifocal demyelinated plaques. 4 Approaches that augment neuroplasticity and strengthen residual neural connections are therefore needed.</p>
+<p>Acute intermittent hypoxia (AIH) is a noninvasive means of inducing spinal neuroplasticity by delivering brief, repeated episodes of mild hypoxia alternating with room air. AIH activates carotid body chemoreceptors, triggering episodic serotonin release in the spinal cord, which initiates the synthesis of brain-derived neurotrophic factor (BDNF) and activates its high-affinity receptor, TrkB, thereby strengthening synaptic input to spinal motor neurons. 5, 6 This plasticity is expressed as a rapid increase in voluntary motor output, emerging within 60 to 90 minutes of exposure. 7 Critically, therapeutic AIH differs fundamentally from the pathological intermittent hypoxia of obstructive sleep apnea; the low dose and episodic structure of therapeutic protocols engage plasticity-promoting pathways without inducing maladaptive cardiovascular or neurological changes. 8, 9 In humans with incomplete spinal cord injury (SCI), five consecutive days of AIH improved walking speed and endurance, with gains that persisted for weeks after treatment. 10 Combining AIH with overground walking practice yielded greater gains in walking endurance than either intervention alone, demonstrating that AIH is most effective as a plasticity-promoting primer when paired with task-specific training. 10, 11 AIH has also increased ankle plantarflexion torque in persons with incomplete SCI after a single session 12 and enhanced corticospinal excitability in neurologically intact individuals and in individuals with SCI. 13, 14 Across these studies, AIH was safe and well-tolerated with no serious adverse events. Despite this evidence, the application of AIH in MS remains largely unexplored. A single AIH session improved ankle torque and cognitive processing speed in persons with relapsing-remitting MS, supporting the presence of AIHresponsive neuroplasticity in this population. 4 Whether repeated daily AIH is safe over five consecutive days in persons with MS, and whether it produces meaningful changes in walking and somatic motor function, has not been established. This is a critical gap given that MS-related demyelination may alter the neurochemical substrates of AIHinduced plasticity, and that the safety profile of repeated AIH in this population requires prospective evaluation. The present study tested the hypothesis that five consecutive days of AIH are safe and well-tolerated in persons with MS and lead to improvements in ankle strength and walking performance compared with Sham. Repeated AIH is safe and improves somatic motor function in MS 2. Methods</p>
+<h3>2.1 Study design</h3>
+<p>We used a randomized, double-masked, placebo-controlled crossover study design (Figure 1). Participants were assigned to receive both AIH and Sham AIH, in a random order, with a minimum 4-week washout period between blocks to reduce carryover effects. Treatment allocation was concealed from participants and all outcome assessors throughout the study. Outcome assessments were conducted on Day 1, before the first intervention session, and on Day 5, after the final session. A follow-up assessment was conducted within the first week after Day 5. Days 2 through 4 consisted solely of intervention sessions. The Northwestern University Institutional Review Board approved this study (STU00219535), and all participants provided written informed consent prior to enrollment (ClinicalTrials.gov: NCT06276634).</p>
+<h3>2.2 Participants</h3>
+<p>Participants were recruited from the neurology clinics of Northwestern Memorial Hospital and the Shirley Ryan AbilityLab Clinical Research Registry. Of 180 persons contacted, 25 enrolled and 23 completed both intervention blocks (Figure 2). Inclusion criteria were a confirmed diagnosis of relapsing-remitting or secondary-progressive MS, Expanded Disability Status Scale (EDSS) score between 3.0 and 6.5, at least one year relapse-free, age between 18 and 75 years, and clearance for MRI based on an institutional screening questionnaire. EDSS was assessed by a neurologist on the study team. Participants taking dalfampridine were eligible if the dose had been stable for at least two months prior to screening. We excluded persons with any active lesions on baseline MRI, uncontrolled blood pressure (systolic outside 85 to 160 mmHg or diastolic outside 55 to 110 mmHg), history of epilepsy, chronic obstructive pulmonary disease, uncontrolled sleep apnea, inability to undergo MRI, ankle spasticity greater than 3 on the Modified Ashworth Scale, diagnosis of Long COVID-19, Mini-Mental State Examination (MMSE) score of 20 or below, or confirmed pregnancy.</p>
+<p>The 23 participants who completed the study included 13 women and 10 men with a mean age of 58.8 ± 11.6 years. Fifteen had relapsing-remitting MS, and 8 had secondary-progressive MS. The mean time since diagnosis was 21.6 ± 13.6 years, and the mean EDSS score was 5.4 ± 1.2 (range 3.0 to 6.5). Participant characteristics are summarized in Table 1.</p>
+<p>Table 1. Baseline participant characteristics Characteristic N=23 Sex, n (%) Female 13 (57) Male 10 (43) Age, years, mean (SD) 58.8 (11.6) MS type, n (%) Relapsing-remitting 15 (65) Secondary-progressive 8 (35) Years since diagnosis, mean (SD) 21.6 (13.6) Months since last relapse, mean (SD) 110.4 (86.9) EDSS score, mean (SD) 5.4 (1.2) EDSS range 3.0 to 6.5 Repeated AIH is safe and improves somatic motor function in MS Weaker side, n (%) Left 15 (65) Right 8 (35) Modified Ashworth Scale, median (range) 1+ (0 to 3)</p>
+<h3>2.3 Intervention</h3>
+<h3>2.3.1 Air Delivery System</h3>
+<p>We administered AIH and Sham AIH using a Hypoxico HYP-123 hypoxic air generator (Hypoxico Inc., New York, NY), consistent with prior AIH studies in humans with neurological conditions. 10, 11, [15] [16] [17] Participants were seated and fitted with a non-rebreathing face mask connected to the generator via an inlet line. An unblinded team member administered AIH or Sham AIH using controlled air delivery from the hypoxic air generator at timed intervals. When the inlet line was attached, participants inhaled air supplied directly from the generator (either hypoxic or normoxic air). When the inlet line was detached, participants breathed room air (21% oxygen) from the surrounding environment. Participants remained blinded to intervention assignment throughout.</p>
+<h3>2.3.2 AIH Protocol</h3>
+<p>Each AIH session consisted of 15 episodes delivered over approximately 30 minutes. Each episode consisted of one hypoxic bout followed by one normoxic interval. During hypoxic bouts, the generator delivered air with an inspired oxygen fraction (FiO2) of 0.09.</p>
+<p>We titrated hypoxic bout duration individually in each session to achieve a target arterial oxygen saturation (SpO2) of 84-88%. The first hypoxic bout of every session was fixed at 40 seconds to assess each participant&#x27;s SpO2 response before titration. For all subsequent bouts, the administrator adjusted bout duration in 5-second increments based on the SpO2 nadir achieved in the preceding bout. If SpO2 did not reach the target range, bout duration was extended by 5 seconds for the next episode; if SpO2 fell below the target range, bout duration was reduced by 5 seconds. Normoxic intervals lasted at least 60 seconds or until SpO2 recovered to at least 92%, whichever was longer. To facilitate consistent and reproducible timing, the subsequent hypoxic bout was initiated at the next whole-minute mark after SpO2 recovery.</p>
+<h3>2.3.3 Sham Protocol</h3>
+<p>The Sham protocol was administered identically to AIH, including the same mask setup, inlet line attachment and detachment sequence, and session timing. The generator delivered room air (21% oxygen) throughout all bouts, producing no hypoxic stimulus. Participants were unable to distinguish AIH from Sham based on the breathing experience.</p>
+<h3>2.3.4 Physiological Monitoring</h3>
+<p>We continuously monitored SpO2 and heart rate throughout each session using a Nonin Model 7500 pulse oximeter (Nonin Medical Inc., Plymouth, MN), with the sensor placed on the finger or ear based on signal quality. Blood pressure was measured before the start of each session and again 5 minutes after session completion using a standard automated cuff. Pre-session resting values of SpO2 and heart rate were recorded before mask application. Post-session values were recorded 5 minutes after session completion. Nadir SpO2 and the corresponding heart rate were recorded for each episode. Sessions were discontinued immediately if SpO2 fell below 75%, heart rate exceeded 160 bpm, systolic blood pressure exceeded 160 mmHg, or if the participant reported pain, lightheadedness, dizziness, shortness of breath, or any other discomfort.</p>
+<h3>2.4 Outcomes</h3>
+<p>Repeated AIH is safe and improves somatic motor function in MS</p>
+<h3>2.4.1 Safety Outcomes</h3>
+<p>Adverse events were recorded by the session administrator throughout each visit, including headaches, pain, lightheadedness, dizziness, respiratory distress, cyanosis, spasms, and autonomic dysreflexia, as reported by the participant or observed directly by the administrator. Any session discontinuations and their reasons were documented.</p>
+<p>Clinical MRI of the brain, comprising diffusion-weighted, T2-weighted fluid-attenuated inversion recovery (FLAIR), and gadolinium-enhanced T1-weighted sequences, was acquired at baseline and repeated approximately one week after each intervention block. All scans were reviewed independently by a neuroradiologist (A.J.N.) blinded to intervention assignment for new or enlarging T2/FLAIR lesions, gadolinium-enhancing lesions, or diffusion abnormalities indicative of subclinical (silent) MS activity.</p>
+<p>Physiological tolerability was characterized from the monitoring data described in Section 2.3.4, namely nadir SpO2 and the corresponding heart rate for each hypoxic episode, resting SpO2 and heart rate before and after each session, and pre-and post-session blood pressure.</p>
+<h3>2.4.2 Somatic Motor Outcomes</h3>
+<p>Ankle Torque. Maximum voluntary isometric plantarflexion and dorsiflexion torques of the weaker limb were measured with a six degree-of-freedom load cell attached to a Biodex System 4 dynamometer (Biodex Medical Systems, Shirley, NY, USA). Participants were secured in the dynamometer and instructed to push (plantarflexion) or pull (dorsiflexion) against the footplate for 3 s. Three attempts were performed in each direction at each time point, separated by rest intervals of at least 30 s, and the highest peak torque across the three attempts was taken as the maximum voluntary contraction (MVC). Torque and EMG signals were digitized with a Power1401 interface and recorded in Spike2 software (Cambridge Electronic Design, Cambridge, UK).</p>
+<h3>Electromyography.</h3>
+<p>Surface EMG was recorded during plantarflexion and dorsiflexion attempts from the medial gastrocnemius, soleus, tibialis anterior, and quadriceps muscles with single differential electrodes placed according to the Surface ElectroMyoGraphy for the Non-Invasive Assessment of Muscles (SENIAM) guidelines. Signals were acquired with a Bagnoli EMG system (Delsys Inc., Natick, MA, USA), amplified 1000 times, band-pass filtered (20-450 Hz), sampled at 2000 Hz, and synchronized with the torque signal. EMG data were rectified, smoothed, and integrated offline in Spike2. Peak EMG activity for each attempt was computed over a 500 ms window extending from 100 ms before to 400 ms after the maximum absolute value of the torque signal, and peak values were averaged across the three attempts for each muscle. EMG activation was expressed as the percent increase in peak EMG relative to resting EMG for the soleus during plantarflexion and for the tibialis anterior during dorsiflexion.</p>
+<h3>2.4.3 Walking Outcomes</h3>
+<h3>Six-Minute Walk Test.</h3>
+<p>Walking endurance was quantified using the 6MWT. 18 Participants walked along a standardized indoor course approximately 60 meters long at a maximal sustainable speed for 6 minutes. No physical assistance or facilitation was permitted. Participants used their customary assistive device throughout all time points. The total distance covered in 6 minutes was recorded in meters.</p>
+<h3>Timed 25-Foot Walk Test.</h3>
+<p>Walking speed was quantified using the T25FW, a component of the MS Functional Composite. 19 Participants were instructed to walk a clearly marked 25-foot course at maximum safe effort. Two trials were performed at each time point, and the mean time across both trials was used for analysis. Assistive devices were permitted and kept consistent across visits.</p>
+<h3>12-Item MS Walking Scale.</h3>
+<p>Self-reported walking limitation was assessed using the MSWS-12. 20 The scale comprises 12 items, each scored on a 5-point scale, summed to a total score ranging from 12 to 60; higher scores indicate greater walking limitation.</p>
+<h3>2.5 Data Analysis</h3>
+<h3>2.5.1 Primary Analysis</h3>
+<h3>Repeated AIH is safe and improves somatic motor function in MS</h3>
+<p>Prior to primary analyses, potential carryover effects were assessed separately for each outcome using independentsamples t-tests, with the sum of each participant&#x27;s outcome values across both intervention periods as the dependent variable and treatment sequence as the grouping factor. Where no significant carryover was detected, the full crossover model was applied.</p>
+<p>Treatment effects were estimated using analysis of covariance (ANCOVA) models fitted separately for each outcome. Each model included the following fixed effects: treatment condition (AIH vs. Sham), treatment sequence, intervention period, the difference between each participant&#x27;s two period baselines for the outcome (period 1 minus period 2), the interaction of that baseline difference with period, and assessment timepoint (post-intervention vs. follow-up). All models were adjusted for age, sex, MS type (relapsing-remitting vs. secondary-progressive), years since MS diagnosis, EDSS score, and baseline ankle plantarflexion torque (the pre-intervention value from the first intervention block); the baseline torque covariate was omitted from the plantarflexion torque model. Participants were modeled as a random effect with an unstructured covariance matrix to account for the repeated-measures structure of the crossover design. Where the treatment-by-timepoint interaction was not statistically significant, the interaction term was removed, and a main effect of treatment was tested. For EMG outcomes, sessions in which the averaged peak EMG of a muscle did not exceed its resting EMG were treated as invalid recordings for that muscle and were excluded from analysis; otherwise, the EMG analyses used the same participants and sessions as the torque analyses.</p>
+<p>All tests were two-sided with a significance threshold of p &lt; 0.05. Analyses were performed in R 21 and Python (Python Software Foundation, Wilmington, DE).</p>
+<h3>2.5.2 Exploratory Associations</h3>
+<p>To characterize individual responsiveness to AIH, Pearson correlations were computed between two physiological variables and the AIH-induced change in strength. Strength change was defined as the mean percent change from preintervention to follow-up in ankle plantarflexion and dorsiflexion torque during the AIH condition. The variables were the mean percent change in SpO₂ and in heart rate during hypoxic episodes (nadir SpO₂ and the corresponding heart rate relative to normoxic intervals), averaged across all 15 episodes per session over the 5 AIH sessions, to assess whether the degree of physiological response to hypoxia was associated with strength response. Pearson correlation coefficients (r) and associated p-values are reported. A significance threshold of p &lt; 0.05 was applied.</p>
+<h3>3. Results</h3>
+<p>Of 180 individuals approached for participation, 28 could not be contacted and 152 were assessed for eligibility (Figure 2). Ninety-seven were excluded: 55 did not meet inclusion criteria (35 unable to walk, 8 with a secondary diagnosis, 4 with contrast dye allergy, 3 with EDSS below the inclusion threshold, 2 with primary progressive MS, and 3 for other reasons), and 42 declined to participate. A further 30 were awaiting a start date (n = 21) or still being screened (n = 9) when the study closed to enrollment. Twenty-five participants provided written informed consent and were randomized; 2 withdrew before completing both intervention blocks (1 due to commute issues, 1 due to scheduling conflicts) and were not included in any analyses. Twenty-three participants completed both intervention blocks. Walking outcomes (6MWT, T25FW, MSWS-12) were obtained from all 23 participants, and Biodex torque and EMG assessments from 20; the remaining 3 participants did not complete the Biodex assessments. Because baseline plantarflexion torque was a covariate in the dorsiflexion and walking models and the plantarflexion model required Biodex data, each ANCOVA included these 20 participants (plantarflexion and dorsiflexion torque, 78 observations each; 6MWT and T25FW, 80 observations each; MSWS-12, 79 observations). After excluding invalid EMG recordings, the soleus model included 17 participants (63 observations), and the tibialis anterior model included 18 participants (68 observations). Participant demographic and clinical characteristics are summarized in Table 1.</p>
+<h3>3.1 Safety and tolerability</h3>
+<h3>3.1.1 Adverse events</h3>
+<p>No serious adverse events related to the intervention were recorded during either the AIH or Sham intervention blocks. Two expected adverse events occurred in one participant during the AIH block. Immediately after the first session, the participant reported mild, transient dizziness lasting about 60 s, similar to dizziness previously experienced with optic neuritis; vital signs remained stable. Nine minutes into the second session, the participant reported feeling slightly off, with a sensation of eye misalignment; blood pressure was 101/61 mmHg, and symptoms resolved within 17 minutes. This session was terminated, and the participant completed the remaining sessions without any adverse events after physician review. Two fall-related incidents occurred for one participant during assessment visits: one during a wheelchair transfer and one during the 6MWT. In both cases, the assessor lowered the participant to the floor, and no injury or discomfort was reported. Two serious adverse events were recorded, neither of which was attributable to the intervention. One participant fell at home before the intervention period and was later diagnosed with a lacerated right kidney, which resolved without surgical intervention; the study team judged the event unrelated to the study. Another participant fell twice during EDSS assessment without injury and reported that falls were a daily occurrence; a followup call two days later confirmed no injury. The event was reported to the IRB, and fall-risk language was added to the informed consent form and protocol. No adverse events resulted in withdrawal from the study. All participants completed follow-up MRI after both the AIH and Sham intervention blocks, and no new or enlarging T2/FLAIR lesions, gadolinium-enhancing lesions, or diffusion abnormalities were identified in any participant in either arm. Cardiovascular responses to AIH and Sham are illustrated in Figure 3 and summarized across all participants and sessions. During AIH, mean nadir SpO2 during hypoxic bouts was 84.7 ± 0.2% (standard error of the mean, SEM), consistent with the target range of 84-88%, compared to 96.2 ± 0.2% during the corresponding bouts in the Sham condition (t = -40.83, p &lt; 0.001, Figure 3, top). During normoxic intervals, mean SpO2 was 95.4 ± 0.3% for AIH and 96.6 ± 0.3% for Sham, confirming adequate recovery between hypoxic episodes. SpO2 did not fall below 75% in any participant at any point during AIH sessions. During Sham, SpO2 remained stable throughout all bouts (96.2 ± 0.2%), with no significant difference between normoxic intervals and condition bouts.</p>
+<h3>3.1.2 Physiological response during AIH</h3>
+<p>Heart rate increased significantly during hypoxic bouts of AIH compared with normoxic intervals (75.7 ± 1.8 vs 73.4 ± 1.7 bpm; t = 3.81, p &lt; 0.001; Figure 3, bottom), consistent with a chemoreflex-mediated response to hypoxia. Heart rate during Sham condition bouts remained stable and comparable to normoxic intervals (71.2 ± 1.6 vs 71.3 ± 1.6 bpm).</p>
+<p>Resting SpO2 and heart rate were comparable before and after intervention sessions in both conditions. Pre-session SpO2 was 96.9 ± 0.3% for AIH and 96.6 ± 0.3% for Sham; post-session values were 96.8 ± 0.3% and 96.6 ± 0.3%, respectively, with no significant change in either condition (AIH: t = 0.38, p = 0.707; Sham: t = 0.10, p = 0.920). Presession heart rate was 74.0 ± 1.8 bpm for AIH and 72.7 ± 1.7 bpm for Sham; post-session values were 73.7 ± 1.9 and 71.9 ± 1.8 bpm, respectively, with no significant change in either condition (AIH: t = 0.71, p = 0.487; Sham: t = 1.71, p = 0.101). Blood pressure returned to pre-session baseline values within 5 to 10 minutes of session completion in all participants. Ankle plantarflexion and dorsiflexion MVC torques are shown in Figure 4. Of 23 participants, 20 completed Biodex assessments and 18 completed all six assessment visits; the remaining participants were unable to complete one or more assessments due to scheduling and clinical constraints. Percent changes were calculated as the mean of individual participant changes relative to the pre-intervention baseline (Figure 4).</p>
+<h3>3.2 Somatic motor outcomes</h3>
+<p>Plantarflexion torque was significantly greater following AIH than Sham (β = 8.74 N•m, SE = 2.40, p &lt; 0.001). Mean plantarflexion torque increased from 52.2 ± 36.2 N•m at pre-intervention to 61.2 ± 42.5 N•m at post-intervention and 65.7 ± 38.2 N•m at follow-up during AIH (+17.5% and +29.2% relative to pre-intervention), compared with 59.4 ± 31.1 N•m, 56.2 ± 29.7 N•m, and 60.3 ± 32.3 N•m during Sham (-0.9% and +1.6% respectively). A significant period effect (p = 0.015) and baseline-by-period interaction (p &lt; 0.001) were accounted for in the model.</p>
+<p>Dorsiflexion torque did not differ significantly between AIH and Sham (β = 1.75 N•m, SE = 1.35, p = 0.202). Mean dorsiflexion torque was 26.0 ± 24.7 N•m, 27.7 ± 23.2 N•m, and 28.7 ± 24.3 N•m at pre-intervention, post-intervention, and follow-up during AIH (+38.2% and +30.7% relative to pre-intervention), compared with 25.8 ± 20.1 N•m, 27.5 ± 22.4 N•m, and 25.2 ± 22.4 N•m during Sham (+7.1% and -1.4% respectively). The adjusted treatment effect did not reach statistical significance. The baseline-by-period interaction was significant (p = 0.027). Mean ankle torque (the average of plantarflexion and dorsiflexion), which served as the strength outcome in the exploratory analyses, increased by 27.9% at post-intervention and 30.0% at follow-up during AIH, compared with 3.1% and 0.1% during Sham (Figure 4, bottom).</p>
+<h3>Muscle activation.</h3>
+<p>EMG activation, expressed as the percent increase in peak EMG relative to resting EMG, was analyzed in the same participants and sessions as the torque outcomes, after excluding invalid recordings (soleus: 7 of 118 sessions; tibialis anterior: 8 of 118 sessions). Soleus activation during plantarflexion did not differ between AIH and Sham (β = 151 percentage points, SE = 105, 95% CI: -60 to 363, p = 0.16; 17 participants, 63 observations), although the direction of the difference favored AIH, and peak soleus EMG was 41% higher after AIH than after Sham (95% CI: -2% to 103%, p = 0.064). Tibialis anterior activation during dorsiflexion did not differ between conditions (β = 78 percentage points, SE = 346, 95% CI: -619 to 776, p = 0.82; 18 participants, 68 observations). No treatmentby-timepoint interaction (p = 0.30 and 0.71) or carryover effect (p ≥ 0.30) was detected for either muscle. Walking outcomes for all three measures are presented in Figure 5. Percent changes were calculated as the mean of individual participant changes relative to the pre-intervention baseline; group means of the absolute values are also reported. Descriptive values are based on all 23 participants; treatment effects were estimated in the 20 participants with baseline torque data.</p>
+<h3>3.3 Walking Outcomes</h3>
+<h3>Repeated AIH is safe and improves somatic motor function in MS</h3>
+<p>Six-Minute Walk Test. Six-minute walk distance was significantly greater following AIH than Sham (β = 10.14 m, SE = 4.81, p = 0.039). Following AIH, the mean 6MWT distance was 266.6 ± 169.2 m at pre-intervention, 278.6 ± 175.2 m at post-intervention, and 283.6 ± 174.3 m at follow-up, corresponding to mean individual percent changes of +2.5% and +5.5%, respectively, relative to pre-intervention. Following Sham, the mean 6MWT distance was 267.7 ± 157.9 m at pre-intervention, 271.5 ± 156.1 m at post-intervention, and 270.8 ± 161.4 m at follow-up, corresponding to mean individual percent changes of +0.3% and -0.9%, respectively. A significant sequence effect (p = 0.004) and a significant baseline-by-period interaction (p &lt; 0.001) were observed; these effects were accounted for in the ANCOVA model.</p>
+<h3>Timed 25-Foot Walk Test.</h3>
+<p>T25FW time did not differ significantly between AIH and Sham (β = -0.31 s, SE = 0.26, p = 0.239). Following AIH, mean T25FW time was 27.3 ± 60.9 s at pre-intervention, 14.5 ± 19.7 s at post-intervention, and 13.9 ± 15.1 s at follow-up, corresponding to mean individual percent changes of -11.7% and -11.0%, respectively, relative to pre-intervention. Following Sham, mean T25FW time was 20.7 ± 34.7 s at pre-intervention, 13.8 ± 16.1 s at post-intervention, and 20.3 ± 31.2 s at follow-up, corresponding to mean individual percent changes of -1.2% and -0.5%, respectively. Although the mean T25FW time decreased in the AIH condition, the adjusted treatment effect did not reach statistical significance. Baseline plantarflexion torque (p = 0.025) and the baseline difference (p = 0.027) were significant covariates in this model.</p>
+<h3>12-Item MS Walking Scale.</h3>
+<p>MSWS-12 score did not differ significantly between AIH and Sham (β = 0.69, SE = 1.19, p = 0.564). Mean MSWS-12 score in the AIH condition was 43.4 ± 14.3 at pre-intervention, 43.0 ± 15.2 at postintervention, and 42.9 ± 15.6 at follow-up, corresponding to mean individual percent changes of -0.3% and +2.5%, respectively, relative to pre-intervention. In the Sham condition, the mean MSWS-12 score was 44.9 ± 12.8 at preintervention, 44.2 ± 15.0 at post-intervention, and 44.3 ± 15.3 at follow-up, corresponding to mean individual percent changes of -3.0% and -2.8%, respectively. The baseline-by-period interaction was significant (p &lt; 0.001) and was accounted for in the model.</p>
+<p>Across models, EDSS score was a significant covariate for plantarflexion torque (p = 0.015), dorsiflexion torque (p = 0.022), 6MWT distance (p = 0.004), and MSWS-12 score (p = 0.004), with higher EDSS associated with lower torque, shorter 6MWT distance, and higher MSWS-12 score.</p>
+<h3>3.4 Exploratory associations with strength change</h3>
+<p>Associations between participant-level variables and AIH-induced strength change (the mean percent change in ankle plantarflexion and dorsiflexion torque from pre-intervention to follow-up in the AIH condition) were examined in the 19 participants with follow-up torque data. A greater mean rise in heart rate during hypoxic episodes was associated with a larger strength gain (r = 0.58, p = 0.009), whereas the mean fall in SpO2 during hypoxic episodes was not (r = -0.17, p = 0.485).</p>
+<h3>4. Discussion</h3>
+<p>This randomized, double-masked, placebo-controlled crossover trial examined the safety and preliminary effects of five consecutive days of AIH in persons with MS. Three key findings emerged from this study. First, daily AIH was safe and well tolerated across all sessions; physiological responses remained within acceptable limits, and no intervention-related serious adverse events were recorded. Second, AIH produced significant improvements in ankle plantarflexion torque and six-minute walk distance compared to Sham, whereas dorsiflexion torque, T25FW time, and MSWS-12 score did not differ significantly between conditions. Third, a greater rise in heart rate during AIH hypoxic episodes was associated with greater gains in ankle strength at follow-up, suggesting that the magnitude of autonomic chemoreflex engagement may influence individual responsiveness to AIH. Together, these preliminary findings support the feasibility and safety of repeated daily AIH and suggest potential motor benefits in persons with MS.</p>
+<h3>4.1 Safety of Repeated AIH in MS</h3>
+<p>A primary objective of this study was to establish the safety and tolerability of five consecutive daily AIH sessions in persons with MS. AIH was well tolerated across all participants and sessions. Mean nadir SpO2 during hypoxic episodes was 84.7 ± 0.2%, consistent with the target range of 84-88% and comparable to nadir values reported in prior human AIH studies in SCI. 10, 11 SpO2 and heart rate returned to pre-session baseline values within 5 minutes of session completion in both conditions, and blood pressure normalized within 5 to 10 minutes, indicating no sustained cardiovascular perturbation.</p>
+<h3>Repeated AIH is safe and improves somatic motor function in MS</h3>
+<p>No participant withdrew due to an adverse event.</p>
+<p>These findings extend the safety profile of AIH established in persons with SCI or stroke to persons with MS. Prior work with a single AIH session in ten individuals with relapsing-remitting MS reported no adverse events and wellmaintained cardiovascular responses. 4 The current study demonstrates that this safety profile is maintained across multiple sessions in a larger and more disability-heterogeneous sample, including individuals with secondaryprogressive MS and EDSS scores up to 6.5. Independent, blinded neuroradiological review of contrast-enhanced MRI acquired after each intervention block revealed no evidence of subclinical MS activity in either arm, indicating that repeated exposure to mild hypoxia did not provoke new inflammatory lesions during the study period.</p>
+<h3>4.2 Effects on Somatic motor output at the ankle</h3>
+<p>Five days of AIH increased ankle plantarflexion torque relative to Sham, and the gain was maintained at follow-up. These findings are consistent with prior evidence that AIH augments somatic motor output through serotonin-and BDNF-dependent mechanisms that strengthen synaptic input to spinal motor nuclei. 5, 22 Plantarflexor muscles are tonically active, slow-twitch-dominant antigravity muscles 23 whose motor pools are enriched in low-threshold motor neurons with large persistent inward currents that depend on brainstem serotonergic input, 24, 25 making them a likely target of AIH-induced plasticity. A single AIH session previously increased ankle torque in persons with relapsingremitting MS 4 and in persons with incomplete SCI. 12 The current findings demonstrate that repeating AIH over five consecutive days yields gains that persist through follow-up, suggesting cumulative or consolidating plasticity effects beyond a single session.</p>
+<p>Dorsiflexion torque did not differ between conditions, despite a numerical trend toward improvement after AIH. The absence of a significant effect on dorsiflexion contrasts with the significant plantarflexion response. It may reflect differences in motor neuron pool excitability, corticospinal drive, or serotonergic terminal density between the muscle groups. Dorsiflexors are phasically active muscles predominantly involved in swing-phase foot clearance, and their motor neuron pools may be less amenable to tonic facilitation induced by AIH than those of the plantarflexors. Alternatively, the high within-group variability in dorsiflexion torque may have reduced statistical power to detect a treatment effect. Future trials with larger samples should examine whether the differential response between plantarflexors and dorsiflexors is a consistent feature of AIH in MS.</p>
+<p>Surface EMG did not mirror the torque findings: soleus activation was numerically higher after AIH than after Sham, but not significantly so, and tibialis anterior activation did not differ. Surface EMG is an insensitive index of motoneuron output during maximal contractions because of amplitude cancellation 26, 27 ; the peak-to-rest ratio varies with resting EMG and electrode placement across sessions, and the sample was small and variable. AIH may also change motor unit discharge timing rather than surface amplitude. Motor evoked potentials or H-reflexes would better identify the neural substrate of the strength gains.</p>
+<h3>4.3 Effects on Walking Outcomes</h3>
+<p>Six-minute walk distance was significantly greater following AIH than Sham, with mean distance increasing by 2.5% at post-intervention and 5.5% at follow-up in the AIH condition. This improvement in walking endurance in the absence of a significant change in T25FW time suggests that AIH may preferentially enhance sustained motor output capacity rather than peak locomotor speed over short distances. This pattern is consistent with the mechanistic role of plantarflexors as the primary propulsive generators during walking; improved plantarflexion torque may directly support greater walking endurance by maintaining forward propulsion across repeated gait cycles. A similar dissociation between endurance and speed outcomes was observed in SCI, where combined AIH and walking practice produced greater gains on the 6MWT than on speed-based measures. 10, 11 T25FW time and MSWS-12 score did not differ significantly between conditions. The absence of a T25FW effect is consistent with the hypothesis that short-burst maximal walking speed is less sensitive to the motor facilitation produced by AIH alone, without concurrent task-specific walking training. The T25FW data were also highly variable.</p>
+<h3>Mean T25FW time in the AIH condition decreased by nearly half from pre-intervention to post-intervention, but this</h3>
+<p>Mean T25FW time in the AIH condition decreased by nearly half from pre-intervention to post-intervention, but this change was driven by a few participants with very slow baseline walking times, as reflected by a mean individual change of about 12% and a pre-intervention standard deviation that exceeded the mean.</p>
+<h3>Repeated AIH is safe and improves somatic motor function in MS</h3>
+<p>This variability limited the statistical power to detect a treatment effect on walking speed despite the large change in the group mean. The lack of change in MSWS-12 despite objective improvements in plantarflexion torque and 6MWT distance is consistent with the temporal dissociation commonly observed between performance-based gains and self-reported walking limitations. It may reflect the relatively short intervention window and the influence of habitual activity patterns on subjective perceptions of disability.</p>
+<p>A significant sequence effect was observed on the 6MWT. Participants randomized to Sham first were less disabled and walked farther at baseline, but after adjustment for EDSS and baseline strength, estimated distances were greater in the AIH-first (AS) sequence (β = 123 m). This asymmetry may reflect residual AIH effects persisting across the washout period when AIH was administered first, or a chance imbalance between the small sequence groups. The ANCOVA model adjusted for sequence and the baseline-by-period interaction, but the origin of this asymmetry warrants investigation in larger trials with longer washout periods.</p>
+<h3>4.4 Cardiorespiratory Response as a Predictor of Strength Gain</h3>
+<p>A greater rise in heart rate during AIH hypoxic episodes was associated with greater ankle strength gains at followup, whereas the nadir SpO2 drop was not. Heart rate increases during hypoxia reflect sympathetic activation driven by the carotid body chemoreflex. The same afferent pathway triggers episodic serotonin release in the spinal cord and initiates the plasticity cascade underlying AIH-induced motor facilitation. 6 These findings suggest that participants who mounted a stronger autonomic chemoreflex response to hypoxia may have experienced greater serotonergic activation of spinal motor circuits, leading to more robust plasticity. This is consistent with evidence in humans that the magnitude of the hypoxic ventilatory response predicts the magnitude of intermittent hypoxia-induced respiratory plasticity. 28 The absence of a significant relationship with nadir SpO2 is notable and suggests that the degree of oxygen desaturation alone does not determine the magnitude of motor response; the afferent neural response to hypoxia, reflected in heart rate, may be a more sensitive indicator of AIH dose at the level of the nervous system. These findings have potential implications for individualizing AIH dosing in future trials.</p>
+<h3>4.5 Clinical Implications</h3>
+<p>These preliminary findings suggest that five consecutive days of AIH may represent a feasible, safe, and potentially effective priming intervention for persons with MS. The improvement in plantarflexion torque and 6MWT distance, in the absence of any concurrent walking training, indicates that AIH alone is sufficient to produce objective motor gains in this population over a short intervention window. This is clinically relevant because AIH requires no active participation beyond breathing and places minimal physical demand on participants, making it accessible to individuals across a wide range of disability levels. The current sample spanned EDSS scores of 3.0 to 6.5 and included both relapsing-remitting and secondary-progressive subtypes, supporting the generalizability of the safety findings. Future work combining AIH with task-specific walking training, as demonstrated in SCI, 10, 11 may yield greater functional gains than AIH alone in persons with MS.</p>
+<p>EDSS score was a significant predictor of plantarflexion torque, dorsiflexion torque, six-minute walk distance, and MSWS-12 score across ANCOVA models, with higher disability associated with lower torque and walking distance and higher self-reported walking limitation, consistent with the expected relationship between greater neurological disability and poorer motor and walking performance. Notably, this effect reflects baseline performance differences rather than differential treatment response, as EDSS was included as a covariate in all models. Whether baseline disability level moderates the magnitude of AIH-induced motor gains remains an important question for future work with adequate power to examine responder subgroups.</p>
+<h3>4.6 Limitations and Future Work</h3>
+<p>Several limitations should be acknowledged. The sample size, while adequate for a crossover pilot trial, limits power for secondary outcomes and subgroup analyses. The enrolled cohort was clinically heterogeneous, spanning EDSS scores from 3.0 to 6.5 and including both relapsing-remitting and secondary-progressive subtypes, likely contributing to variability in individual responses. Covariate analyses confirmed a significant association between EDSS and baseline performance across multiple outcomes.</p>
+<h3>Repeated AIH is safe and improves somatic motor function in MS</h3>
+<p>The significant sequence and period effects observed for several outcomes also suggest that full washout may not have been uniformly achieved within the 4-week interval, and future trials should consider longer washout periods or parallel-group designs.</p>
+<p>These limitations point directly to three lines of future investigation. First, the present protocol delivered AIH in isolation, without concurrent task-specific training. The modest magnitude of walking gains observed here is consistent with this design choice and supports pairing AIH with targeted gait training as a logical next step. In persons with incomplete SCI, combining daily AIH with overground walking practice produced substantially larger gains in walking endurance than AIH alone, consistent with the principle that AIH acts as a plasticity-promoting primer that requires task-specific activity to consolidate functional benefit. 10, 11 Whether a comparable synergy can be elicited in persons with MS is the question we intend to address in our next trial.</p>
+<p>Second, and related to the heterogeneity noted above, the AIH dose in the current protocol was defined by a fixed target FiO₂ (0.09) with bout duration titrated to a group-level SpO₂ target of 84-88%. This approach standardizes the stimulus at the airway. However, it does not account for between-participant differences in chemoreflex sensitivity or downstream serotonergic engagement, which may explain part of the variability in motor response. Our exploratory finding that a rise in heart rate during hypoxic episodes was associated with strength gains suggests that the physiological response, rather than inspired oxygen alone, may be a more sensitive marker of an effective dose. Future work should examine individualized dosing strategies titrated to participant-specific responses. It should establish dose-response relationships for the number of sessions, episode duration, and hypoxic severity in persons with MS.</p>
+<p>Third, the present protocol delivered poikilocapnic hypoxia, in which arterial CO₂ is allowed to fall passively as ventilation increases during hypoxic episodes. In awake humans, ventilatory long-term facilitation is expressed only when CO2 is held at or above resting levels during intermittent hypoxia, [29] [30] [31] and recent evidence suggests that maintaining CO₂ during hypoxia (hypercapnic-hypoxic AIH) may augment the magnitude of motor facilitation by sustaining cerebral perfusion and amplifying chemoreflex drive to spinal motor circuits. 32, 33 Direct comparison of poikilocapnic and hypercapnic protocols, with continuous end-tidal CO₂ monitoring, is a natural extension of the doseoptimization work described above and is warranted to determine whether controlled CO₂ delivery enhances therapeutic efficacy in persons with MS.</p>
+<h3>5. Conclusions</h3>
+<p>Five consecutive days of AIH were safe and well tolerated in persons with relapsing-remitting and secondaryprogressive MS across a broad range of disability, with no serious intervention-related adverse events and no evidence of new MS activity on blinded MRI review. AIH alone increased ankle plantarflexion strength and six-minute walk distance relative to Sham, and the magnitude of the heart rate response during hypoxic episodes was associated with the size of the strength gain. These findings establish the safety and feasibility of repeated AIH in MS and provide the foundation for trials that pair AIH with task-specific gait training, the combination that has produced the largest functional benefits in spinal cord injury.</p>
+<h3>Acknowledgments</h3>
+<p>The authors thank the study participants for their time and commitment, and the neurology clinics of Northwestern Memorial Hospital and the Shirley Ryan AbilityLab Clinical Research Registry for assistance with recruitment.</p>
+<h3>Funding</h3>
+<p>Research reported in this publication was supported by the Eunice Kennedy Shriver National Institute of Child Health and Human Development of the National Institutes of Health under grant number R21HD108587. The content is solely the responsibility of the authors and does not necessarily represent the official views of the National Institutes of Health.</p>
+<h3>Data availability</h3>
+<p>The de-identified data that support the findings of this study are available from the corresponding author on reasonable request.</p>
+<h3>Declaration of competing interests</h3>
+<p>The authors declare no competing financial or personal interests that could have influenced the work reported in this paper.</p>
+<p>Author contributions A.N.: Methodology; Investigation; Formal analysis; Data curation; Visualization; Writing (original draft); Writing (review and editing). R.K.: Investigation (participant screening and recruitment, data collection); Project administration; Writing (review and editing). A.B.: Investigation (intervention delivery, scheduling); Project administration (regulatory and data management); Writing (review and editing). L.O.: Investigation (outcome assessments); Writing (review and editing). H.R.J.: Investigation (neuroimaging acquisition and analysis); Writing (review and editing). C.Z.: Investigation; Writing (review and editing). J.N.N.: Investigation; Writing (review and editing).</p>
+<h3>K.M.: Investigation (intervention delivery); Writing (review and editing).</h3>
+<p>A.Z.: Data analysis and interpretation W.D.: Investigation (intervention delivery); Writing (review and editing). W.Z.R.: Conceptualization; Supervision; Writing (review and editing). A.J.N.: Resources (blinded neuroradiology review of baseline and follow-up MRI); Writing (review and editing). B.A.C.: Investigation (neurological assessment, EDSS); Resources (recruitment through neurology clinics); Writing (review and editing). M.G.B.: Conceptualization (neuroimaging); Methodology; Funding acquisition; Supervision; Writing (review and editing). M.S.S.: Conceptualization; Methodology; Funding acquisition; Supervision; Project administration; Writing (review and editing). All authors read and approved the final manuscript.</p>
+<h3>Ethics approval and consent to participate</h3>
+<p>The study was approved by the Northwestern University Institutional Review Board (STU00219535) and registered at ClinicalTrials.gov (NCT06276634) before enrollment began. All participants provided written informed consent before participation.</p>
+<h3>Figure 1</h3>
+<p>Figure 1 Study design and intervention protocol. (a) Participants breathed through a non-rebreathing facemask connected to a hypoxic gas generator, with SpO₂ and heart rate continuously monitored. (b, top) Randomized, double-masked crossover design with a minimum 4-week washout separating the two intervention blocks. Each block included pre-and post-intervention assessments, as well as a follow-up visit within 1 week of the final session. (b, bottom) A single AIH session consisted of 15 hypoxic episodes (FiO₂ = 0.09, ~60 s, titrated to SpO₂ 84-88%) alternating with ~60 s normoxic intervals (FiO₂ = 0.21). Sham sessions delivered room air (FiO₂ = 0.21) throughout an identical timing structure.</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Participant flow through the study. Of 180 individuals approached, 28 could not be contacted and 152 were assessed for eligibility. Of these, 97 were excluded (55 did not meet inclusion criteria; 42 declined to participate), and 30 were still awaiting a start date (n = 21) or being screened (n = 9) when the study closed to enrollment. Twenty-five participants were enrolled, 2 discontinued (commute issues, n = 1; schedule conflict, n = 1), and 23 completed the study. EDSS, Expanded Disability Status Scale; PPMS, primary progressive multiple sclerosis.</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Cardiovascular responses during AIH and Sham intervention sessions. SpO2 (%, top row) and heart rate (bpm, bottom row) across all 15 bouts for AIH (orange) and Sham (blue), averaged across all participants and sessions. Large markers indicate group means ± SEM; faint lines represent individual participant data. Dotted lines connect pre-session and post-session values to the main session data. The middle panels show mean ± SEM during normoxic intervals and condition bouts. The right panels show pre-session and post-session resting values. *** p &lt; 0.001.</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Ankle plantarflexion torque, dorsiflexion torque, and mean ankle torque (the average of plantarflexion and dorsiflexion) at pre-intervention, post-intervention, and follow-up for AIH (orange) and Sham (blue). The left panels show absolute maximum voluntary contraction (MVC) torque values, and the right panels show the mean individual percent change from the pre-intervention baseline. Diamonds indicate group means, boxes indicate the interquartile range, and shaded areas show the distribution of individual values.</p>
+<h3>Figure 5.</h3>
+<p>Figure 5. Timed 25-Foot Walk Test time (s), Six-Minute Walk Test distance (m), and MSWS-12 score at pre-intervention, postintervention, and follow-up for AIH (orange) and Sham (blue). The left panels show absolute values, and the right panels show the mean individual percent change from the pre-intervention baseline. Diamonds indicate group means, and boxes indicate the interquartile range. Lower T25FW times indicate faster walking.</p>
+<h3>References</h3>
+<p>Bethoux F. Gait disorders in multiple sclerosis. Continuum (Minneap Minn). 2013;19(4):1007-1022. doi:10.1212/01.CON.0000433286.92596.d5</p>
+<p>LaRocca NG. Impact of walking impairment in multiple sclerosis: perspectives of patients and care partners. Patient. 2011;4(3):189-201. doi:10.2165/11591150-000000000-00000</p>
+<p>Heesen C, Böhm J, Reich C, Kasper J, Goebel M, Gold SM. Patient perception of bodily functions in multiple sclerosis: gait and visual function are the most valuable. Mult Scler. 2008;14(7):988-991. doi:10.1177/1352458508088916</p>
+<p>Sandhu MS, Motl RW, Rymer WZ, LaVela SL. Acute intermittent hypoxia induces motor and cognitive plasticity in persons with relapsing remitting multiple sclerosis. medRxiv. Preprint posted online February 20, 2024. doi:10.1101/2024.02.17.24302733</p>
+<p>Baker-Herman TL, Fuller DD, Bavis RW, et al. BDNF is necessary and sufficient for spinal respiratory plasticity following intermittent hypoxia. Nat Neurosci. 2004;7(1):48-55. doi:10.1038/nn1166</p>
+<p>Mitchell GS, Baker TL, Nanda SA, et al. Invited review: intermittent hypoxia and respiratory plasticity. J Appl Physiol. 2001;90(6):2466-2475. doi:10.1152/jappl.2001.90.6.2466</p>
+<p>Sandhu MS, Rymer WZ. Brief exposure to systemic hypoxia enhances plasticity of the central nervous system in spinal cord injured animals and man. Curr Opin Neurol. 2021;34(6):819-824. doi:10.1097/WCO.0000000000000990</p>
+<p>Navarrete-Opazo A, Mitchell GS. Therapeutic potential of intermittent hypoxia: a matter of dose. Am J Physiol Regul Integr Comp Physiol. 2014;307(10):R1181-R1197. doi:10.1152/ajpregu.00208.2014</p>
+<p>Vose AK, Welch JF, Nair J, et al. Therapeutic acute intermittent hypoxia: a translational roadmap for spinal cord injury and neuromuscular disease. Exp Neurol. 2022;347:113891. doi:10.1016/j.expneurol.2021.113891</p>
+<p>Hayes HB, Jayaraman A, Herrmann M, Mitchell GS, Rymer WZ, Trumbower RD. Daily intermittent hypoxia enhances walking after chronic spinal cord injury: a randomized trial. Neurology. 2014;82(2):104-113. doi:10.1212/01.WNL.0000437416.34298.43</p>
+<p>Tan AQ, Sohn WJ, Naidu A, Trumbower RD. Daily acute intermittent hypoxia combined with walking practice enhances walking performance but not intralimb motor coordination in persons with chronic incomplete spinal cord injury. Exp Neurol. 2021;340:113669. doi:10.1016/j.expneurol.2021.113669</p>
+<p>Trumbower RD, Jayaraman A, Mitchell GS, Rymer WZ. Exposure to acute intermittent hypoxia augments somatic motor function in humans with incomplete spinal cord injury. Neurorehabil Neural Repair. 2012;26(2):163- 172. doi:10.1177/1545968311412055</p>
+<p>Christiansen L, Urbin MA, Mitchell GS, Perez MA. Acute intermittent hypoxia enhances corticospinal synaptic plasticity in humans. eLife. 2018;7:e34304. doi:10.7554/eLife.34304</p>
+<p>Christiansen L, Chen B, Lei Y, et al. Acute intermittent hypoxia boosts spinal plasticity in humans with tetraplegia. Exp Neurol. 2021;335:113483. doi:10.1016/j.expneurol.2020.113483</p>
+<p>Lynch M, Duffell L, Sandhu M, et al. Effect of acute intermittent hypoxia on motor function in individuals with chronic spinal cord injury following ibuprofen pretreatment: a pilot study. J Spinal Cord Med. 2017;40(3):295-303. doi:10.1080/10790268.2016.1142137</p>
+<p>Sandhu MS, Gray E, Kocherginsky M, Jayaraman A, Mitchell GS, Rymer WZ. Prednisolone pretreatment enhances intermittent hypoxia-induced plasticity in persons with chronic incomplete spinal cord injury. Neurorehabil Neural Repair. 2019;33(11):911-921. doi:10.1177/1545968319872992</p>
+<p>Sandhu MS, Perez MA, Oudega M, Mitchell GS, Rymer WZ. Efficacy and time course of acute intermittent hypoxia effects in the upper extremities of people with cervical spinal cord injury. Exp Neurol. 2021;342:113722. doi:10.1016/j.expneurol.2021.113722</p>
+<p>Goldman MD, Marrie RA, Cohen JA. Evaluation of the six-minute walk in multiple sclerosis subjects and healthy controls. Mult Scler. 2008;14(3):383-390. doi:10.1177/1352458507082607</p>
+<p>Cutter GR, Baier ML, Rudick RA, et al. Development of a multiple sclerosis functional composite as a clinical trial outcome measure. Brain. 1999;122(5):871-882. doi:10.1093/brain/122.5.871</p>
+<p>Hobart JC, Riazi A, Lamping DL, Fitzpatrick R, Thompson AJ. Measuring the impact of MS on walking ability: the 12-Item MS Walking Scale (MSWS-12). Neurology. 2003;60(1):31-36. doi:10.1212/wnl.60.1.31</p>
+<p>R Core Team. R: A Language and Environment for Statistical Computing. R Foundation for Statistical Computing; 2023. Accessed November 7, 2026. https://www.R-project.org/</p>
+<p>Lovett-Barr MR, Satriotomo I, Muir GD, et al. Repetitive intermittent hypoxia induces respiratory and somatic motor recovery after chronic cervical spinal injury. J Neurosci. 2012;32(11):3591-3600. doi:10.1523/JNEUROSCI.2908-11.2012</p>
+<p>Johnson MA, Polgar J, Weightman D, Appleton D. Data on the distribution of fibre types in thirty-six human muscles: an autopsy study. J Neurol Sci. 1973;18(1):111-129. doi:10.1016/0022-510x(73)90023-3</p>
+<p>Lee RH, Heckman CJ. Bistability in spinal motoneurons in vivo: systematic variations in persistent inward currents. J Neurophysiol. 1998;80(2):583-593. doi:10.1152/jn.1998.80.2.583</p>
+<p>Heckman CJ, Mottram C, Quinlan K, Theiss R, Schuster J. Motoneuron excitability: the importance of neuromodulatory inputs. Clin Neurophysiol. 2009;120(12):2040-2054. doi:10.1016/j.clinph.2009.08.009</p>
+<p>Keenan KG, Farina D, Maluf KS, Merletti R, Enoka RM. Influence of amplitude cancellation on the simulated surface electromyogram. J Appl Physiol. 2005;98(1):120-131. doi:10.1152/japplphysiol.00894.2004</p>
+<p>Farina D, Merletti R, Enoka RM. The extraction of neural strategies from the surface EMG. J Appl Physiol. 2004;96(4):1486-1495. doi:10.1152/japplphysiol.01070.2003</p>
+<p>Panza GS, Kissane DM, Puri S, Mateika JH. The hypoxic ventilatory response and hypoxic burden are predictors of the magnitude of ventilatory long-term facilitation in humans. J Physiol. 2023;601(20):4611-4623. doi:10.1113/JP285192</p>
+<p>Harris DP, Balasubramaniam A, Badr MS, Mateika JH. Long-term facilitation of ventilation and genioglossus muscle activity is evident in the presence of elevated levels of carbon dioxide in awake humans. Am J Physiol Regul Integr Comp Physiol. 2006;291(4):R1111-R1119. doi:10.1152/ajpregu.00896.2005</p>
+<p>Tester NJ, Fuller DD, Fromm JS, Spiess MR, Behrman AL, Mateika JH. Long-term facilitation of ventilation in humans with chronic spinal cord injury. Am J Respir Crit Care Med. 2014;189(1):57-65. doi:10.1164/rccm.201305-0848OC</p>
+<p>Mateika JH, Barok R, Kissane DM. Is sustained hypercapnia required to initiate plasticity in humans exposed to mild intermittent hypoxia? J Physiol. 2024;602(20):5125-5128. doi:10.1113/JP287341</p>
+<p>Welch JF, Nair J, Argento PJ, Mitchell GS, Fox EJ. Acute intermittent hypercapnic-hypoxia elicits central neural respiratory motor plasticity in humans. J Physiol. 2022;600(10):2515-2533. doi:10.1113/JP282822</p>
+<p>Bogard AT, Mir MJ, Sutor TW, et al. Acute intermittent hypoxia and acute intermittent hypercapnic hypoxia elicit cortico-diaphragmatic plasticity in people with chronic spinal cord injury. J Neurophysiol. 2026;136(1):215- 225. doi:10.1152/jn.00120.2026</p>
 </div>
 </details>
 </div>
