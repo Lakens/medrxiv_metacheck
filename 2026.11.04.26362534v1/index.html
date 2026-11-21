@@ -198,7 +198,7 @@ Posture-Transition Monitoring: A Feasibility Study for Pre-Emptive
 Fall-Risk Alerting in Elderly and Dementia Care
 </p>
 <p class="meta">
-2026-11-16 · Metacheck 0.4.4.3 · DOI 10.64898/2026.11.04.26362534
+2026-11-21 · Metacheck 0.4.4.29 · DOI 10.64898/2026.11.04.26362534
 </p>
 </header>
 <div class="mc-main">
@@ -325,8 +325,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -727,9 +728,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -751,7 +756,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -774,6 +780,19 @@ test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
 significant (“genes with padj &lt; 0.05 were selected”); such a p-value
 is “named” in <code>not_a_test</code>. Notes in other forms, such as a
 marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -940,6 +959,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -979,6 +1018,21 @@ text (93 of 95) and 90% in reference lists (74 of 82); the labels were
 made by Claude agents from each link’s evidence, and disputed ones
 checked against the deposits. Telling this paper’s own deposit from the
 authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1234,19 +1288,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1356,6 +1492,123 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Falls and unmonitored patient movements remain leading causes of harm in healthcare settings.</p>
+<p>Current solutions -such as weight-based alarms, remote video monitoring, and in-person sitters -are reactive, labor-intensive, or prone to false alarms, often compromising both care quality and staff efficiency. We developed a machine learning-enabled, proactive-preventive patient monitoring platform that uses 17-keypoint pose estimation to detect changes in patient posture and generate alerts in real time. The Edge-AI device integrates a Raspberry Pi 5, Hailo-8L neural processing unit (NPU), and Raspberry Pi camera module 3, and runs Hailo-YOLOv8-Pose at 30 frames per second to classify postures (i.e., lying, Fowler&#x27;s, sitting, standing). Alerts are transmitted via Bluetooth to caregivers through earphones or speakers. System performance was evaluated across multiple scenarios, including bed and chair monitoring, free limb movement, partial body occlusion (e.g., blankets), and varying lighting and care environments. The platform maintained accurate monitoring under varying lighting conditions, including lights-off scenarios, and because all processing occurs locally without network dependence, it is designed to continue operating during network outages -an important resilience feature for care environments where connectivity may be interrupted. By abstracting images into skeletal keypoints without recording video, the system preserves privacy while potentially enabling earlier intervention and reducing false alarms and caregiver workload. This cost-effective, scalable system supports future enhancements such as dual alerting, multi-device full-room coverage, and continuous monitoring for dementia patients.</p>
+<p>.</p>
+<h3>Introduction</h3>
+<p>Patient safety is the highest priority in healthcare settings. Falls are a significant concern (e.g., 2 to 16 falls per 1,000 bed days with around 30% fall-related injuries) (Haines et al., 2008; Hester et al., 2016), often resulting from patients&#x27; physical limitations or changes in mentation from their baseline due to conditions such as dementia (Allan et al., 2009; Fernando et al., 2017; Handelsman, 2011; Morris et al., 2022; van Dijk et al., 1993). To prevent falls, patient monitoring systems have been implemented, with bed alarm systems (e.g., Bed-Ex occupancy monitoring system) as the first line of defense. These systems, based on weight sensors, trigger an alarm when a change in weight is detected as the patient exits the bed (Lee et al., 2018; Shorr et al., 2012). Simultaneously, the bed&#x27;s interface communicates with third-party systems such as Vocera (Stryker) to sound external alarms, alerting nearby staff (Kuruzovich et al., 2008; Rumfield, 2021; Williams, 2008). However, current bed alarm systems have critical limitations.</p>
+<p>Because alarms are triggered only after a patient has exited the bed, the opportunity to intervene proactively is often missed -especially given patients&#x27; compromised physical and/or mental conditions, where falls may already have occurred. Although beds allow sensitivity adjustments to address this issue, overly sensitive settings can cause frequent false alarms, leading to alarm fatigue -a major contributor to caregiver burnout (Asadi et al., 2022; Ding et al., 2023; Lewandowska et al., 2020; Solet &amp; Barach, 2012; Storm &amp; Chen, 2021). Additionally, alarms must be manually reset after activation; if not reset properly, monitoring lapses, further increasing the risk of falls. Other factors, such as improper bed calibration or the addition of equipment (e.g., oxygen tanks or other necessary medical equipment), can also compromise alarm effectiveness (Clodfelter, 2025; Winkler et al., 2025).</p>
+<p>Other fall prevention methods include chair alarms (Knight et al., 2008), virtual sitters, and in-person patient sitters. Chair alarms operate similarly to bed alarms, sounding after the patient has already moved or fallen. Virtual sitters monitor patients remotely via cameras, alerting staff when necessary (Ergai et al., 2024; Quigley et al., 2021). However, remote monitoring cannot physically intervene to prevent harm and is limited by the number of available devices. In-person sitters, though effective, strain staffing resources and raise privacy concerns (Charles, 2023). Therefore, there is an urgent need for real-time, preventive patient monitoring technologies that improve fall prevention while preserving patient privacy and reducing caregiver workload.</p>
+<p>In response to this need, we have developed a machine learning (ML)-enabled, real-time patient monitoring platform using a Hailo-8L neural processing unit (NPU) accelerator and Raspberry Pi. Our platform utilizes 17-keypoint pose estimation to continuously monitor patient posture in bed or chair environments at 30 frames per second (FPS), without storing or retaining identifiable video/images to protect privacy. By accurately detecting postures such as lying, Fowler&#x27;s position, sitting, and standing, the platform provides immediate voice alerts to caregivers via Bluetooth-paired earphones. To evaluate the platform&#x27;s patient monitoring and alert performance, four distinct patient monitoring trials were conducted: i) posture monitoring and alerting for lying, Fowler&#x27;s, sitting, and standing positions on a bed; ii) posture monitoring during free hand and leg motions on the bed; iii) posture detection when the patient&#x27;s body was partially covered by a blanket; and iv) monitoring sitting and standing transitions in a chair across various angles. We also assessed platform performance under different care environments, including varying locations and lighting conditions.</p>
+<h3>Methods and Materials</h3>
+<h3>ML-enabled proactive-preventive patient monitoring platform</h3>
+<p>The proactive-preventive edge device consists of a Raspberry Pi 5 (64-bit, 8 GB RAM), a Hailo-8L NPU (Hailo-8L AI chip: 13 trillion operations per second [TOPS] neural network inference accelerator), and a Raspberry Pi camera module 3 (Figure 1A). The assembled unit is mounted onto a 10-inch touchscreen monitor (Roadom), with the camera module attached using a 3Dprinted, angle-adjustable mount (S_BELGI-3DELWORLD, 2022) (Figures 1B and 1C). 6 119 Figure 2 gives the hardware and communication block diagram. The camera is connected to the 120 host over the CSI-2 interface; the Hailo-8L is attached over a single PCIe lane through the 121 Raspberry Pi M.2 HAT. The host transfers the pre-processed frame tensor to the accelerator. 122 Classification, alert-policy evaluation, and sound synthesis all run on the host CPU. The only 123 signal that crosses the device boundary is the synthesized spoken label, streamed over Bluetooth  128 the interfaces between camera, host processor, NPU accelerator, local display, and Bluetooth 129 output; the data-egress boundary across which only a spoken posture label passes; and, as an 130 unfilled box, the nurse-call or paging integration that is proposed but not implemented. 131 132 17-Keypoint human pose estimation for real-time monitoring and sound alerting 133 Pose estimation is performed using Hailo-YOLOv8-Pose, enabling 17-keypoint human pose 134 detection at 30 FPS without excessive computational load. Lines are drawn connecting the 135 6 he he or.</p>
+<p>ly th ng th an se he detected keypoints, which include the nose, left and right eyes, ears, shoulders, elbows, wrists, hips, knees, and ankles (Figure 3). Upon detecting a person (with adjustable detection confidence thresholds), the X-and Y-coordinates of each keypoint are calculated and utilized to determine different postures (Figure 3E). Hardware setup and software installations followed established protocols (Hailo-AI, 2025; Raspberry Pi, 2024). Upon detecting programmed posture changes in bed or chair environments, the system delivers real-time voice alerts through Bluetooth-paired earphones or speakers.</p>
+<h3>Monitoring of subject postures on bed</h3>
+<p>Four distinct postures on a bed -supine lying, Fowler&#x27;s position, sitting, and standing -were monitored and alerted (n=3 subjects; 30 trials per posture per subject; 90 trials per posture in total) (Figure 3). A custom Python program identified postures in real time based on the relative positions (X-and Y-coordinates; Figure 3E) of keypoints. When a subject remained in the same posture (e.g., lying on bed), a voice alert (&quot;Subject is lying on bed&quot;) was repeated every 10 seconds. The repeat interval can be adjusted based on situational needs. If the subject changed posture (e.g., from lying to Fowler&#x27;s), an immediate alert (&quot;Subject is in Fowler&#x27;s position&quot;) was issued to caregivers.</p>
+<h3>Monitoring of subject postures on bed with free hand and leg motions</h3>
+<p>To assess robustness during natural movements, subjects&#x27; postures were monitored and alerted while allowing free hand and leg motions (Figure 4). Natural movements included: supine lying with reversed body orientation; Fowler&#x27;s position with one or two hands resting on the mattress; sitting on the bed with one or two hands holding the bed rail; and sitting with one leg off the bed and one hand on the mattress.</p>
+<h3>Monitoring of subject postures on bed covered by a blanket</h3>
+<p>To determine system performance when parts of the subject&#x27;s body were obscured, subjects&#x27; postures were monitored and alerted while partially covered with a blanket (Figure 5). Tested scenarios included: lying with entire body covered except for the head; lying with shoulders exposed; lying with shoulders, hips, and both arms exposed; Fowler&#x27;s position with upper body exposed; and sitting with the upper body exposed while both hands rested on the knees or one hand on the rail.</p>
+<h3>Monitoring of subject postures on chair</h3>
+<p>Postures monitored on a chair included sitting (with various rotated positions) and standing (n=3 subjects; 30 trials per posture per subject; 90 trials per posture in total) (Figure 6). Similar to bed monitoring, if the subject maintained the same posture (e.g., sitting on chair), a voice alert (&quot;Subject is sitting&quot;) was repeated every 10 seconds. Upon posture change (e.g., sitting to standing), an immediate alert (&quot;Subject is standing&quot;) was issued to caregivers.</p>
+<h3>Monitoring across different environmental conditions</h3>
+<p>To simulate realistic hospital and home care environments, monitoring performance was evaluated under: i) three different light brightness conditions: daytime, nighttime, and lights off and ii) two different testing locations: laboratory and home settings (Figure 7).</p>
+<h3>Results</h3>
+<h3>Real-time bed-posture monitoring and caregiver alerting.</h3>
+<p>The ML-enabled patient monitoring platform detected and classified four different postures on the bed -lying, Fowler&#x27;s position, sitting, and standing -in 90/90 trials per posture (three subjects; 30 trials per posture per subject) (Figure 3). Four different postures were determined from the relative X-and Y-coordinates of 17 keypoints (Figure 3E). Real-time voice alerts were correctly triggered during posture transitions. When subjects maintained a single posture, repeated alerts were issued at the pre-programmed 10-second intervals without failure. Posture changes, such as from lying to Fowler&#x27;s or sitting to standing, were detected without perceptible delay, resulting in prompt voice notifications. To ensure smooth performance, the real-time camera&#x27;s frame processing by the Hailo-8L NPU and audio playback by the Raspberry Pi 5 were handled asynchronously using separate threads. This threading approach prevented audio playback from blocking real-time frame analysis.</p>
+<p>Additionally, a cooldown interval between successive audio outputs helped reduce redundant or excessive sound alerts.</p>
+<h3>Monitoring during free hand and leg motions on bed</h3>
+<p>The edge platform demonstrated robust monitoring and alert performance when subjects performed free hand and leg movements while remaining in various postures (Figure 4). Postures such as reversed body orientation in lying position, one or two hands resting on the mattress during Fowler&#x27;s position, and partial bed-exiting postures were accurately monitored and classified. No misclassifications or missed alerts were observed in these scenarios, suggesting that the platform is robust to minor body movements. For context, the bed (light gray) and surrounding room (dark gray) are shown as line drawings traced from the original images; parts hidden behind the participant are omitted.</p>
+<h3>Monitoring of postures under blanket coverage</h3>
+<p>Monitoring performance was consistent even when subjects were partially covered with a blanket (Figure 5). In all tested covered postures -ranging from full body coverage (except for the head) to partial exposure of shoulders, hips, or arms -the platform reliably identified the correct posture and issued appropriate voice alerts. The blanket did not noticeably interfere with keypoint detection, indicating the platform&#x27;s robustness in common patient care environments where coverings are often used.</p>
+<h3>Real-time monitoring and alerting of chair postures</h3>
+<p>Posture monitoring on a chair likewise detected and classified the postures in 90 of 90 trials per posture (three subjects; 30 trials per posture per subject), with appropriate sound alerts generated in all trials (Figure 3F). The platform accurately distinguished between sitting (even at various rotational angles) and standing postures across all three subjects (n=30 per subject) (Figure 6) and two different testing locations (lab and home environment). Consistent voice alerts were triggered every 10 seconds during prolonged sitting, and immediate alerts were issued upon standing transitions. No false alerts were observed during the trials.</p>
+<h3>Monitoring under different lighting and location conditions</h3>
+<p>The platform&#x27;s posture detection and alerting performance remained stable under varying environmental conditions: i) various light conditions: Real-time posture recognition and alerts were consistent across daytime lighting, nighttime lighting, and even under lights-off conditions; and ii) various testing locations: Performance was equally robust in both laboratory and home environments, demonstrating the platform&#x27;s adaptability across different care settings (Figure 7).</p>
+<p>Across all tested conditions, the platform maintained real-time monitoring at 30 FPS, showed no noticeable degradation in posture detection accuracy, and reliably delivered Bluetooth voice alerts.</p>
+<p>Importantly, because the Edge-AI device performs all processing locally and does not require external network connectivity, it is designed to continue posture monitoring during network outages; this was not tested experimentally in the present study. Such network independence could enhance patient safety by maintaining monitoring when hospital or home network connectivity is interrupted. Continuous operation during an electrical power outage, however, would additionally require a battery or uninterruptible power supply, which the current prototype does not include -a direction for future hardware development.</p>
+<h3>Discussion</h3>
+<p>In this study, we developed an ML-enabled, proactive-preventive patient monitoring platform capable of real-time posture detection and alerting for subjects on beds or chairs in various care environments. The system leverages a lightweight Edge-AI device integrating a Raspberry Pi 5 and a Hailo-8L NPU to perform 17-keypoint human pose estimation. It delivers immediate posture alerts to caregivers through a Bluetooth-paired earphone or speaker, enabling proactive responses to patient movements.</p>
+<p>The use of 17-keypoint pose estimation instead of full raw image data offers several key advantages in healthcare environments where privacy, real-time performance, and operational efficiency are critical: 1) Enhanced patient privacy: The system abstracts human figures into 17 skeletal keypoints, omitting facial details and identifiable features. This significantly reduces the risk of violating patient confidentiality. While subjects can view their posture status via the touchscreen interface (Figure 1C), no video recordings are stored, reducing privacy risks associated with stored video; 2) Real-time responsiveness: The Hailo-YOLOv8-Pose model runs at 30 FPS on the Hailo-8L NPU, enabling low-latency inference and instant alert delivery; 3) Lightweight data processing: The use of keypoint coordinates (X, Y positions of 17 keypoints; Figure 3E) reduces data bandwidth and processing needs compared to high-resolution video frames, optimizing system performance for real-time monitoring and alerts; 4) Lower power consumption: The pose-estimation-enabled monitoring operates efficiently within a 2-8 W range for the Hailo-8L NPU and 3-7 W for the Raspberry Pi 5 (Hailo-AI, 2024), making it suitable for always-on deployment in both clinical and homecare settings; 5) Scalability and modularity:</p>
+<p>Pose estimation outputs are easy to integrate with rule-based logic and alert systems, facilitating system expansion across multiple beds, rooms, or entire facilities without added complexity (Figure 1D); and 6) Suitable for monitoring patients in various care environments: Pose estimation is adjusted to only recognize persons so the monitoring is not disturbed by surrounding care environments such as home, hospital, bed, or chair types.</p>
+<p>Compared to traditional monitoring approaches such as weight sensors, remote sitters, and in-person sitters, our ML-enabled platform offers several transformative advantages: 1) Proactive (proactive-preventive) monitoring: Unlike weight sensors, which typically trigger alarms only after a patient has exited the bed, our system detects and alerts on early posture transitions -such as sitting up or attempting to stand -giving caregivers an earlier window to respond than post-exit alarms allow. Because our evaluation did not include staged fall events, the platform&#x27;s effect on actual fall incidence remains to be established in future studies; 2) Reduced alarm fatigue: Traditional systems often produce false alarms due to minor patient movements such as rolling over or shifting weight. Our posture-aware alerts are context-specific, improving clinical response accuracy and reducing staff desensitization; 3) Privacy-conscious monitoring: Compared to remote sitters viewing live video or in-person sitters stationed bedside, the use of pose estimation preserves patient dignity and confidentiality through skeletal abstraction; 4) Operational efficiency and workforce support: ML-enabled monitoring alleviates the staffing burden, offering consistent and uninterrupted surveillance across shifts. The system is unaffected by fatigue, distractions, or turnover -challenges inherent to human sitters; and 5) Robust performance across settings: The system is resilient to variability in lighting, room configurations, and furniture types, areas where traditional solutions often require recalibration or fail altogether.</p>
+<p>To further advance the capabilities of this first-generation ML-based platform, we propose several future enhancements: First, dual sound alerting: In addition to caregiver alerts delivered via Bluetooth, the system could directly communicate with patients. Upon detecting posture transitions (e.g., from lying to Fowler&#x27;s position or sitting to standing), the device could issue immediate verbal prompts -such as &quot;Please stay in bed&quot; or &quot;Help is on the way&quot; -through built-in or paired speakers, enhancing patient safety and compliance; second, full-room monitoring using multiple devices: As camera-based systems are limited to their field of view, without interfering with clinical workflow or patient comfort. Together, these enhancements illustrate the potential of this platform to evolve into a robust, patient-centered, and privacypreserving monitoring ecosystem.</p>
+<p>This study has several limitations. The evaluation involved a small sample of three subjects, all of whom were also co-authors, rather than an independent cohort of older adults or individuals with dementia; performance across different body types, mobility patterns, and comorbidities remains to be established. The study was reviewed by the Office of Regulatory</p>
+<h3>Conclusion</h3>
+<p>This study presents the development and feasibility evaluation of a machine learning-enabled, proactive-preventive patient monitoring and alerting platform using 17-keypoint human pose estimation for real-time posture detection on beds and chairs across various care environments.</p>
+<p>Implemented on a low-cost Edge-AI device integrating a Raspberry Pi 5 and a Hailo-8L NPU, the system delivers immediate, privacy-conscious alerts to caregivers via Bluetooth-paired speakers or earphones. Unlike traditional systems such as weight sensors or in-person sitters, this platform enables proactive detection of posture transitions -including early indicators of bed exit, such as sitting up or moving to the bed edge -and operates reliably under the lighting, room, and coverage conditions tested here.</p>
+<p>The results demonstrate high performance and robustness in detecting a wide range of postures, including those partially obscured by blankets or involving free limb movements. These findings support the system&#x27;s potential as a scalable, always-on, and privacy-preserving solution for continuous patient monitoring. Future enhancements such as dual sound alerts, multi-device room coverage, and automated interruption handling will further strengthen its utility in clinical and homecare settings. Overall, the proposed platform represents a significant step toward intelligent, preventive, and cost-effective patient safety monitoring, and it can be further adapted to support dementia patient care through continuous mobility and behavioral monitoring.</p>
+<h3>Statements and Declarations</h3>
+<h3>Consent to Participate</h3>
+<p>All individuals who performed the predefined postures were investigators/authors of the study and voluntarily agreed to participate in the technical feasibility testing.</p>
+<h3>Ethics Statement</h3>
+<p>This study was reviewed by the Office of Regulatory Services, Division of Research Administration, The University of Texas at Arlington, Arlington, Texas, USA. The reviewing body determined that this study constitutes Not Human Subjects Research (Non-HSR) and that Institutional Review Board review and approval were not required. The study was limited to technical feasibility testing of the Edge-AI posture-monitoring device. All individuals who performed the predefined postures were investigators/authors of the study. Continuous RGB video was processed in real time and was not recorded or retained as study data. Representative still images were captured solely to illustrate device operation. In accordance with medRxiv policy, the figures in this preprint show only the device-generated skeletal keypoint overlays, with all camera image content removed (for context, the bed, chair, and laboratory room are shown as line drawings traced from the original images, excluding the participants); the original images are available from the corresponding author upon reasonable request. For performance analysis, only AI-generated skeletal/pose-estimation outputs, posture classifications, and device detection/alert outcomes were retained. No clinical, physiological, behavioral, usability, or other person-level outcomes were collected or analyzed.</p>
+<h3>Clinical trial number: not applicable</h3>
+<h3>Acknowledgements</h3>
+<p>Not applicable.</p>
+<h3>Funding</h3>
+<p>No funding was received for conducting this study.</p>
+<h3>Availability of data and materials</h3>
+<p>The datasets used and/or analyzed during the current study, including representative images of device operation, are available from the corresponding author on reasonable request.</p>
+<h3>Competing interests</h3>
+<p>The authors declare no competing interests.</p>
+<h3>Author Contributions</h3>
+<p>Y.T.K. was the principal investigator. B.S., Y.C., and Y.T.K. wrote the paper. Y.T.K. and B.S. developed the idea and designed the experiments. L.K. coded and fabricated the Edge-AI device.</p>
+<p>A.J. adapted and 3D-printed the camera holder. Y.T.K., B.S., I.P., L.K., and A.J. carried out all experiments and produced all data.</p>
+<p>deploying multiple synchronized units can eliminate blind spots. With a unit fabrication cost below $200, a multi-device setup is feasible for full-room coverage without compromising affordability; and third, automatic detection of multi-person presence: To maintain data integrity and privacy, the system can be programmed to temporarily pause monitoring when additional individuals (e.g., caregivers) are detected in the frame. It can then notify out-of-room staff (e.g., &quot;Monitoring temporarily paused due to caregiver presence&quot;), and resume automatically once the room is cleared (e.g., &quot;Monitoring resumed for Room 1&quot;) (Supplementary Figure 1). Finally, Supplementary Figure 2 highlights that these Edge-AI devices can be assembled into highly compact, screenless form factors. This compact footprint enables discreet placement on patient beds, wheelchairs, and bedside furniture, allowing continuous real-time monitoring.</p>
+<h3>Figure 1 . 119 Figure 2</h3>
+<p>Figure 1. Edge-AI device for patient bed and chair monitoring. A-B) Real-time monitoring and alerting device mounted on a touchscreen display, with a 3D-printed, angle-adjustable camera holder. C) Touchscreen displaying the 17-keypoint skeleton of a subject standing on the floor; the on-screen camera image was removed to protect participant privacy, leaving only the skeletal overlay. D) Diagram of a clinical setting (e.g., nursing home: one or two caregivers and eight subjects lying in separate rooms; R1-R8). Black rectangles represent AI edge devices mounted on the wall of each subject&#x27;s room. The edge device in R1 detects a subject&#x27;s sitting motion and wirelessly informs the caregiver(s).</p>
+<p>124to a caregiver earphone or bedside speaker.</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Edge-AI system architecture. Hardware and communication block diagram, showing</p>
+<h3>Figure 3.</h3>
+<p>Figure 3. Monitoring of subject&#x27;s postures on a bed and chair. Representative 17-keypoint skeletons for four different postures: supine lying (A), Fowler&#x27;s position (B), sitting (C), and standing (D). Only the skeletal keypoint overlay generated by the device is shown; the camera image was removed to protect participant privacy. For context, the bed (light gray) and surrounding room (dark gray) are shown as line drawings traced from the original images; parts hidden behind the participant are omitted; panel E shows skeletons only. E) Screenshot of the Xand Y-coordinates of each keypoint corresponding to the subject in standing and sitting postures. F) Table summarizing three subjects&#x27; posture detection and sound alerting on the bed and chair: 30/30 indicates 30 successful monitoring and sound alerts out of 30 trials.</p>
+<h3>Figure 4.</h3>
+<p>Figure 4. Monitoring during free hand and leg motions on the bed. Representative supine lying position with reversed body orientation (A). Fowler&#x27;s position with one (B) or both hands on mattress (C). Sitting on the bed with one (D) or both hands on the rail (E). Sitting on the bedwith one leg out of the bed and one hand on the mattress (F). Only the skeletal keypoint overlay generated by the device is shown; the camera image was removed to protect participant privacy.</p>
+<h3>Figure 5.</h3>
+<p>Figure 5. Monitoring of subject&#x27;s postures on the bed with a blanket. Representative lying with the entire body covered by a blanket except for the head (A). Lying with shoulders exposed (B). Lying with the shoulders, hips, and both arms exposed (C). Fowler&#x27;s position with the upper body exposed (D). Sitting with the upper body exposed and both hands on the knees (E) or one hand on the rail (F). Only the skeletal keypoint overlay generated by the device is shown; the camera image was removed to protect participant privacy. For context, the bed (light gray) and surrounding room (dark gray) are shown as line drawings traced from the original images; parts hidden behind the participant are omitted.</p>
+<h3>Figure 6.</h3>
+<p>Figure 6. Monitoring of subject&#x27;s postures on a chair. Subject 1 in the laboratory environment: standing next to a chair (A), sitting facing the camera (B), sitting rotated 90 degrees (C), sitting rotated 180 degrees (D), and sitting rotated 270 degrees (E). Subject 2 standing in front of a chair in the home environment (F). Only the skeletal keypoint overlay generated by the device is shown; the camera image was removed to protect participant privacy. For context, in panels A-E the chair (light gray) and surrounding room (dark gray) are shown as line drawings traced from the original images; parts hidden behind the participant are omitted. Panel F (home environment) shows the skeleton only.</p>
+<h3>Figure 7.</h3>
+<p>Figure 7. Monitoring of subject&#x27;s postures on a chair or bed under different environments: light brightness and location. Subject 1 sitting on a chair in the lab environment, with room light adjusted to daytime, nighttime, and lights off (A-C). Subject 1 on a bed covered with a blanket in the lab environment, with room light adjusted to daytime, nighttime, and lights off (D-F). Subject 2 sitting on a chair in the home environment, with room light adjusted to daytime, nighttime, and lights off (G-I). Only the skeletal keypoint overlay generated by the device is shown; the camera image was removed to protect participant privacy. For context, in panels A-F the chair or bed (light gray) and surrounding room (dark gray) are shown as line drawings traced from the original images, with parts hidden behind the participant omitted; for the lights-off panels (C, F), the outlines were traced from lit images of the same scene. Panels G-I (home environment) show the skeleton only.</p>
+<p>Services, Division of Research Administration, The University of Texas at Arlington, which determined that the activity constituted Not Human Subjects Research (Non-HSR) and that Institutional Review Board review and approval were not required. Future studies involving external participants, particularly vulnerable populations such as individuals with dementia, will require prospective ethics/IRB review and appropriate consent procedures. The evaluation assessed posture and posture-transition classification but did not include staged falls or near-fall events, so whether earlier alerts translate into fewer actual falls or faster caregiver response has not been tested. The posture classifier relies on fixed geometric thresholds rather than a model trained on various postures and body types, which may limit generalizability beyond the tested conditions. Finally, all trials were conducted in a controlled laboratory or single home setting; performance in busier clinical environments with multiple occupants, medical equipment, or complex bedding was not assessed. Larger, IRB-approved studies with independent participants and real-world deployment are needed to validate the platform&#x27;s fall-prevention benefit. Supplementary Figure 2. Compact, screenless preventive Edge-AI devices for patient bed and chair monitoring. A Raspberry Pi 5, a Hailo-8L NPU, and a Raspberry Pi camera module 3 can be assembled into compact form factors without a screen: 10 x 9 x 6 cm (A) and 9 x 6 x 3 cm (B).</p>
+<h3>Supplementary Figure 1.</h3>
+<p>Subject lying on a bed with a caregiver. Representative image showing two persons in the camera view: a subject lying on a bed and a caregiver sitting on a chair. Only the skeletal keypoint overlay generated by the device is shown; the camera image was removed to protect participant privacy. For context, the bed (light gray) and surrounding room (dark gray) are shown as line drawings traced from the original images; parts hidden behind the participants are omitted.</p>
+<h3>References</h3>
+<p>Allan, L. M., Ballard, C. G., Rowan, E. N., &amp; Kenny, R. A. (2009). Incidence and prediction of falls in dementia: A prospective study in older people. PLoS One, 4(5), e5521. https://doi.org/10.1371/journal.pone.0005521</p>
+<p>Asadi, N., Salmani, F., Asgari, N., &amp; Salmani, M. (2022). Alarm fatigue and moral distress in ICU nurses in COVID-19 pandemic. BMC nursing, 21(1), 125.</p>
+<p>Charles, M. (2023). Implementing a Virtual Sitter Program to Reduce Patient Falls and Cost. Doctor of Nursing Practice project, The University of Alabama in Huntsville.</p>
+<p>Clodfelter, A. D. (2025). Improving Alarm Management Practices: Wireless Bed Exit Alerts on Medical-Surgical Units. CIN: Computers, Informatics, Nursing, 43(8), e01324. https://doi.org/10.1097/CIN.0000000000001324</p>
+<p>Ding, S., Huang, X., Sun, R., Yang, L., Yang, X., Li, X.,…Wang, X. (2023). The relationship between alarm fatigue and burnout among critical care nurses: A cross sectional study. Nursing in critical care, 28(6), 940-947.</p>
+<p>Ergai, A., Spiva, L., Thurman, S., Hatfield, M., McCollum, M., &amp; Holmes, M. (2024). The effectiveness of remote video monitoring on fall prevention and nurses&#x27; acceptance. Journal of Nursing Care Quality, 39(1), 24-30.</p>
+<p>Fernando, E., Fraser, M., Hendriksen, J., Kim, C. H., &amp; Muir-Hunter, S. W. (2017). Risk Factors Associated with Falls in Older Adults with Dementia: A Systematic Review. Physiother Canada, 69(2), 161-170. https://doi.org/10.3138/ptc.2016-14</p>
+<p>Hailo-AI. (2024). Hailo-8 Power consumption. https://community.hailo.ai/t/hailo-8-power- consumption/2879</p>
+<p>Hailo-AI. (2025). Hailo-rpi5-examples. https://github.com/hailo-ai/hailo-rpi5-examples Haines, T., Kuys, S. S., Morrison, G., Clarke, J., &amp; Bew, P. (2008). Balance impairment not predictive of falls in geriatric rehabilitation wards. The Journals of Gerontology Series A: Biological Sciences and Medical Sciences, 63(5), 523-528.</p>
+<p>Handelsman, J. (2011). Falls among older adults: A public health concern. Perspectives on Hearing Conservation and Occupational Audiology, 12(1), 13-18.</p>
+<p>Hester, A. L., Tsai, P.-F., Rettiganti, M., &amp; Mitchell, A. (2016). CE: original research: predicting injurious falls in the hospital setting: implications for practice. AJN The American Journal of Nursing, 116(9), 24-31.</p>
+<p>Knight, H., Lee, J.-K., &amp; Ma, H. (2008). Chair alarm for patient fall prevention based on gesture recognition and interactivity. In 2008 30th Annual International Conference of the IEEE Engineering in Medicine and Biology Society (pp. 3698-3701). IEEE.</p>
+<p>Kuruzovich, J., Angst, C. M., Faraj, S., &amp; Agarwal, R. (2008). Wireless communication role in patient response time: a study of Vocera integration with a nurse call system. CIN: Computers, Informatics, Nursing, 26(3), 159-166.</p>
+<p>Lee, C.-N., Yang, S.-C., Li, C.-K., Liu, M.-Z., &amp; Kuo, P.-C. (2018). Alarm system for bed exit and prolonged bed rest. In 2018 International Conference on Machine Learning and Cybernetics (ICMLC) (pp. 439-443). IEEE.</p>
+<p>Lewandowska, K., Weisbrot, M., Cieloszyk, A., Mędrzycka-Dąbrowska, W., Krupa, S., &amp; Ozga, D. (2020). Impact of alarm fatigue on the work of nurses in an intensive care environment-a systematic review. International journal of environmental research and public health, 17(22), 8409.</p>
+<p>Morris, M. E., Webster, K., Jones, C., Hill, A.-M., Haines, T., McPhail, S., Kiegaldie, D., Slade, S., Jazayeri, D., Heng, H., Shorr, R., Carey, L., Barker, A., &amp; Cameron, I. (2022). Interventions to reduce falls in hospitals: a systematic review and meta-analysis. Age and Ageing, 51(5), afac077. https://doi.org/10.1093/ageing/afac077</p>
+<p>Quigley, B. H., Renz, S. M., &amp; Bradway, C. (2021). Fall prevention and injury reduction utilizing virtual sitters in hospitalized patients: a literature review. CIN: Computers, Informatics, Nursing, 39(12), 929-934.</p>
+<p>Raspberry Pi. (2024). How to set up the Raspberry Pi AI Kit with Raspberry Pi 5. Raspberry Pi. https://www.raspberrypi.com/news/how-to-set-up-the-raspberry-pi-ai-kit-with-raspberry- pi-5/ Rumfield, J. D. (2021). The Association Between Patient Falls and Wired and Wireless Patient Communication Systems [Doctoral dissertation, Trident University International].</p>
+<p>S_BELGI-3DELWORLD. (2022). Raspberry Pi camera holder (DUCKLING). cults3d.com. https://cults3d.com/en/3d-model/tool/raspberry-pi-camera-holder-duckling-camera- holder-for-octoprint</p>
+<p>Shorr, R. I., Chandler, A. M., Mion, L. C., Waters, T. M., Liu, M., Daniels, M. J.,…Miller, S. T. (2012). Effects of an intervention to increase bed alarm use to prevent falls in hospitalized patients: a cluster randomized trial. Annals of internal medicine, 157(10), 692-699.</p>
+<p>Solet, J. M., &amp; Barach, P. R. (2012). Managing alarm fatigue in cardiac care. Progress in Pediatric Cardiology, 33(1), 85-90.</p>
+<p>Storm, J., &amp; Chen, H. C. (2021). The relationships among alarm fatigue, compassion fatigue, burnout and compassion satisfaction in critical care and step down nurses. Journal of clinical nursing, 30(3-4), 443-453.</p>
+<p>van Dijk, P. T., Meulenberg, O. G., van de Sande, H. J., &amp; Habbema, J. D. (1993). Falls in dementia patients. The Gerontologist, 33(2), 200-204. https://doi.org/10.1093/geront/33.2.200</p>
+<p>Williams, J. S. (2008). Vocera voice badges cut response times. Biomedical Instrumentation &amp; Technology, 42(3), 193-194.</p>
+<p>Winkler, A., Pallauf, M., Krutter, S., Kutschar, P., Osterbrink, J., &amp; Nestler, N. (2025). Sensor- based prevention of falls and pressure ulcers: A scoping review. International Journal of Medical Informatics, 199, 105878.</p>
 </div>
 </details>
 </div>
