@@ -197,7 +197,7 @@ Prenatal Prediction of Delayed Abdominal Closure in Isolated Congenital
 Diaphragmatic Hernia Using Observed-to-Expected Lung-to-Head Ratio
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.1 · DOI 10.64898/2026.11.04.26367256
+2026-11-21 · Metacheck 0.4.4.28 · DOI 10.64898/2026.11.04.26367256
 </p>
 </header>
 <div class="mc-main">
@@ -308,8 +308,8 @@ Your Statistical Inferences</a>.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 16 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 16 detected.</p>
 </div>
 </div>
 </div>
@@ -406,8 +406,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -759,9 +760,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -783,7 +788,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -798,9 +804,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -813,13 +837,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -839,6 +866,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -846,12 +879,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -952,6 +991,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -971,6 +1030,41 @@ that project is public its files are listed under its own URL, and if it
 is closed or otherwise inaccessible the report flags it explicitly,
 since some registrations only describe their content rather than
 mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1226,19 +1320,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1348,6 +1524,113 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Objective: To determine whether the observed-to-expected lung-to-head ratio (O/E LHR) independently predicts the need for delayed abdominal wall closure (DAC) in isolated left-sided congenital diaphragmatic hernia (CDH), and to establish an optimal cut-off value.</p>
+<p>Design: Retrospective, single-centre cohort study.</p>
+<h3>preparation process</h3>
+<p>During the preparation of this work, the author(s) used Claude (Anthropic) in order to check and correct the grammar and language of the manuscript. After using this tool/service, the author(s) reviewed and edited the content as needed and take(s) full responsibility for the content of the published article. prenatal risk stratification for DAC, pending external validation in larger, multicentre cohorts.</p>
+<h3>What&#x27;s already known about this topic?</h3>
+<p>O/E LHR is an established prenatal predictor of survival and pulmonary morbidity in isolated CDH. Delayed abdominal closure has been linked to lower LHR, liver herniation, and higher ECMO use and mortality, but without adjusting for confounders or using O/E LHR.</p>
+<h3>What does this study add?</h3>
+<p>O/E LHR independently predicts DAC risk beyond liver herniation, with excellent discriminative ability (AUC 0.939) and a proposed cut-off of 34.1%, extending its prognostic role to this surgical outcome.</p>
+<p>Note: This study is based on a cohort that partially overlaps with our previously published report on delayed dynamic abdominal wall closure using a Gore-Tex patch 1 , which addressed surgical technique and outcomes. The present study addresses the distinct question of prenatal predictors of the need for delayed closure. This overlap is disclosed in accordance with ICMJE recommendations.</p>
+<h3>1. Introduction</h3>
+<p>Congenital diaphragmatic hernia (CDH) is a major structural anomaly with a prevalence around 2.3 per 10000 live births. Despite substantial advances in perinatal and neonatal management, survival remains limited to 60-70% even in high-volume referral centers, reflecting pulmonary hypoplasia and hypertension 2.</p>
+<p>The observed-to-expected lung-to-head ratio (O/E LHR), first described by Jani et al. 3 , expresses the fetal LHR as a percentage of the value expected for gestational age, overcoming the inherent gestational-age dependence of the raw LHR and allowing comparison across pregnancies assessed at different points in gestation. O/E LHR has been consistently validated as a predictor of neonatal survival in isolated CDH, although its prognostic value has been established almost exclusively in relation to survival and early pulmonary morbidity 4, 5 , while its relationship with specific postoperative surgical outcomes remains far less characterized.</p>
+<p>Beyond the diaphragmatic defect itself, the ability to achieve fascial closure of the abdominal wall carries prognostic significance of its own: when primary fascial approximation is not feasible and an abdominal wall patch is required instead, mortality has been reported to be substantially higher than after primary fascial closure 6 . Yet the handful of studies that have specifically examined delayed abdominal closure (DAC) offer a discordant picture of its prenatal predictors. Laje et al. 7 found that patients requiring DAC had lower LHR values, a higher rate of liver herniation, and higher mortality than those undergoing primary closure. In contrast, Maxwell et al. 8 , analyzing the CAPSNet registry, found a higher rate of liver herniation among patients requiring DAC, but no difference in LHR nor in mortality, despite a clear association with postoperative morbidity.</p>
+<p>Notably, neither study reported the O/E LHR: both relied on the raw LHR a less standardized severity marker than O/E LHR. We previously described a single-center cohort in which patients requiring DAC had markedly lower O/E LHR and a higher rate of liver herniation than those undergoing primary fascial closure 1 , but this observation was purely descriptive and unadjusted for potential confounders. Taken together, whether O/E LHR independently predicts the need for DAC remains unknown.</p>
+<p>We therefore aimed to determine the predictive capacity of O/E LHR for the need of DAC in a cohort of isolated left-sided CDH and to establish an optimal cut-off value to assist in preoperative surgical planning.</p>
+<h3>2. Methods</h3>
+<p> &gt;Methods</p>
+<h3>2.1. Study design and population</h3>
+<p>We conducted a retrospective, single-center study of neonates with CDH treated at Hospital Universitario La Paz, Madrid, Spain, between January 2015 and May 2026. Only neonates with isolated CDH, defined as the absence of major associated structural anomalies or a confirmed chromosomal abnormality, were included.</p>
+<h3>2.2. Data collection and study variables</h3>
+<p>Data were collected through retrospective review of electronic medical records. The following variables were recorded: demographic data (sex, gestational age at birth, birth weight); prenatal severity markers (O/E LHR, O/E LHR severity category, liver position); fetal therapy (use of fetoscopic endoluminal tracheal occlusion [FETO]); neonatal condition at birth (Apgar score at 1 and 5 minutes); respiratory and hemodynamic support (need for high-frequency oscillatory ventilation [HFOV]; need for extracorporeal membrane oxygenation [ECMO]); surgical variables (need for DAC); and postoperative outcome (in-hospital mortality). Patients were grouped according to need for DAC or primary abdominal closure during CDH repair.</p>
+<h3>2.3. Prenatal assessment</h3>
+<p>Fetal lung volume was assessed by ultrasound measurement of the lung-to-head ratio (LHR) at 25-29 weeks of gestation in line with the original description of prenatal severity assessment in CDH 10 , performed by the two same obstetricians. The observed LHR was expressed as a percentage of the expected LHR for gestational age (O/E LHR), calculated using the reference formula and normative values described by Jani et al 3 . Liver position was recorded for each case as a well-established prognostic factor 11.</p>
+<p>O/E LHR severity was categorized according to Deprest et al. 5 as extreme (&lt;15%), severe (15-25%), moderate (26-35%) or mild (≥36%) in fetuses without liver herniation, and as extreme (&lt;15%), severe (15-25%), moderate (26-45%) or mild (≥46%) in fetuses with liver herniation. In the subset of fetuses who underwent FETO, the baseline O/E LHR value obtained prior to balloon insertion was used for analysis, to reflect the native severity of pulmonary hypoplasia rather than the treatment-induced lung growth response.</p>
+<h3>2.4. Postnatal management</h3>
+<p>Diaphragmatic hernia repair was performed via an open surgical approach through a left subcostal incision or through a thoracoscopic approach. We defined DAC as any case in which the abdominal wall was not closed at the time of diaphragmatic hernia repair, requiring a separate, subsequent closure procedure; conversely, patients underwent primary fascial closure when the abdominal wall was closed during the same operation.</p>
+<p>The decision to defer abdominal wall closure was guided by intraoperative findings, consistent with the institutional criteria previously reported by our group 1 : closure was delayed either when fascial approximation could not be achieved, or when intraabdominal pressure after attempted closure, measured via a bladder catheter, exceeded 10 mmHg, the pediatric threshold for intra-abdominal hypertension defined by the World Society of Abdominal Compartment Syndrome consensus guidelines 12 . The optimal O/E LHR cut-off was determined using a bootstrap-aggregated approach (cutpointr package), in which the cut-off minimizing a joint sensitivity/specificity criterion was re-estimated across 1000 bootstrap resamples and aggregated to obtain a robust threshold. Sensitivity, specificity, positive predictive value and negative predictive value were reported both as apparent values (calculated in the full sample at the aggregated cut-off) and as optimism-corrected values, obtained from the out-of-bag performance across the same 1000 resamples and summarized as the mean and 95% percentile interval across replicates.</p>
+<h3>2.5. Statistical analysis</h3>
+<p>The discriminative performance of the continuous O/E LHR was compared with O/E LHR severity category for the prediction of DAC, using a paired DeLong test to compare the two areas under the curve. Logistic regression was used to estimate univariate odds ratios (OR) for O/E LHR as a predictor of DAC, followed by a multivariate model adjusting for liver position (liver-up). Given the small sample size, multivariate logistic regression was performed using Firth&#x27;s penalized maximum-likelihood method, which provides less biased effect estimates and more stable confidence intervals than standard maximum-likelihood logistic regression when sparse-data or separation issues are present. The potential confounding or mediating role of ECMO was assessed using Fisher&#x27;s exact and Wilcoxon rank-sum tests, followed by a post-hoc sensitivity analysis restricting the ROC and AUC analysis to patients who did not require ECMO. A twosided p-value &lt;0.05 was considered statistically significant.</p>
+<h3>3. Results</h3>
+<p>During the study period, 67 patients with CDH were initially assessed, of whom 45 met the inclusion criteria and were included in the final analysis. Twenty-two patients were excluded: four died before surgical repair (mean O/E LHR 22.1%, range 19-26%; one while on ECMO and three who were not ECMO candidates), seven had a postnatal diagnosis of CDH without a prenatal diagnosis, six had late prenatal diagnosis (≥30 weeks) and five were right sided CDH.</p>
+<p>The final cohort had a total of 17 (37.8%) patients who underwent DAC and 28 (62.2%) patients whose abdomen was closed primarily after CDH repair. Baseline demographic and prenatal characteristics of the cohort, stratified by the need for DAC, are summarized in Table 1. There were no significant differences between the DAC and primary closure groups in sex distribution. Gestational age at birth and birth weight were lower among patients requiring DAC than those who underwent abdominal primary closure (p &lt; 0.001 and p = 0.017).</p>
+<p>According to prenatal assessment, patients requiring DAC had a significantly lower O/E LHR than those undergoing primary closure (27.00 [22.00-31.00] vs 43.45 [39.50-47.50]; p &lt; 0.001). Accordingly, the distribution of O/E LHR severity categories differed significantly between groups (p &lt; 0.001), with a higher proportion of extreme and severe cases among patients requiring DAC (Table 1). Intrathoracic liver herniation was also more frequent in the DAC group (13/17 vs 1/28, p &lt; 0.001). FETO was performed in 6 patients, all of whom belonged to the DAC group.</p>
+<p>Neonatal and perioperative characteristics, stratified by the need for DAC, are summarized in Table 2. Apgar scores at 1 and 5 minutes did not differ significantly between groups (p = 0.6 and p = 0.076). The need for HFOV (p = 0.006) and ECMO (p = 0.004) was significantly more frequent among patients requiring DAC. In-hospital mortality was also significantly higher in the DAC group (35.3% vs. 3.6%, p = 0.008).</p>
+<p>All 45 patients underwent open surgical repair of the diaphragmatic defect; no cases were approached thoracoscopically.</p>
+<h3>3.1. Discriminative capacity of O/E LHR and optimal cut-off for DAC</h3>
+<p>The O/E LHR showed good discriminative capacity for predicting the need for DAC, with an AUC of 0.939 (95% CI, 0.877-1.000). Internal validation using Harrell&#x27;s bootstrap method (1000 resamples) showed minimal optimism, with a corrected AUC of 0.938 and satisfactory calibration (corrected slope 0.926, corrected Brier score 0.119) (Supplementary Figure 1).</p>
+<p>The optimal O/E LHR cut-off value, determined using a bootstrap-aggregated approach across the same 1000 resamples, was 34.1 (Fig. 1). Apparent and optimism-corrected performance metrics were closely consistent (Table 3), indicating minimal overfitting despite the limited sample size.</p>
+<p>When comparing the continuous O/E LHR with its severity category classification, the former showed significantly higher discriminative ability for DAC than the latter (AUC, 0.860; 95% CI, 0.755-0.966), with a difference in AUC of 0.079 (95% CI, 0.004-0.154; p = 0.039) (Fig. 2). This finding supports the use of the continuous O/E LHR, rather than the pre-existing severity classification, for the prediction of DAC.</p>
+<p>In a post-hoc sensitivity analysis restricted to the 33 patients who did not require ECMO (8 DAC events), O/E LHR discrimination for DAC remained high (AUC 0.923 [95% CI, 0.834-1.00], comparable to the overall cohort, though this subgroup estimate is imprecise given the small event count.</p>
+<h3>3.2. Association between O/E LHR and DAC: univariate and multivariate analysis</h3>
+<p>In univariate analysis, higher O/E LHR was significantly associated with lower odds of DAC (p &lt; 0.001), corresponding to a 24.7% reduction in the odds of DAC per one-point increase. After adjustment for liver herniation using Firth&#x27;s penalized-likelihood logistic regression, the O/E LHR remained an independent predictor of DAC (p = 0.002), indicating a 17.9% reduction in the odds of DAC per one-point increase, while liver herniation was independently associated with higher odds of DAC (p = 0.008) (Supplementary Table 1).</p>
+<h3>4. Discussion</h3>
+<p>This study assessed the value of the continuous O/E LHR, compared with its conventional severity-category classification, for predicting the need for DAC in fetuses with isolated CDH. A key finding is the strong discriminative ability of the O/E LHR for DAC (AUC, 0.939), which outperformed the severity-category classification and remained associated with DAC after adjustment for liver herniation. DAC was, in turn, associated with a higher requirement for ECMO and HFOV support and with higher in-hospital mortality.</p>
+<p>Previous evidence has established the O/E LHR as an excellent prenatal measure to predict pulmonary hypoplasia and mortality 2, 3, 5, 10, 13 and severity grading based on O/E LHR and liver herniation has been used mainly to stratify mortality risk and select FETO candidates 5, 14, 15 . MRI-based lung volume measures (TFLV and PPLV) have similarly predicted survival, pulmonary hypertension, or ECMO need [16] [17] [18] [19] , with recent work refining O/E LHR and O/E TFLV cut-offs for these outcomes 20 . Fetal-MRI lung volume and liver herniation have also predicted the need for patch repair 21, 22 . However, to our knowledge none of these markers had previously been examined in relation to staged abdominal wall closure.</p>
+<p>Addressing this gap, we found the continuous O/E LHR to be a strong predictor of DAC, with an optimal cut-off of 34.1% in our cohort, extending its established prognostic value beyond survival and respiratory morbidity to this specific surgical endpoint. This discriminative performance was confirmed by bootstrap internal validation and held-up in a post-hoc sensitivity analysis excluding ECMO cases, suggesting it was not substantially driver by overfitting or by ECMO related case severity alone, though precision in the ECMO excluded subgroup was limited by the small number of events.</p>
+<p>When liver herniation was added as a covariate in the multivariable model, the O/E LHR remained associated with DAC (adjusted OR, 0.82 [95% CI, 0.67-0.94] per one-point increase, corresponding to a 17.9% reduction in the odds of DAC [95% CI, 6.1-33.2% reduction]). Liver herniation itself showed a strong association (OR, 14.57 [95% CI, 1.99-185.66]), consistent with its established prognostic role in CDH 11, 23 ; however, the wide confidence interval around this estimate reflects the limited number of events in this subgroup and this specific estimate should be interpreted with caution. Even allowing for that imprecision, the combination of these two covariates carries a practical implication for severity classification. Under the commonly used risk stratification categories in CDH 5 , our cohort&#x27;s DAC cut-off of 34.1% falls within the moderate range regardless of liver status, yet two fetuses classified identically as moderate risk may carry different odds of DAC depending on whether the liver is herniated or not. This may partly explain why the continuous O/E LHR outperformed the severity category classification in our ROC analysis, and support reporting O/E LHR as a continuous variable, with liver herniation as a separate covariate, rather than collapsing both into a single ordinal category, at least for DAC.</p>
+<p>The clinical significance of DAC itself remains debated. Laje et al. 7 found DAC far more common among CDH patients requiring ECMO, but within the ECMO subgroup, DAC versus primary closure did not differ in prenatal severity or survival, suggesting ECMO status, not closure strategy, drive the outcome. Maxwell et al. 8 similarly linked DAC to right-sided defects and greater perioperative morbidity, without increased mortality.</p>
+<p>Together, these findings frame DAC as a marker of disease severity rather than an independent determinant of survival, consistent with our own prior report 1 , in which DAC was associated with lower O/E LHR, more advanced defect type and greater ECMO requirement, with mortality reflecting this high-risk profile rather than the closure strategy itself.</p>
+<p>Taken together, these findings suggest that O/E LHR´s established role in predicting mortality, ECMO need, and postoperative respiratory and feeding morbidity may extend to DAC risk as well. Recognizing this risk before birth may therefore help clinicians identify this distinct pattern of disease complexity early, informing parental counseling, the perioperative planning of staged abdominal closure, the anticipated need for prolonged nutritional and ventilatory support driven by the underlying disease severity, and the referral to an appropriately resourced center, informed by the likelihood of ECMO requirement that O/E LHR already predicts.</p>
+<p>Despite these potential clinical implications, several considerations warrant caution before incorporating O/E LHR based prediction of DAC risk into routine perinatal counseling or management protocols. The model presented here was derived from a small, single-center cohort, and some of its estimates should be interpreted as hypothesisgenerating rather than as an externally validated clinical tool. Furthermore, the specific O/E LHR cutoff identified for DAC risk in this cohort (34.1%) reflects the characteristics of this particular population, and its generalizability may be limited by variation across centers in surgical thresholds for staged closure, case-mix, and how DAC itself is operationally defined. External validation in larger, multicenter cohorts will therefore be needed before these findings can meaningfully inform individualized counseling or resource-allocation decisions.</p>
+<p>This study has several limitations. It is a retrospective, single-center analysis of a relatively small cohort, which limits statistical power and despite the use of Firth&#x27;s penalized regression to address the quasi-complete separation observed in the multivariable model, still resulted in a wide confidence interval for the liver herniation estimate, reflecting the small number of events in this subgroup rather than a precise effect size. Additionally, because the four patients who died before surgical repair could not be assigned to a closure group, our model estimates DAC risk conditional on survival to the closure decision, not as an unconditional prenatal prediction. Similarly, confidence limits around the optimism-corrected estimates remained wide, reflecting the small number of DAC events and underscoring the preliminary nature of these estimates. This cohort partially overlaps with that of our previously published report on delayed dynamic abdominal wall closure 1 , an overlap disclosed here in accordance with ICMJE recommendations. Although the two studies address distinct questions, some shared patients were unavoidable. Finally, this cohort included only isolated left-sided CDH, limiting the generalizability of our findings to right-sided defects and to cases with associated anomalies.</p>
+<h3>5. Conclusion</h3>
+<p>In this retrospective, single-center cohort, O/E LHR was independently associated with the risk of DAC in isolated left-sided CDH, beyond the well-established effect of liver herniation. These preliminary findings suggest that O/E LHR may have a role in prenatal risk stratification for DAC, potentially complementing existing counseling and perioperative planning frameworks. However, external validation in larger, multicenter cohorts is needed before these findings can guide clinical decision-making. Figure 1. ROC curve for the continuous O/E LHR as a predictor of delayed abdominal wall closure DAC. AUC, 0.939 (95% CI, 0.877-1.000). The dashed line represents the line of no discrimination. The dot marks the optimal cut-off (O/E LHR = 34.1%; sensitivity, 82.4%; specificity, 82.1%). category classification as predictors of DAC. Continuous O/E LHR (solid line; AUC, 0.939) versus severity category (dashed line; AUC, 0.860). The AUCs differed significantly (p = 0.039).</p>
+<h3>Funding statement</h3>
+<p>The author(s) declare that no financial support was received for the research and/or publication of this article.</p>
+<h3>Data availability statement</h3>
+<p>The data that support the findings of this study are available from the corresponding author upon reasonable request.</p>
+<h3>Conflict of interest statement</h3>
+<p>The authors declare that the research was conducted in the absence of any commercial or financial relationships that could be construed as a potential conflict of interest.</p>
+<p>Author Contribution Statement: Conceptualization, ML.L and E.JL.. ; Methodology, ML.L. and E.JL. ; Software, ML.L; Validation, ML.L., E.JL., A.E., ST.A. and H.F.; Formal Analysis, ML.L.; Investigation, ML.L. and ST.A.; Resources, ML.L., A.E., ST.A. and E.JL. ; Data Curation, ML.L.; Writing -Original Draft Preparation, ML.L.; Writing -Review &amp; Editing, E.JL., A.E., ST.A. and H.F.; Visualization, E.JL., A.E., ST.A. and H.F.; Supervision, H.F.</p>
+<h3>Patient consent statement:</h3>
+<p>Patient consent statement is not applicable or needed for this study due to its retrospective nature,</p>
+<p>Inclusion criteria were: (1) prenatal assessment of CDH at our center; (2) surgical repair of CDH during the neonatal period (age ≤ 28 days); and (3) admission to the Neonatal Intensive Care Unit (NICU). Exclusion criteria were: (1) absence of prenatal diagnosis; (2) absence of an O/E LHR measurement within the 25+0 -29+6 weeks&#x27; gestation window; (3) presence of right-side CDH given the distinct normal reference ranges and clinical course described for rightsided defects 9 and (4) death prior to surgical correction. The study was conducted in accordance with the Declaration of Helsinki and approved by the Institutional Ethics Committee of Hospital Universitario La Paz (PI-6678 2025.317, 14 May 2025).</p>
+<p>Statistical analysis was performed using RStudio 2024.12.0 (Posit Software, PBC) within the R environment (version 4.5.3). The normality of data distribution was assessed using the Shapiro-Wilk test. Continuous variables are presented as median and interquartile range (IQR), while categorical variables are expressed as absolute frequencies and percentages. Categorical variables were compared between groups using Fisher&#x27;s exact test, whereas continuous variables were compared using the Wilcoxon rank-sum test. The discriminative capacity of O/E LHR for predicting DAC was assessed by receiver operating characteristic (ROC) curve analysis, with the area under the curve (AUC) and its 95% confidence interval estimated using pROC package. Internal validation of the discriminative performance of O/E LHR was performed using Harrell&#x27;s bootstrap optimism-correction method (1000 resamples; rms package).</p>
+<h3>FIGURESFigure 1.</h3>
+<p>FIGURES</p>
+<h3>Figure 2.</h3>
+<p>Figure 2. Comparison of ROC curves for the continuous O/E LHR and its severity</p>
+<h3>Table 1.</h3>
+<p>TABLESPrenatal baseline characteristics according to need for delayed abdominal closure.</p>
+<h3>Table 2.</h3>
+<p>Perinatal baseline characteristics according to need for delayed abdominal closure.</p>
+<h3>Table 3.</h3>
+<p>Performance of the O/E LHR cut-off (34.1%) for DAC</p>
+<h3>References</h3>
+<p>Moratilla-Lapeña L, Encinas JL, Antolín E, Torres AS, Hernández F. Delayed Dynamic Abdominal Wall Closure Following Congenital Diaphragmatic Hernia Repair Using a Gore-Tex® Patch: A Single-Center Retrospective Experience for a Complex Pediatric Thoracic Disease. Children 2026, Vol 13, Page 1133.2026;13(9):1133. doi:10.3390/CHILDREN13091133</p>
+<p>Zani A, Chung WK, Deprest J, et al. Congenital diaphragmatic hernia. Nat Rev Dis Primers. 2022;8(1). doi:10.1038/S41572-022-00362-W</p>
+<p>Jani J, Nicolaides KH, Keller RL, et al. Observed to expected lung area to head circumference ratio in the prediction of survival in fetuses with isolated diaphragmatic hernia. Ultrasound Obstet Gynecol. 2007;30(1):67-71. doi:10.1002/UOG.4052</p>
+<p>Deprest JA, Flemmer AW, Gratacos E, Nicolaides K. Antenatal prediction of lung volume and in-utero treatment by fetal endoscopic tracheal occlusion in severe isolated congenital diaphragmatic hernia. Semin Fetal Neonatal Med. 2009;14(1):8-13. doi:10.1016/J.SINY.2008.08.010</p>
+<p>Cordier AG, Russo FM, Deprest J, Benachi A. Prenatal diagnosis, imaging, and prognosis in Congenital Diaphragmatic Hernia. Semin Perinatol. 2020;44(1). doi:10.1053/J.SEMPERI.2019.07.002</p>
+<p>Jawaid WB, Qasem E, Jones MO, Shaw NJ, Losty PD. Outcomes following prosthetic patch repair in newborns with congenital diaphragmatic hernia. British Journal of Surgery. 2013;100(13):1833-1837. doi:10.1002/BJS.9306</p>
+<p>Laje P, Hedrick HL, Flake AW, Adzick NS, Peranteau WH. Delayed abdominal closure after congenital diaphragmatic hernia repair. J Pediatr Surg. 2016;51(2):240-243. doi:10.1016/J.JPEDSURG.2015.10.069</p>
+<p>Maxwell D, Baird R, Puligandla P. Abdominal wall closure in neonates after congenital diaphragmatic hernia repair. J Pediatr Surg. 2013;48(5):930-934. doi:10.1016/j.jpedsurg.2013.02.008</p>
+<p>Danzer E, Chock VY, Chung S, et al. Image-based prenatal predictors of postnatal survival, extracorporeal life support, and defect size in right congenital diaphragmatic hernia. Journal of Perinatology 2022 42:9.2022;42(9):1202-1209. doi:10.1038/S41372-022-01470-X</p>
+<p>Jani JC, Nicolaides KH, Gratacós E, Vandecruys H, Deprest JA. Fetal lung-to- head ratio in the prediction of survival in severe left-sided diaphragmatic hernia treated by fetal endoscopic tracheal occlusion (FETO). Am J Obstet Gynecol. 2006;195(6):1646-1650. doi:10.1016/J.AJOG.2006.04.004</p>
+<p>Hedrick HL, Danzer E, Merchant A, et al. Liver position and lung-to-head ratio for prediction of extracorporeal membrane oxygenation and survival in isolated left congenital diaphragmatic hernia. Am J Obstet Gynecol. 2007;197(4):422.e1- 422.e4. doi:10.1016/J.AJOG.2007.07.001</p>
+<p>Kirkpatrick AW, Roberts DJ, De Waele J, et al. Intra-abdominal hypertension and the abdominal compartment syndrome: updated consensus definitions and clinical practice guidelines from the World Society of the Abdominal Compartment Syndrome. Intensive Care Med. 2013;39(7):1190-1206. doi:10.1007/S00134-013-2906-Z</p>
+<p>Oluyomi-Obi T, Kuret V, Puligandla P, et al. Antenatal predictors of outcome in prenatally diagnosed congenital diaphragmatic hernia (CDH). J Pediatr Surg. 2017;52(5):881-888. doi:10.1016/J.JPEDSURG.2016.12.008</p>
+<p>Deprest JA, Benachi A, Gratacos E, et al. Randomized Trial of Fetal Surgery for Moderate Left Diaphragmatic Hernia. New England Journal of Medicine. 2021;385(2):119-129. doi:10.1056/NEJMOA2026983/SUPPL_FILE/NEJMOA2026983_DATA-SHARING.PDF</p>
+<p>Deprest JA, Nicolaides KH, Benachi A, et al. Randomized Trial of Fetal Surgery for Severe Left Diaphragmatic Hernia. New England Journal of Medicine. 2021;385(2):107-118. doi:10.1056/NEJMOA2027030/SUPPL_FILE/NEJMOA2027030_DATA-SHARING.PDF</p>
+<p>Mayer S, Klaritsch P, Petersen S, et al. The correlation between lung volume and liver herniation measurements by fetal MRI in isolated congenital diaphragmatic hernia: a systematic review and meta-analysis of observational studies. Prenat Diagn. 2011;31(11):1086-1096. doi:10.1002/PD.2839</p>
+<p>Barnewolt CE, Kunisaki SM, Fauza DO, Nemes LP, Estroff JA, Jennings RW. Percent predicted lung volumes as measured on fetal magnetic resonance imaging: a useful biometric parameter for risk stratification in congenital diaphragmatic hernia. J Pediatr Surg. 2007;42(1):193-197. doi:10.1016/j.jpedsurg.2006.09.018</p>
+<p>Shieh HF, Barnewolt CE, Wilson JM, et al. Percent predicted lung volume changes on fetal magnetic resonance imaging throughout gestation in congenital diaphragmatic hernia. J Pediatr Surg. 2017;52(6):933-937. doi:10.1016/J.JPEDSURG.2017.03.013</p>
+<p>Stanic P, Gavulic A, Jenkins TM, et al. Comparison of prenatal lung volume measurements associated with extracorporeal membrane oxygenation (ECMO) utilization and mortality in congenital diaphragmatic hernia. J Pediatr Surg. 2026;61(5). doi:10.1016/J.JPEDSURG.2026.162970</p>
+<p>Gebb J, Flohr S, Mathew L, et al. Observed/Expected Lung-To-Head Ratio and Total Lung Volumes That Identify Fetuses With Severe Congenital Diaphragmatic Hernia in a North American Fetal Center. Prenat Diagn. 2025;45(5):676-685. doi:10.1002/PD.6789</p>
+<p>Jani JC, Benachi A, Nicolaides KH, et al. Prenatal prediction of neonatal morbidity in survivors with congenital diaphragmatic hernia: a multicenter study. Ultrasound in Obstetrics and Gynecology. 2009;33(1):64-69. doi:10.1002/UOG.6141</p>
+<p>Petroze RT, Caminsky NG, Trebichavsky J, et al. Prenatal prediction of survival in congenital diaphragmatic hernia: An audit of postnatal outcomes. J Pediatr Surg. 2019;54(5):925-931. doi:10.1016/j.jpedsurg.2019.01.021</p>
+<p>Albanese CT, Lopoo J, Goldstein RB, et al. Fetal liver position and perinatal outcome for congenital diaphragmatic hernia. Prenat Diagn. 1998;18(11):1138- 1142. doi:https://doi.org/10.1002/(SICI)1097-0223(199811)18:11&lt;1138::AID- PD416&gt;3.0.CO;2-A</p>
 </div>
 </details>
 </div>
