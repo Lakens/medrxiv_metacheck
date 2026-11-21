@@ -202,7 +202,7 @@ Participants: Symptomatic children aged 6 months to &lt;18 years tested
 for influenza from
 </p>
 <p class="meta">
-2026-11-15 · Metacheck 0.4.4.2 · DOI 10.64898/2026.11.03.26367131
+2026-11-21 · Metacheck 0.4.4.29 · DOI 10.64898/2026.11.03.26367131
 </p>
 </header>
 <div class="mc-main">
@@ -233,8 +233,8 @@ ethics approval statement.</p>
 <p>Exact P-Values</p>
 </div>
 <div class="d">
-<p>We found no imprecise <em>p</em> values or <em>p</em>-values of
-exactly zero out of 6 detected.</p>
+<p>We found no imprecise <em>p</em> values, <em>p</em>-values of exactly
+zero or impossible <em>p</em> values out of 6 detected.</p>
 </div>
 </div>
 </div>
@@ -330,8 +330,9 @@ statistics written in APA format.</p>
 <p>We found no links to repositories on the Open Science Framework,
 Github, GitLab, ResearchBox, DSpace, EPrints (ReShare and others),
 Invenio (Zenodo and others), Dataverse, Figshare, Dryad,
-4TU.ResearchData, Mendeley Data, DataONE, LDbase, or CKAN data
-portals.</p>
+4TU.ResearchData, Mendeley Data, DataONE, LDbase, CKAN data portals,
+GEO, SRA, ENA, DDBJ, ArrayExpress, CRAN, or ICPSR (openICPSR, AEA Data
+and Code Repository).</p>
 </div>
 </div>
 <div class="done-row">
@@ -693,9 +694,13 @@ tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/
 <p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
 <p>Statcheck considers p = 0.000 an error, as you should report p &lt;
 0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
-and one should simply report exact p-values (p = 0.031). Statcheck might
-miss one-sided tests, and falsely assume the p-value is incorrect. For
-more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695).
+Statcheck might still miss one-sided tests that are described in another
+sentence, and falsely assume the p-value is incorrect. For more
+information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
 <p>This module only checks statistical results reported in the running
 text of the manuscript. It cannot (yet) process statistics reported only
 in tables.</p>
@@ -717,7 +722,8 @@ How Exact P-Values works
 </summary>
 <div class="fold">
 <p>List any p-values reported with insufficient precision (e.g., p &lt;
-.05 or p = n.s.) or reported as exactly zero (e.g., p = .000).</p>
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
 <p>This module uses regular expressions to identify p-values. It will
 flag any values reported as p &gt; ? or p &lt; numbers greater than
 .001. It will also flag p-values reported as exactly zero (e.g., p =
@@ -732,9 +738,27 @@ puts such notes into the running text, so each p-value is judged by the
 words in its own clause (the text up to a “;” or a full stop), and never
 left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
 .05”). The column <code>not_a_test</code> of the table says why a
-p-value was left out (“marker”, “threshold” or “legend”). Notes in other
-forms, such as a marker after the p-value (“p &lt; .05 (*)“), are still
-flagged.</p>
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
 <p>This module sometimes flags false positives when sentences discuss
 how p-value thresholds were set. It can also miss an imprecise p-value
 that is reported against a threshold (“decreased at the p &lt; .05
@@ -747,13 +771,16 @@ to exclude — see above).</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 225 papers containing 405 instances of
-non-exact p-values, the module correctly detected 269 cases (true
-positives) and incorrectly identified 78 (false positives). It missed
-136 instances of imprecisely reported p-values (false negatives) and
-correctly identified 4557 cases of precisely reported p-values (true
-negative). Additionally, 78% of positive detections were correct
-(positive predictive value).</p>
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -773,6 +800,12 @@ p-values.</p>
 learning classifier to only return sentences likely to contain
 misinterpretations. If you want to help to improve the module, reach out
 to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
 <p>This module only checks p-values reported in the running text of the
 manuscript. It cannot (yet) process p-values reported only in
 tables.</p>
@@ -780,12 +813,18 @@ tables.</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
 manual</a>.</p>
 <div class="validation">
-<p>Validation: In a sample of 194 papers with 1602 instances of
-non-significant p-values, this module correctly detected 1486 of them,
-and incorrectly identified 153. Additionally, 91% of detections were
-true instances (positive predictive value). That is, when this module
-flags non-significant p-values in a paper, it correctly identifies an
-issue 91% of the time.</p>
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
 </div>
 </div>
 </details>
@@ -886,6 +925,26 @@ ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
 installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
 4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
 other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
 <p>Listing a repository’s files never requires an API key, but some
 hosts answer faster or more completely with one: OSF allows 100
 requests/hour unauthenticated versus 10,000/day with a token (see
@@ -925,6 +984,21 @@ text (93 of 95) and 90% in reference lists (74 of 82); the labels were
 made by Claude agents from each link’s evidence, and disputed ones
 checked against the deposits. Telling this paper’s own deposit from the
 authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
 <p>If you want to extend the package to be able to download files from
 additional data repositories reach out to the Metacheck development
 team.</p>
@@ -1180,19 +1254,101 @@ raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
 scripts. <code>dependency_unavailable</code> means the script’s own
 package could not be installed from live CRAN, the CRAN Archive, or a
 named GitHub/URL source — an infrastructure limitation, not a defect in
-the paper’s code, so unlike <code>errored</code>/<code>timed_out</code>
-it does <strong>not</strong> force the traffic light red. The full
-stdout/stderr of every run is kept in the result’s
-<code>run_results</code> (the report shows it in per-script dropdowns,
-capped for readability). The traffic light reflects the STATIC readiness
-signals by default, but an execution error
-(<code>errored</code>/<code>timed_out</code>) does recolour it to red —
-a script that crashes on its own analysis is a genuine reproduction
-failure. A script that fails with <code>could not find function</code>
-is run once more with the <code>library()</code> calls the project’s
-other scripts make added at its top (or the one package that exports the
-function, or magrittr for <code>%&gt;%</code>), and a script that then
-runs is reported as reproducible only after that repair.</p>
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
 <p>Dependencies are reported name-only, with the source (CRAN, GitHub,
 or a base package already shipped with R) — static analysis of the code
 cannot know which <em>version</em> was used, and running against current
@@ -1302,6 +1458,104 @@ study the authors discuss.</p>
 Wallrich</p>
 <p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
 manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Funding statement: This work is supported by funding provided through a contract awarded by the Public Health Agency of Canada.</p>
+<p>Acknowledgements: We thank our colleagues at the Public Health Agency of Canada for their collaboration on this project and all the SPRINT-KIDS project team members at our sites for their assistance. . Key Points Question: How effective were influenza vaccines against influenza-associated emergency department visits and hospitalizations among Canadian children during the 2024-2025 and 2025-2026 seasons? Findings: In this test-negative case-control study of 30,733 encounters at 14 pediatric hospitals, vaccine effectiveness against any influenza was 47% in 2024-2025 and 53% in 2025-2026, despite antigenically drifted A(H3N2) subclade K predominance. Effectiveness was lower against influenza A than B and among adolescents. Meaning: These findings support continued annual influenza vaccination of children, even when substantial antigenic mismatch is anticipated.</p>
+<h3>[div-01]</h3>
+<p>against influenza A as compared to B in both seasons: 31% (95%CI, 22-39%) vs. 75% (95%CI, 64-123 82%) (p&lt;0.001) in 2024-2025; and 42% (95%CI, 32-50%) vs. 64% (95%CI, 55-72%) (p=0.001) in 124 2025-2026. VE was lower in children aged 10 to &lt;18 years than in those &lt;10 years, particularly 125 among children with comorbidities. Protection against influenza A lasted up to 90 days, whereas it 126 persisted beyond 120 days for influenza B. 127 Conclusions and Relevance: Influenza vaccines were moderately effective against pediatric ED 128 visits and hospitalizations in both seasons. Routine vaccination should continue to be recommended 129 to prevent hospital-attended influenza. 130 131</p>
+<h3>INTRODUCTION</h3>
+<p>Influenza causes substantial morbidity in children. Hospitalization rates are highest among children aged &lt;5 years, and up to 10% of pediatric hospitalizations during winter are attributable to influenza. 1, 2 Among Canadian children hospitalized with laboratory-confirmed influenza between 2012 and 2023, 17% required intensive care and 6% were mechanically ventilated. 3 Emergency department (ED) visits substantially outnumber hospitalizations (e.g., 20-fold higher among children aged &lt;5 years), 4 yet remain less well-characterized. Since the resumption of typical influenza circulation after relaxation of COVID-19 pandemic restrictions, case numbers in children have approached pre-pandemic levels, 3, 5 while childhood vaccine coverage remains low (e.g., ranging between 30% and 34% during the 2021-2022 to 2023-2024 seasons in Canada). 6, 7 Annual vaccination is recommended for all children aged ³6 months, but vaccine effectiveness (VE) varies by season, influenza type and subtype, age, and product. 8, 9 The 2024-2025 Northern Hemisphere season featured co-circulation of A(H1N1)pdm09 and A(H3N2). 10 The 2025-2026 season was dominated by A(H3N2) subclade K (J.2.4.1), which emerged after Northern Hemisphere vaccine strains were selected in February 2025. 11 Epitope-based modeling and postvaccination neutralizing antibody studies suggested possibly reduced protection. [12] [13] [14] Monitoring influenza VE is critical for guiding vaccination strategies and public health planning, and to inform expectations for the upcoming season.</p>
+<p>Canadian VE estimates have historically been derived primarily from sentinel surveillance in physician offices. 15 No surveillance platforms involving prospective data collection have estimated VE against influenza-associated pediatric ED visits or hospitalizations in Canada. The Surveillance Program for the Rapid IdeNtification and TracKing of Infectious Diseases in kidS (SPRINT-KIDS) network collects standardized clinical, virologic, and immunization data on children tested for respiratory viruses. 16 Using SPRINT-KIDS data and a test-negative design, we estimated influenza VE against ED visits and hospitalizations among children aged 6 months to &lt;18 156 years in Canada during the 2024-2025 and 2025-2026 influenza seasons, overall and by influenza 157 type, disposition, age group, comorbidity status, time since vaccination, and vaccine product. 158 159 160</p>
+<h3>METHODS</h3>
+<h3>Design and Setting</h3>
+<p>This multicenter test-negative case-control study used SPRINT-KIDS network data on children and adolescents tested for respiratory viruses at 14 pediatric tertiary-care hospitals in eight Canadian provinces (eFigure 1). Each site collected data with research ethics board (REB) approval and a waiver of consent or as an REB-exempt surveillance activity, in accordance with the Tri-Council Policy Statement: Ethical Conduct for Research Involving Humans. 17 All analyses received REB approval. The study follows the STROBE reporting guideline (eTable 1). 18 The surveillance program collects data on every child who tests positive for influenza, respiratory syncytial virus, and/or SARS-CoV-2 in the ED, inpatient units, or intensive care units (ICUs) of participating sites. To limit the burden of primary data collection, children who test negative for all three viruses (i.e., pan-negative controls) are randomly sampled each week at each site. The target is one pan-negative control for each case of the pathogen with the highest weekly case count at that site, so the controls represent eligible children with negative results. Treating clinicians decide which patients to test.</p>
+<h3>Population</h3>
+<p>We included all children aged 6 months to &lt;18 years who presented to a SPRINT-KIDS site who were tested for influenza by a nucleic acid amplification test (~99%) or antigen test (~1%) during influenza seasons, defined as consecutive weeks when &gt;5% of influenza tests returned positive results, there were ≥15 cases in the surveillance network, and at least one tested child was considered vaccinated against influenza. The 2024-2025 season comprised epidemiologic weeks 44-23 (October 27, 2024, to June 7, 2025) and the 2025-2026 season weeks 45-23 (November 2, 2025, to June 13, 2026). We excluded children who were asymptomatic or had missing symptom data (to ensure detection reflected clinically relevant respiratory tract infections), were tested &gt;72 hours after admission, had infections that were deemed nosocomial or incidental (i.e., unrelated to the reason for hospital admission), were vaccinated within 14 days of specimen collection, or had unknown influenza vaccination status. Children could contribute multiple episodes if subsequent testing occurred &gt;14 days after a prior test.</p>
+<h3>Exposure</h3>
+<p>Influenza vaccination was defined as receipt of ≥1 dose of influenza vaccine on or after October 1 of the corresponding season ≥14 days before specimen collection. Vaccination dates, number of current-season doses, and product type (i.e., inactivated or live-attenuated influenza vaccine [LAIV]) were identified from provincial immunization registries, medical records, or caregiver report, with registry or record documentation taking precedence when sources conflicted.</p>
+<h3>Outcomes</h3>
+<p>The primary outcome was any laboratory-confirmed influenza A or B infection, irrespective of hospital setting. Secondary outcomes were defined by highest-level disposition within 14 days of the index test (i.e., ED visit only, non-ICU hospitalization, ICU admission). Each outcome was examined by influenza type (A or B), given their distinct antigenic and epidemiologic characteristics. Influenza A subtyping was performed at selected sites using clinically validated assays per local protocols.</p>
+<h3>Covariates</h3>
+<p>We collected age, sex, province of residence, neighbourhood-level income derived from the forward sortation area (first 3 digits of the postal code), and high-risk comorbidities designated by Canada&#x27;s National Advisory Committee on Immunization as conferring increased risk for severe influenza, including cancer, immune-compromising condition or therapy, congenital heart disease, neurologic or neurodevelopmental conditions, chronic pulmonary disorders, and technology dependence. 9</p>
+<h3>Statistical analysis</h3>
+<p>For each season, we summarized baseline characteristics by test result and vaccination status using medians (IQR) for continuous and counts (%) for categorical variables. Differences between influenza-positive and influenza-negative groups, and between vaccinated and unvaccinated groups, were assessed using the Wilcoxon rank-sum test for continuous variables and the Chi-square test for categorical variables.</p>
+<p>We used multivariable logistic regression to compare the odds of influenza vaccination in children with influenza-positive test results (i.e., cases) to those with influenza-negative test results (i.e., controls). VE was calculated as (1 -adjusted odds ratio [aOR]) × 100%. We adjusted for age group (6 to &lt;24 months, 24 to &lt;60 months, 5 to &lt;10 years, 10 to &lt;18 years), epidemiologic week, site, and presence of a high-risk comorbidity. Epidemiologic week was modeled using a natural cubic spline with 3 degrees of freedom to account for non-linear temporal trends. Analyses for the 2024-2025 and 2025-2026 seasons were conducted separately.</p>
+<p>Because pan-negative controls were randomly sampled within site and calendar week independently of vaccination status, and children positive for other target viruses were enrolled completely, differential sampling fractions across control groups affect only control composition within each site-week stratum and not the within-stratum odds of vaccination. Adjustment for site and calendar week therefore accounts for the sampling design, and the aOR remains unbiased under the standard test-negative design assumption that influenza vaccination does not affect the risk of the other sampled viruses. 19 We estimated VE against any influenza overall, and by disposition. For disposition-specific estimates, controls were restricted to test-negative children reaching the same level of care as the cases. Analyses were repeated by influenza type. Prespecified subgroup analyses estimated VE by age group, with further stratification by high-risk comorbidity. To assess waning of protection, we estimated VE by interval since most recent dose (14-30, 31-60, 61-90, 91-120, &gt;120 days) separately for influenza A and B, because influenza B typically circulates later and interval since vaccination is otherwise confounded with calendar time. Among children aged ³2 years, the age at which LAIV is authorized in Canada, we estimated VE by influenza type for LAIV and inactivated vaccine. Further details are described in the eMethods.</p>
+<p>We conducted sensitivity analyses to assess the impacts of 1) unavailable vaccination data; and 2) source of vaccination data. Details are provided in the eMethods.</p>
+<p>Analyses used R 4.3.0 (R Foundation for Statistical Computing). All tests were 2-sided and used a significance level of P&lt;0.05.</p>
+<h3>RESULTS</h3>
+<p>Of 43,697 patient encounters screened among children aged 6 months to &lt;18 years across the 2024-2025 and 2025-2026 influenza seasons, 30,733 were included. The most common reason for exclusion was missing vaccination data (n=8,901; 20.4%) (Figure 1). In both seasons, influenza A predominated and preceded influenza B, with greater separation of the A and B peaks in 2025-2026 (Figure 2). Subtyping information was available for 27.3% (1,009/3,700) of influenza A cases in 2024-2025 and 17.0% (603/3,560) in 2025-2026.</p>
+<p>Baseline characteristics are shown in Table 1 (2024-2025) and Table 2 (2025-2026). Overall, median age was 37.5 months (IQR 17.5-79.2) and 54.1% were male. In both seasons, compared with controls, cases were older, more likely to reside in British Columbia (BC), Ontario, or Quebec, less likely to have a comorbidity, more likely to be discharged from an ED, and less likely to be vaccinated. Among vaccinated children, cases had a longer interval since their last influenza vaccine dose than controls in 2024-2025 but a shorter interval in 2025-2026. In both seasons, compared with unvaccinated children, vaccinated children were younger, more likely to reside in higher-income neighbourhoods, more likely to be from Alberta or BC, and more likely to have a comorbidity. VE against any influenza was similar across seasons: 47% (95%CI, 40-53%) in 2024-2025 and 53% (95%CI, 46-59%) in 2025-2026 (Figure 3a). VE was 53% (95%CI, 45-59%) and 57% (95%CI, 49-63%) against ED visits, and 33% (95%CI, 16-47%) and 48% (95%CI, 33-59%) against hospitalizations. VE was lower against influenza A than B: 31% (95%CI, 22-39%) vs. 75% (95%CI, 64-82%) (p&lt;0.001) in 2024-2025 and 42% (95%CI, 32-50%) vs. 64% (95%CI, 55-72%) (p=0.001) in 2025-2026. (Figures 3b and 3c). VE against influenza A was consistent (43-49%) within 90 days of vaccination in 2024-2025 and declined from 55% to 38% in 2025-2026 (Figure 3g). Beyond 90 days, point estimates were lower, with wider 95%CIs that crossed the null in both seasons. VE against influenza B remained elevated beyond 120 days (Figure 3h).</p>
+<p>LAIV and inactivated vaccine provided similar protection against influenza A in 2024-2025, but in 2025-2026, VE was higher for LAIV (76%; 95%CI, 43-94%) than for inactivated vaccine (38%; 95%CI, 23-51%), a difference of 38 percentage points (95%CI, 2-61) (p=0.04) (Figure 3i).</p>
+<p>No differences in VE between LAIV and inactivated vaccine were observed against influenza B in either season (Figure 3j).</p>
+<p>The province-specific proportions of children with unavailable vaccination status are presented in eTable 2. Characteristics of children excluded for missing vaccination status are presented in eTables 3 and 4. Vaccination status was derived mainly from vaccine registries in all provinces except Ontario and Saskatchewan (eTable 5). The sensitivity analyses were consistent with the primary analysis (eTable 6).</p>
+<h3>DISCUSSION</h3>
+<p>In this multicenter test-negative study of over 30,000 encounters across 14 Canadian pediatric tertiary care hospitals, influenza vaccination was associated with moderate protection against hospital-attended influenza during the 2024-2025 and 2025-2026 seasons, including when the antigenically drifted A(H3N2) subclade K (J.2.4.1) predominated in the latter season. Four findings warrant emphasis: 1) VE was consistently lower against influenza A than B; 2) VE was lower among children aged 10 to &lt;18 years, particularly those with high-risk comorbidities; 3) protection against influenza A appeared lower beyond 90 days, whereas protection against influenza B persisted beyond 120 days post vaccination; and 4) in 2025-2026, VE against influenza A was higher for LAIV than inactivated vaccine.</p>
+<p>Our estimates of VE against influenza A for 2025-2026 are consistent with international pediatric evidence that subclade K drift did not translate into reduced clinical protection, with our estimate against ED visits of 41% (95%CI, 28-52%) quite similar to estimates from the US against ED and urgent care encounters at 37% (95%CI, 32-41%) 12 and from Canada against primary care visits at 35% (95%CI, 10-54%). 15 Our results are also comparable to, or somewhat lower than, VE estimates from Europe against primary care and ED visits, which ranged from 47% (95%CI, 20-76%) to 60% (95%CI, 51-66%). 20 Our estimate of VE against hospitalization of 46% (95%CI, 28-60%) is similar to an estimate from the US at 47% (95%CI, 14-69%) 12 but lower than estimates from Europe, which ranged from 61% (95%CI, 41-74%) to 72% (95%CI, 67-77%). 20 Human serologic studies suggest that vaccination and pre-existing immunity may provide clinical protection against subclade K despite the degree of antigenic drift suggested by laboratory models. 12 21 Pediatric VE against A(H3N2) has consistently been shown to be lower than against A(H1N1)pdm09 and influenza B, but VE against influenza B may be higher or lower than against A(H1N1)pdm09 depending on the season, [22] [23] [24] [25] [26] likely reflecting differences in circulating and vaccine strains. The lower VE point estimates among adolescents compared to younger children, particularly those with high-risk comorbidities, is consistent with data from certain prior seasons [22] [23] [24] but not other seasons. 24, 27 At least two non-mutually-exclusive mechanisms may contribute. First, immune imprinting and cumulative exposure differ by age, and antibody landscapes are shaped by early-life priming, such that responses to updated A(H3N2) vaccine antigens may be redirected toward previously encountered strains. 28 Second, older children more often received multiple prior vaccinations, and repeat annual vaccination has been associated with attenuated VE, particularly against A(H3N2). 25 Further research to elucidate the mechanisms for these findings is warranted.</p>
+<p>Our finding of lower influenza A VE point estimates beyond 90 days should be interpreted cautiously against largely reassuring pediatric literature. 29 A five-season US New Vaccine Surveillance Network analysis found only minimal, nonsignificant within-season decline in VE against hospitalization, concluding vaccination on current ACIP timing remains optimal. 26 The American Academy of Pediatrics notes observed waning has been inconsistent across age groups and is more evident against A(H3N2). 7 Several features argue against over-interpretation. Although we estimated VE separately by type, and genetic drift of influenza A viruses over the course of a season may be possible, 30, 31 residual confounding by calendar time and systematic differences between early and late vaccinees cannot be excluded. In test-negative waning analyses, depletion of susceptibles and partial vaccine protection can each generate apparent declines even when true perexposure protection is stable. 32 We therefore regard the waning influenza A VE signal as hypothesisgenerating.</p>
+<p>The higher VE of the LAIV against influenza A as compared to the inactivated vaccine during the A(H3N2)-predominant 2025-2026 season, but not the A(H1N1)pdm09-predominant 2024-2025 season, is biologically plausible. It is concordant with early-season 2025-2026 data from England, where children aged 2-17 years primarily receive LAIV, and pediatric VE against influenza A hospitalization was 74% (95%CI, 63-82%). 33 Similarly, VE against influenza A was 81% (95%CI, 15-96%) for LAIV and 43% (95%CI, 15-62%) for inactivated vaccine during the 2025-2026 season in Japan. 34 Previous differences in the opposite direction seen in the US in 2013-2014 through 2015-2016, with markedly lower LAIV4 effectiveness (20%) than inactivated vaccine (67%) for A(H1N1)pdm09, 35 may have been related to reduced replicative fitness and increased thermolability of the A(H1N1)pdm09 LAIV vaccine strain that was subsequently changed. 36 In contrast, Canadian data from 2012-2013 through 2015-2016 found no significant overall difference between products in children, including against A(H3N2). 37 Given the small number of LAIV recipients, wide confidence intervals, and absence of subtype-level data, our product comparison is hypothesis-generating and not a basis for programmatic change.</p>
+<p>The large sample size, multi-site surveillance design, and assessment of VE across two consecutive influenza seasons strengthen the robustness and relevance of the findings. Nevertheless, this study has some limitations. First, 20% of screened patients were excluded due to unavailable vaccination data. Reassuringly, our sensitivity analysis excluding data from jurisdictions with high proportions of children missing vaccination data demonstrated similar findings. Second, vaccination status was ascertained from registries, medical records, or caregiver report, with reliance on caregiver report varying by site. Our sensitivity analyses restricting the exposure definition to registry-or medical record-documented vaccination confirmed that our primary analysis was robust. Furthermore, Canadian sentinel physician VE estimates based on self-reported vaccination status versus a provincial registry were nearly identical. 38 Third, influenza A subtyping was performed only at selected sites and was available for a minority of influenza A cases, preventing estimation of subtype-specific VE. Because subtyping was not random, reported subtype proportions may not be representative, and our conclusions regarding protection during subclade K circulation are ecological rather than VE against subclade K per se. Within-subtype heterogeneity could be masked by pooling, with uncertain direction of bias. Fourth, test-negative controls were sampled rather than fully enumerated. Unmeasured differences between sampled and unsampled controls cannot be excluded. Although disposition-matching aligned cases and controls on level of care, residual confounding by unmeasured determinants of admission may persist. Fifth, as an observational study, residual confounding by health-promoting behaviors, underlying health status, and unmeasured socioeconomic factors remains possible. Sixth, children could contribute more than one episode, and because encounters were not linked individually, we could not account for within-child correlation. As this influences precision rather than central tendency, we do not expect a materially important effect on our conclusions. Finally, these estimates derive from tertiary pediatric centers and may not generalize to community hospitals or mixed EDs.</p>
+<p>In conclusion, among children presenting to Canadian pediatric tertiary care hospitals, influenza vaccination was associated with ~50% lower odds of hospital-attended influenza during the 2024-2025 and 2025-2026 seasons, including during a season dominated by the antigenically drifted A(H3N2) subclade K. Lower VE among older children, particularly those with comorbidities, and against influenza A compared with influenza B, highlights the importance of continued surveillance and targeted prevention efforts. These findings support continued annual influenza vaccination of children even when substantial antigenic mismatch is anticipated.   2 Comparing influenza vaccination status. 3 Yukon, Northwest Territories, Nunavut, New Brunswick, Prince Edward Island, and non-Canadian residents. 4 Comorbidity was defined as any presence of: cancer/immune compromising condition, congenital heart disease, neurologic or neurodevelopment conditions, pulmonary disorders, and technology dependence. 5 Does not include admission to intensive care. 6 Includes 14 influenza A and B co-infections. Abbreviations: ED = emergency department; ICU = intensive care unit; IQR = interquartile range; NFLD = Newfoundland.  2 Comparing influenza vaccination status. 3 Yukon, Northwest Territories, Nunavut, New Brunswick, Prince Edward Island, and non-Canadian residents. 4 Comorbidity was defined as any presence of: cancer/immune compromising condition, congenital heart disease, neurologic or neurodevelopment conditions, pulmonary disorders, and technology dependence. 6   43,697 children 6 months to &lt;18 years screened across the 2024-2025 and 2025-2026 influenza seasons 23,806 children screened during the 2024-2025 influenza season (27/10/2024 to 07/06/2025 epidemiological weeks 44 to 23) 17,316 encounters included in primary VE analysis 4760 (27.5%) influenza-positive cases 426 (8.9%) vaccinated 12,556 influenzanegative controls 1993 (15.9%) vaccinated 6490 (27.3%) Excluded 461 No symptoms 116 Missing symptom status data 558 Specimen collected ≥ 72 hr post-admission 370 Nosocomial or incidental virus findings 236 Vaccinated within 14 days of test 4749 Missing/unavailable vaccination details 19,891 children screened during the 2025-2026 influenza season (02/11/2025 to 13/06/2026 epidemiological weeks 45 to 23) 13,417 encounters included in primary VE analysis 4798 (35.8%) influenza-positive cases 364 (7.6%) vaccinated 8619 influenzanegative controls 1558 (18.1%) vaccinated 6474 (32.5%) Excluded 341 No symptoms 972 Missing symptom status data 555 Specimen collected ≥ 72 hr post-admission 222 Nosocomial or incidental virus findings 232 Vaccinated within 14 days of test 4152 Missing/unavailable vaccination details</p>
+<p>Acknowledgements Competing interests statement: Dr. Papenburg reports grants from Merck to his institution, and personal fees from Enanta, all outside the submitted work. Dr. Pernica&#x27;s institution has received grant funding from Merck (investigator-initiated) and AstraZeneca (industry-initiated), as well as in-kind funding from bioMérieux, DiaSorin, and Abbott. Dr. Burstein reports receiving a grant and reagent/material support from BioMerieux Canada, speaker honoraria from Thermo Fisher Scientific and a career award from the Quebec Health Research Fund (FRQ-S), all outside the submitted work. Dr. Berthelot is the recipient of a career award from the Quebec Health Research Fund (FRQ-S). Dr. Sabhaney is the recipient of an Investigator Grant Award Program salary award from the BC Children&#x27;s Hospital Research Institute.</p>
+<h3>Additional Contributions:</h3>
+<p>We thank our colleagues at the Public Health Agency of Canada for their collaboration on this project and all the research assistants, coordinators and nurses who contributed to data collection at all participating sites. We also thank the analysts at Alberta&#x27;s Public Health Surveillance &amp; Informatics, Health Shared Services.</p>
+<p>VE was lower for children aged 10 to &lt;18 years than for those aged 6 months to &lt;10 years (percentage point difference=45 [95%CI 15-75]) in 2024-2025 and 31 [95%CI 10-52] in 2025-2026; Figure 3d). This pattern was more pronounced among children with (34 to 66 percentage point difference; Figure 3e) than without (16 to 17 percentage point difference; Figure 3f) a highrisk comorbidity.</p>
+<h3>Figure captions Figure 1 .Figure 2 .Figure 3.</h3>
+<p>Figure captions Figure 1. Flow diagram for study inclusion, restricting to children aged 6 months to &lt;18 years tested for influenza, from October 27, 2024, to June 7, 2025 (epidemiological weeks 44 to 23) and from November 2, 2025, to June 13, 2026 (epidemiological weeks 45 to 23) Figure 2. Influenza test-positive and test-negative specimens, positivity, and proportion of testnegative controls vaccinated, by week, from October 27, 2024, to June 7, 2025 (epidemiological weeks 44 to 23) (panel A) and from November 2, 2025, to June 13, 2026 (epidemiological weeks 45 to 22) (panel B) Figure 3. Estimates of influenza vaccine effectiveness against any influenza (A or B) in any setting and by disposition (panel A), against influenza A by disposition (panel B), against influenza B by disposition (panel C), against any influenza by age (panel D), against any influenza by age in children with comorbidities (panel E), against any influenza by age in children without comorbidities (panel F), against influenza A by time since vaccination (panel G), against influenza B by time since vaccination (panel H), against influenza A by vaccine product (panel I), against influenza B by vaccine product (panel J), for the 2024-2025 (red) and 2025-2026 (blue) seasons</p>
+<p>Includes 5 influenza A and B co-infections. Abbreviations: ED = emergency department; ICU = intensive care unit; IQR = interquartile range; NFLD = Newfoundland.</p>
+<h3>Figure 1.</h3>
+<p>Figure 1. Flow diagram for study inclusion, restricting to children aged 6 months to &lt;18 years tested for influenza, from October 27, 2024, to June 7, 2025 (epidemiological weeks 44 to 23) and from November 2, 2025, to June 13, 2026 (epidemiological weeks 45 to 23)</p>
+<h3>Figure 2 .Figure 3.</h3>
+<p>Figure 2. Influenza test-positive and test-negative specimens, positivity, and proportion of test-negative controls vaccinated, by week, from October 27, 2024, to June 7, 2025 (epidemiological weeks 44 to 23) (panel A) and from November 2, 2025, to June 13, 2026 (epidemiological weeks 45 to 22) (panel B)</p>
+<h3>Table 1.</h3>
+<p>Characteristics of the study population by influenza test result and influenza vaccination status, 2024-2025 season</p>
+<h3>Table 2.</h3>
+<p>Characteristics of the study population by influenza test result and influenza vaccination status, 2025-2026 season</p>
+<h3>References</h3>
+<p>Rolfes MA, Foppa IM, Garg S, et al. Annual estimates of the burden of seasonal influenza in the United States: A tool for strengthening influenza surveillance and preparedness. Influenza Other Respir Viruses. 2018;12(1):132-13710.1111/irv.12486.</p>
+<p>Wolf RM, Antoon JW. Influenza in Children and Adolescents: Epidemiology, Management, and Prevention. Pediatr Rev. 2023;44(11):605-61710.1542/pir.2023-005962.</p>
+<p>Di Chiara C, Papenburg J, Bettinger JA, et al. Epidemiology and severity of pediatric influenza hospitalizations before and during the COVID-19 pandemic: a surveillance study of the Canadian immunization monitoring program (IMPACT), 2012-2023. Lancet Reg Health Am. 2026;61:10152510.1016/j.lana.2026.101525.</p>
+<p>Huang XF, Iuliano AD, Ebelt S, Reed C, Chang HH. A time-series approach for estimating emergency department visits attributable to seasonal influenza: results from 6 US cities, 2005-2006 to 2016-2017 seasons. Am J Epidemiol. 2026;195(1):40-4810.1093/aje/kwaf045.</p>
+<p>Fitzpatrick T, Buchan SA, Mahant S, et al. Pediatric Acute Respiratory Virus Hospitalizations: A Population-Based Cohort Study, 2017-2024. J Infect Dis. 2025;232(1):e137-e14910.1093/infdis/jiaf212.</p>
+<p>Public Health Agency of Canada. Childhood Seasonal Immunization Coverage Survey (CSICS): 2024 results. Available at: https://www.canada.ca/en/public- health/services/immunization-vaccines/vaccination-coverage/childhood-seasonal- immunization-coverage-survey-2024-results.html. Accessed September 18, 2026.</p>
+<p>Recommendations for Prevention and Control of Influenza in Children, 2025-2026: Technical Report. Pediatrics. 2025;156(6)10.1542/peds.2025-073622.</p>
+<p>Recommendations for Prevention and Control of Influenza in Children, 2023-2024. Pediatrics. 2023;152(4)10.1542/peds.2023-063773.</p>
+<p>Gusic K, Siu W, Sinilaite A, Papenburg J. Summary of the National Advisory Committee on Immunization (NACI) Seasonal Influenza Vaccine Statement for 2025-2026. Can Commun Dis Rep. 2025;51(9):324-33010.14745/ccdr.v51i09a01.</p>
+<p>O&#x27;Halloran A, Habeck JW, Gilmer M, et al. Influenza-Associated Hospitalizations During a High Severity Season -Influenza Hospitalization Surveillance Network, United States, 2024-25 Influenza Season. MMWR Morb Mortal Wkly Rep. 2025;74(34):529- 53710.15585/mmwr.mm7434a1.</p>
+<p>Harrison R, Reid EK, Allen UD, et al. AMMI Canada seasonal influenza guideline update 2025-26: Some questions answered. J Assoc Med Microbiol Infect Dis Can. 2026;11(1):1- 1710.3138/jammi-2026-0105.</p>
+<p>Azziz-Baumgartner E, Budd A, Lee JS, et al. Influenza Activity and Estimated Vaccine Effectiveness During the 2025-2026 Influenza Season. JAMA Network Open. 2026;9(6):e2618581-e261858110.1001/jamanetworkopen.2026.18581.</p>
+<p>Scotch M, Faleye TO, Urquidez-Negrete A, et al. Influenza A(H3N2) subclade K (J.2.4.1) viruses associated with a surge at a university health clinic, Arizona, the United States, November to early December 2025. Euro Surveill. 2026;31(7)10.2807/1560-7917.Es.2026.31.7.2600111.</p>
+<p>Zambon M, Hayden FG. Influenza A(H3N2) Subclade K Virus: Threat and Response. JAMA. 2026;335(4):307-31010.1001/jama.2025.25903.</p>
+<p>Separovic L, Sabaiduc S, Zhan Y, et al. Interim 2025/26 influenza vaccine effectiveness estimates with immuno-epidemiological considerations for A(H3N2) subclade K protection, Canada, January 2026. Euro Surveill. 2026;31(5)10.2807/1560-7917.Es.2026.31.5.2600068.</p>
+<p>University of Calgary. The SPRINT-KIDS Project: Surveillance Program for the Rapid IdeNtification and TracKing of Infectious Diseases in kidS. Available at: https://cumming.ucalgary.ca/project/sprint-kids-0. Accessed on December 1, 2025.</p>
+<p>von Elm E, Altman DG, Egger M, Pocock SJ, Gøtzsche PC, Vandenbroucke JP. The Strengthening the Reporting of Observational Studies in Epidemiology (STROBE) statement: guidelines for reporting observational studies. Ann Intern Med. 2007;147(8):573- 57710.7326/0003-4819-147-8-200710160-00010.</p>
+<p>Feng S, Fowlkes AL, Steffens A, Finelli L, Cowling BJ. Assessment of Virus Interference in a Test-negative Study of Influenza Vaccine Effectiveness. Epidemiology. 2017;28(4):514- 52410.1097/ede.0000000000000670.</p>
+<p>Lucaccioni H, Marques DF, Kirsebom F, et al. Influenza vaccine effectiveness from nine studies during drifted A(H3N2) subclade K predominance, Europe, September 2025 to January 2026. Euro Surveill. 2026;31(7)10.2807/1560-7917.Es.2026.31.7.2600109.</p>
+<p>Harvey R, Welsh C, Byrne AM, et al. Assessment of human immunity to A/H3N2 influenza subclade K during 2025 emergence. EBioMedicine. 2026;129:10633210.1016/j.ebiom.2026.106332.</p>
+<p>Hood N, Flannery B, Gaglani M, et al. Influenza Vaccine Effectiveness Among Children: 2011-2020. Pediatrics. 2023;151(4)10.1542/peds.2022-059922.</p>
+<p>Kalligeros M, Shehadeh F, Mylona EK, et al. Influenza vaccine effectiveness against influenza-associated hospitalization in children: A systematic review and meta-analysis. Vaccine. 2020;38(14):2893-290310.1016/j.vaccine.2020.02.049.</p>
+<p>Olson SM, Ahmad HM, Wielgosz K, et al. Pediatric Vaccine Effectiveness Against Influenza Hospitalization and Outpatient Visits: 2021-2024. Pediatrics. 2026;157(5)10.1542/peds.2025-073973.</p>
+<p>Yu X, Lee SL, Kwan MYW, et al. Influenza Vaccination Effectiveness Against Influenza- Associated Hospitalization in Children and the Effects of Repeated Vaccination. J Infect Dis. 2026;233(6):e1355-e136310.1093/infdis/jiag047.</p>
+<p>Sahni LC, Naioti EA, Olson SM, et al. Sustained Within-season Vaccine Effectiveness Against Influenza-associated Hospitalization in Children: Evidence From the New Vaccine Surveillance Network, 2015-2016 Through 2019-2020. Clin Infect Dis. 2023;76(3):e1031- e103910.1093/cid/ciac577.</p>
+<p>Hayek H, Noble EK, Stewart LS, et al. Influenza Vaccine Effectiveness Among Children With and Without Underlying Conditions. Pediatrics. 2026;157(2)10.1542/peds.2025-072184.</p>
+<p>Auladell M, Phuong HVM, Mai LTQ, et al. Influenza virus infection history shapes antibody responses to influenza vaccination. Nature Medicine. 2022;28(2):363-37210.1038/s41591- 022-01690-w.</p>
+<p>Doyon-Plourde P, Tadount F, Gil A, et al. Intraseasonal waning of influenza vaccine effectiveness and implications for the optimal timing of seasonal vaccination programs: A scoping review. Can Commun Dis Rep. 2026;52(6):231-24510.14745/ccdr.v52i06a03.</p>
+<p>Villafuerte D, Fall A, Akin E, et al. Genomic Evolution of Influenza A Virus During the 2024-2025 Season, the Johns Hopkins Health System: Antigenic Drift Reduces Serum Neutralization. J Infect Dis. 2026;233(6):e1386-e139510.1093/infdis/jiag069.</p>
+<p>Chen Z, Bancej C, Lee L, Champredon D. Antigenic drift and epidemiological severity of seasonal influenza in Canada. Sci Rep. 2022;12(1):1562510.1038/s41598-022-19996-7.</p>
+<p>Kahn R, Schrag SJ, Verani JR, Lipsitch M. Identifying and Alleviating Bias Due to Differential Depletion of Susceptible People in Postmarketing Evaluations of COVID-19 Vaccines. Am J Epidemiol. 2022;191(5):800-81110.1093/aje/kwac015.</p>
+<p>Kirsebom FC, Thompson C, Talts T, et al. Early influenza virus characterisation and vaccine effectiveness in England in autumn 2025, a period dominated by influenza A(H3N2) subclade K. Eurosurveillance. 2025;30(46):2500854doi:https://doi.org/10.2807/1560- 7917.ES.2025.30.46.2500854.</p>
+<p>Shinjoh M, Furuichi M, Sugimoto R, et al. Effectiveness of inactivated and live-attenuated influenza vaccines in children during the 2025-2026 influenza season with genetically distinct influenza A and B viruses. Vaccine. 2026;88:12886910.1016/j.vaccine.2026.128869.</p>
+<p>Chung JR, Flannery B, Ambrose CS, et al. Live Attenuated and Inactivated Influenza Vaccine Effectiveness. Pediatrics. 2019;143(2)10.1542/peds.2018-2094.</p>
+<p>Zhao L, Young K, House A, Stirling R, Tunis M. Demonstrating the capacity of the National Advisory Committee on Immunization for timely responses to post-market vaccine monitoring signals: Canada&#x27;s experience with the live-attenuated influenza vaccine. Can Commun Dis Rep. 2021;47(56):279-28410.14745/ccdr.v47i56a06.</p>
+<p>Buchan SA, Booth S, Scott AN, et al. Effectiveness of Live Attenuated vs Inactivated Influenza Vaccines in Children During the 2012-2013 Through 2015-2016 Influenza Seasons in Alberta, Canada: A Canadian Immunization Research Network (CIRN) Study. JAMA Pediatrics. 2018;172(9):e181514-e18151410.1001/jamapediatrics.2018.1514.</p>
+<p>Peredo R, Savard N, Separovic L, et al. Influenza vaccination status ascertainment and vaccine effectiveness estimation: Validity of self-report for current and prior season. Vaccine. 2026;77:12836810.1016/j.vaccine.2026.128368.</p>
 </div>
 </details>
 </div>
