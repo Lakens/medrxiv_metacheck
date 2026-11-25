@@ -1,0 +1,2379 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>MetaCheck Report: Integrating sequence-to-omics predictions and
+personal multi-omics for rare variant prioritization</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+
+
+
+
+
+
+
+
+
+
+
+<style>.back-to-main{display:inline-block;padding:4px 12px;border:1px solid var(--green,#2F6F1C);border-radius:3px;background:#fff;color:var(--green,#2F6F1C);font-size:0.9rem;font-weight:600;text-decoration:none}.back-to-main:hover{background:var(--green,#2F6F1C);color:#fff}.back-bar{max-width:900px;margin:14px auto 0;padding:0 16px}@media print{.back-bar{display:none}}</style></head>
+
+<body><p class="back-bar"><a class="back-to-main" id="back-to-main" href="../">← Back to the main page</a></p>
+
+
+
+
+
+
+
+<style>
+
+@font-face {
+font-family: "Cabin";
+src: url("../fonts/Cabin.ttf") format("truetype");
+font-weight: 400 700;
+font-stretch: 75% 100%;
+font-style: normal;
+}
+:root {
+color-scheme: light;
+--green: #2F6F1C;
+--green-dark: #1E4A10;
+--green-tint: #E3ECDF;
+--bg: #E9E8E5;
+--card: #F4F3F1;
+--line: #CFCDC8;
+--text: #262624;
+--muted: #5E5C58;
+--fix: #9B2C1F;
+--fix-tint: #F6E3DF;
+--improve: #7A4F00;
+--improve-tint: #F4E7C9;
+--improve-line: #C08A1E;
+--decide: #2C5577;
+--decide-tint: #DFE8EF;
+--na-tint: #E4E2DE;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); }
+body {
+margin: 0;
+color: var(--text);
+font-family: "Cabin", "Segoe UI", sans-serif;
+font-size: 17px;
+line-height: 1.55;
+-webkit-font-smoothing: antialiased;
+}
+a { color: var(--green); text-underline-offset: 2px; }
+a:hover { color: var(--green-dark); }
+code, pre { font-family: "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace; font-size: 0.84em; }
+code { background: #fff; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; overflow-wrap: anywhere; }
+pre { background: #fff; border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; overflow: auto; }
+pre code { background: none; border: 0; padding: 0; font-size: 1em; }
+
+.masthead { text-align: center; max-width: 900px; margin: 0 auto; padding: 32px 16px 0; }
+.logos { display: flex; justify-content: center; align-items: center; gap: 28px; margin-bottom: 8px; }
+.logos img { height: 64px; width: auto; }
+.masthead h1 { margin: 0; font-size: 2.2rem; font-weight: 700; line-height: 1.2; }
+.masthead .subtitle { margin: 2px 0 0; font-size: 1.15rem; color: var(--muted); overflow-wrap: anywhere; }
+.masthead .meta { margin: 6px 0 0; padding-bottom: 16px; font-size: 0.88rem; color: var(--muted);
+border-bottom: 1px solid var(--green); }
+.mc-main { max-width: 900px; margin: 0 auto; padding: 0 16px 48px; }
+.mc-intro { margin: 22px 0 18px; }
+
+.counts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 22px 0 32px; }
+.count { display: block; background: var(--card); border: 1px solid var(--line); border-top: 4px solid var(--line);
+border-radius: 4px; padding: 10px 12px; text-decoration: none; color: var(--text); }
+a.count:hover { color: var(--text); background: #fff; }
+.count b { display: block; font-size: 1.9rem; line-height: 1.1; }
+.count span { font-size: 0.92rem; color: var(--muted); }
+.count.fix { border-top-color: var(--fix); } .count.fix b { color: var(--fix); }
+.count.improve { border-top-color: var(--improve-line); } .count.improve b { color: var(--improve); }
+.count.decide { border-top-color: var(--decide); } .count.decide b { color: var(--decide); }
+.count.fine { border-top-color: var(--green); } .count.fine b { color: var(--green); }
+.count.zero { opacity: 0.55; }
+@media (max-width: 640px) { .counts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+h2 { font-size: 1.35rem; margin: 36px 0 12px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+h2 .n { color: var(--muted); font-weight: 400; }
+
+.check { background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--line);
+border-radius: 4px; padding: 14px 18px 12px; margin: 0 0 14px; }
+.check.fix { border-left-color: var(--fix); }
+.check.improve { border-left-color: var(--improve-line); }
+.check.decide { border-left-color: var(--decide); }
+.check-head p { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; margin: 0 0 10px; }
+.check-title { font-weight: 700; font-size: 1.12rem; }
+.where { font-size: 0.82rem; color: var(--muted); margin-left: auto; }
+.tag { display: inline-block; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.03em; line-height: 1.6;
+text-transform: uppercase; padding: 0 8px; border-radius: 3px; white-space: nowrap; }
+.tag.fix { color: var(--fix); background: var(--fix-tint); }
+.tag.improve { color: var(--improve); background: var(--improve-tint); }
+.tag.decide { color: var(--decide); background: var(--decide-tint); }
+.tag.fine { color: var(--green); background: var(--green-tint); }
+.tag.info, .tag.na { color: var(--muted); background: var(--na-tint); }
+.rows { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); gap: 6px 14px; }
+.rows > .label { font-weight: 700; font-size: 0.92rem; color: var(--muted); padding-top: 1px; }
+.rows > .text { min-width: 0; }
+.rows > .text.todo { font-weight: 600; }
+.rows p { margin: 0 0 4px; }
+.rows ul, .rows ol { margin: 0 0 4px; padding-left: 1.1em; }
+@media (max-width: 640px) {
+.rows { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.rows > .label { padding-top: 6px; }
+}
+details { margin-top: 10px; }
+details > summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: 0.95rem; }
+details > summary:hover { color: var(--green-dark); }
+details[open] > summary { margin-bottom: 8px; }
+.fold { background: #fff; border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; overflow-x: auto; }
+.fold > p:first-child { margin-top: 0; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th { text-align: left; background: var(--green-tint); color: var(--text); font-weight: 700; }
+th, td { padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table strong { color: var(--fix); }
+
+.done { background: var(--card); border: 1px solid var(--line); border-radius: 4px; }
+.done-row { display: grid; grid-template-columns: 7.5em 15em minmax(0, 1fr); gap: 4px 12px;
+padding: 8px 14px; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
+.done-row:last-child { border-bottom: 0; }
+.done-row > div { min-width: 0; }
+.done-row .tag { justify-self: start; align-self: start; margin-top: 2px; }
+.done-row .t { font-weight: 600; }
+.done-row .d { color: var(--muted); }
+.done-row p { margin: 0 0 4px; }
+@media (max-width: 720px) { .done-row { grid-template-columns: minmax(0, 1fr); } }
+.more > details { background: var(--card); border: 1px solid var(--line); border-radius: 4px; padding: 10px 14px; margin: 0 0 10px; }
+.more > details > summary { font-size: 1rem; }
+footer { max-width: 900px; margin: 0 auto; padding: 16px 16px 40px; border-top: 1px solid var(--green);
+text-align: center; font-size: 0.88rem; color: var(--muted); }
+@media print {
+html, body { background: #fff; }
+.check, .done-row, .count { break-inside: avoid; }
+}
+</style>
+<header class="masthead">
+<div class="logos">
+<a class="logo-home" href="../" aria-label="Back to the main page"><img role="img" aria-label="logo" src="../images/logo.png" alt="logo"></a>
+</div>
+<h1>
+MetaCheck Report
+</h1>
+<p class="subtitle">
+Integrating sequence-to-omics predictions and personal multi-omics for
+rare variant prioritization
+</p>
+<p class="meta">
+2026-11-25 · Metacheck 0.4.4.40 · DOI 10.64898/2026.10.24.26366361
+</p>
+</header>
+<div class="mc-main">
+<nav class="counts" aria-label="Results">
+<a class="count fix" href="#fix"><b>1</b><span>to
+fix</span></a><a class="count improve" href="#improve"><b>4</b><span>to
+check</span></a><span class="count decide zero"><b>0</b><span>to decide
+by hand</span></span><span class="count fine zero"><b>0</b><span>fine</span></span><a class="count na" href="#na"><b>11</b><span>not
+applicable</span></a>
+</nav>
+<h2 id="fix">To fix <span class="n">(1)</span></h2>
+<div class="check fix">
+<div class="check-head">
+<p><span class="tag fix">To fix</span> <span class="check-title">Exact
+P-Values</span></p>
+</div>
+<div class="rows">
+<div class="label">
+<p>What we found</p>
+</div>
+<div class="text">
+<p>We found 4 imprecise <em>p</em> values out of 11 detected <em>p</em>
+values.</p>
+</div>
+</div>
+<details>
+<summary>
+Show details
+</summary>
+<div class="fold">
+<p>Reporting <em>p</em> values imprecisely (e.g., <em>p</em> &lt; .05)
+reduces transparency, reproducibility, and re-use (e.g., in <em>p</em>
+value meta-analyses). Best practice is to report exact p-values with
+three decimal places (e.g., <em>p</em> = .032) unless <em>p</em> values
+are smaller than 0.001, in which case you can use <em>p</em> &lt;
+.001.</p>
+<p>This module sometimes flags false positives when sentences discuss
+how p-value thresholds were set. It can also miss an imprecise p-value
+that is reported against a threshold (e.g., “decreased at the <em>p</em>
+&lt; .05 significance threshold”).</p>
+<div style="max-height:8em;overflow:auto;">
+<table class="dt-static">
+<colgroup>
+<col style="width:10%" />
+<col style="width:90%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align:left;">
+P-Value
+</th>
+<th style="text-align:left;">
+Text
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+p &lt; 0.0027
+</td>
+<td style="text-align:left;">
+Finally, splicing outliers (p &lt; 0.0027) with a delta-Jaccard index
+below 0.3 were excluded to ensure significant outliers reflect large
+splicing changes.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+p &lt; 0.01
+</td>
+<td style="text-align:left;">
+To remove outliers with small effect sizes, the EpiOut effect size and
+coverage criteria were applied, excluding observations with p &lt; 0.01
+that had an absolute log2 fold change below 0.5, or that had both
+observed and expected read counts below 50.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+p &gt; 0.0027
+</td>
+<td style="text-align:left;">
+The Watershed-DL model thresholds unsigned p-values into inlier (p &gt;
+0.0027) and outlier (p &lt; 0.0027) categories, and thresholds signed
+p-values into underlier (p &lt; 0, |p| &lt; 0.0027), overlier (p &gt; 0,
+|p| &lt; 0.0027), and inlier (|p| &gt; 0.0027) categories, with
+independent model weights defining impact …
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+p &lt; 0.0027
+</td>
+<td style="text-align:left;">
+The Watershed-DL model thresholds unsigned p-values into inlier (p &gt;
+0.0027) and outlier (p &lt; 0.0027) categories, and thresholds signed
+p-values into underlier (p &lt; 0, |p| &lt; 0.0027), overlier (p &gt; 0,
+|p| &lt; 0.0027), and inlier (|p| &gt; 0.0027) categories, with
+independent model weights defining impact …
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><em>Cells longer than 300 characters are cut (…).</em></p>
+<div class="callout-tip" title="Learn More" collapse="true">
+<p>The APA manual states: Report exact <em>p</em> values (e.g.,
+<em>p</em> = .031) to two or three decimal places. However, report
+<em>p</em> values less than .001 as <em>p</em> &lt; .001. However, 2
+decimals is too imprecise for many use-cases (e.g., a <em>p</em> value
+meta-analysis), so report <em>p</em> values with three digits.</p>
+<p>American Psychological Association (2020). <em>Publication manual of
+the American Psychological Association</em>, 7 edition. American
+Psychological Association.</p>
+</div>
+</div>
+</details>
+</div>
+<h2 id="improve">To check <span class="n">(4)</span></h2>
+<div class="check improve">
+<div class="check-head">
+<p><span class="tag improve">To check</span> <span class="check-title">Non-Significant P Value Check</span></p>
+</div>
+<div class="rows">
+<div class="label">
+<p>What we found</p>
+</div>
+<div class="text">
+<p>We found 1 non-significant p value that should be checked for
+appropriate interpretation.</p>
+</div>
+</div>
+<details>
+<summary>
+Show details
+</summary>
+<div class="fold">
+<p>Meta-scientific research has shown nonsignificant p values are
+commonly misinterpreted. It is incorrect to infer that there is ‘no
+effect’, ‘no difference’, or that groups are ‘the same’ after p &gt;
+0.05.</p>
+<p>It is possible that there is a true non-zero effect, but that the
+study did not detect it. Make sure your inference acknowledges that it
+is possible that there is a non-zero effect. It is correct to include
+the effect is ‘not significantly’ different, although this just restates
+that p &gt; 0.05.</p>
+<p>Metacheck does not yet analyze automatically whether sentences which
+include non-significant p-values are correct, but we recommend manually
+checking the sentences below for possible misinterpreted non-significant
+p values.</p>
+<table class="dt-static">
+<colgroup>
+<col style="width:10%" />
+<col style="width:90%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align:left;">
+Text
+</th>
+<th style="text-align:left;">
+Sentence
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+p &gt; 0.0027
+</td>
+<td style="text-align:left;">
+The Watershed-DL model thresholds unsigned p-values into inlier (p &gt;
+0.0027) and outlier (p &lt; 0.0027) categories, and thresholds signed
+p-values into underlier (p &lt; 0, |p| &lt; 0.0027), overlier (p &gt; 0,
+|p| &lt; 0.0027), and inlier (|p| &gt; 0.0027) categories, with
+independent model weights defining impact …
+</td>
+</tr>
+</tbody>
+</table>
+<p><em>Cells longer than 300 characters are cut (…).</em></p>
+<div class="callout-tip" title="Learn More" collapse="true">
+<p>For metascientific articles demonstrating the rate of
+misinterpretations of non-significant results is high, see:</p>
+<p>Aczel B, Palfi B, Szollosi A, Kovacs M, Szaszi B, Szecsi P, Zrubka M,
+Gronau Q, van den Bergh D, Wagenmakers E (2018). “Quantifying Support
+for the Null Hypothesis in Psychology: An Empirical Investigation.”
+<em>Advances in Methods and Practices in Psychological Science</em>,
+<b>1</b>(3), 357–366.
+<a href="https://doi.org/10.1177/2515245918773742">doi:10.1177/2515245918773742</a>.</p>
+<p>Murphy S, Merz R, Reimann L, Fernández A (2025). “Nonsignificance
+misinterpreted as an effect’s absence in psychology: Prevalence and
+temporal analyses.” <em>Royal Society Open Science</em>, <b>12</b>(3),
+242167.
+<a href="https://doi.org/10.1098/rsos.242167">doi:10.1098/rsos.242167</a>.</p>
+<p>For educational material on preventing the misinterpretation of p
+values, see <a href="https://lakens.github.io/statistical_inferences/01-pvalue.html#sec-misconception1">Improving
+Your Statistical Inferences</a>.</p>
+</div>
+</div>
+</details>
+</div>
+<div class="check improve">
+<div class="check-head">
+<p><span class="tag improve">To check</span> <span class="check-title">Repository Check</span></p>
+</div>
+<div class="rows">
+<div class="label">
+<p>What we found</p>
+</div>
+<div class="text">
+<ul>
+<li>We could not check 1 repository: 10.5281/zenodo.23426012
+(unfound).</li>
+<li>We found 1 file in 2 repositories.</li>
+<li>We did not check 6 linked deposits that are not this paper’s own: <a href="https://github.com/encode-dcc/atac-seq-pipeline" class="uri">https://github.com/encode-dcc/atac-seq-pipeline</a> (others’
+code); <a href="https://github.com/Illumina/PromoterAI" class="uri">https://github.com/Illumina/PromoterAI</a> (others’ code);
+<a href="https://github.com/tkzeng/Pangolin" class="uri">https://github.com/tkzeng/Pangolin</a> (others’ code); <a href="https://github.com/nicolerg/WatershedR" class="uri">https://github.com/nicolerg/WatershedR</a> (others’ code);
+<a href="https://www.ebi.ac.uk/ena/browser/view/PRJNA851328" class="uri">https://www.ebi.ac.uk/ena/browser/view/PRJNA851328</a>
+(others’ data); <a href="https://www.ebi.ac.uk/ena/browser/view/ERP110508" class="uri">https://www.ebi.ac.uk/ena/browser/view/ERP110508</a>
+(others’ data).</li>
+<li>We found 6 README files and 0 repositories without READMEs.</li>
+</ul>
+</div>
+</div>
+<details>
+<summary>
+Show details
+</summary>
+<div class="fold">
+<h4 id="repositories-that-could-not-be-checked">Repositories that could
+not be checked</h4>
+<p>These repositories are linked in the paper, but their contents could
+not be retrieved, so nothing below describes them. When the reason is
+that the platform did not answer, running the check again later may
+work.</p>
+<ul>
+<li>10.5281/zenodo.23426012: unfound</li>
+</ul>
+<h4 id="deposits-we-did-not-check">Deposits we did not check</h4>
+<p>The paper links these deposits, but the paper or the deposit itself
+shows that they hold other people’s work or the authors’ earlier work,
+so we did not check them as the data and code of this paper (the table
+Whose Deposits gives the reason for each). If one of them is where you
+shared the data or code of this paper, name this paper in it: its title
+or DOI in the deposit’s description or README. Metacheck then checks
+it.</p>
+<table class="dt-static">
+<thead>
+<tr>
+<th style="text-align:left;">
+Repository
+</th>
+<th style="text-align:left;">
+Whose
+</th>
+<th style="text-align:left;">
+Why
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+<a href="https://github.com/encode-dcc/atac-seq-pipeline" target="_blank">github.com/encode-dcc/atac-seq-pipeline</a>
+</td>
+<td style="text-align:left;">
+others’ code
+</td>
+<td style="text-align:left;">
+a widely used tool by others
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="https://github.com/Illumina/PromoterAI" target="_blank">github.com/Illumina/PromoterAI</a>
+</td>
+<td style="text-align:left;">
+others’ code
+</td>
+<td style="text-align:left;">
+a widely used tool by others
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="https://github.com/tkzeng/Pangolin" target="_blank">github.com/tkzeng/Pangolin</a>
+</td>
+<td style="text-align:left;">
+others’ code
+</td>
+<td style="text-align:left;">
+a widely used tool by others
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="https://github.com/nicolerg/WatershedR" target="_blank">github.com/nicolerg/WatershedR</a>
+</td>
+<td style="text-align:left;">
+others’ code
+</td>
+<td style="text-align:left;">
+a tool by others
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="https://www.ebi.ac.uk/ena/browser/view/PRJNA851328" target="_blank">www.ebi.ac.uk/ena/browser/view/PRJNA851328</a>
+</td>
+<td style="text-align:left;">
+others’ data
+</td>
+<td style="text-align:left;">
+made by others, and the sentence says it is used or taken from them
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="https://www.ebi.ac.uk/ena/browser/view/ERP110508" target="_blank">www.ebi.ac.uk/ena/browser/view/ERP110508</a>
+</td>
+<td style="text-align:left;">
+others’ data
+</td>
+<td style="text-align:left;">
+a deposit more than 3 years older than the paper, by others
+</td>
+</tr>
+</tbody>
+</table>
+<h4 id="whose-deposits">Whose Deposits</h4>
+<table class="dt-static">
+<thead>
+<tr>
+<th style="text-align:left;">
+Repository
+</th>
+<th style="text-align:left;">
+Cited in
+</th>
+<th style="text-align:left;">
+Whose
+</th>
+<th style="text-align:left;">
+Why
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+<a href="https://github.com/encode-dcc/atac-seq-pipeline" target="_blank">github.com/encode-dcc/atac-seq-pipeline</a>
+</td>
+<td style="text-align:left;">
+text
+</td>
+<td style="text-align:left;">
+others’ code
+</td>
+<td style="text-align:left;">
+a widely used tool by others
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="https://github.com/Illumina/PromoterAI" target="_blank">github.com/Illumina/PromoterAI</a>
+</td>
+<td style="text-align:left;">
+text
+</td>
+<td style="text-align:left;">
+others’ code
+</td>
+<td style="text-align:left;">
+a widely used tool by others
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="https://github.com/tkzeng/Pangolin" target="_blank">github.com/tkzeng/Pangolin</a>
+</td>
+<td style="text-align:left;">
+text
+</td>
+<td style="text-align:left;">
+others’ code
+</td>
+<td style="text-align:left;">
+a widely used tool by others
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="https://github.com/nicolerg/WatershedR" target="_blank">github.com/nicolerg/WatershedR</a>
+</td>
+<td style="text-align:left;">
+text
+</td>
+<td style="text-align:left;">
+others’ code
+</td>
+<td style="text-align:left;">
+a tool by others
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="https://github.com/e-271/Watershed-DL" target="_blank">github.com/e-271/Watershed-DL</a>
+</td>
+<td style="text-align:left;">
+text
+</td>
+<td style="text-align:left;">
+the authors’, for this paper
+</td>
+<td style="text-align:left;">
+the deposit names this paper (its DOI, its title, or a link to it)
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="10.5281/zenodo.23426012" target="_blank">10.5281/zenodo.23426012</a>
+</td>
+<td style="text-align:left;">
+text
+</td>
+<td style="text-align:left;">
+the authors’, for this paper
+</td>
+<td style="text-align:left;">
+a link in the main text, not shown to be anyone else’s
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="https://www.ebi.ac.uk/ena/browser/view/PRJNA851328" target="_blank">www.ebi.ac.uk/ena/browser/view/PRJNA851328</a>
+</td>
+<td style="text-align:left;">
+text
+</td>
+<td style="text-align:left;">
+others’ data
+</td>
+<td style="text-align:left;">
+made by others, and the sentence says it is used or taken from them
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="https://www.ebi.ac.uk/ena/browser/view/ERP110508" target="_blank">www.ebi.ac.uk/ena/browser/view/ERP110508</a>
+</td>
+<td style="text-align:left;">
+text
+</td>
+<td style="text-align:left;">
+others’ data
+</td>
+<td style="text-align:left;">
+a deposit more than 3 years older than the paper, by others
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="https://doi.org/10.5281/zenodo.3934294" target="_blank">doi.org/10.5281/zenodo.3934294</a>
+</td>
+<td style="text-align:left;">
+reference list
+</td>
+<td style="text-align:left;">
+others’ code
+</td>
+<td style="text-align:left;">
+a deposit more than 3 years older than the paper, by others
+</td>
+</tr>
+</tbody>
+</table>
+<h4 id="repositories">Repositories</h4>
+<table class="dt-static">
+<thead>
+<tr>
+<th style="text-align:left;">
+Repository
+</th>
+<th style="text-align:left;">
+Platform
+</th>
+<th style="text-align:left;">
+Error
+</th>
+<th style="text-align:right;">
+All Files
+</th>
+<th style="text-align:right;">
+Data Files
+</th>
+<th style="text-align:right;">
+Code Files
+</th>
+<th style="text-align:right;">
+READMEs
+</th>
+<th style="text-align:right;">
+Archives
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+<a href="https://github.com/e-271/Watershed-DL" target="_blank">github.com/e-271/Watershed-DL</a>
+</td>
+<td style="text-align:left;">
+github
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<a href="10.5281/zenodo.23426012" target="_blank">10.5281/zenodo.23426012</a>
+</td>
+<td style="text-align:left;">
+zenodo
+</td>
+<td style="text-align:left;">
+unfound
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+</tbody>
+</table>
+<h4 id="files">Files</h4>
+<table class="dt-static">
+<thead>
+<tr>
+<th style="text-align:left;">
+Repository
+</th>
+<th style="text-align:left;">
+File
+</th>
+<th style="text-align:left;">
+Size
+</th>
+<th style="text-align:left;">
+Type
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+<a href="https://github.com/e-271/Watershed-DL" class="uri">https://github.com/e-271/Watershed-DL</a>
+</td>
+<td style="text-align:left;">
+<a href="https://raw.githubusercontent.com/e-271/Watershed-DL/main/README.md" target="_blank">README.md</a>
+</td>
+<td style="text-align:left;">
+2.7 kB
+</td>
+<td style="text-align:left;">
+readme
+</td>
+</tr>
+</tbody>
+</table>
+<p>README files were found in all repositories.</p>
+<h4 id="file-classification">File Classification</h4>
+<div class="callout-note" title="See how every file was classified and grouped" collapse="true">
+<p><strong>documentation</strong> (1 file)</p>
+<table class="dt-static">
+<thead>
+<tr>
+<th style="text-align:left;">
+File
+</th>
+<th style="text-align:left;">
+Group
+</th>
+<th style="text-align:left;">
+Path
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+README.md
+</td>
+<td style="text-align:left;">
+—
+</td>
+<td style="text-align:left;">
+README.md
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</details>
+</div>
+<div class="check improve">
+<div class="check-head">
+<p><span class="tag improve">To check</span> <span class="check-title">Code Check</span></p>
+</div>
+<div class="rows">
+<div class="label">
+<p>What we found</p>
+</div>
+<div class="text">
+<ul>
+<li>We found 0 R, 0 Python, 0 SAS, 0 SPSS, 0 Stata, 0 Mplus, 0 MATLAB,
+and 0 JASP code files.</li>
+<li>We could not list every file of 1 repository, so the checks did not
+see all its files: 10.5281/zenodo.23426012 (could not be listed:
+unfound).</li>
+</ul>
+</div>
+</div>
+<details>
+<summary>
+Show details
+</summary>
+<div id="repositories-not-listed-in-full" class="fold">
+<h4>Repositories not listed in full</h4>
+<p>The checks below did not see every file of this repository, because
+it could not be listed in full:</p>
+<ul>
+<li>10.5281/zenodo.23426012: could not be listed (unfound), so none of
+its files were checked.</li>
+</ul>
+</div>
+</details>
+</div>
+<div class="check improve">
+<div class="check-head">
+<p><span class="tag improve">To check</span> <span class="check-title">Data Check</span></p>
+</div>
+<div class="rows">
+<div class="label">
+<p>What we found</p>
+</div>
+<div class="text">
+<ul>
+<li>We could not list every file of 1 repository, so the checks did not
+see all its files: 10.5281/zenodo.23426012 (could not be listed:
+unfound).</li>
+<li>We classified 1 file: 1 documentation.</li>
+<li>We found 0 tabular data files and extracted 0 columns from 0 of
+them. We found no readable tabular data files to validate.</li>
+</ul>
+</div>
+</div>
+<details>
+<summary>
+Show details
+</summary>
+<div class="fold">
+<p>This module classifies repository files and, for tabular data files
+available locally, extracts each column’s type and summary
+statistics.</p>
+<h4 id="repositories-not-listed-in-full-1">Repositories not listed in
+full</h4>
+<p>The checks below did not see every file of this repository, because
+it could not be listed in full:</p>
+<ul>
+<li>10.5281/zenodo.23426012: could not be listed (unfound), so none of
+its files were checked.</li>
+</ul>
+</div>
+</details>
+</div>
+<h2 id="na">Not applicable <span class="n">(11)</span></h2>
+<div class="done">
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Ethics Approval Check</p>
+</div>
+<div class="d">
+<p>No papers appeared to report data about people or animals that need
+an ethics statement.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Power Analysis Check</p>
+</div>
+<div class="d">
+<p>No power analyses were detected.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Preregistration Check</p>
+</div>
+<div class="d">
+<p>No preregistration links were found.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Marginal Significance</p>
+</div>
+<div class="d">
+<p>No effects were described with terms related to ‘marginally
+significant’.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>StatCheck</p>
+</div>
+<div class="d">
+<p>No detectable t- or F-tests. StatCheck currently only detects
+statistics written in APA format.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Effect Sizes in t-tests and F-tests</p>
+</div>
+<div class="d">
+<p>No t-tests or F-tests were detected.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Codebook Check</p>
+</div>
+<div class="d">
+<p>We found no extracted data columns to check against a codebook.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Reproducibility Check</p>
+</div>
+<div class="d">
+<ul>
+<li>We found no R or Python code files to assess for
+reproducibility.</li>
+</ul>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>PubPeer Comments</p>
+</div>
+<div class="d">
+<p>No references with comments in PubPeer were found.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>RetractionWatch</p>
+</div>
+<div class="d">
+<p>No citations to articles in the RetractionWatch database were
+found.</p>
+</div>
+</div>
+<div class="done-row">
+<div class="tagcell">
+<p><span class="tag na">N/A</span></p>
+</div>
+<div class="t">
+<p>Replication Check</p>
+</div>
+<div class="d">
+<p>No citations to articles in the FLoRA database were found.</p>
+</div>
+</div>
+</div>
+<h2 id="files">Files in the repository</h2>
+<p>Where the files sit within each repository. Each file is followed by
+how it was classified; junk files, hidden files and empty folders are
+marked.</p>
+<p><strong>Repository: <a href="https://github.com/e-271/Watershed-DL" class="uri">https://github.com/e-271/Watershed-DL</a></strong></p>
+<div style="max-height: 40em; overflow: auto;">
+<pre><code>└── README.md  📄 readme</code></pre>
+</div>
+<h2 id="more-detail">More detail</h2>
+<div class="more">
+<details>
+<summary>
+Ethics Approval Check
+</summary>
+<div class="fold">
+<p>The paper does not appear to report data about individual people or
+animals (we found: figures about groups or things), so we do not expect
+an ethics statement.</p>
+<p>We based this on:</p>
+<blockquote>
+<p>Population-level allele frequencies for all ancestry groups,
+homozygote counts, and hemizygote counts were extracted from gnomAD
+(v4.1).</p>
+</blockquote>
+<blockquote>
+<p>Population-level allele frequency and homozygote count was downloaded
+from the All of Us (AoU) public data browser.</p>
+</blockquote>
+<blockquote>
+<p>Variants with no testable relatives were retained if they passed
+population-level allele frequency and count criteria, but were labeled
+as lacking family genotypes.</p>
+</blockquote>
+</div>
+</details>
+<details>
+<summary>
+Power Analysis Check
+</summary>
+<div class="fold">
+<p>No power analyses were detected.</p>
+<div class="callout-tip" title="Learn More" collapse="true">
+<p>Power analyses need to contain the following information to be
+interpretable: the type of power analysis, the statistical test, the
+software used, sample size, critical alpha criterion, power level,
+effect size, and an effect size metric. In addition, it is recommended
+to make sure the power analysis is reproducible (by sharing the code, or
+a screenshot, of the power analysis), and to provide good arguments for
+why the study was designed to detect an effect of this size.</p>
+<p>For an a-priori power analysis, where the sample size is determined,
+reporting all information would look like:</p>
+<blockquote>
+<p>An a priori power analysis for an independent samples t-test,
+conducted using the pwr.t.test function from pwr (Champely, 2020),
+indicated that for a Cohen’s d = 0.5, an alpha level of 0.05, and a
+desired power level of 80% required at least 64 participants in each
+group.</p>
+</blockquote>
+<p>For a sensitivity power analysis, this sentence would look like:</p>
+<blockquote>
+<p>A sensitivity power analysis for an independent samples t-test,
+conducted using the pwr.t.test function from pwr (Champely, 2020),
+indicated that with 64 participants in each group, and an alpha level of
+0.05, a desired power level of 80% was reached for an effect size of d =
+0.5.</p>
+</blockquote>
+</div>
+</div>
+</details>
+<details>
+<summary>
+PubPeer Comments
+</summary>
+<div class="fold">
+<p>We checked 58 references with DOIs. No references with comments in
+PubPeer were found.</p>
+</div>
+</details>
+<details>
+<summary>
+RetractionWatch
+</summary>
+<div class="fold">
+<p>We checked 58 references with DOIs. No citations to articles in the
+RetractionWatch database were found.</p>
+</div>
+</details>
+<details>
+<summary>
+Replication Check
+</summary>
+<div class="fold">
+<p>We checked 58 references with DOIs. No citations to articles in the
+FLoRA database were found.</p>
+</div>
+</details>
+<details>
+<summary>
+How Ethics Approval Check works
+</summary>
+<div class="fold">
+<p>This module searches for statements of ethics approval, IRB approval,
+institutional review board approval, and related terms.</p>
+<p>Patterns are designed to capture:</p>
+<p><strong>Human research committee names</strong> -
+<code>Institutional Review Board</code> / IRB (US standard), also
+<code>Internal Review Board</code> -
+<code>Independent Ethics Committee</code> / IEC (ICH-GCP international
+clinical trial term); not <code>IEC</code> followed by a number, which
+is a technical standard - <code>Ethical/Ethics Review Board</code>
+(generic) -
+<code>Ethics (Advisory/Review) Committee/Board/Panel/Sub-committee/Commission</code>,
+in the singular or plural -
+<code>Research Ethics Committee/Board/Panel</code> (UK/Canada/Australia)
+- <code>Medical Ethics Committee</code>,
+<code>Bioethics Committee/Commission</code>,
+<code>Ethikkommission</code> -
+<code>Ethical Review Authority/Unit/Office/Agency</code> -
+<code>Human Subjects/Research Committee</code> /
+<code>Human Research Ethics (Advisory) Panel</code> -
+<code>Human Research Protection Office/Program</code>,
+<code>Office for Human Subjects Protection</code> -
+<code>Committee for/on the Protection of Human Subjects</code> -
+<code>Committee(s) on/for (Medical and Health) Research Ethics</code> -
+<code>Office of Research Ethics</code> - Abbreviations: IEC, REC, REB,
+ERB, METC, DEC. REC/REB/ERB/DEC are short enough to collide with
+unrelated jargon (e.g. <code>REC</code> as a recognition-heuristic model
+abbreviation, <code>DEC</code> as a decision-task label,
+<code>Reb</code> as an author surname), so these four require an
+ethics/approval/committee/board/panel/institutional/ protocol word
+within ~30 characters in the same sentence. IRB and IEC are kept
+unconstrained as they are not observed to collide in practice. - Dutch:
+<code>Medisch-ethische toetsingscommissie</code> (METC) - French:
+<code>Comité d&#39;éthique</code> / <code>Comité d&#39;Ethique</code></p>
+<p><strong>Animal research committee names</strong> -
+<code>Institutional Animal Care and Use Committee</code> / IACUC (US
+standard) - Any sentence containing <code>animal(s)</code> and
+<code>committee</code> (or <code>board</code>/<code>panel</code>) within
+~5 words of each other — catches
+<code>Experimental Animal Care and Use Committee</code>,
+<code>Animal Ethics Committee</code>, <code>Animal Welfare Board</code>,
+<code>Animal Welfare Ethical Review Body</code>, etc. - UK:
+<code>Animal Welfare Ethical Review Body</code> / AWERB - Dutch:
+<code>Dierexperimentencommissie</code> / DEC (see DEC constraint above);
+<code>Instantie voor Dierenwelzijn</code> / IvD - German:
+<code>Tierversuchskommission</code> / TvK (advisory committee under §15
+Tierschutzgesetz) - French:
+<code>Comité d&#39;éthique en expérimentation animale</code> / CEEA;
+<code>Comité d&#39;éthique animale</code> - Spanish:
+<code>Comité de ética en experimentación animal</code> / CEEA</p>
+<p><strong>Approval phrasing</strong> -
+<code>Ethics/Ethical (approval|clearance) [was] (granted|obtained|received|given|secured)</code>
+- <code>Ethically approved</code> -
+<code>Approved by the (ethics|irb|institutional|independent|local|review|research) ...</code>
+-
+<code>This/The study/protocol/experiment/procedures/methods/research [was] (approved|reviewed) by</code>
+- <code>Study was ethically approved</code> -
+<code>(Followed|met|follow) the ethical (guidelines|standards|requirements)</code>
+- <code>In accordance with ... ethical (guidelines|standards)</code> -
+<code>Ethics protocol</code> -
+<code>Approved under (protocol|reference|number)</code></p>
+<p><strong>Waiver / exemption</strong> -
+<code>Ethics/Ethical (waiver|exemption)</code> -
+<code>IRB (waiver|exemption|exempt)</code> -
+<code>Exempted from (ethics|irb|institutional review)</code> -
+<code>Waived by the (ethics|irb|institutional|review) (committee|board)</code>
+- <code>Deemed exempt</code> - Ethics review that was not needed:
+<code>Ethics review was not required</code>,
+<code>did not require further ethical review</code>,
+<code>exempt from formal human   research ethics review</code>,
+<code>no new institutional ethics review</code></p>
+<p>A template line the authors have not filled in (“[Add ethics approval
+… here.]”) is not a statement.</p>
+<p><strong>Declaration of Helsinki</strong> -
+<code>Declaration of Helsinki</code> /
+<code>Helsinki Declaration</code></p>
+<p>Patterns are NOT designed to capture: - General ethical
+considerations or ethical dilemmas in study content - Mentions of
+“ethics” in theoretical or philosophical contexts - Author approval of a
+manuscript (e.g. “all authors approved the final version”) - Ethical
+behaviour as a measured variable (e.g. “ethical decision-making”) - URLs
+containing “ethics” in path components</p>
+<p><strong>When a statement is expected</strong></p>
+<p>The module sorts each paper by where its data came from (the internal
+<code>.data_source()</code>; the signs and how the rule was tested are
+described in <code>R/data-source.R</code>): - <code>own</code>: the
+authors collected data from people or animals, for this paper, in an
+earlier study of their own, or (a protocol) will collect them; -
+<code>existing_records</code>: records about individual people that the
+authors obtained for this study, such as hospital records or a cohort; -
+<code>existing_unclear</code>: existing data about people from a source
+the module could not identify; - <code>open_resource</code>: an open
+resource any researcher can use, such as UK Biobank or NHANES; -
+<code>none</code>: no data about people or animals (a review,
+simulation, commentary, theory, tutorial, coding of published papers, or
+figures about groups); - <code>uncertain</code>: the signs were missing
+or pointed both ways; - <code>no_text</code>: the paper has no text.</p>
+<p>A statement is expected for <code>own</code>,
+<code>existing_records</code> and <code>existing_unclear</code>. A paper
+without a statement in these classes, or in <code>uncertain</code>, is
+flagged. The module reads the text, and the results of
+<code>power</code>, <code>stat_p_exact</code>, <code>stat_check</code>,
+<code>repo_check</code>, <code>data_check</code> and
+<code>prereg_check</code> when they ran before it (run it after them);
+without <code>stat_p_exact</code>, it finds the p-values in the
+text.</p>
+<p>On 199 PsyArXiv and medRxiv preprints labelled after the rule was
+fixed, the module decided right whether a statement is needed for 86.9%
+(the earlier live-data search: 83.4%). Its main errors: other people’s
+studies described in the words of a new study, records and specimens
+described only as counts, and open resources the paper does not call
+open.</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ethics-check.html">metacheck
+manual</a>.</p>
+</div>
+</details>
+<details>
+<summary>
+How Power Analysis Check works
+</summary>
+<div class="fold">
+<p>This module uses regular expressions to identify sentences that
+contain a statistical power analysis. If specified by the user, it also
+uses a large language model (LLM) to extract information reported in
+power analyses, including the statistical test, sample size, alpha
+level, desired level of power, and magnitude and type of effect
+size.</p>
+<p>The Power Analysis Check module uses regular expressions to identify
+sentences that contain a statistical power analysis. Without the use of
+an LLM, the module uses regular expressions to classify the power
+analysis as a-priori, sensitivity or post-hoc. With the use of an LLM,
+it checks if the power analysis is reported with all required
+information.</p>
+<p>The regular expressions can miss power analyses, or fail to classify
+them correctly. The type of power analysis is often difficult to
+classify, which can easily be solved by explicitly specifying the type
+of power analysis as ‘a-priori’, ‘sensitivity’, or ‘post-hoc’. Note that
+‘post-hoc’ or ‘observed’ power is rarely useful. The LLM can fail to
+identify information in the paper, and will not have access to
+information in paragraphs in the paper other than those that contain the
+word ‘power’. This package was validated by the Metacheck team on
+articles in Psychological Science.</p>
+<p>This module was developed by Lisa DeBruine, Daniel Lakens and
+Cristian Mesquida</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-power.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: In a sample of 128 papers with 246 instances of power
+statements, 203 were correctly detected (true positives), 22 were missed
+(false negatives) and 21 were incorrectly detected (false positives).
+Overall, among all instances flagged as power statements, 90.6% were
+correct (positive predictive value).</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Preregistration Check works
+</summary>
+<div class="fold">
+<p>Retrieve information from preregistrations in a standardised way, and
+make them easier to check.</p>
+<p>The Preregistration Check module identifies preregistrations on the
+OSF and AsPredicted based on links in the manuscript, retrieves the
+preregistration text, and organizes the information into a template. The
+module retrieves text from the OSF with its API, and from AsPredicted
+with ResearchBox’s API when a ResearchBox key is set (see
+<code>rbox_token()</code>), or else from the preregistration’s web page.
+The information in the preregistration is returned. An AsPredicted link
+that could not be read is named in the report, with the reason.</p>
+<p>The module can’t extract information from non-structured
+preregistration templates (i.e., where the preregistration is uploaded
+in a single text field) and it can’t retrieve information in
+preregistrations that are stored as text documents on the OSF.</p>
+<p>If you want to extend the package to be able to download information
+from other preregistration sites, reach out to the Metacheck development
+team.</p>
+<p>This module was developed by Daniel Lakens and Lisa DeBruine</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-prereg-check.html">metacheck
+manual</a>.</p>
+</div>
+</details>
+<details>
+<summary>
+How Marginal Significance works
+</summary>
+<div class="fold">
+<p>List all sentences that describe an effect as ‘marginally
+significant’.</p>
+<p>The marginal module searches for regular expressions that match a
+predefined pattern. The list of terms is a subset of those listed in a
+<a href="https://web.archive.org/web/20251001114321/https://mchankins.wordpress.com/2013/04/21/still-not-significant-2/">blog
+post by Matthew Hankins</a>. The module returns all sentences that match
+terms describing ‘marginally significant’ results.</p>
+<p>Some of the terms identified might not be problematic in some
+contexts, and there are ways to describe ‘marginal significance’ that
+are not detected by the module.</p>
+<p>This module was developed by Daniel Lakens</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-marginal.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: In a sample of 51 papers with 87 statements, this module
+correctly identified 38 statements (true positives) and incorrectly
+flagged 22 statements (false positives). It failed to detect 27
+statements. Thus, among all statements flagged by the module, 63% were
+genuine cases (positive predictive value). However, the module missed
+42% of all true statements (false negative rate). This validation was
+made with an earlier, looser pattern; the pattern now requires
+“significant” or “significance” to follow the trigger word closely
+(#695).</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How StatCheck works
+</summary>
+<div class="fold">
+<p>Check consistency of p-values and test statistics</p>
+<p>The Statcheck module runs Statcheck. Statcheck searches for regular
+expressions that match a predefined pattern, and identifies APA reported
+statistical tests. More information on the package can be found at <a href="https://github.com/cran/statcheck" class="uri">https://github.com/cran/statcheck</a>. The module only
+returns Statcheck results for t-tests and F-tests, as these are the only
+tests which have been validated, see <a href="https://osf.io/preprints/psyarxiv/tcxaj_v1/" class="uri">https://osf.io/preprints/psyarxiv/tcxaj_v1/</a>.</p>
+<p>Statcheck was developed by Michèle Nuijten and Sascha Epskamp.</p>
+<p>Statcheck considers p = 0.000 an error, as you should report p &lt;
+0.001. Furthermore, p &lt; 0.03 is an error if the p-value was 0.031,
+and one should simply report exact p-values (p = 0.031). When the
+sentence of a test says it is one-sided (“one-tailed”, “one-sided” or
+“directional”), a p-value that fits a one-sided test counts as
+consistent (statcheck’s <code>OneTailedTxt</code> setting; #695). When
+the paper says anywhere that its tests are one-sided, a p-value that
+fits a one-sided test in either direction counts as consistent too: half
+the two-sided p, or 1 minus that half for an effect against the
+predicted direction. Equivalence tests (TOST) are left out, as their
+p-values do not test the difference. A statistic written with “&lt;” or
+“&gt;” is read as a bound, and in a sentence about equal variances an
+F-test’s two-sided p (twice the one-tailed p) counts as consistent. For
+more information, see <a href="https://statcheck.io/">StatCheck</a>.</p>
+<p>This module only checks statistical results reported in the running
+text of the manuscript. It cannot (yet) process statistics reported only
+in tables.</p>
+<p>This module was developed by Daniel Lakens and Lisa DeBruine</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-check.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: In a sample of 685 tests with 34 instances of
+inconsistent reporting, Statcheck correctly detected 34 of them, and
+incorrectly identified 26. Therefore 0% of true instances were missed,
+and 43% of detections were false positives. See <a href="https://osf.io/preprints/psyarxiv/tcxaj_v1/" class="uri">https://osf.io/preprints/psyarxiv/tcxaj_v1/</a> for more
+details of the validation.</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Exact P-Values works
+</summary>
+<div class="fold">
+<p>List any p-values reported with insufficient precision (e.g., p &lt;
+.05 or p = n.s.), reported as exactly zero (e.g., p = .000), or
+impossible (below 0 or above 1, e.g., p = -.22).</p>
+<p>This module uses regular expressions to identify p-values. It will
+flag any values reported as p &gt; ? or p &lt; numbers greater than
+.001. It will also flag p-values reported as exactly zero (e.g., p =
+.000, p = 0.00), which are mathematically impossible — p-values are
+never exactly zero and should instead be reported as p &lt; .001.</p>
+<p>A p-value that is not the result of a test is not flagged: a table
+note (“* p &lt; .05, ** p &lt; .01”), a figure legend (“Asterisks
+indicate significant differences (p &lt; .05)”, “Values in bold are
+significant at p &lt; .05”) or a stated threshold (“p &lt; .05 was
+considered significant”, “thresholded at p &lt; .001”). GROBID often
+puts such notes into the running text, so each p-value is judged by the
+words in its own clause (the text up to a “;” or a full stop), and never
+left out when a test statistic belongs to it (“F(1, 7) = 8.03, # p &lt;
+.05”). The column <code>not_a_test</code> of the table says why a
+p-value was left out (“marker”, “threshold”, “legend” or “named”).</p>
+<p>A p-value with the name of a correction or a test after the p (“pFWE
+&lt; .05”, “padj &lt; 0.05”, “p Wilcoxon = .02”) is flagged only when a
+test statistic comes before it in its clause (“t(37) = 7.17, p FWE &lt;
+.05”). Without one it is mostly the rule that decided what was
+significant (“genes with padj &lt; 0.05 were selected”); such a p-value
+is “named” in <code>not_a_test</code>. Notes in other forms, such as a
+marker after the p-value (“p &lt; .05 (*)“), are still flagged.</p>
+<p>A p-value below 0 or above 1 is impossible; it is listed apart and
+not also as imprecise. Often the statistic before it, or its minus sign,
+was copied into it (“t(134) = -2.32, p = -.13”, “Z = 3.091, P = 3.091”).
+A value above 1 is listed only after a test statistic in its clause:
+without one, a “P” above 1 was nearly always another quantity (a
+proportion, pH, a group’s mean, a model parameter). A number in
+scientific notation whose power of ten was lost when the PDF was read
+(“p = 2.4 x 10 -9” read as 2.4) is not listed. A “p” that is the
+subscript of another symbol (“r p = .64”, “²p = .02” for partial eta
+squared, “Δp = .33”), or a quantity with a unit, a logarithm or a ratio
+(“P = 2.9 µm”, “-log10 P = 7.5”, “Ca/P = 1.67”), is not read as a
+p-value at all (see <code>extract_p_values()</code>). Each p-value has
+its own row, also when the same one is written twice in a sentence.</p>
+<p>This module sometimes flags false positives when sentences discuss
+how p-value thresholds were set. It can also miss an imprecise p-value
+that is reported against a threshold (“decreased at the p &lt; .05
+significance threshold”).</p>
+<p>This module only checks p-values reported in the running text of the
+manuscript. It cannot (yet) process p-values reported only in tables (as
+opposed to a table’s footnote text, which the module does see and tries
+to exclude — see above).</p>
+<p>This module was developed by Lisa DeBruine and Daniel Lakens</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-exact.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: Validated on 226 Psychological Science papers with 5,019
+hand-coded p-values, 438 of them imprecise (scienceverse/validation,
+branch stat_p_exact). Version 0.4.4.3 reported 419 p-values as
+imprecise, 388 of them correctly (93%), and missed 50 (89% found). Of
+the misses, 13 are starred table notes (“*p &lt; .05”) that the module
+leaves out on purpose and 11 are p-values it did not find; of the wrong
+reports, 20 are p-values the ground truth does not contain (such as “ps
+&lt; .05”) and 6 use ≤ or ≥. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Non-Significant P Value Check works
+</summary>
+<div class="fold">
+<p>This module checks for imprecisely reported p values. If p &gt; .05
+is detected, it warns for misinterpretations.</p>
+<p>The nonsignificant p-value check searches for regular expressions
+that match a predefined pattern. The module identifies all p-values in a
+manuscript and selects those that are not reported to be smaller than or
+equal to 0.05. It returns all sentences containing non-significant
+p-values.</p>
+<p>In the future, the Metacheck team aims to incorporate a machine
+learning classifier to only return sentences likely to contain
+misinterpretations. If you want to help to improve the module, reach out
+to the Metacheck development team.</p>
+<p>A p-value in a table note (“† p &lt; .10, * p &lt; .05”) or a figure
+legend (“dashed lines indicate non-significant paths (p &gt; .05)”) is
+left out, as in stat_p_exact; the column <code>not_a_test</code> says
+why. A p-value next to words that state a threshold is kept, because
+such sentences often report a result against that level (“not
+significant at the conventional threshold (p = .054)”).</p>
+<p>This module only checks p-values reported in the running text of the
+manuscript. It cannot (yet) process p-values reported only in
+tables.</p>
+<p>This module was developed by Daniel Lakens</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-p-nonsig.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: Validated on three hand-coded sets of papers
+(scienceverse/validation: 249 Psychological Science, 250 Economics and
+250 MDPI papers). Of 1,783 non-significant p-values in the ground truth,
+version 0.4.4.3 found 1,719 (3.6% missed), and 94.8% of its 1,814
+detections were in the ground truth. Some differences come from the
+ground truth: it lacks p-values with a correction name (“p Bonf =
+.061”), and counts partial eta squared written with its subscript after
+it (“η 2 p = .05”), “p = .05”, and some table notes and figure legends
+(“† p &lt; .10, *p &lt; .05”), which this module leaves out, as
+non-significant p-values. These figures measure agreement with the
+hand-coding, which has known errors in both directions
+(scienceverse/validation#48).</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Effect Sizes in t-tests and F-tests works
+</summary>
+<div class="fold">
+<p>The Effect Size module checks if effect sizes are correctly reported
+in t-tests and F-tests.</p>
+<p>The Effect Size check searches for regular expressions that match
+typical ways in which effect sizes are reported. It subsequently checks
+different ways in which Cohen’s d, g, ηp2, and ωp2 can be computed
+against the reported value. If effects are missing, or might be
+incorrect, you the module provides a warning. The module was validated
+on APA reported statistical tests, and might miss effect sizes that were
+reported in other reporting styles. It was validated by the Metacheck
+team on papers published in Psychological Science.</p>
+<p>This module only checks statistical results reported in the running
+text of the manuscript. It cannot (yet) process statistics reported only
+in tables.</p>
+<p>This module was developed by Daniel Lakens and Lisa DeBruine</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-stat-effect-size.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: In a sample of 161 papers with 1469 tests, this module
+correctly detected 1106 reported effect sizes (true positives) and
+correctly identified 295 cases where no effect size was present (true
+negatives). However, it missed 23 that were reported (false negatives),
+and incorrectly identified 45 effect sizes when none were reported
+(false positives). Among all instances detected by the module, 96% were
+true cases (positive predictive value). In a validation against 221
+reported Cohen’s d effect sizes, it correctly indicated coherence in 218
+cases (99%). In a validation against 485 partial eta-squared effect
+sizes, it correctly indicated coherence in 480 (99%)</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Codebook Check works
+</summary>
+<div class="fold">
+<p>This module checks whether the data columns in a repository are
+documented in a codebook or README. It locates codebook/readme files,
+extracts the variable definitions they contain, matches those
+definitions against the data columns extracted by
+<code>data_check</code>, and reports documentation coverage: how many
+data columns are documented, and which documented variables are never
+used.</p>
+<p>The Codebook Check module consumes the columns and file
+classification produced by <code>data_check</code> (and, transitively,
+<code>repo_check</code>). Files classified as <code>codebook</code> or
+<code>readme</code> are parsed with <code>parse_codebook()</code>, which
+reads structured tables (CSV/TSV/Excel with a variable-name column and a
+label column), embedded labels in haven files (SPSS/Stata/SAS), and
+plain text from rich-text formats (docx/pdf/rtf/odt). Embedded haven
+labels from data files are also harvested directly.</p>
+<p>Each data column is then matched against the parsed variable
+definitions with <code>match_column_labels()</code>, using
+normalised-name matching with experiment-group scoping, haven-label
+priority, and rule-based label-equivalence merging.</p>
+<p>Beyond the variable label, the module harvests the DDI-style
+per-variable properties a source supplies: the <strong>value labels /
+code list</strong> (the 1=“Strongly disagree”…5=“Strongly agree” mapping
+— from SPSS/Stata value labels and from a codebook “values”/“coding”
+column), the <strong>missing-value scheme</strong> (which codes denote
+missingness, from haven declared missings and labels that read as
+“refused”/“n/a”), and <strong>question text</strong> and columns when
+present. These are carried onto the matched data columns and exported
+into the Psych-DS <code>variableMeasured</code> (as a schema.org code
+list plus namespaced <code>metacheck:</code> fields).</p>
+<p>The module defaults to <strong>rules-only</strong> when
+<code>llm_use(FALSE)</code>. When <code>llm_use(TRUE)</code>, three
+optional LLM tiers run: parsing unstructured codebook text that the
+rules could not handle, fuzzy-matching still-unlabelled columns to
+still-unmatched codebook variables, and merging conflicting label
+definitions into a single canonical label.</p>
+<p>This module was developed by Daniel Lakens</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-codebook-check.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: This module has not been validated. All checks in the
+codebook_check module have unknown error rates. Carefully evaluate the
+output of this module. You can help improve this module by reporting an
+issue on GitHub.</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Repository Check works
+</summary>
+<div class="fold">
+<p>This module retrieves information from repositories.</p>
+<p>The Repository Check module lists files on the OSF, GitHub,
+ResearchBox, DSpace (PsychArchives and other legacy- and DSpace 7-based
+installations), Zenodo, Dataverse, Figshare, Dryad, ReShare,
+4TU.ResearchData, Mendeley Data, DataONE (Arctic Data Center, KNB, and
+other member nodes), and LDbase based on links in the manuscript.</p>
+<p>A link to a file-sharing service (Google Drive, Dropbox, OneDrive,
+Box, WeTransfer, MEGA, iCloud Drive, Baidu Netdisk, SURFdrive; see
+[file_share_links()]) gets a warning and makes the light yellow: such
+services are not repositories, as files can be changed or deleted at any
+time, get no DOI, and the link stops working when the account is closed.
+The report advises a stable repository such as Zenodo instead. Their
+files are not read, and <code>summary_table$file_share_n</code> counts
+the links.</p>
+<p>Deposits in archives for sequence and expression data (GEO, the INSDC
+archives BioProject, SRA, ENA and DDBJ, and ArrayExpress; see
+[seq_archive_links()]), mostly named by accession number, are read for
+whose deposit they are. The authors’ own are listed with what they hold
+([seq_archive_size()]) and are not downloaded or checked as data and
+code; <code>summary_table$archive_own_n</code> counts them.</p>
+<p>R packages on CRAN ([cran_links()], [cran_info()]) are the paper’s
+own when a paper author is a package author and the paper presents the
+package; the paper’s own are listed with their version and not checked
+(<code>summary_table$cran_own_n</code>). A Handle link
+(<code>hdl.handle.net/...</code>) that leads to a repository read here
+is checked as a link to that repository ([handle_links()]).</p>
+<p>Listing a repository’s files never requires an API key, but some
+hosts answer faster or more completely with one: OSF allows 100
+requests/hour unauthenticated versus 10,000/day with a token (see
+[osf_pat()]), and Dryad enforces a strict per-IP daily quota on repeated
+listing (see <code>cache</code> below). Dryad is a special case beyond
+rate limits: listing a Dryad dataset’s files works without a key, but
+actually downloading file CONTENTS from Dryad fails with HTTP 401 unless
+a key is set, even for a fully public dataset (see [dryad_pat()] or
+[dryad_auth()]). Since this module only lists files and never downloads
+their contents itself, that limitation applies to
+<code>data_check</code> and <code>code_check</code> (which do download
+content), not here – see their own documentation.</p>
+<p>When a linked OSF page is a registration, its
+<code>registered_from</code> project (the one it was registered from,
+which the manuscript itself may never link directly) is also checked: if
+that project is public its files are listed under its own URL, and if it
+is closed or otherwise inaccessible the report flags it explicitly,
+since some registrations only describe their content rather than
+mirroring it.</p>
+<p>Whose deposit is each link? The <code>ownership</code> table gives,
+for every repository linked in the text and (with
+<code>references = TRUE</code>) every deposit cited in the reference
+list, one of six labels: <code>own_this</code> (made by the authors for
+this paper), <code>own_earlier_data</code> or
+<code>own_earlier_code</code> (the authors’ own, from earlier work),
+<code>others_data</code> or <code>others_code</code> (made by other
+people, reused here), or <code>not_data</code> (a publication such as a
+preprint, not a deposit), with <code>ownership_group</code> (“own”,
+“others”, “not_data”) and the reason. It is decided without a language
+model, from the sentence or reference that cites the link, the paper’s
+authors (names, ORCID iDs, affiliations), and what the deposit’s own
+record and files say (who made it, what it names, when, whether it is a
+software package; for an OSF project cited only in the reference list,
+its record alone). On a round of labelled links the rules had not been
+written from, the three groups were right for 98% of links in the main
+text (93 of 95) and 90% in reference lists (74 of 82); the labels were
+made by Claude agents from each link’s evidence, and disputed ones
+checked against the deposits. Telling this paper’s own deposit from the
+authors’ earlier one is less certain.</p>
+<p>Only the deposits that are this paper’s own are checked. A deposit
+linked in the text that holds other people’s work
+(<code>others_data</code>, <code>others_code</code>) or the authors’
+earlier work (<code>own_earlier_data</code>,
+<code>own_earlier_code</code>) is listed in the report, with the reason,
+but its files are left out of <code>table</code> and kept in
+<code>table_not_checked</code>: they count toward nothing here (files
+that do not belong in a repository, naming, READMEs, studies, the
+traffic light), and code_check, data_check and reproducibility_check,
+which read <code>table</code>, do not check them either.
+reproducibility_check still puts the files of theirs that the paper’s
+code names in the folder the code runs in, as a re-analysis needs the
+data it re-analyses. When every linked deposit is set aside, the traffic
+light is “na”. A deposit that is the paper’s own is counted as such when
+its README, title or description names the paper (its title or DOI).</p>
+<p>If you want to extend the package to be able to download files from
+additional data repositories reach out to the Metacheck development
+team.</p>
+<p>This module was developed by Daniel Lakens and Lisa DeBruine</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-repo-check.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: This module has not been validated. All checks in the
+repo_check module have unknown error rates. Carefully evaluate the
+output of this module. You can help improve this module by reporting an
+issue on GitHub.</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Code Check works
+</summary>
+<div class="fold">
+<p>This module retrieves information from repositories checked by
+repo_check about code files (R, Python, SAS, SPSS, Stata, Mplus,
+MATLAB).</p>
+<p>The Code Check module checks R (also R Markdown and Quarto), Python
+(also Jupyter notebooks), SAS, SPSS, Stata, Mplus, and MATLAB files,
+using regular expressions to check the code; JASP files are listed but
+not read. The language of a Quarto document or a notebook is read from
+the file itself (its engine or kernel), not from its extension. The
+regular expression search will detect the number of comments, the lines
+at which libraries/imports are loaded, attempts to detect absolute paths
+to files, <code>setwd()</code> and <code>install.packages()</code>
+calls, and lists files that are loaded, and checks if these files are in
+the repository; R code is also parsed. The module will return
+suggestions to improve the code if there are no comments, if
+libraries/imports are loaded in lines further than 4 lines apart, if
+files that are loaded are not in the repository, if absolute file paths,
+<code>setwd()</code> or <code>install.packages()</code> are found, and
+if R code cannot be parsed.</p>
+<p>The regular expressions can miss information in code files, or
+falsely detect parts of the code as a fixed file path. Libraries/imports
+might be loaded in one block, even if there are more than 3 intermittent
+lines. The module was tried out internally on papers published in
+Psychological Science, but has not been formally validated. There might
+be valid reasons why some loaded files can’t be shared, but the module
+can’t evaluate these reasons, and always gives a warning.</p>
+<p>The module also checks whether the repository pins the R/package
+versions the analysis actually depended on: an <code>renv.lock</code>
+file (parsed for the R version and every locked package + its
+version/source), a
+<code>sessionInfo()</code>/<code>sessioninfo::session_info()</code> text
+dump (matched by filename —
+<code>sessionInfo.txt</code>/<code>session_info.txt</code> and similar,
+or embedded in a README), or a
+<code>groundhog::groundhog.library()</code>/<code>checkpoint::checkpoint()</code>
+date-pin call in the code (a bare
+<code>library(groundhog)</code>/<code>library(checkpoint)</code> does
+not count — the pinning call itself must be present). When none of these
+is found, the report flags it as a reproducibility gap: package versions
+may drift between when the analysis was run and any later reproduction
+attempt.</p>
+<p>If you want to extend the package to perform additional checks on
+code files, or make the checks work on other types of code files, reach
+out to the Metacheck development team.</p>
+<p>Checking code requires downloading its file contents. For a paper
+whose repository is on Dryad, this never succeeds unless a Dryad API key
+is set: Dryad requires one to download file bytes, even from a fully
+public dataset (listing the repository’s files does not need one).
+Without a key, every Dryad-hosted code file is listed but unchecked, and
+a warning naming Dryad and
+<code>?dryad_pat</code>/<code>?dryad_auth</code> is included among the
+download failures recorded in the manifest.</p>
+<p>This module was developed by Daniel Lakens and Raphael Merz</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-code-check.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: This module has not been validated. All checks in the
+code_check module have unknown error rates. Carefully evaluate the
+output of this module. You can help improve this module by reporting an
+issue on GitHub.</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Data Check works
+</summary>
+<div class="fold">
+<p>This module classifies the files in a repository into semantic types
+(data, codebook, code, software, output, supplemental, readme, asset,
+other) and, for tabular data files, extracts each column’s type and
+summary statistics.</p>
+<p>The Data Check module consumes the file list produced by
+<code>repo_check</code> (or any files added via
+<code>local_path</code>). Each file is classified with rule-based
+heuristics layered over metacheck’s <code>file_category()</code> and
+<code>file_types</code>: file names matching README / codebook patterns
+win first, then an extension crosswalk, then format-locked extension
+overrides. For every file classified as tabular <code>data</code> that
+is available locally, the module reads the file head, describes each
+column with <code>data_col_facets()</code> and computes summary
+statistics for numeric columns. Every sheet of a spreadsheet that holds
+a table is read: a file with several such sheets has its columns under
+<code>source_file = &quot;file.xlsx [sheet]&quot;</code>, and the
+<code>sheet</code> column names the sheet of any spreadsheet with
+several sheets; a sheet of notes or a codebook is treated as
+documentation when the file has another table. Following DDI, a column
+is described by orthogonal facets rather than a single type:
+<code>representation</code> (numeric/text/datetime/code — how it is
+stored), <code>measurement_level</code> (Stevens:
+nominal/ordinal/interval/ratio), <code>concept</code> (what it measures:
+reaction_time/age/gender/likert/id/…), <code>role</code>
+(identifier/measure/condition/timestamp), <code>unit</code>, and a
+<code>quality</code> state (ok/empty/constant). Concepts are detected by
+name+value rules (the demographic concepts via
+<code>data_check_demographic()</code>); when <code>llm_use(TRUE)</code>
+the model fills concepts and measurement levels the rules left blank.
+Qualtrics survey exports are recognised
+(<code>data_check_is_qualtrics()</code>): their extra header rows are
+stripped so columns type correctly, and the reserved response-metadata
+columns (StartDate, Duration, Finished, …) are tagged.</p>
+<p>The module defaults to <strong>rules-only</strong> when
+<code>llm_use(FALSE)</code>: columns the rules cannot resolve (ambiguous
+3–20-unique integers, ambiguous character columns) fall back to
+<code>continuous</code> / <code>text</code> respectively. When
+<code>llm_use(TRUE)</code>, ambiguous columns and unresolved file types
+(<code>other</code>) are sent to <code>llm()</code> for optional
+refinement, and every file is assigned a study group (<code>ex1</code>,
+<code>pilot2</code>, <code>shared</code>, …) so that multi-study
+repositories can be recognised (used by <code>psychds_check</code>).
+Without an LLM the study <code>group</code> is left <code>NA</code>
+(unknown).</p>
+<p>Column extraction requires files to be readable from disk. Files
+fetched by <code>repo_check</code> from OSF/GitHub/etc. without a local
+copy (<code>file_location</code> is <code>NA</code>) are classified but
+not column-extracted; pass <code>local_path</code> to point at a
+downloaded copy of the repository.</p>
+<p>For a paper whose repository is on Dryad, this means column
+extraction never happens unless a Dryad API key is set: Dryad requires
+one to download file bytes, even from a fully public dataset (dataset
+listing and metadata do not need one). Without a key, every Dryad file
+stays classified but un-downloaded, column_n is 0, and a warning naming
+Dryad and <code>?dryad_pat</code>/<code>?dryad_auth</code> is included
+among the download failures. A one-time session message is also shown
+(see repo_check) the first time a Dryad dataset is encountered with no
+key set.</p>
+<p>Every downloaded text file the authors wrote (code, settings, survey
+definitions such as Qualtrics <code>.qsf</code> files, documentation,
+outputs) is searched for keys: API keys, access tokens and private keys,
+which let anyone who downloads the file use a paid service at the
+authors’ cost. Of a tabular data file only the column names and first 3
+rows of the table as read are searched: its values come from
+participants, but a key the authors set for a whole survey (as embedded
+data in a Qualtrics survey flow) is exported in every response. The
+search uses the rules of the secret scanner betterleaks (<a href="https://github.com/betterleaks/betterleaks" class="uri">https://github.com/betterleaks/betterleaks</a>, MIT licence)
+of high and medium confidence. A key found turns the traffic light red;
+the report and the <code>keys</code> table give its file, line and type,
+and only its beginning. Other files over 25 MB and binary files are not
+searched. A key is never tested with its provider. Every module’s result
+has any whole key replaced by “<span class="math display"><em>k</em><em>e</em><em>y</em><em>r</em><em>e</em><em>m</em><em>o</em><em>v</em><em>e</em><em>d</em></span>”
+(see <code>module_run()</code>).</p>
+<p>This module was developed by Daniel Lakens and Levi Baruch</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-data-check.html">metacheck
+manual</a>.</p>
+<div class="validation">
+<p>Validation: This module has not been validated. All checks in the
+data_check module have unknown error rates. Carefully evaluate the
+output of this module. You can help improve this module by reporting an
+issue on GitHub.</p>
+</div>
+</div>
+</details>
+<details>
+<summary>
+How Reproducibility Check works
+</summary>
+<div class="fold">
+<p>This module assesses whether a paper’s R and Python code can be run
+on its data. It works in two phases. The <strong>static</strong> phase
+(always run) collects the package dependencies the code declares,
+rewrites the data-file paths that do not work in the repository as the
+authors organised it, works out the order the scripts must run in, and
+diagnoses why any referenced input file is unavailable — reporting what
+a reproduction attempt would involve and where it is likely to break.
+The <strong>execution</strong> phase (opt-in,
+<code>execute = TRUE</code>) then actually runs the code: it copies the
+repository into a throwaway directory, optionally installs the declared
+dependencies into a throwaway library, runs each script in order in an
+isolated subprocess with a per-script timeout, and captures the outcome
+and full output of each run.</p>
+<p>By default (<code>execute = FALSE</code>) the module does <strong>not
+run any code</strong> — it performs only static analysis: reading
+dependencies with the same extractors as <code>code_check</code>,
+finding the files the code references in the repository, and building a
+run-order dependency graph. It reports what <em>would</em> be installed
+and run rather than doing it.</p>
+<p>When <code>execute = TRUE</code>, the module additionally
+<strong>runs the downloaded code on your machine</strong> — a
+deliberate, opt-in action gated behind that argument (<code>callr</code>
+is required for R code). Each script runs in an isolated subprocess so a
+crash cannot take down the R session; note this isolates crashes,
+<strong>not</strong> the filesystem or network. Installs (when
+<code>install_missing = TRUE</code>) and the throwaway run library never
+touch your main R library. Each script’s outcome is one of
+<code>ran_ok</code>, <code>errored</code>, <code>timed_out</code>,
+<code>dependency_unavailable</code>, <code>not_parsed</code>,
+<code>run_by_source</code> (an R script another script runs with
+<code>source()</code>, which is run only inside that script, since on
+its own it lacks the packages and objects the sourcing script sets up
+first), <code>run_by_import</code> (a Python file other files import, a
+module rather than a script, unless it has an
+<code>if __name__ == &quot;__main__&quot;:</code> block), <code>jags_model</code>
+(a JAGS or BUGS model saved with an R extension, which another script
+reads) or <code>not_r_content</code> (a file that is not R at all, such
+as a JSON or HTML dump); these last two are not run and are not
+failures. <code>python2</code> marks Python 2 code that was not run.
+With <code>sandbox = &quot;docker&quot;</code> such code runs with Python 2.7
+(option <code>metacheck.docker_image_py2</code>; FALSE turns this off),
+which <code>modifications</code> records; it is never converted, since
+that can change results. <code>defines_functions</code> is a file that
+only defines functions, which is used, not run
+(<code>table$used_by</code> names the scripts that use it), and
+<code>not_analysis</code> is a file of software rather than of the
+analysis: a package’s code, tests, documentation or
+<code>setup.py</code>, a copy of a tool, a web application, a script a
+program wrote (<code>table$not_analysis_why</code> says which); neither
+is run or counted as a script. <code>docker_failed</code> means the
+container never started, which says nothing about the script, so it
+keeps the light from being green but does not make it red.
+<code>needs_a_person</code> is a script that stopped because it asks a
+person to choose a file or answer a question, or that starts an app, and
+<code>needs_internet</code> one that stopped because the network is off
+in a Docker run, or, with <code>internet = TRUE</code>, could not reach
+what it asked for; <code>download_too_large</code> is a script stopped
+for downloading more than the limits allow (see <code>internet</code>),
+and <code>out_of_memory</code> one that, or a program it started (such
+as a compiler), ran out of the memory each script may use. All four are
+treated the same way. <code>not_downloaded</code> is a script that
+stopped on a file the repository lists but that was not downloaded, such
+as one over <code>max_file_size</code>: it could not be tried, so it is
+not counted as a script that did not reproduce
+(<code>summary_table$repro_not_downloaded_n</code> counts them apart).
+<code>not_read</code> is a file metacheck could not read, so it was not
+run; the light is then not green, as the file may read and run on
+another computer, and <code>table$error_message</code> says why, naming
+a package that is installed but cannot be loaded on the computer that
+ran the check. <code>empty</code> is a file with nothing in it, which is
+not run or counted as a script. For a script that did not run through,
+<code>table$error_message</code> is its error, short (at most 300
+characters): the error line of its output, which names a package that is
+not there, with the address it asked for when it needed the internet, or
+the time limit it reached; <code>table$reason</code> sorts it into a
+kind. A timeout means “still running at the cutoff”, not a failure, so
+raise <code>timeout</code> for legitimately long-running (e.g. Bayesian)
+scripts. <code>dependency_unavailable</code> means the script’s own
+package could not be installed from live CRAN, the CRAN Archive, or a
+named GitHub/URL source — an infrastructure limitation, not a defect in
+the paper’s code. The full stdout/stderr of every run is kept in the
+result’s <code>run_results</code> (the report shows it in per-script
+dropdowns, capped for readability).</p>
+<p>Provenance, kept so that a TRACE Research Object (TRO) declaration of
+the run can be written later from a stored result (metacheck #404; the
+helpers are in R/provenance.R). Only when code was run
+(<code>execute = TRUE</code>): * <code>run_results$started_at</code>,
+<code>run_results$ended_at</code>: when each run of a script started and
+ended (ISO 8601, UTC, milliseconds); NA for a script that was not
+started. A script run again in a later pass has the times of its last
+run. A TRO uses them for each trov:TransparentResearchPerformance. *
+<code>run_results$exit_status</code>: the exit status of the process
+that ran the script (0 = ended normally); NA when the process did not
+report one (a time limit, or Docker failing to start the container). *
+<code>artifacts</code>: one row per file, with <code>stage</code>
+(<code>deposit</code>: as downloaded from the repository, hashed from
+the downloaded file; <code>before_run</code>: the run folder just before
+the first script ran, after metacheck’s own changes, such as rewritten
+paths and unpacked archives; <code>after_run</code>: only the files the
+scripts made (<code>status</code> <code>new</code>), changed
+(<code>changed</code>) or removed (<code>removed</code>), as an
+unchanged file is the one listed before the run), <code>path</code>
+(relative to the run folder, as valid UTF-8, a byte of another encoding
+written as <code>&lt;xx&gt;</code>), <code>size</code> (bytes),
+<code>sha256</code>, <code>mime_type</code> (by extension, NA when
+unknown), <code>source</code> (the file’s address in the repository, for
+<code>deposit</code>). The package libraries metacheck installs in the
+run folder are left out, as are metacheck’s own files there (a script’s
+runner, and the statistical output it writes in
+<code>statistical_output/</code>). Files metacheck itself copied or made
+between passes (see <code>modifications</code>,
+<code>output_copied</code>, <code>file_placed</code>) show in
+<code>after_run</code> too. A TRO uses the rows as
+trov:ResearchArtifacts and each stage as a trov:ArtifactArrangement. *
+<code>modifications$sha256_before</code>,
+<code>modifications$sha256_after</code>: the hash of the changed script
+as downloaded and as it ran; NA when the script is not at the same path
+in both (a script made from an R Markdown file). *
+<code>environment</code>: the system that ran the code
+(trov:TransparentResearchSystem in a TRO):
+<code>metacheck_version</code>, <code>started_at</code>,
+<code>ended_at</code>, <code>host</code> (R version, platform, operating
+system), <code>sandbox</code>, <code>network_isolated</code> (TRUE only
+when every Docker run had <code>--network none</code>; the process
+sandbox does not stop the network), <code>internet</code>,
+<code>timeout_per_script</code>, <code>total_timeout</code>,
+<code>python_local</code> (the Python run outside Docker and its
+version), and <code>docker</code>: <code>runs</code> (for each kind of
+run, <code>r_run</code>, <code>r_install</code>,
+<code>python_run</code>, <code>python_install</code>, the image and the
+<code>docker run</code> arguments, such as <code>--network none</code>,
+<code>--read-only</code>, <code>--cap-drop ALL</code>,
+<code>no-new-privileges</code>, the process limit and the memory and
+processor limits) and <code>images</code> (for each image, its ID and
+digests from <code>docker image inspect</code>, its creation time and
+the R and Python versions its environment declares).</p>
+<p><code>run_results$checked</code> says what the run of each script
+shows about the code, in five groups, so that a script that does not
+reproduce is kept apart from one the check could not test:
+<code>ran</code> (it ran to the end); <code>code_error</code> (it did
+not reproduce: it stopped with an error of the code or the deposit,
+could not be read, or needs a file the deposit does not hold);
+<code>dependency</code> (a package or program was not available: a
+package that could not be installed or was not loaded, a program outside
+R and Python, a system library, or R crashing in a package’s compiled
+code); <code>time</code> (it did not finish within the time limit for
+one script, or was not started because the time for all scripts had run
+out); and <code>not_checkable</code> (it could not be checked
+automatically: it needs a person, the internet, a key or another setting
+of the authors’ computer, one platform such as Google Colab, Windows or
+OpenSAFELY, more memory than the run allows, a file that was not
+downloaded, a screen, or a program that runs it, or it is a file of a
+package of the code that Python runs only as a module of that package).
+It is NA for files run inside another script, files that are not an
+analysis, files not read, and a Docker failure.
+<code>summary_table</code> counts each group (<code>repro_ran_n</code>,
+<code>repro_code_error_n</code>, <code>repro_dependency_n</code>,
+<code>repro_time_n</code>, <code>repro_not_checkable_n</code>), and the
+report’s first sentence gives them. The traffic light reflects the
+static readiness signals by default; a script in <code>code_error</code>
+that stopped with an error makes it red, as a script that crashes on its
+own analysis is a genuine reproduction failure, and a script in one of
+the other three groups keeps it from being green. Calls that need a
+screen, which the run does not have (<code>dev.print()</code>,
+<code>dev.copy2pdf()</code>, <code>dev.copy2eps()</code>,
+<code>savePlot()</code>, <code>windows()</code>,
+<code>win.graph()</code>, <code>x11()</code>, <code>quartz()</code>,
+<code>View()</code>), are replaced before the run by calls that need
+none, which <code>modifications</code> records as
+<code>screen_call_replaced</code>. A script that fails with
+<code>could not find function</code> is run once more with the
+<code>library()</code> calls the project’s other scripts make added at
+its top (or the one package that exports the function, or magrittr for
+<code>%&gt;%</code>), and a script that then runs is reported as
+reproducible only after that repair.</p>
+<p>Dependencies are reported name-only, with the source (CRAN, GitHub,
+or a base package already shipped with R) — static analysis of the code
+cannot know which <em>version</em> was used, and running against current
+package versions is itself informative: a break argues the authors
+should have pinned versions. When the repository does record versions, a
+run with <code>recorded_versions = TRUE</code> installs the packages the
+scripts load at those versions, but it does not change the R version,
+which remains a limitation of the check.</p>
+<p>Run order is derived from read-after-write data dependencies (a
+script writing a file another reads must run first),
+<code>source()</code> edges, and numeric filename prefixes as a weak
+tie-breaker. Ambiguous orderings, dependency cycles, and inputs a script
+reads but that no earlier script produces (and that are not in the
+repository) are surfaced as warnings, since these are the situations
+most likely to make an otherwise-correct reproduction fail.</p>
+<p>Python code (<code>.py</code> files, and notebooks and Quarto
+documents whose code is Python, from which the code is extracted first)
+goes through the same two phases, reported in its own “Python code”
+section. Each file is checked for syntax errors with Python’s own parser
+when a Python interpreter (<code>python</code>, or else
+<code>python3</code>) is available; dependencies are read from the
+<code>import</code> statements, with versions from a
+<code>requirements.txt</code> or <code>pyproject.toml</code> when there
+is one, and installed with <code>pip</code>; each script runs as its own
+<code>python</code> process (<code>processx</code> is required), so
+unlike R scripts, a name one script defines is not available to another.
+When no Python interpreter is available, the Python files are reported
+as not run and the R results are still returned. Statistics the Python
+scripts print are compared with the paper together with the R output and
+any self-reproducible output (JASP/jamovi, SPSS-Viewer, notebook
+outputs).</p>
+<p>This module was developed by Daniel Lakens</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-reproducibility-check.html">metacheck
+manual</a>.</p>
+</div>
+</details>
+<details>
+<summary>
+How PubPeer Comments works
+</summary>
+<div class="fold">
+<p>This module checks references and warns for citations that have
+comments on pubpeer (excluding Statcheck comments).</p>
+<p>The PubPeer module uses the PubPeer API to check for each reference
+that has a DOI whether there are comments on the post-publication peer
+review platform. If comments are found, a link to the comments is
+provided. Comments by ‘Statcheck’ on PubPeer are ignored, see <a href="https://retractionwatch.com/2016/09/02/heres-why-more-than-50000-psychology-studies-are-about-to-have-pubpeer-entries/" class="uri">https://retractionwatch.com/2016/09/02/heres-why-more-than-50000-psychology-studies-are-about-to-have-pubpeer-entries/</a>.</p>
+<p>The module requires that the reference has a DOI: the DOI in the
+paper’s reference list, or one looked up with
+<code>add_bib_match()</code> before the module runs (see
+<code>ref_table()</code>). References without a DOI are not checked.</p>
+<p>For more information, see <a href="https://www.pubpeer.com/static/about">PubPeer</a>.</p>
+<p>This module was developed by Daniel Lakens and Lisa DeBruine</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-pubpeer.html">metacheck
+manual</a>.</p>
+</div>
+</details>
+<details>
+<summary>
+How RetractionWatch works
+</summary>
+<div class="fold">
+<p>This module checks references and warns for citations in the
+RetractionWatch Database.</p>
+<p>The RetractionWatch Check module compares the reference list against
+studies in the RetractionWatch database based on the DOI. If a study in
+the database is found, a reminder is provided that the study was
+retracted, has an expression of concern, or a correction.</p>
+<p>The module requires that the reference has a DOI: the DOI in the
+paper’s reference list, or one looked up with
+<code>add_bib_match()</code> before the module runs (see
+<code>ref_table()</code>). References without a DOI are not checked.</p>
+<p>It is possible the authors are already aware that a study was
+retracted, but the module can’t evaluate this.</p>
+<p>The database can be manually updated with the rw_update function. For
+more information, see <a href="https://gitlab.com/crossref/retraction-watch-data" class="uri">https://gitlab.com/crossref/retraction-watch-data</a>.</p>
+<p>This module was developed by Daniel Lakens and Lisa DeBruine</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-retraction.html">metacheck
+manual</a>.</p>
+</div>
+</details>
+<details>
+<summary>
+How Replication Check works
+</summary>
+<div class="fold">
+<p>This module checks references and warns for citations of original
+studies for which replication or reproduction studies exist in the FLoRA
+database.</p>
+<p>The Replication Check module compares the reference list against
+studies in the FLoRA (FORRT Library of Replication Attempts) database
+based on the DOI. If a study in the database is found, a reminder is
+provided that a replication or reproduction of the original study
+exists, and should be cited. No reminder is given when the paper already
+cites that replication or reproduction (matched by its DOI).</p>
+<p>The module requires that the reference has a DOI: the DOI in the
+paper’s reference list, or one looked up with
+<code>add_bib_match()</code> before the module runs (see
+<code>ref_table()</code>). References without a DOI are not checked.</p>
+<p>It is possible the original study was cited for other reasons than
+the empirical claim tested, or that the replication/reproduction in the
+FLoRA database is for only one of the studies in the paper, and not the
+study the authors discuss.</p>
+<p>The database can be manually updated with the
+<code>FLoRA_update()</code> function. For more information, see <a href="https://forrt.org/FLoRA/" class="uri">https://forrt.org/FLoRA/</a>.</p>
+<p>This module was developed by Daniel Lakens, Lisa DeBruine and Lukas
+Wallrich</p>
+<p>Read more in the <a href="https://www.scienceverse.org/metacheck_book/chapters/mod-ref-replication.html">metacheck
+manual</a>.</p>
+</div>
+</details>
+<details id="full-text">
+<summary>
+Full text
+</summary>
+<div class="fold">
+<h3>Abstract</h3>
+<p>Sequence-to-omics (S2O) predictions and molecular outliers provide complementary evidence to prioritize functional rare variants and facilitate rare disease diagnoses. However, current approaches do not integrate both lines of evidence. We present Watershed-DL, a framework that integrates S2O predictions of variant effects from DNA and protein sequence with multi-omic outliers to identify large-effect rare variants. We applied Watershed-DL to 1000 Genomes samples with RNA-seq (n=1,030) to prioritize rare variants underlying expression, splicing, and allele-specific expression outliers, and, using a separate peak-level model, to samples with ATAC-seq (n=174) for chromatin accessibility outliers. Compared to a model without S2O predictions, Watershed-DL increased the number of prioritized variants by 61.4%, and S2O features were weighted highly in the model across all molecular signals. Prioritized variants were over 60-fold enriched for ClinVar pathogenic classifications. Matching prioritized variants to known pathogenic variants in the same gene with a concordant molecular effect identified 331 additional candidate recessive disease alleles. Applying this framework to the GREGoR rare disease cohort with RNA-seq (n=677) prioritized previously reported causal variants across 10 solved cases and identified 451 candidate variants in unsolved cases, including a diagnostic variant in PPP1R12A and a novel candidate disease gene, ATP5PF.</p>
+<h3>[div-01]</h3>
+<p>unsolved proband and, in another, independently identified a previously reviewed PPP1R12A missense variant, providing the mechanistic evidence needed for a diagnosis.</p>
+<h3>Results</h3>
+<p>Multi-omic outliers and S2O predictions provide complementary evidence of rare variant function Watershed-DL integrates S2O predictions and other variant-level annotations alongside personal multi-omic outlier signals in a probabilistic graphical model to predict the functional effects of rare variants (Figure 1A). The design of Watershed-DL allows for information sharing across different multi-omics data types and variant-level annotations. We integrated S2O predictions as variant annotations in Watershed-DL, including models of gene expression (Flashzoi-RNA 27 , PromoterAI 6 ), alternative splicing (SpliceAI https://paperpile.com/c/mSKw54/rNcJ , Pangolin 9 ), alternative polyadenylation (APARENT2 10 ), chromatin accessibility (ChromBPNet 7 ), and protein structure and function (ESM-v1 11 , PrimateAI 12 , AlphaMissense 13 ). We also develop a novel extension of the Watershed-DL framework for chromatin accessibility outliers, included as a separate model, to prioritize rare variants within ATAC-seq peaks.</p>
+<p>We applied Watershed-DL to lymphoblastoid cell line (LCL) RNA-seq data from 1,030 donors from the 1KG generated as part of AFGR 28 , representing 5 African populations, and MAGE 29 , representing 26 global populations. From these samples, we identified gene-level outliers for RNA expression (eOutliers), allele-specific expression (aseOutliers), and alternative splicing (sOutliers) (see Methods). For the peak-level adaptation of Watershed-DL, we identified chromatin accessibility outliers (caOutliers) from LCL-derived ATAC-seq data from 174 samples, generated by AFGR 28 and by Kumasaka et al. (British (GBR) individuals) 30 . For each outlier signal, z-scores were corrected for batch-driven sample covariation (Figure S1; see Methods). After quality filtering, 14,312 genes were quantified for eOutlier identification, 12,740 for sOutliers, and 10,294 for aseOutliers, while 194,385 peaks were jointly called for caOutlier identification. We then applied Watershed-DL to 15.2 million rare variants (global maximum allele frequency &lt; 1% in gnomAD v4.1) identified from 30X short-read whole genome sequencing (sr-WGS) of 1KG donors with matched RNA-seq or ATAC-seq (Figure S2).</p>
+<p>We characterized the distribution and overlap of molecular outliers across individuals. Chromatin accessibility outliers were more abundant per individual than other molecular phenotypes measured at the gene level (Figure 1B), consistent with the greater number of accessibility peaks compared to genes. We observed a median of 383 caOutliers (interquartile range (IQR), 248-624), compared with 61 eOutliers (IQR, 38-98), 59 aseOutliers (IQR, 50-67), and 57 sOutliers (IQR, 43-78). Outliers were frequently shared across molecular phenotypes, with the strongest co-occurrence between eOutliers and aseOutliers (relative risk (RR) = 6.41), followed by eOutliers and sOutliers (RR = 4.90), eOutliers and caOutliers within 10 kilobases (RR = 4.60), and sOutliers and aseOutliers (RR = 3.48) (Figure 1C).</p>
+<p>We first tested whether molecular outliers were associated with an increased burden of nearby rare variants. Without incorporating functional annotations, rare variants were enriched within 10 kb of genes with eOutliers, aseOutliers, and sOutliers, as well as within caOutlier peaks, with enrichment increasing with outlier strength (Figure 1D). At an absolute z-score &gt; 3, caOutliers showed the strongest enrichment (RR = 6.61, P &lt; 0.001), followed by aseOutliers (RR = 1.09, P = 2.18 x 10 -26 ), sOutliers (RR = 1.06, P = 4.35 x 10 -10 ), and eOutliers (RR = 1.02, P = 3.66 x 10 -5 ). The enrichment was further differentiated by variant consequence, with splice and coding variants showing stronger enrichment than non-coding variants (Figure 1E).</p>
+<p>To assess whether S2O predictions of rare variants in the 1KG were associated with molecular outliers, we evaluated the enrichment of model predictions for corresponding outlier signals. At the 99th percentile of each S2O model, we observed the strongest enrichment of ChromBPNet for caOutliers (RR = 18.48), followed by PromoterAI for eOutliers (RR = 9.14), SpliceAI for sOutliers (RR = 5.68), and Pangolin for sOutliers (RR = 3.40) (Figure 1F). S2O predictions consistently showed the highest enrichment for their matched outlier type at their recommended thresholds (Figure 1G). These results support integrating S2O predictions with multi-omic outliers to prioritize functional rare variants with large molecular effects.</p>
+<h3>Watershed-DL improves prioritization of large effect non-coding rare variants</h3>
+<p>To assess whether integrating S2O predictions with molecular outliers improves rare variant prioritization, we trained Watershed-DL in the 1KG and compared its performance with two baselines: a Watershed model without S2O predictions, and a genome annotation model (GAM) which includes S2O predictions but does not integrate molecular outliers (see Methods). Compared to the Watershed baseline, Watershed-DL demonstrated improved precision-recall area under the curve (PR-AUC) across expression (0.028 vs. 0.023 without S2O), splicing (0.054 vs. 0.041), and chromatin accessibility (0.129 vs. 0.055) (Figure 2A). For ASE, which did not have a specifically matched S2O model, Watershed-DL showed comparable performance to the non-S2O model (PR-AUC = 0.013 vs. 0.014). We additionally compared with an S2O annotation-only baseline and found that the Watershed-DL model improved PR-AUC across all outlier signals (Figure S3). These results demonstrate that integrating S2O predictions with molecular outliers improves performance of functional rare variant discovery.</p>
+<p>In addition, Watershed-DL prioritized more variants across all molecular signals compared to the baseline Watershed model, with the largest increase of prioritized variants in non-coding regions (Figure 2B). At posterior probability ≥0.6, Watershed-DL prioritized 2,555 variants for expression, 3,351 for splicing, 1,014 for ASE, and 1,690 for chromatin accessibility that were associated with at least one outlier carrier. Overall, integrating S2O predictions increased prioritized variants by 61.4% across all outlier signals. Further, 77.9% of newly prioritized variants were neither coding nor canonical splice-site variants, highlighting the ability of S2O predictions to identify functional non-coding variants compared to prior genome annotations based on coding annotations, splice site regions, or conservation metrics. Watershed-DL also prioritized more variants associated with two or more outlier signals compared to the baseline Watershed model. The largest increases were in variants prioritized for both expression and ASE (n = 389), followed by expression and splicing (n = 133), with 86.4% of multi-outlier prioritized variants uniquely identified by Watershed-DL (Figure 2C). Consistent with these overlaps, Watershed-DL learned highest-ranking edge weights connecting the expression and ASE latent variables (θ = 0.017), followed by expression and splicing (θ = 0.004; Figure 2D), indicating that the model leveraged shared functional status across these outlier signals.</p>
+<p>Watershed-DL learned consistently high feature weights for S2O predictions across all outlier signals (Figure 2E). Molecular phenotype-matched S2O predictions were the top-weighted features across expression, splicing, and chromatin accessibility, with ChromBPNet as the most informative feature for chromatin accessibility (θ = 0.78), PromoterAI for expression (θ = 0.17), and SpliceAI and Pangolin for splicing (maximum θ = 0.10 for both). For ASE, which did not have a directly matched S2O model, PromoterAI ranked 2nd-most informative (θ = 0.07), and SpliceAI donor gain and loss ranked 4th and 5th respectively (θ = 0.05 for both). In contrast, the Watershed model without S2O predictions weighted allele frequency as the most informative feature for chromatin accessibility (θ = -0.33), loss-of-function classification for expression (θ = 0.10), and splice region annotation for splicing (θ = 0.13) (Figure S4). These findings demonstrate that S2O predictions are highly impactful for prioritizing outlier-associated rare variants across multiple transcriptomic and chromatin accessibility signals, even when compared to high-confidence coding annotations such as loss-of-function.</p>
+<h3>Watershed-DL reveals ancestry-specific recessive disease alleles</h3>
+<p>To evaluate the clinical relevance of prioritized variants in the 1KG, we examined their overlap with established disease gene sets and clinical variant classifications. Watershed-DL identified 1,432 prioritized variants in ClinGen, OMIM, and ACMG recessive disease genes (Figure S5A), providing candidates for further clinical interpretation. ClinVar representation varied across molecular phenotypes (Figure 3A), with ASE variants showing the highest proportion represented in ClinVar (18.41%), followed by expression (13.83%) and splicing (11.12%).</p>
+<p>Chromatin accessibility variants showed the lowest representation (0.95%), consistent with the under-ascertainment of non-coding regulatory variants in clinical databases 31 . Among prioritized variants represented in ClinVar (n=801), 166 were previously classified as pathogenic or likely pathogenic (P/LP) and 225 as variants of uncertain significance (VUS). Excluding chromatin accessibility which had very low overlap, pathogenic and likely pathogenic variants were enriched among prioritized variants (RR = 65.20 and RR = 45.41, respectively), whereas benign and likely benign variants were depleted (RR = 0.15 and RR = 0.32, respectively) (Figure 3B). Enrichment for P/LP variants was comparable between the baseline Watershed model and Watershed-DL, consistent with the greater representation of coding and canonical splice-site variants among ClinVar P/LP variants, which are well captured by standard annotations 32 . S2O integration instead expanded the set of prioritized non-coding and non-canonical splice-site variants, which remain underrepresented in ClinVar but comprised 70.35% of variants prioritized by Watershed-DL.</p>
+<p>ClinVar is further limited by the European-ancestry bias in clinical variant submissions, resulting in reduced representation of variants from non-European ancestries 33 . Excluding chromatin accessibility, where not all ancestry groups are represented, 45.20% of prioritized variants were identified only in donors from the five African (AFR) populations in AFGR. The remainder were distributed across the East Asian (EAS), South Asian (SAS), European (EUR), and Admixed American (AMR) ancestry groups (Figure S5B). Prioritized variants from donors of non-European ancestries were less likely to be represented in ClinVar than those from European ancestries (Figure 3C).</p>
+<p>To address the under-ascertainment of non-coding variants and variants from donors of non-European ancestries in ClinVar, we developed a molecular effect matching approach to identify disease-relevant candidates among prioritized variants lacking a pathogenic classification. This approach is based on the hypothesis that variants producing a similar molecular effect on a gene as a known pathogenic variant may have similar phenotypic consequences. Among variants prioritized for known recessive disease genes, we first excluded those annotated as benign or likely benign in ClinVar or observed in a homozygous state in gnomAD (v4.1), as homozygous occurrence provides evidence against pathogenicity for variants underlying recessive disease. We then matched the remaining 1,112 prioritized variants, excluding known P/LP variants, to P/LP ClinVar variants using three complementary strategies. The first, concordant outlier matching, where prioritized variants have the same molecular outlier as an observed P/LP variant. The second, LoF matching, where prioritized variants with underexpression outliers are in the same gene as a known P/LP nonsense or frameshift variant. The third, CNV matching, where prioritized variants are in the same gene as a P/LP CNV and with gains matched to overexpression and losses to underexpression (Figure 3D). Together, these matches identified 331 candidate recessive disease alleles, including 57 variants currently classified as VUSs or with conflicting classifications in ClinVar (Figure 3E, Table S5).</p>
+<p>Among variants prioritized for gene-level outliers, most were singletons across the 3,202 individuals with 30X sr-WGS in the 1KG (n = 3,599), followed by variants observed in a single population sample (n = 1,349), a single continental ancestry group (n = 724), and multiple ancestry groups (n = 560). Known P/LP variants and candidates identified through molecular effect matching were most concentrated among singletons and single-population variants, underscoring the need for disease allele discovery in ancestrally diverse cohorts (Figure 3F).</p>
+<p>The clinical relevance of prioritized variants is further illustrated at ATM, an established ataxia-telangiectasia disease gene 34 , where six variants were prioritized for underexpression and/or splicing outliers, including two P/LP variants and three VUSs (Figure 3G). One VUS was prioritized for an sOutlier and strongly predicted to disrupt the adjacent splice donor (SpliceAI donor loss Δ = 0.71; Pangolin splice loss Δ = 0.76). Another, a missense variant, was prioritized for an underexpression outlier with modest predicted splicing and missense pathogenicity effects (SpliceAI donor gain Δ = 0.16; Pangolin splice gain Δ = 0.17; AlphaMissense = 0.21).</p>
+<p>The third VUS, a missense variant with high predicted pathogenicity (AlphaMissense = 0.98) but no predicted splicing effect (SpliceAI and Pangolin Δ = 0.00), was prioritized for an underexpression outlier in an individual who also carried an intronic variant predicted to create a cryptic splice donor (SpliceAI donor gain Δ = 0.50; Pangolin splice gain Δ = 0.30). Although Watershed-DL can prioritize more than one variant for a given outlier, the intronic variant received a higher posterior (0.82 vs. 0.68), suggesting it better explains the observed underexpression. Together, this illustrates how Watershed-DL can prioritize variants for clinical interpretation based on both their predicted mechanism and observed molecular effect.</p>
+<h3>Watershed-DL prioritizes causal and candidate diagnostic variants in the GREGoR rare disease cohort</h3>
+<p>We assessed the utility of Watershed-DL for rare disease diagnosis using data from 677 individuals in the GREGoR Consortium (release U15) with matched whole blood RNA-seq and 30X whole genome sequencing. GREGoR enrolls individuals with suspected Mendelian disease, most of whom remain undiagnosed despite previous clinical genetic testing 26 . This provided an opportunity to benchmark Watershed-DL against known diagnostic variants in solved cases and identify candidate diagnoses in unsolved cases. The cohort included 311 probands, of whom 38 were solved, 27 were partially solved, and 246 remained unsolved (Figure 4A).</p>
+<p>We trained Watershed-DL to predict eOutliers using a set of S2O predictions which included PromoterAI, SpliceAI, APARENT2, AlphaMissense, ESM-v1, and PrimateAI. Watershed-DL outperformed the genome annotation baseline in the GREGoR RNA-seq cohort (PR-AUC = 0.061 vs. 0.024; Figure S6A) and feature weights were comparable to the 1KG expression model (Figure S6B). For rare disease variant prioritization, we used less stringent outlier thresholds than in the 1KG analysis (posterior probability ≥ 0.45; |z-score| ≥ 2.5). Watershed-DL prioritized 9,324 eOutlier-associated variants across all GREGoR participants, which included 4,390 in probands. Of these, 1,154 were further supported by LOEUF constraint, 1,067 by OMIM disease association, and 581 by HPO phenotype matching, and 25 matched curated variants of interest in the GREGoR Genetics Findings table across solved and unsolved cases (Figure 4B).</p>
+<p>To assess the sensitivity of Watershed-DL for recovering diagnostic variants, we examined posterior probabilities for diagnostic variants restricted to solved cases in the GREGoR cohort. As the Genetics Findings table includes all curated variants, not only those relevant to a patient&#x27;s phenotypes, we selected diagnostic variants for each solved proband based on annotated phenotype contribution and mode of inheritance: one variant for autosomal dominant conditions, and either one homozygous variant or two compound heterozygous variants for autosomal recessive conditions (see Methods). This method selected 24 diagnostic variants across 20 probands. Of these, 13 were prioritized in Watershed-DL across 10 probands, which included all diagnostic variants associated with eOutliers in whole blood (Figure 4C). The https://paperpile.com/c/mSKw54/l4Ty1 diagnostic variants not prioritized by Watershed-DL comprised 6 missense variants, 2 intronic variants predicted as donor gain by SpliceAI, and 3 LOFTEE 1 loss-of-function variants, none of which were associated with eOutliers in whole blood. In a previously solved proband presenting with spastic diplegia and motor delays, Watershed-DL prioritized two compound heterozygous SNVs in COQ4 that were previously reported to explain the proband&#x27;s phenotype 35 . These included a maternally inherited splice region variant (SpliceAI donor gain Δ = 0.12, PromoterAI: 0.386) marked as likely pathogenic in the GREGoR Genetic Findings table 36 , and a paternally inherited missense variant (ESM-v1: -7.496, PrimateAI: 0.544, AlphaMissense: 0.296, CADD: 29.8) marked as pathogenic.</p>
+<p>To identify Watershed-DL prioritized variants consistent with rare disease inheritance, we filtered prioritized variants by population frequency, phenotype segregation, and phase confirmation where parental sequencing data were available (Table S6; see Methods). In solved probands, inheritance filtering retained 11 out of 13 prioritized diagnostic variants (Figure 4D). The two variants that were not retained by inheritance filtering were each SNVs that formed a compound heterozygous pair in trans with an unscored structural variant, and both SNVs were excluded from the autosomal dominant inheritance mode by population frequency criteria. In unsolved probands, inheritance filtering identified 451 candidate variant-gene pairs in 115 probands, including 106 heterozygous candidates for autosomal dominant inheritance, 238 compound heterozygous candidates and 113 homozygous candidates for autosomal recessive inheritance, and 11 candidates for X-linked recessive inheritance (Figure 4D).</p>
+<p>Among these, we identified a diagnostic variant in PPP1R12A (ENST00000450142.7:c.737A&gt;C) in an unsolved female proband presenting with semilobar holoprosencephaly, seizures, hearing loss, blindness, and scoliosis. The variant is annotated as missense and has an ambiguous prediction from AlphaMissense (score = 0.461). One report that classifies the variant as likely pathogenic exists in ClinVar (RCV005250607.1) but without associated condition or assessment criteria. PPP1R12A frameshift and nonsense variants have previously been shown to cause a new syndrome associating brain malformations (in XX and a subset of XY individuals) with urogenital features resulting from impaired testicular development (in XY), termed GUBS (OMIM #618820) 37 . The proband&#x27;s presentation was consistent with the brain malformation features of this syndrome, but because she is an XX female, the absence of genital phenotype was not informative and a diagnosis of GUBS was not suspected prior to molecular testing. The research team had identified the PPP1R12A variant as a candidate, but several arguments had prevented reporting into the GREGoR Genetics Findings table. All variants reported in Hughes et al. were clear stop-gains and de novo in affected individuals. Here, the variant is annotated as missense, and examination of LRS reads showed that it did not arise on a maternal haplotype and the father&#x27;s sample was not available for comparison (Figure S7A). Watershed-DL prioritized this variant because it was associated with a strong underexpression outlier (z = -3.99), in spite of modest SpliceAI scores for donor loss (Δ = 0.11) and acceptor loss (Δ = 0.06). Consistent with a splicing effect, FRASER 2.0 identified a strong splicing outlier (p &lt; 0.001), and RNA-seq showed skipping of exon 5 in the proband resulting in a frameshift (Figure S7B). The same exon-skipping junction was detected at low levels (~2% of reads) in the proband&#x27;s mother, who does not carry the variant, suggesting that the variant increases usage of a naturally occurring minor isoform rather than creating a novel splice junction. Together, these findings indicate that c.737A&gt;C acts as a missense spliceogenic variant, a class of missense variants that cause disease by disrupting RNA splicing rather than by altering the protein sequence 38 . By integrating S2O predictions with observed molecular outliers, Watershed-DL revealed a loss-of-function mechanism not captured by the variant&#x27;s existing classification, and the variant was confirmed as diagnostic for the proband.</p>
+<p>As Watershed-DL is a variant-centric approach that does not rely on prior gene-phenotype relationships, it can also prioritize variants in candidate novel disease genes. In another unsolved proband, we identified a homozygous 5&#x27; UTR variant in ATP5PF (ENST00000284971.8:c.-9A&gt;G) that is associated with an underexpression outlier (z = -4.60) and predicted by SpliceAI to cause donor loss (Δ = 0.59). The variant lies within a ~10.8 Mb region of homozygosity in the proband (chr21 q21.1-21.3) identified by CMA. In this region the parents had an IBS0 count of 12 out of 24,450 sites (0.05%), but were not related genome-wide (Sommalier relatedness 0.04), suggesting a shared haplotype on this region from a common ancestor. Both parents are heterozygous carriers of the prioritized variant, consistent with autosomal recessive inheritance and homozygosity by descent. The variant has no homozygous carriers in gnomAD (v4.1) or All of Us, and ATP5PF carries no homozygous loss-of-function variants in gnomAD. RNA-seq shows increased intron retention in the proband and, to a lesser degree, in both carrier parents (Figure 4E). The alternate allele was present in 100% of the proband&#x27;s expressed transcripts, but only in 5% and 20% of transcripts in the mother and father, consistent with nonsense mediated decay. The proband presents with spastic quadriplegia, multifocal epilepsy, global developmental delay, dysmorphic features, feeding difficulties, and vision loss. Although ATP5PF has no established disease association, biallelic variants in ATP5ME, which encodes another subunit of mitochondrial complex V, have been associated with complex V deficiency and a broad range of clinical manifestations, including spasticity, seizures, encephalopathy, feeding difficulties, contractures, hearing loss and optic atrophy 39 . Similarly, pathogenic variants in other structural subunits of complex V have been linked to autosomal recessive disorders characterized by neurological and neuromuscular dysfunction, encephalopathy, and metabolic abnormalities, with variable disease severity and systemic involvement [40] [41] [42] [43] [44] [45] . Additionally, studies in ATP14, the yeast homologue of ATP5PF, found that Atp14p depletion severely impairs complex V assembly and ATP synthesis 46 , while ATP14 knockout disrupts ATP synthase integrity and function 47 . Together, these findings make ATP5PF a strong candidate disease gene for the proband. indicates that the variant segregates with affected status in at least one family member. &quot;No family genotype&quot; indicates that no family members were sequenced. e) RNA-seq coverage at ATP5PF in an unsolved GREGoR proband carrying a Watershed-DL prioritized homozygous 5′ UTR variant. Coverage is shown for the proband, both heterozygous carrier parents, and an unrelated control.</p>
+<h3>Discussion</h3>
+<p>Rare variant prioritization remains a challenging problem with relevant clinical applications in rare disease diagnosis and personalized medicine. Existing prioritization methods typically rely on either molecular outlier signals or sequence-based predictions without integrating these complementary sources of evidence. Here, we present Watershed-DL, an extensible framework that jointly models S2O predictions and personal multi-omic outliers to prioritize rare variants that alter diverse mechanisms such as gene regulation, splicing, and protein function.</p>
+<p>Watershed-DL improved prioritization of rare variants underlying expression, splicing, and chromatin accessibility outliers relative to both a genome annotation model with S2O predictions, and an outlier-based model without S2O predictions. These gains were greatest for non-coding and non-canonical splice-site variants, for which S2O predictions can provide evidence that is otherwise limited in conventional annotation frameworks. As S2O models continue to improve and multi-omic profiling expands to larger and more diverse cohorts, Watershed-DL offers a scalable framework for interpreting rare variant effects with the flexibility to incorporate improved S2O predictors and new molecular phenotypes as they become available.</p>
+<p>Watershed-DL provides interpretable weights which give insight into specific molecular effects of prioritized rare variants and the overall utility of variant annotations to each outlier signal. S2O predictors from matched molecular phenotypes received the largest weights for expression, splicing, and chromatin accessibility, indicating that the model learns biologically meaningful relationships between predicted and observed molecular effects. The contribution of S2O predictions was less pronounced for ASE, where a matched S2O model was not available. In contrast, S2O predictions provided substantial additional evidence for caOutliers, with peak-level modeling extending variant prioritization to distal and intergenic regulatory regions that are often excluded from gene-centric analyses. Together, these results demonstrate that S2O predictions are most informative when they provide variant-level evidence that complements the molecular phenotype observed in an individual, particularly where conventional annotations provide limited evidence of variant function.</p>
+<p>Integrating multi-omic outlier signals with S2O annotations enabled the interpretation of rare variants in both self-reported healthy individuals and patients with rare genetic diseases. In the 1KG cohort, Watershed-DL prioritized functional variation in known recessive disease genes, including ancestry-specific alleles absent from current clinical databases. These variants may represent novel recessive disease alleles, disease modifiers, or risk alleles whose clinical significance has yet to be established. In the GREGoR cohort, Watershed-DL prioritized known diagnostic variants in solved cases, including all diagnostic variants associated with eOutliers in whole blood. When combined with evaluation of allele frequency, inheritance patterns and patient phenotypes, it also identified a diagnostic variant in PPP1R12A and nominated a candidate gene, ATP5PF, not previously associated with disease. Since prioritization does not require genes to have an established disease association, Watershed-DL can also provide functional evidence in novel disease genes harboring rare variants that meet diagnostic criteria. This is particularly relevant for variants outside canonical coding and splice regions, which remain underrepresented in clinical databases and are often overlooked by current diagnostic pipelines.</p>
+<p>Several limitations should be considered when interpreting Watershed-DL prioritized variants.</p>
+<p>Posterior probabilities reflect the combined strength of evidence that a rare variant affects a molecular phenotype, but do not establish that the variant causes the observed effect. A prioritized variant may co-occur with an outlier driven by another variant, an environmental factor, or technical variation, so establishing causality requires experimental validation. In the 1KG cohort, candidate recessive alleles were identified in heterozygous carriers, and the observed molecular effects may not reflect biallelic disruption. In particular, the extent to which partial changes in expression cause disease may be gene-or allele-specific, requiring observation of these variants in affected individuals, either in a homozygous state or in trans with a second pathogenic allele. In addition, Watershed-DL does not model relationships between variants and individual traits, and prioritized variants may occur in genes that are not relevant to a patient&#x27;s phenotypes. Candidate diagnostic variants identified in GREGoR remain variants of uncertain significance until supported by additional evidence consistent with current RNA-seq diagnostic guidelines 32 , and may require additional functional or genetic testing specific to the disease or inheritance mode. More broadly, Watershed-DL can only detect effects on genes and regulatory elements that are active in the assayed tissue. Structural variants are also not modeled in the current framework, although approaches for integrating molecular outliers with structural variation have been described 25.</p>
+<p>Extending Watershed-DL across diverse tissues and cohorts, together with continued improvements in S2O models, will broaden its ability to connect predicted and observed molecular effects to rare variant function. As multi-omic profiling becomes increasingly integrated into clinical genetic testing, Watershed-DL provides a foundation for the systematic variant interpretation needed to enable rare disease diagnosis and delivery of precision medicine.</p>
+<h3>Online Methods</h3>
+<h3>RNA-seq data</h3>
+<p>RNA-seq data from AFGR 28 and MAGE 29 were combined to form the 1KG cohort. Lymphoblastoid cell line RNA-seq data for 599 samples from the AFGR cohort were obtained as previously described 28 . Lymphoblastoid cell line RNA-seq data for 731 samples from the MAGE cohort were downloaded from the Sequence Read Archive at accession PRJNA851328 29 . 166 samples from the MKK population of AFGR were excluded due to insufficient rare variant coverage in the VCF, leaving a total of 1,164 RNA-seq samples from 1,030 individuals. Reads were trimmed using Cutadapt 48 and aligned to GRCh38 using STAR (v2.7.11b) in two-pass mode with the --waspOutputMode flag. The GENCODE v44 reference annotation was used for alignment. Unless otherwise stated, all analyses were restricted to protein-coding genes.</p>
+<p>Whole-blood RNA-seq data from 1,041 participants in the GREGoR Consortium (release U12, accession phs003047.v5.p4) were generated at five sites: University of California, Irvine (UCI; n = 534), Stanford University (n = 273), Illumina (n = 93), the Broad Institute (n = 92) and Baylor College of Medicine (n = 49). Participants came from 489 families and included 459 probands. In total, 499 participants were affected (459 probands and 40 family members), 499 were unaffected family members, 24 were possibly affected family members, and 19 were family members with unknown affected status. Library preparation protocols differed between sites, but all libraries were sequenced paired-end. Samples with &lt;75% uniquely mapped reads were excluded.</p>
+<p>RNA-seq alignment files, provided in BAM or CRAM format, were converted to FASTQ using SAMtools 49 . CRAM files were decoded using the GRCh38 full analysis set plus decoy and HLA sequences 50, 51 . Adapters were trimmed with Cutadapt 48 and read quality was assessed with FastQC 52 before and after trimming. Reads were then shuffled with SeqKit 53 for STAR 54 compatibility and realigned to a shared human reference (Ensembl v47 55 and GRCh38 primary assembly 50, 51 ). Samples with &lt;75% uniquely mapped reads were excluded. Gene-level read counts were obtained for each sample with featureCounts from exon features summarised to genes, counting read pairs from primary alignments only. TPM values were computed from these counts using each gene&#x27;s union exon length.</p>
+<p>ATAC-seq data ATAC-seq data for 100 samples from the AFGR cohort were obtained as previously described 28.</p>
+<p>ATAC-seq data for 100 samples from the Great British population were downloaded from the European Nucleotide Archive (ENA) under accession ERP110508 30 . Joint peak calling was done by downsampling the FASTQs to 3 million reads per sample and pooling as previously described 56 . Three pseudoreplicates of pooled FASTQs were generated and MACS2 peak calling was done using the ENCODE DCC ATAC-seq pipeline available at https://github.com/encode-dcc/atac-seq-pipeline. Genotype quality control in the 1000 Genomes cohort 30X short-read whole genome sequencing for samples in the 1KG were obtained from the International Genome Sample Resource (ISGR) 57 . Genotype quality control was performed using bcftools (v1.21) 58 . Multi-allelic sites were first split using bcftools norm -m -any. Genotypes with read depth &lt; 10 or genotype quality &lt; 20 were excluded. On the autosomes, variants with missingness &gt; 0.1 or a Hardy-Weinberg equilibrium (HWE) P &lt; 1 × 10⁻⁶ in any super-population were excluded. On the X chromosome, variants with missingness &gt; 0.1 in either XX or XY samples, or with HWE P &lt; 1 × 10⁻⁶ among XX individuals in any super-population were excluded. The pseudoautosomal regions (PAR) were excluded from the X chromosome. Finally, non-variable sites (minor allele count = 0) were removed from all chromosomes. 166 samples from the AFGR Maasai (MKK) subpopulation were excluded from the VCF due to high site missingness.</p>
+<h3>Genetic principal components in the 1000 Genomes cohort</h3>
+<p>Genetic principal components were calculated in the 1KG cohort using PLINK (v2.0) 59 . Regions with high linkage disequilibrium in hg38 were extracted from plinkQC 60 and excluded. For principal component estimation, biallelic autosomal SNVs with minor allele frequency &gt; 5% were retained, and LD pruning was done using -indep-pairwise with a window size of 1Mb, step size of 50, and r 2 threshold of 0.05.</p>
+<h3>Multi-omics outlier calling</h3>
+<p>Gene expression outlier calling in the 1000 Genomes cohort Gene expression was quantified as transcripts per million (TPM) using RNASeQC (v2.4.3) 61 . TPM values were log2-transformed (log2(TPM + 2)) and then standardized for each gene to a mean of 0 and a standard deviation of 1. Lowly expressed genes, defined as those with TPM &lt; 0.1 in at least 20% of samples, were excluded. To ensure that the leading principal components (PCs) were not driven by a few samples, we removed samples with highly divergent expression profiles using a sample-network approach implemented in the WGCNA R package 62 . Pairwise Pearson correlations between all samples were computed across genes and transformed into a signed adjacency matrix (adjacency = 0.5 + 0.5 x correlation). The connectivity of each sample, defined as the sum of its adjacencies to all other samples, was calculated and standardized to a z-score across samples. Samples with a standardized connectivity below -3 were considered global outliers and removed.</p>
+<p>Hidden factors were then estimated using the PCAtools (v2.18) R package 63 on the filtered expression matrix, with genes centered and scaled. Missing values were imputed using k-nearest neighbors (impute R package 64 ) prior to PCA. A total of 45 expression PCs were retained as selected by the Marchenko-Pastur method. To obtain expression residuals, these expression PCs, the top 5 genotype principal components, batch, RNA Integrity Number (RIN), population, sex, and cohort were removed based on a linear regression model. Expression residuals were then re-scaled to obtain corrected z-scores for each individual per gene.</p>
+<h3>Gene expression outlier calling in the GREGoR cross-consortium cohort</h3>
+<p>Expression outliers were called on the pooled matrix of 1,041 RNA-seq samples. Lowly expressed protein-coding genes, defined as those with TPM &lt; 1 in more than 20% of samples, were excluded, as were genes with transcription start sites within the major histocompatibility complex (MHC; chr6:28,477,797-33,448,354). TPM values were then log2-transformed (log2(TPM + 2)) and standardized for each gene to a mean of 0 and a standard deviation of 1. Hidden factors were estimated as described for the 1KG data, with the number of components set using the Gavish-Donoho optimal hard threshold for unknown noise. No explicit covariates were included, and the leading principal component explained 50.4% of the variance.</p>
+<p>Allele-specific expression outlier calling in the 1000 Genomes cohort Heterozygous sites for each sample were extracted from the VCF using bcftools (v1.21) 58 . Haplotype-level ASE data were generated using phASER (v1.1.1) 65 , with a minimum mapping quality of 255 (uniquely mapped reads in STAR) and a minimum base quality of 10. Indels were excluded, and phASER blacklists were applied to remove sites and haplotypes prone to mapping artifacts. Haplotypes were phased genome-wide using the most common haplotype phase (--gw_phase_method 0), based on the phase information in the VCF.</p>
+<p>To obtain gene-level ASE, GENCODE v44 annotations were collapsed so that each gene was represented by a single gene model of merged exons across its transcripts. Haplotypic counts were then aggregated per gene using phASER Gene AE, which sums read counts supporting each haplotype across the phased heterozygous variants within the gene&#x27;s exons and reports the log2 allelic fold change (aFC) between the two haplotypes. Genes with missing values in at least 80% of samples were removed, and the remaining log2 aFCs were scaled for each gene to a mean of 0 and a standard deviation of 1. As described for gene expression outlier calling, samples with highly divergent ASE profiles were excluded prior to PCA, missing values were imputed, and hidden factors were estimated, retaining 65 ASE PCs selected by the Marchenko-Pastur method. ASE residuals were obtained by residualizing these PCs and the same covariates used for expression, then re-scaling for each gene to obtain corrected z-scores.</p>
+<p>Splicing outlier calling in the 1000 Genomes cohort Splicing outliers were called using FRASER 2.0 22 , which models aberrant splicing using an intron Jaccard index. FRASER 2.0 was run using the FRASER R/Bioconductor package (v2.4.5) within the DROP pipeline (v1.4.0) 66 , with GENCODE v44 to annotate introns. Introns were retained with ≥ 20 split reads in one sample and ≥ 10 reads in 75%, matching DROP defaults. Low variance introns were removed using a minimum deltaPsi threshold of 0.3, which requires at least one sample to differ from the intron&#x27;s mean Jaccard index by greater than 0.3. The default HGNC IDs were replaced with Ensembl IDs during the annotation step. The default DROP pipeline minimum read count and expression settings were used, filtering to a ≥ 20 split reads in one sample and ≥ 10 reads in 75% of samples. Sample covariation was removed with a PCA-based denoising autoencoder, and the encoding dimension was selected using the optimal hard threshold procedure. For each sample, a gene-level p-value was defined as the minimum Holm-adjusted p-value across all introns in that gene. Finally, splicing outliers (p &lt; 0.0027) with a delta-Jaccard index below 0.3 were excluded to ensure significant outliers reflect large splicing changes.</p>
+<h3>Splicing outlier calling in the GREGoR cohort</h3>
+<p>Splicing outliers were called using FRASER 2.0 22 (v2.6.0) in the GREGoR UC Irvine RNA-seq cohort using GENCODE v47 basic annotation and the harmonised STAR alignments. 537 UCI whole-blood samples were fitted as a UCI-only cohort. Introns were kept with ≥ 20 split reads in one sample and ≥ 10 reads in 75% of samples, matching DROP pipeline defaults. The encoding dimension was selected with the optimal hard threshold procedure using the PCA implementation.</p>
+<h3>Chromatin accessibility outlier calling in the 1000 Genome cohort</h3>
+<p>Chromatin accessibility outliers were called using EpiOut (v0.0.1) https://paperpile.com/c/mSKw54/YizT on the joint peak set from all 200 AFGR and GBR ATAC-seq samples described above. Read counts per peak and sample were generated with EpiCount, with the default merging of nearby peaks disabled. EpiOut was then run on the resulting count table to model accessibility and obtain a p-value, observed and expected read count, and log2 fold change for each peak in each sample. To remove outliers with small effect sizes, the EpiOut effect size and coverage criteria were applied, excluding observations with p &lt; 0.01 that had an absolute log2 fold change below 0.5, or that had both observed and expected read counts below 50. Peak-level p-values were then converted to z-scores, signed by the direction of the log2 fold change. A p-value threshold of p &lt; 0.0027 was used to define chromatin accessibility outliers.</p>
+<h3>Rare variant filtering</h3>
+<p>For each cohort, variants were left-aligned and normalized, multiallelic sites were split into biallelic records, and spanning deletions were removed using bcftools (v1.21) 58 . Sites with FILTER = PASS or FILTER = &quot;.&quot; were retained. Sites with ≥10% of genotypes missing were removed in the 1KG. In GREGoR, a higher threshold of ≥90% missing genotypes was used to avoid removing rare variants, as the cross-consortium U15 release VCF was merged from separately joint-called VCFs across 89 and 588 samples respectively. Variants were then restricted to those with a cohort-level allele frequency ≤5%, and insertions and deletions longer than 30 bp were removed. Finally, variants with allele frequency &gt;1% in any of the AFR, AMR, ASJ, EAS, SAS or NFE populations of gnomAD (v4.1) 68 were removed. Variants absent from gnomAD were retained.</p>
+<h3>Rare variant annotation VEP annotations</h3>
+<p>To annotate rare variant consequences, VEP annotations were generated by running Ensembl VEP (v110.1, GRCh38, Gencode v44) 69 , using a window size of 10kb to define upstream and downstream consequences. Loss-of-function annotations were generated using the LOFTEE (GRCh38) plugin for VEP 1 . The UTRAnnotator VEP plugin 70 was used to annotate 5&#x27; UTR consequences such as premature start codon gain or loss. Annotated consequences were retained for transcripts with transcript support level 1 or 2, Ensembl canonical transcripts, and regulatory features.</p>
+<p>For Watershed-DL, VEP consequences were each represented as categorical variables. For region-level aggregation, a per-column maximum over all rare variants in the region was used. For analyses requiring a single consequence per rare variant-gene pair, each variant was assigned its most severe VEP consequence according to the following hierarchy: coding [frameshift &gt; stop &gt; start &gt; missense &gt; other coding], splice [splice donor &gt; splice acceptor &gt; splice region &gt; other splice], non-coding [5′ UTR &gt; 3′ UTR &gt; regulatory &gt; intron &gt; upstream &gt; downstream &gt; intergenic &gt; other non-coding]. For the chromatin accessibility model, variants were assigned their most severe non-coding consequence only.</p>
+<h3>Polyadenylation site annotation</h3>
+<p>Polyadenylation sites were annotated using PolyA-DB v3.2 71, 72 after lifting over from hg19 to hg38 using the liftOver function from the rtracklayer R package 73 . Variant proximity to polyadenylation sites was represented as a binary annotation indicating whether the variant is within 50bp of an annotated polyadenylation site. The absolute distance to the nearest polyadenylation site was also included as an annotation. PolyA-DB genes were matched to the corresponding VEP gene annotation and outlier gene.</p>
+<h3>Enhancer-to-gene and CTCF loop annotations</h3>
+<p>To link distal regulatory regions to genes, enhancer-gene links and promoter-anchored CTCF loops were compiled from ENCODE-rE2G predictions and ChIA-PET data, respectively, in the lymphoblastoid cell line GM12878. ENCODE-rE2G predictions (accession ENCFF128MZW) and CTCF ChIA-PET loops (accession ENCFF780PGS) were obtained from the ENCODE portal. Each CTCF loop was split into its two anchors, and anchors overlapping an EPDnew v6 promoter (hg38; https://epd.expasy.org/epd/) were assigned to the corresponding gene. Variants were annotated with E2G or CTCF links for a given gene if they fell within an enhancer or opposite loop anchor linked to that gene.</p>
+<h3>ClinVar annotations</h3>
+<p>ClinVar classifications were obtained from the variant summary file (variant_summary.txt.gz) downloaded from the NCBI FTP site (https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/) on September 6, 2026, and restricted to GRCh38 coordinates. Classifications were harmonized by merging subcategories into their parent terms (e.g., low-penetrance and VUS subcategories). Variants with multiple classifications for the same gene and phenotype were collapsed to a single classification according to the following priority: pathogenic &gt; benign &gt; likely pathogenic &gt; likely benign &gt; uncertain significance &gt; conflicting classifications &gt; not provided. Molecular consequences for each variant were obtained from the MC field of the ClinVar GRCh38 VCF (release 2026-09-05; https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/). For gene-level outliers, ClinVar classifications were assigned to prioritized variants only if the ClinVar gene matched the outlier gene.</p>
+<h3>Sequence-to-omics predictions Predictions of chromatin accessibility</h3>
+<p>Chromatin accessibility predictions were annotated for all SNVs and short indels (≤ 30bp) using ChromBPNet 7 . Pre-trained, bias-corrected ChromBPNet models trained on ATAC-seq samples from the AFGR cohort 28 were used, including 30 models (6 population-specific training sets, 5 folds each). Variants were restricted to those falling exactly within joint-called ATAC peaks. For each variant and model, the predicted effect on accessibility was calculated as a log-fold allele change between reference and alternate alleles. The average absolute log fold change across all 30 models was used as the final annotation.</p>
+<h3>Predictions of gene expression</h3>
+<p>RNA-seq read coverage in LCLs was predicted for rare SNVs and short indels (≤ 30bp) in the 1KG using Flashzoi 27 , an optimized implementation of Borzoi https://paperpile.com/c/mSKw54/g1eR , referred to here as Flashzoi-RNA. A single replicate of the pre-trained Flashzoi model, trained only on human data, was downloaded from Huggingface (https://huggingface.co/collections/johahi/flashzoi-models). Predictions were made using the full 524kb input sequence, with predicted RNA-seq read coverage output at 32 base-pair resolution. Scores were averaged across the GM12878 lymphoblastoid cell line RNA-seq tracks from ENCODE (ENCFF463TDW, ENCFF279MVV).</p>
+<p>For the Watershed-DL transcriptomic model, all SNVs within 60kb of GENCODE v44 protein-coding genes were scored. The input window was centered at the gene&#x27;s transcription start site, and coverage was summed across the gene&#x27;s exons. Variant effects were quantified as the log-fold change in summed predicted coverage between reference and alternate alleles (logSED). For the chromatin accessibility model, all SNVs within ATAC-seq peaks were scored, with the 524kb input sequence centered on the variant. Variant effects were quantified as the L2 norm of the log difference in predicted coverage between reference and alternate alleles across the binned output sequence.</p>
+<h3>Prediction of promoter usage</h3>
+<p>Promoter site usage predictions were annotated with PromoterAI https://paperpile.com/c/mSKw54/zShn , which predicts CAGE-seq based on sequence. Pre-computed scores for all SNVs within promoters (+-100bp of TSS) of protein-coding genes annotated in Gencode v39 were downloaded from GitHub (https://github.com/Illumina/PromoterAI). To capture rare variant effects on expression, the PromoterAI model fine-tuned on outlier-associated rare variants in GTEx was used. Scores represent the difference in predicted CAGE-seq reads between reference and alternate alleles averaged across the output window, which includes 4096 nucleotides centered at the variant. Scores range from -1 to 1, with negative values indicating predicted decreases in promoter activity and positive values indicating predicted increases.</p>
+<h3>Predictions of splice site usage</h3>
+<p>Predicted splicing effects were annotated using SpliceAI 8 and Pangolin 9 . Pre-computed SpliceAI scores for SNVs within canonical GENCODE v24 transcripts, generated using a ± 50bp window around each variant, were downloaded from Illumina BaseSpace (https://basespace.illumina.com/s/otSPW8hnhaZR). Short indels (&lt;30bp) in the 1KG cohort were scored separately with a pretrained SpliceAI model using the VEP SpliceAI plugin, using the distributed GENCODE v24 configuration and a ± 50bp scoring window around each variant. For each variant, delta scores for acceptor gain, acceptor loss, donor gain, and donor loss were annotated, defined as the change in predicted acceptor or donor probability between reference and alternate alleles. Each variant was assigned the SpliceAI score for the gene matching its outlier signal by HGNC ID.</p>
+<p>Pre-trained Pangolin models were obtained from GitHub (https://github.com/tkzeng/Pangolin), which includes three models per tissue for heart, liver, brain, and testis. All SNVs and short indels (≤ 30bp) within GENCODE v44 gene bodies were scored using a 500bp scoring window around each variant. Splice site gain and loss scores were annotated as the largest gain and loss within the window across all tissues.</p>
+<h3>Predictions of transcript polyadenylation</h3>
+<p>Predicted effects on polyadenylation were annotated using APARENT2 10 . APARENT2 predicts the relative usage of a polyadenylation site, quantified by the proportion of RNA-seq transcripts cleaved at that site. Pre-computed scores for all SNVs near polyadenylation sites annotated in PolyADB-v3 71 were obtained from CADD (v1.7) 74 . Variant scores represent the log-odds ratio of predicted polyadenylation site usage between reference and alternate allele. Odds ratios were included as the final annotation.</p>
+<h3>Predictions of missense variant pathogenicity</h3>
+<p>Missense variants were annotated for predicted pathogenicity using AlphaMissense 13 , ESM-1v https://paperpile.com/c/mSKw54/ULAk , and PrimateAI https://paperpile.com/c/mSKw54/7VVI . AlphaMissense scores were annotated using the VEP plugin 69 , which uses pre-computed scores for all possible missense SNVs based on canonical protein-coding transcripts in GENCODE v32. AlphaMissense was included as a binary annotation representing whether a variant is predicted as likely pathogenic, defined by the standard threshold of predicted pathogenicity ≥ 0.564. PrimateAI (v0.2) scores were annotated using the VEP plugin and included as raw predicted scores, which range from 0 to 1 with higher scores indicating greater predicted pathogenicity. ESM-1v scores for all possible SNVs were obtained from CADD (v1.7) and included as raw scores. ESM-1v scores represent the log-likelihood ratio of predicted deleteriousness for reference and alternate amino acids, with more negative scores indicating greater predicted deleteriousness.</p>
+<h3>Watershed-DL model training and validation in the 1KG</h3>
+<h3>Assigning variants to genes and peaks</h3>
+<p>To match variant annotations to gene-level and peak-level outlier signals, variants were first assigned to genes using GENCODE (v44) annotations or to peaks using the joint peak calls. GENCODE (v44) genes were filtered to protein-coding genes.</p>
+<p>For gene-level outlier signals (expression, splicing, ASE), variants were assigned to a gene if they fell within a 10kb window around the gene body as defined by GENCODE (v44). VEP consequences were filtered to match the annotated GENCODE gene. For S2O predictions linked to a specific gene, the prediction for the assigned gene was used where available, and otherwise predictions were averaged across genes. For model training and evaluation, each annotation was summarized across all variants assigned to a given individual-gene pair, using the minimum or maximum so that the most severe annotation was retained (Table S1,S2). After training, Watershed-DL was applied to predict variant-level posterior probabilities, using each individual&#x27;s observed outlier status for the assigned gene.</p>
+<p>For chromatin accessibility outliers, variants were assigned to a peak if they overlapped the peak region. Similar to the gene-level model, each annotation was summarized across all variants within a peak for each individual during training and evaluation, using the minimum or maximum value (Table S2). After training, Watershed-DL was applied to predict variant-level posterior probabilities, using each individual&#x27;s observed outlier status for the assigned peak.</p>
+<h3>Multi-omic outlier preprocessing</h3>
+<p>Prior to training Watershed-DL, AFGR samples from the Maasai population (MKK) were excluded as described above (17 samples from ATAC-seq and 166 from RNA-seq). RNA-seq and ATAC-seq samples not in the sr-WGS were also excluded, removing 1 sample from the RNA-seq and 9 samples from the ATAC-seq. Since 134 samples from AFGR and MAGE corresponded to the same donors, z-scores from replicate samples were averaged for each transcriptomic outlier signal. Across gene-level and peak-level outliers, a standard p-value threshold of p &lt; 0.0027 (|z| ≥ 3) was used to define outliers. Expression and ASE p-values were signed by direction of effect. Splicing and chromatin accessibility p-values were unsigned. The Watershed-DL model thresholds unsigned p-values into inlier (p &gt; 0.0027) and outlier (p &lt; 0.0027) categories, and thresholds signed p-values into underlier (p &lt; 0, |p| &lt; 0.0027), overlier (p &gt; 0, |p| &lt; 0.0027), and inlier (|p| &gt; 0.0027) categories, with independent model weights defining impact on functional status for each category. For each outlier signal, global outlier individuals were removed, defined as individuals carrying a higher outlier burden as defined by the mean plus a standard deviation threshold (σ ≥1.5 for expression and chromatin, σ ≥2 for ASE and splicing, Table S4). After filtering, outlier p-values were joined to the gene-level or peak-level aggregated features by individual and region.</p>
+<h3>Training the Watershed-DL model</h3>
+<p>The Watershed-DL model was trained with exact inference using the distributed R package (https://github.com/nicolerg/WatershedR). Models were trained on region-level summarized annotations, which reduces noise during training caused by individuals carrying multiple rare variants with mixed functional status in a given region. N2-pairs, defined as two individuals with the same set of variants in a given region (gene or peak), were excluded from training and held out for evaluation. For regions where three or more individuals carry identical rare variants, annotations and outlier signals were averaged across individuals prior to training. The default Dirichlet prior (C = 10) and a standardized L2 penalty (λ = 0.001) were used for all models and outlier signals. Models were trained until convergence, defined as a change of less than 1 x 10 -8 between iterations. To assess the impact of S2O annotations and multi-omic outliers in Watershed-DL, two baseline models were also trained: a Watershed model without S2O predictions, and a genome annotation model without outlier signals.</p>
+<h3>Validation on variant-matched pairs</h3>
+<p>Following previous Watershed work 15, [23] [24] [25] , performance was evaluated on held-out N2 pairs. For each pair, posterior probabilities were computed for one individual using their variant annotations and outlier status, and this posterior was used to predict the outlier status of the second individual. This approach provides an unbiased proxy of model performance when true functional status is unobserved. Performance was summarized as the area under the precision-recall curve across posterior thresholds.</p>
+<h3>Imputation at the variant level</h3>
+<p>After training, posterior probabilities were computed across all individuals and variants within each cohort, resulting in 1 prediction per individual, gene, and variant. In the 1KG, variants were considered prioritized if they had PP ≥ 0.6, following prior work 25 , and were carried by at least one individual with an outlier in the assigned gene or peak (|p| &lt; 0.0027).</p>
+<h3>Identification of candidate recessive disease alleles in the 1KG</h3>
+<p>To identify candidate recessive disease alleles, prioritized variants were restricted to recessive disease genes curated from ClinGen, OMIM, and ACMG. ClinGen genes were defined as those with a haploinsufficiency score of 30 (gene associated with autosomal recessive phenotype) in the ClinGen Dosage Sensitivity curation list (accessed September 9, 2026) 75 . OMIM genes were defined as those with at least one phenotype annotated with autosomal recessive inheritance in the OMIM genemap2 file (accessed September 2, 2023) 76 . ACMG genes were defined as those with autosomal recessive inheritance in the ACMG Secondary Findings list (v3.3) 77.</p>
+<p>Within these genes, prioritized variants were compared with pathogenic or likely pathogenic (P/LP) variants in ClinVar. Variants already classified as P/LP or as benign or likely benign in ClinVar were excluded, as were variants observed in a homozygous state in gnomAD (v4.1). Variants absent from gnomAD were retained. For each remaining variant, the direction of effect was defined as the sign of its mean outlier z-score across carriers. Each variant was then matched to ClinVar P/LP variants using three criteria: (1) concordant outlier match, in which a P/LP variant in the same gene was also prioritized in 1KG and its carriers showed outliers in the same direction; (2) LoF match, in which the variant was prioritized for an underexpression outlier and the gene contained at least one P/LP nonsense or frameshift variant; and (3) CNV match, in which a P/LP CNV overlapped the gene, with copy number gains matched to overexpression outliers and losses matched to underexpression outliers. Variants could satisfy more than one criterion. For analyses requiring a single match type per variant, matches were prioritized as follows: concordant outlier &gt; CNV &gt; LoF. All matches are reported in Table S5.</p>
+<h3>Watershed-DL analysis in GREGoR rare disease cohort Assigning variants to genes</h3>
+<p>To match variant annotations to gene-level and peak-level outlier signals, variants were first assigned to genes using GENCODE (v47) annotations, and genes were filtered to protein-coding genes. For expression outliers, variants were assigned to a gene if they fell within a 10kb window around the gene body as described in the 1KG. VEP consequences were filtered to the annotated GENCODE gene, and S2O predictions linked to a specific gene were filtered to the assigned gene were available, and averaged across genes where a match was unavailable. For training and evaluation, annotations were summarized across all variants assigned to a given individual-gene pair using the minimum or maximum so that the most severe annotation was retained (Table S3). After training, variant-level posterior probabilities were computed as described for the 1KG.</p>
+<h3>Watershed-DL model training and variant scoring</h3>
+<p>For Watershed-DL training and variant scoring in the GREGoR cohort, the GREGoR U15 joint-called VCFs were downloaded from AnVIL (release U15, accession phs003047.v5.p4) 26 . Among samples in the VCF, 677 overlapped with the U15 RNA-seq data. Following the protocol described for 1KG, global outlier individuals (σ &gt;1.5) and individuals carrying no outliers were removed from the training data (Table S4). Expression outliers were defined as |p| &lt; 0.0027, and Watershed-DL was trained using the default Dirichlet prior of C = 10 and an L2 penalty of λ = 0.001. N2 pairs were held out during training and AUPRC was evaluated on this held-out set. After training, variant-level posterior probabilities were computed over variant-gene pairs in all individuals, excluding global outliers and individuals with no outliers. For variant-level scoring, a higher outlier threshold of |p| &lt; 0.01 was used to increase sensitivity to sub-threshold outliers in disease-relevant genes.</p>
+<h3>Candidate variants in conserved and disease-relevant genes</h3>
+<p>To assess disease relevance for prioritized variants, known disease genes were annotated using OMIM 76 , filtering to genes where at least one phenotype has a known molecular basis.</p>
+<h3>Genes were matched to prioritized variant-gene pairs by Ensembl gene ID.</h3>
+<p>Patient phenotype relevance was assessed by annotating prioritized variants with each proband&#x27;s HPO terms from the GREGoR U14 phenotype table, downloaded from AnVIL. For each prioritized variant-gene pair, the proband&#x27;s HPO terms were matched to HPO terms annotated to the gene using the pyhpo library (v4.0.0; https://pypi.org/project/pyhpo/), including both direct matches and descendant terms. Gene symbols in the HPO database were mapped to Ensembl gene IDs using HGNC.</p>
+<p>Prioritized variant-gene pairs were also annotated with loss-of-function tolerance using the gnomAD (v2.1.1) loss-of-function observed/expected upper bound fraction (LOEUF) 1 , with genes with LOEUF ≤ 0.45 considered loss-of-function intolerant. https://www.internationalgenome.org/data-portal/data-collection/30x-grch38. RNA-seq and sr-WGS data from GREGoR are available in AnVIL (release U15, accession phs003047.v5.p4). Disclosures S.B.M. is an advisor to BridgeBio, MyOme and PhiTech. S.B. is an employee of Ambry Genetics, a Tempus AI company and shareholder in Tempus AI.</p>
+<h3>Acknowledgments</h3>
+<p>We thank the participants and families of the GREGoR Consortium and the 1000 Genomes Project for their contributions to this research. J.L. and T.M.A. were supported by the National Science Foundation Graduate Research Fellowship Program under Grant No. DGE-2146755. V.R. was supported by the National Human Genome Research Institute of the National Institutes of Health under training grant T32HG000044. The GREGoR Consortium is funded by the National Human Genome Research Institute of the National Institutes of Health, through the following grants: U01HG011744, U01HG011745, U01HG011755, U01HG011758, U01HG011762, and U24HG011746. The content is solely the responsibility of the authors and does not necessarily represent the official views of the National Institutes of Health. Computing for this project was performed on the Stanford SCG Bioinformatics Cluster (RRID:SCR_026876), owned by the Stanford Genomics Bioinformatics Service Center (RRID:SCR_023340) and operated by Stanford Research Computing (RRID:SCR_023413).</p>
+<h3>Data and code availability</h3>
+<p>Code for Watershed-DL is being made available at https://github.com/e-271/Watershed-DL. Watershed-DL posteriors for the 1000 Genomes Project and GREGoR samples are being made available on Zenodo (DOI: 10.5281/zenodo.23426012). RNA-seq and ATAC-seq data from AFGR are available on ENCODE at https://www.encodeproject.org/search/?searchTerm=AFGR&amp;type=Experiment. RNA-seq data from MAGE are available from the SRA under accession PRJNA851328. ATAC-seq data from the GBR population are available from the ENA under accession ERP110508.30X sr-WGS genotypes for 1000 Genomes samples are available from the IGSR at</p>
+<h3>Prioritization of previously curated variants</h3>
+<p>To analyze Watershed-DL prioritization of previously curated variants, the GREGoR Genetics Findings table (version U15) was downloaded from AnVIL. Variant-gene pairs scored in probands were matched to curated variants based on the variant position, alternate allele, and Ensembl gene ID.</p>
+<p>To assess recovery of diagnostic variants in solved probands, curated findings were restricted to probands marked as Solved. For probands with findings in more than one gene, only genes with the strongest phenotype contribution were retained, ranked as Full &gt; Partial &gt; Uncertain. Multiple genes were retained only for probands with more than one gene marked as Partial and no gene marked Full. For findings annotated as autosomal recessive, probands were required to carry a homozygous or hemizygous variant, or at least two heterozygous variants in the annotated gene.</p>
+<h3>Inheritance filtering criteria</h3>
+<p>Prioritized variants were evaluated for family segregation and phase under several inheritance models: autosomal dominant, autosomal recessive (homozygous and compound heterozygous), and X-linked recessive (homozygous, hemizygous, and compound heterozygous) (Table S6). Genotypes for probands and sequenced relatives were extracted from the GREGoR joint-called VCF (version U15) using bcftools (v1.21) 58 , and the sex and affected status of relatives were obtained from the GREGoR Participant table (version U14). Population-level allele frequencies for all ancestry groups, homozygote counts, and hemizygote counts were extracted from gnomAD (v4.1). Population-level allele frequency and homozygote count was downloaded from the All of Us (AoU) public data browser. Variants absent from either resource were assigned an allele count of 0. Under the autosomal dominant model, variants were required to have an allele frequency ≤ 1 x 10 -6 in both gnomAD and AoU. Under recessive models, variants were required to have no homozygotes in gnomAD or AoU, and, for X-linked inheritance, allele frequency ≤ 1 x 10 -6 among males in gnomAD. Variant segregation was assessed based on the affected status, genotype, and sex of each sequenced relative. Relatives with unknown affected status were excluded from filtering criteria. For compound heterozygous variants, phase was considered confirmed when each parent carried exactly one of the two variants. Variants with no testable relatives were retained if they passed population-level allele frequency and count criteria, but were labeled as lacking family genotypes.</p>
+<h3>Supplementary Materials</h3>
+<p>Figure S1: Sample-sample correlations before and after correction for confounders. Heatmaps show pairwise Spearman correlations between samples, computed on the following values for each outlier signal. Expression: centered and scaled log TPM for genes with TPM ≥0.1 in at least 20% of samples, before and after correction for known and hidden factors. Splicing: Intron Jaccard Index for the 15,000 most variable junctions, before and after FRASER 2.0 autoencoder correction. ASE: centered and scaled allelic log2 fold change, before and after correction for known and hidden factors. Chromatin accessibility: centered and scaled log CPM for the 15,000 most variable peaks before correction, and log2 fold change after EpiOut autoencoder correction. Samples corresponding to the same donor from AFGR and MAGE were excluded from visualization.</p>
+<h3>Cohort</h3>
+<p>Outlier signal P-value threshold Max outlier standard deviation Max outliers per individual Global outlier individuals removed Zero-outlier individuals removed 1KG Expression 0.0027 1.5 222 59 0 1KG Splicing 0.0027 2 83 60 0 1KG ASE 0.0027 2 77 19 7 1KG ATAC 0.0027 1.5 1067 16 2 GREGoR Expression 0.0027 1.5 131 79 3</p>
+<p>Table S4: Watershed-DL outlier p-value thresholds and global outlier criteria.</p>
+<h3>Figure 1 :</h3>
+<p>Figure 1: Multi-omics outlier discovery and rare variant functional stratification. a) Study design and Watershed-DL framework. Molecular outliers were identified in 1KG and GREGoR samples with 30X sr-WGS and matched RNA-seq and/or ATAC-seq, and rare variants (RVs) were annotated with nine S2O models. b) Molecular outliers per individual in the 1KG, by outlier signal. c) Pairwise enrichment of outlier signals in the 1KG, shown as the relative risk (RR) of an outlier in one molecular phenotype given an outlier in another. Transcriptomic outliers were identified in 1,030 donors with sr-WGS and RNA-seq, and caOutliers in 111 donors with sr-WGS, RNA-seq, and ATAC-seq. d) RR of RVs within 10 kb of genes with eOutliers, aseOutliers, or sOutliers, or within caOutlier peaks, across |z| thresholds. e) RR of RVs by Ensembl Variant Effect Predictor (VEP) consequence across outlier signals. Outliers were assigned to the most consequential nearby rare variant. caOutliers were excluded as variants are not annotated with respect to a specific gene. f) RR of an outlier among RVs with S2O predictions above the indicated quantile, for each molecular phenotype and its matched model. g) Enrichment of S2O-prioritized RVs across outlier signals. Thresholds use absolute scores unless noted: APARENT2 ≥ 1.45, ChromBPNet ≥ 0.5, ESM-1v ≤ -7.5 (signed), Flashzoi (RNA) ≥ 0.2, Pangolin ≥ 0.2, PrimateAI ≥ 0.8, PromoterAI ≥ 0.5, SpliceAI ≥ 0.2, and AlphaMissense ≥ 0.564 (likely pathogenic).</p>
+<h3>Figure 2 :</h3>
+<p>Figure 2: S2O integration and rare variant prioritization performance. a) Precision-recall curves for Watershed-DL (solid lines) compared to Watershed model without S2O predictions (dashed lines). b) Number of prioritized variants for each outlier signal at posterior probability ≥0.6. Prioritized variants were filtered to those with at least one outlier carrier. c) Number of prioritized variants from Watershed-DL that are shared across multiple outlier signals. d) Edge weights (ϕ) connecting latent functional variables (Z) representing shared weights between outlier signals in the Watershed-DL model. e) Edge weights (θ) connecting genomic annotation features (G) to latent regulatory variables (Z) in each outlier signal, ranked by absolute Theta value representing relative informativeness. The top 30 informative annotations are shown for each outlier signal.</p>
+<h3>Figure 3 :</h3>
+<p>Figure 3: Clinical relevance and population specificity of prioritized rare variants in the 1KG. a) ClinVar representation among Watershed-DL prioritized variants. Inset: ClinVar classifications of prioritized vs. non-prioritized variants in the expression model. b) Enrichment of ClinVar classifications at prioritized vs. non-prioritized variants for Watershed-DL and the baseline Watershed model model without S2O predictions. c) ClinVar enrichment among prioritized variants by ancestry group (chromatin accessibility excluded due to incomplete ancestry representation). d) Nomination of candidate pathogenic variants in recessive disease genes by matching to ClinVar P/LP variants with concordant molecular effects. e) Candidate variants per matching strategy (concordant outlier, LoF, CNV) and known P/LP variants. f) Population specificity of prioritized variants across 30X sr-WGS 1KG samples (singleton, single population, single ancestry group, or multiple ancestry groups), stratified by known P/LP, candidate (panel D), or neither. g) Prioritized variants at the ATM locus with ClinVar classifications.</p>
+<h3>Figure 4 :</h3>
+<p>Figure 4: Prioritization of causal and candidate variants in GREGoR probands. a) Overlap of GREGoR individuals with whole blood RNA-seq and 30X sr-WGS. b) Number of Watershed-DL prioritized variants in probands (PP ≥ 0.45), with filters to clinically relevant categories: OMIM disease genes, constrained genes (LOEUF ≤ 0.45), genes matching patient HPO terms, and prior curation. c) Watershed-DL posterior probabilities for 24 diagnostic variants in solved GREGoR probands, stratified by variant consequence, with shape indicating eOutlier status. Cutouts: Two prioritized compound heterozygous variants in a solved proband in COQ4, with S2O features, expression outlier z-scores, and Watershed-DL scores ranked across all scored variants for COQ4. d) Variants prioritized by Watershed-DL in GREGoR probands filtered by inheritance and zygosity criteria, and colored by phenotype segregation status. &quot;Phase confirmed&quot; indicates both parents were genotyped, and alleles were inherited in trans. &quot;Segregates&quot;indicates that the variant segregates with affected status in at least one family member. &quot;No family genotype&quot; indicates that no family members were sequenced. e) RNA-seq coverage at ATP5PF in an unsolved GREGoR proband carrying a Watershed-DL prioritized homozygous 5′ UTR variant. Coverage is shown for the proband, both heterozygous carrier parents, and an unrelated control.</p>
+<h3>Figure S2 :</h3>
+<p>Figure S2: Overlap of samples with RNA-seq, ATAC-seq, and 30X sr-WGS in the 1KG. Upset plot showing the overlap of samples with 30X sr-WGS, RNA-seq, and ATAC-seq in the 1KG. 1,030 samples with sr-WGS and RNA-seq were included in the Watershed-DL model. 174 samples with sr-WGS and ATAC-seq were included in the ATAC only model.</p>
+<h3>Figure S3 :</h3>
+<p>Figure S3: Comparison of precision-recall performance between Watershed-DL and genome annotation model with S2O predictions (GAM-DL). Precision-recall curves on held-out N2 pairs comparing Watershed-DL (solid lines) to a genome annotation model with S2O predictions (dashed lines) across outlier signals in the 1KG.</p>
+<h3>Figure S4 :</h3>
+<p>Figure S4: Edge weights connecting genomic annotation features (G) to latent regulatory variables (Z) in the Watershed model without S2O predictions. For each outlier signal, features are ranked by |θ| value representing relative feature informativeness. The top 30 most informative annotations are shown.</p>
+<h3>Figure S5 :</h3>
+<p>Figure S5: Disease gene overlap and ancestry distribution of Watershed-DL prioritized variants. a) Number of Watershed-DL prioritized variants in genes belonging to recessive disease gene sets from OMIM, ClinGen, and ACMG. b) Ancestry group distribution of prioritized variants from Watershed-DL. Points indicate expected counts based on sample size relative to AFR.</p>
+<h3>Figure S6 :</h3>
+<p>Figure S6: Watershed-DL benchmarks in the GREGoR cohort. a) Precision-recall curves for Watershed-DL (solid line) and a genome annotation model with S2O predictions (GAM-DL) (dashed line) in the GREGoR cohort. b) Edge weights connecting genomic annotation features (G) to the expression latent variable (Z) in the Watershed-DL model trained on GREGoR, ranked by |θ| value. The top 30 most informative annotations are shown.</p>
+<h3>Figure S7 :</h3>
+<p>Figure S7: Splicing effect at PPP1R12A in a previously undiagnosed proband with semilobar holoprosencephaly. a) Pedigree showing PPP1R12A variant segregation. The variant is present in the affected proband and absent in the mother; the father is unavailable for testing. b) Sashimi plots of RNA-seq read coverage across PPP1R12A in the proband, the proband&#x27;s mother, and an unrelated control. The proband has a junction that skips exon 5, which was also detected at low levels (~2% of reads) in the proband&#x27;s mother.</p>
+<h3>References</h3>
+<p>Karczewski, K. J. et al. The mutational constraint spectrum quantified from variation in 141,456 humans. Nature 581, 434-443 (2020).</p>
+<p>Wainschtein, P. et al. Assessing the contribution of rare variants to complex trait heritability from whole-genome sequence data. Nature Genetics 54, 263-273 (2022).</p>
+<p>Wainschtein, P. et al. Estimation and mapping of the missing heritability of human phenotypes. Nature 1-9 (2025).</p>
+<p>Avsec, Ž. et al. Effective gene expression prediction from sequence by integrating long-range interactions. Nature Methods 18, 1196-1203 (2021).</p>
+<p>Linder, J., Srivastava, D., Yuan, H., Agarwal, V. &amp; Kelley, D. R. Predicting RNA-seq coverage from DNA sequence as a unifying model of gene regulation. Nature Genetics 57, 949-961 (2025).</p>
+<p>Jaganathan, K. et al. Predicting expression-altering promoter mutations with deep learning. Science 389, eads7373 (2025).</p>
+<p>Pampari, A. et al. ChromBPNet: bias factorized, base-resolution deep learning models of chromatin accessibility reveal cis-regulatory sequence syntax, transcription factor footprints and regulatory variants. bioRxiv (2025) doi:10.1101/2024.12.25.630221.</p>
+<p>Predicting Splicing from Primary Sequence with Deep Learning. Cell 176, 535-548.e24 (2019).</p>
+<p>Zeng, T. &amp; Li, Y. I. Predicting RNA splicing from DNA sequence using Pangolin. Genome Biology 23, 103 (2022).</p>
+<p>Linder, J., Koplik, S. E., Kundaje, A. &amp; Seelig, G. Deciphering the impact of genetic variation on human polyadenylation using APARENT2. Genome Biology 23, 232 (2022).</p>
+<p>Meier, J. et al. Language models enable zero-shot prediction of the effects of mutations on protein function. Advances in Neural Information Processing Systems 34, 29287-29303 (2021).</p>
+<p>Sundaram, L. et al. Predicting the clinical impact of human mutation with deep neural networks. Nature Genetics 50, 1161-1170 (2018).</p>
+<p>Cheng, J. et al. Accurate proteome-wide missense variant effect prediction with AlphaMissense. Science https://doi.org/10.1126/science.adg7492 (2023) doi:10.1126/science.adg7492.</p>
+<p>Huang, C. et al. Personal transcriptome variation is poorly explained by current genomic deep learning models. Nature Genetics 55, 2056-2059 (2023).</p>
+<p>Ferraro, N. M. et al. Transcriptomic signatures across human tissues identify functional rare genetic variation. Science 369, (2020).</p>
+<p>Li, X. et al. The impact of rare variation on gene expression across tissues. Nature 550, 239-243 (2017).</p>
+<p>Zeng, Y. et al. Aberrant Gene Expression in Humans. PLOS Genetics 11, e1004942 (2015).</p>
+<p>Cummings, B. B. et al. Improving genetic diagnosis in Mendelian disease with transcriptome sequencing. Science Translational Medicine https://doi.org/10.1126/scitranslmed.aal5209 (2017) doi:10.1126/scitranslmed.aal5209.</p>
+<p>Frésard, L. et al. Identification of rare-disease genes using blood transcriptome sequencing and large control cohorts. Nature Medicine 25, 911-919 (2019).</p>
+<p>Yépez, V. A. et al. Clinical implementation of RNA sequencing for Mendelian disease diagnostics. Genome Medicine 14, 38 (2022).</p>
+<p>Brechtmann, F. et al. OUTRIDER: A Statistical Method for Detecting Aberrantly Expressed Genes in RNA Sequencing Data. Am J Hum Genet 103, 907-917 (2018).</p>
+<p>Scheller, I. F., Lutz, K., Mertes, C., Yépez, V. A. &amp; Gagneur, J. Improved detection of aberrant splicing with FRASER 2.0 and the intron Jaccard index. American journal of human genetics 110, (2023).</p>
+<p>The functional impact of rare variation across the regulatory cascade. Cell Genomics 3, 100401 (2023).</p>
+<p>Zou, X. et al. Impact of rare non-coding variants on human diseases through alternative polyadenylation outliers. Nature Communications 16, 1-17 (2025).</p>
+<p>Jensen, T. D. et al. Integration of transcriptomics and long-read genomics prioritizes structural variants in rare disease. Genome Res 35, 914-928 (2025).</p>
+<p>Dawood, M. et al. GREGoR: accelerating genomics for rare diseases. Nature 647, 331-342 (2025).</p>
+<p>Hingerl, J. C., Karollus, A. &amp; Gagneur, J. Flashzoi: an enhanced Borzoi for accelerated genomic analysis. Bioinformatics 41, btaf467 (2025).</p>
+<p>DeGorter, M. K. et al. Transcriptomics and chromatin accessibility in multiple African population samples. bioRxiv (2023) doi:10.1101/2023.11.04.564839.</p>
+<p>Taylor, D. J. et al. Sources of gene expression variation in a globally diverse human cohort. Nature 632, (2024).</p>
+<p>Kumasaka, N., Knights, A. J. &amp; Gaffney, D. J. High-resolution genetic mapping of putative causal interactions between regions of open chromatin. Nat Genet 51, 128-137 (2019).</p>
+<p>Ellingford, J. M. et al. Recommendations for clinical interpretation of variants found in non-coding regions of the genome. Genome Medicine 14, 73 (2022).</p>
+<p>Smirnov, D., Schlieben, L. D., Peymani, F., Berutti, R. &amp; Prokisch, H. Guidelines for clinical interpretation of variant pathogenicity using RNA phenotypes. Human Mutation 43, 1056-1070 (2022).</p>
+<p>Popejoy, A. B. et al. The clinical imperative for inclusivity: Race, ethnicity, and ancestry (REA) in genomics. Hum Mutat 39, 1713-1720 (2018).</p>
+<p>Richardson, M. E. et al. Specifications of the ACMG/AMP variant curation guidelines for the analysis of germline ATM sequence variants. Am J Hum Genet 113, 1123 (2026).</p>
+<p>Pitsava, G. et al. Genome sequencing reveals the impact of pseudoexons in rare genetic disease. Genet Med 27, 101574 (2025).</p>
+<p>Heavner, B. D. et al. Building an Interoperable Rare Disease Multi-omic Resource: The GREGoR Data Model and Dataset. bioRxiv (2026) doi:10.64898/2026.05.15.725546.</p>
+<p>Hughes, J. J. et al. Loss-of-Function Variants in PPP1R12A: From Isolated Sex Reversal to Holoprosencephaly Spectrum and Urogenital Malformations. Am J Hum Genet 106, 121-128 (2020).</p>
+<p>Rintari, M. R. et al. Investigating the pathogenicity of missense spliceogenic variants using whole-genome sequencing, RNA-sequencing, and proteomics data from population and clinical research cohorts. medRxiv 2026.10.09.26365070 (2026) doi:10.64898/2026.10.09.26365070.</p>
+<p>Hegde, P. et al. Biallelic Loss-Of-Function Variant in ATP5ME Is Associated With Severe and Early Onset Oxidative Phosphorylation Deficiency. J Inherit Metab Dis 49, e70222 (2026).</p>
+<p>Oláhová, M. et al. Biallelic Mutations in ATP5F1D, which Encodes a Subunit of ATP Synthase, Cause a Metabolic Disorder. Am J Hum Genet 102, 494-504 (2018).</p>
+<p>Al Masseri, Z. et al. Mitochondrial Complex V Deficiency Caused by a Homozygous Splice Variant in ATP5PO. Am J Med Genet A 200, 235-243 (2026).</p>
+<p>Ganapathi, M. et al. A homozygous splice variant in ATP5PO, disrupts mitochondrial complex V function and causes Leigh syndrome in two unrelated families. J Inherit Metab Dis 45, 996-1012 (2022).</p>
+<p>Barca, E. et al. USMG5 Ashkenazi Jewish founder mutation impairs mitochondrial complex V dimerization and ATP synthesis. Hum Mol Genet 27, 3305-3312 (2018).</p>
+<p>Mayr, J. A. et al. Mitochondrial ATP synthase deficiency due to a mutation in the ATP5E gene for the F1 epsilon subunit. Hum Mol Genet 19, 3430-3439 (2010).</p>
+<p>Jonckheere, A. I. et al. A complex V ATP5A1 defect causes fatal neonatal mitochondrial encephalopathy. Brain 136, 1544-1554 (2013).</p>
+<p>Goyon, V. et al. Yeast cells depleted in Atp14p fail to assemble Atp6p within the ATP synthase and exhibit altered mitochondrial cristae morphology. J Biol Chem 283, 9749-9758 (2008).</p>
+<p>Arselin, G., Vaillier, J., Graves, P. V. &amp; Velours, J. ATP synthase of yeast mitochondria. Isolation of the subunit h and disruption of the ATP14 gene. J Biol Chem 271, 20284-20290 (1996).</p>
+<p>Martin, M. Cutadapt removes adapter sequences from high-throughput sequencing reads. EMBnet.journal 17, 10-12 (2011).</p>
+<p>Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25, 2078-2079 (2009).</p>
+<p>Church, D. M. et al. Modernizing Reference Genome Assemblies. PLOS Biology 9, e1001091 (2011).</p>
+<p>Schneider, V. A. et al. Evaluation of GRCh38 and de novo haploid genome assemblies demonstrates the enduring quality of the reference assembly. Genome Res 27, 849-864 (2017).</p>
+<p>Andrews, S. (2010) FastQC A Quality Control Tool for High Throughput Sequence Data. - References -Scientific Research Publishing. https://www.scirp.org/reference/referencespapers?referenceid=4024153.</p>
+<p>Shen, W., Le, S., Li, Y. &amp; Hu, F. SeqKit: A Cross-Platform and Ultrafast Toolkit for FASTA/Q File Manipulation. PLOS ONE 11, e0163962 (2016).</p>
+<p>Dobin, A. et al. STAR: ultrafast universal RNA-seq aligner. Bioinformatics 29, 15-21 (2013).</p>
+<p>Dyer, S. C. et al. Ensembl 2025. Nucleic Acids Res 53, D948-D957 (2025).</p>
+<p>Jeong, R. &amp; Bulyk, M. L. Chromatin accessibility variation provides insights into missing regulation underlying immune-mediated diseases. bioRxiv (2025) doi:10.1101/2024.04.12.589213.</p>
+<p>High-coverage whole-genome sequencing of the expanded 1000 Genomes Project cohort including 602 trios. Cell 185, 3426-3440.e19 (2022).</p>
+<p>Danecek, P. et al. Twelve years of SAMtools and BCFtools. GigaScience 10, (2021).</p>
+<p>Chang, C. C. et al. Second-generation PLINK: rising to the challenge of larger and richer datasets. GigaScience 4, (2015).</p>
+<p>Website. Meyer H. V. plinkQC: Genotype quality control in genetic association studies. Zenodohttps://doi.org/10.5281/zenodo.3934294 (2020).</p>
+<p>Graubert, A., Aguet, F., Ravi, A., Ardlie, K. G. &amp; Getz, G. RNA-SeQC 2: efficient RNA-seq quality control and quantification for large cohorts. Bioinformatics (Oxford, England) 37, (2021).</p>
+<p>Langfelder, P. &amp; Horvath, S. WGCNA: an R package for weighted correlation network analysis. BMC Bioinformatics 9, 559 (2008).</p>
+<p>Kevin Blighe, Anna-Leigh Brown, Vincent Carey, Guido Hooiveld, Aaron Lun. PCAtools. (Bioconductor, 2019). doi:10.18129/B9.BIOC.PCATOOLS.</p>
+<p>Trevor Hastie, Robert Tibshirani, Balasubramanian Narasimhan, Gilbert Chu. Impute. (Bioconductor, 2017). doi:10.18129/B9.BIOC.IMPUTE.</p>
+<p>Castel, S. E., Mohammadi, P., Chung, W. K., Shen, Y. &amp; Lappalainen, T. Rare variant phasing and haplotypic expression from RNA sequencing with phASER. Nature Communications 7, 1-6 (2016).</p>
+<p>Yépez, V. A. et al. Detection of aberrant gene expression events in RNA sequencing data. Nature Protocols 16, 1276-1296 (2021).</p>
+<p>Çelik, M. H. et al. Identifying dysregulated regions in amyotrophic lateral sclerosis through chromatin accessibility outliers. HGG advances 5, (2024).</p>
+<p>Guez, J. et al. Integrating 730,947 exome sequences with clinical literature improves gene discovery. medRxiv (2026) doi:10.64898/2026.03.23.26349081.</p>
+<p>McLaren, W. et al. The Ensembl Variant Effect Predictor. Genome Biology 17, 122 (2016).</p>
+<p>Zhang, X., Wakeling, M., Ware, J. &amp; Whiffin, N. Annotating high-impact 5&#x27;untranslated region variants with the UTRannotator. Bioinformatics 37, 1171-1173 (2021).</p>
+<p>Wang, R., Nambiar, R., Zheng, D. &amp; Tian, B. PolyA_DB 3 catalogs cleavage and polyadenylation sites identified by deep sequencing in multiple genomes. Nucleic Acids Res 46, D315-D319 (2018).</p>
+<p>Wang, R., Zheng, D., Yehia, G. &amp; Tian, B. A compendium of conserved cleavage and polyadenylation events in mammalian genes. Genome Res 28, 1427-1441 (2018).</p>
+<p>Lawrence, M., Gentleman, R. &amp; Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25, 1841-1842 (2009).</p>
+<p>Schubach, M., Maass, T., Nazaretyan, L., Röner, S. &amp; Kircher, M. CADD v1.7: using protein language models, regulatory CNNs and other nucleotide-level scores to improve genome-wide variant predictions. Nucleic Acids Res 52, D1143-D1154 (2024).</p>
+<p>Rehm, H. L. et al. ClinGen -The Clinical Genome Resource. https://doi.org/10.1056/NEJMsr1406261 (2015) doi:10.1056/NEJMsr1406261.</p>
+<p>Amberger, J. S., Bocchini, C. A., Scott, A. F. &amp; Hamosh, A. OMIM.org: leveraging knowledge across phenotype-gene relationships. Nucleic Acids Res 47, D1038-D1043 (2019).</p>
+<p>Lee, K. et al. ACMG SF v3.3 list for reporting of secondary findings in clinical exome and genome sequencing: A policy statement of the American College of Medical Genetics and Genomics (ACMG). Genet Med 27, 101454 (2025).</p>
+</div>
+</details>
+</div>
+</div>
+<footer>
+<p>
+If there are things we can improve, please email us at
+<a href="mailto:metacheck@scienceverse.org">metacheck@scienceverse.org</a>
+or leave an issue at
+<a href="https://github.com/scienceverse/metacheck/issues">github.com/scienceverse/metacheck/issues</a>.
+</p>
+</footer>
+
+
+
+<!-- code folding -->
+
+
+
+</body>
+</html>
