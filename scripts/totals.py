@@ -137,6 +137,110 @@ def r3(x):
     return None if x is None else round(x, 4)
 
 
+# The age of each preprint's sample, from the data check's summary of each
+# column (its mean, minimum and maximum; the values themselves are not
+# stored). The same words as in scripts/extract_files.py mark a column that
+# is not the participants' age: someone else's age, a summary (a mean, an SD,
+# a z score), an age group, a centred or estimated age.
+AGE_NOT = set("""parent parents mother father mom mum dad caregiver guardian partner spouse sibling
+siblings dog pet target stim stimulus face model actor voice speaker experimenter confederate rater
+coder author interviewer avatar character vignette agent robot sd mean avg average z zscore std se
+scaled scale centered centred c cent pct percent prop proportion n count total min max range median
+sq squared log diff difference group grp cat category bin band bracket onset first premier est
+estimate estimated guess perceived felt subjective discrepancy acquisition aoa cohort wave lag
+diagnosis lower upper bound residual resid text other birth yob born""".split())
+
+
+# a preprint about animals (its title): their ages and sexes are not those of
+# people; and a sample with a mean age under CHILD_AGE counts only when the
+# title or abstract speaks of children (otherwise the "ages" are mostly codes
+# of age bands: 1 = 18-24, 2 = 25-34, ...). Also in extract_files.py.
+ANIMALS = re.compile(r"\b(dogs?|canines?|cats?|felines?|mice|mouse|rats?|rodents?|primates?|monkeys?|macaques?|"
+                     r"chimpanzees?|apes|birds?|fish|species|animals?|horses?|pigs?|cows?|cattle|sheep)\b", re.I)
+CHILDREN = re.compile(r"\b(child|children|childhood|kids?|infants?|infancy|toddlers?|preschool\w*|kindergarten\w*|"
+                      r"pupils?|school.?aged?|adolescen\w*|youths?|teens?|teenagers?|boys|girls|"
+                      r"\w+.months?.olds?|\w+.years?.olds?|grades?|developmental)\b", re.I)
+CHILD_AGE = 16
+# a paper that gives ages in months: a column named just "age" with a mean of
+# 6 to 72 can then be months of young children or years of adults (parents of
+# 18-month-olds are about 30 as well), so it is left out. Also in extract_files.py.
+MONTHS_IN_TEXT = re.compile(r"\d\s*(-|–|to)?\s*\d*\s*-?\s*months?[- ]olds?\b|months? of age|age in months|"
+                            r"aged \d+\s*(-|–|to)\s*\d+\s*months", re.I)
+
+
+def title_abstract(result, title):
+    paper = result.get("paper") or {}
+    abstract = {s.get("section_id") for s in paper.get("section") or [] if s.get("section_type") == "abstract"}
+    return " ".join([str(title or "")] + [str(t.get("text") or "") for t in paper.get("text") or []
+                                          if t.get("section_id") in abstract])
+
+
+def age_words(name):
+    name = re.sub(r"\.\.\.\d+$", "", str(name or ""))
+    name = re.sub(r"([a-z])([A-Z])", r"\1_\2", name)
+    return [w for w in re.split(r"[^a-z0-9]+", name.lower()) if w]
+
+
+def sample_age(result, title):
+    # the sample's age in one preprint: per study group (the data check's
+    # `group`), the age column with the most distinct values; the preprint's
+    # mean is the average of its groups' means, its youngest and oldest
+    # those of all groups. Ages in months (by the column's name) are turned
+    # into years. A file with one person in it has the same age in every row
+    # and no summary: the ages of such files in one folder are taken
+    # together, from the example values. None when there is no age column,
+    # for animals, and for a young "sample" in a preprint that does not speak
+    # of children (see CHILDREN).
+    if ANIMALS.search(str(title or "")):
+        return None
+    groups = collections.defaultdict(list)
+    single = collections.defaultdict(list)
+    months_in_text = None
+    for r in table(result, "data_check"):
+        if r.get("concept") != "age":
+            continue
+        ws = age_words(r.get("column_name"))
+        if set(ws) & AGE_NOT:
+            continue
+        j = "_".join(ws)
+        months = bool(re.search(r"month|mnth|(^|_)mos(_|$)|(^|_)m$|^agem$", j))
+        div = 12 if months else 1
+        mean, lo, hi = num(r.get("mean")), num(r.get("min")), num(r.get("max"))
+        if mean is None and r.get("n_unique") == 1:
+            v = num(str(r.get("sample_values") or "").split("|")[0].strip())
+            if v is not None:
+                folder = os.path.dirname(str(r.get("source_file") or ""))
+                single[(r.get("group"), folder, j)].append(v / div)
+            continue
+        if mean is None or lo is None or hi is None:
+            continue
+        named_years = re.search(r"year|(^|_)(yrs?|y|jaar|jahre|ans)(_|$)|^age_?y", j)
+        if not months and not named_years and 6 <= mean <= 72:
+            if months_in_text is None:
+                months_in_text = bool(MONTHS_IN_TEXT.search(json.dumps(result.get("paper") or {}, ensure_ascii=False)))
+            if months_in_text:
+                continue
+        mean, lo, hi = mean / div, lo / div, hi / div
+        if lo < 0 or hi > 110 or not 0.1 <= mean <= 100:
+            continue
+        groups[r.get("group")].append({"mean": mean, "min": lo, "max": hi,
+                                       "k": num(r.get("n_unique")) or 0, "months": months})
+    for (group, _, _), vals in single.items():
+        vals = [v for v in vals if 0 < v <= 110]
+        if len(vals) >= 3:
+            groups[group].append({"mean": sum(vals) / len(vals), "min": min(vals), "max": max(vals),
+                                  "k": len(set(vals)), "months": False})
+    chosen = [max(cols, key=lambda c: c["k"]) for cols in groups.values() if cols]
+    if not chosen:
+        return None
+    mean = sum(c["mean"] for c in chosen) / len(chosen)
+    if mean < CHILD_AGE and not CHILDREN.search(title_abstract(result, title)):
+        return None
+    return {"mean": round(mean, 1),
+            "min": round(min(c["min"] for c in chosen), 1), "max": round(max(c["max"] for c in chosen), 1),
+            "groups": len(chosen), "months": any(c["months"] for c in chosen)}
+
+
 def paper_row(i, item, result, acc):
     # one preprint: its counts and lights; adds its lists to acc
     pre = result.get("preprint") or {}
@@ -452,10 +556,19 @@ def main():
 
     # only the results that are current (update.py, is_current()): those made
     # with an earlier metacheck are left out until they have been checked again
+    # the age of the samples comes from every result, also the older ones
+    # (Daniel, 27 November 2026), but from one version of each preprint: the newest
     results, not_current = [], 0
+    samples = {}
     for item in index:
         result = load_result(os.path.join(data_dir, "papers"), item["id"])
         if result is not None:
+            base = item.get("base_id") or item["id"].rpartition("v")[0]
+            if base not in samples or (item.get("version") or 0) > samples[base]["v"]:
+                age = sample_age(result, item.get("title"))
+                samples[base] = {"v": item.get("version") or 0,
+                                 "row": dict(age, id=item["id"], t=item.get("title"),
+                                             page=bool(item.get("report_page"))) if age else None}
             if is_current(result):
                 results.append((item, result))
             else:
@@ -493,6 +606,15 @@ def main():
         "statcheck": acc["sc"],
         "power": acc["power"],
         "d_pairs": acc["d_pairs"],
+        # per preprint (newest version, any metacheck), the age of its sample
+        # from the data check's summaries (sample_age())
+        "samples": sorted((s["row"] for s in samples.values() if s["row"]), key=lambda r: r["mean"]),
+        # what psyarxiv_metacheck's scripts/extract_files.py reads from the data
+        # files themselves is left out here: medRxiv's data files are often
+        # tables of counts, registers or reused public datasets, which its
+        # rules count as people (Daniel, 28 November 2026: only the ages;
+        # metacheck issue #733)
+        "participants": None,
         "counts": {
             "section_types": top(acc["section_types"], 20),
             "domains": top(acc["domains"]),

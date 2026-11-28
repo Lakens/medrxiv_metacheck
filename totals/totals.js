@@ -1108,6 +1108,251 @@ function drawData(cards) {
 }
 function obj(pairs) { var o = {}; pairs.forEach(function (q) { o[q[0]] = q[1]; }); return o; }
 
+// each sample's youngest to oldest participant as a vertical line, with a dot
+// at its mean; samples side by side from the youngest mean to the oldest.
+// rows {mean, min, max, tip, href}
+function ranges(c, rows, o) {
+  o = o || {};
+  if (!rows.length) { c.appendChild(el("p", { class: "note" }, "Nothing to count yet.")); return; }
+  fit(c);
+  var h = o.height || 220, l = 44, r = 8, t = 10, b = 30, s = svgOf(h, o.aria);
+  var y = makeScale([0, maxOf(rows.map(function (q) { return q.max; }))], "lin", h - b, t);
+  yAxis(s, y, l, W - r, { label: o.ylabel });
+  var step = (W - l - r) / rows.length;
+  rows.forEach(function (q, k) {
+    var x = l + (k + 0.5) * step, parent = q.href ? sv("a", { href: q.href }, s) : s;
+    var g = sv("g", { "data-tip": q.tip }, parent);
+    sv("line", { x1: x, x2: x, y1: y(q.min), y2: y(q.max), stroke: C.grey, "stroke-width": Math.max(1, Math.min(3, step * 0.5)) }, g);
+    sv("circle", { cx: x, cy: y(q.mean), r: Math.max(1.5, Math.min(3.5, step * 0.6)), fill: C.s1 }, g);
+    sv("rect", { x: x - step / 2, y: t, width: step, height: h - b - t, class: "hit" }, g);
+  });
+  if (o.xlabel) txt(s, (l + W - r) / 2, h - 8, o.xlabel, { "text-anchor": "middle", "font-size": 11, class: "muted" });
+  c.appendChild(s);
+}
+
+var CATEGORY_NAME = {
+  age: "age", gender: "gender", ethnicity: "ethnicity or race", country: "country (of residence, or not said)",
+  country_birth: "country of birth", nationality: "nationality", language: "language", education: "education",
+  income: "income", handedness: "handedness", employment: "employment", student: "student or not",
+  relationship: "relationship status", sexual_orientation: "sexual orientation", politics: "political views",
+  height: "height", weight: "weight", bmi: "BMI", vision: "vision", hearing: "hearing", religion: "religion",
+  diagnosis: "diagnosis (ADHD, autism, disability)", language_background: "native speaker, bilingual, proficiency",
+  children_household: "children or household", ses_ladder: "subjective social status (ladder)", study_field: "field of study"
+};
+// a card's own title instead of "Most frequent answers: ..." (Daniel, 27 November 2026)
+var ANSWER_TITLE = { ethnicity: "Ethnicity" };
+var GENDERS = [
+  { key: "woman", label: "woman", color: C.s2 }, { key: "man", label: "man", color: C.s1 },
+  { key: "other", label: "another gender", color: C.s3 }, { key: "not given", label: "not given", color: C.grey },
+  { key: "coded", label: "a number code", color: C.mid }, { key: "unrecognised", label: "not recognised", color: C.na }
+];
+
+// the world map: countries shaded by the number of preprints with
+// participants there (each preprint once, so one large dataset does not
+// dominate), in five steps; shapes from world.json (scripts/make_world_map.py)
+var WORLD = null;
+var MAP_BINS = [[1, 1, "1 preprint"], [2, 2, "2"], [3, 4, "3–4"], [5, 9, "5–9"], [10, Infinity, "10 or more"]];
+function worldMap(box, rows, what) {
+  // rows [answer, participants, preprints], from scripts/extract_files.py
+  box.innerHTML = "";
+  if (!WORLD) { box.appendChild(el("p", { class: "note" }, "Loading the map…")); return; }
+  var by = {}, seen = {};
+  rows.forEach(function (r) { by[r[0]] = r; });
+  var colors = MAP_BINS.map(function (b, k) { return sequential(0.25 + 0.75 * k / (MAP_BINS.length - 1)); });
+  function bin(n) { for (var k = 0; k < MAP_BINS.length; k++) if (n >= MAP_BINS[k][0] && n <= MAP_BINS[k][1]) return k; return -1; }
+  legend(box, MAP_BINS.map(function (b, k) { return { label: b[2], color: colors[k] }; })
+    .concat([{ label: "none (or fewer than 5 participants)", color: C.na }]));
+  var s = sv("svg", { viewBox: "0 0 " + WORLD.w + " " + WORLD.h, role: "img", "aria-label": "World map: " + what });
+  WORLD.countries.forEach(function (c) {
+    var r = by[c.key], k = r ? bin(r[2]) : -1;
+    if (r) seen[c.key] = true;
+    sv("path", { d: c.d, fill: k >= 0 ? colors[k] : C.na, stroke: C.surface, "stroke-width": 0.6,
+                 "data-tip": "<b>" + esc(c.name) + "</b><br>" + (r ? fmt(r[2]) + " preprints, " + fmt(r[1]) + " participants"
+                                                                  : "no preprint with at least 5 participants from here") }, s);
+  });
+  box.appendChild(s);
+  var off = rows.filter(function (r) { return !seen[r[0]]; });
+  if (off.length) say(box, "Not on the map (too small at this scale, or not a country name): " + off.map(function (r) {
+    return r[0] + " (" + fmt(r[2]) + " preprints, " + fmt(r[1]) + " participants)"; }).join("; ") + ".");
+  tableView(box, ["Country", "Preprints", "Participants"], rows.map(function (r) { return [r[0], r[2], r[1]]; }));
+}
+
+// a hand with its fingers up, seen from the palm, in a box of `size`; the
+// right hand has its thumb on the right, the left hand is its mirror image
+function handIcon(parent, x, y, size, color, left) {
+  var k = size / 20;
+  var g = sv("g", { transform: left ? "translate(" + (x + size) + "," + y + ") scale(" + (-k) + "," + k + ")"
+                                    : "translate(" + x + "," + y + ") scale(" + k + ")", fill: color }, parent);
+  sv("rect", { x: 3.5, y: 9, width: 11.5, height: 10.5, rx: 3.5 }, g);
+  [[3.7, 3.2], [6.6, 1.6], [9.5, 2.2], [12.4, 4.2]].forEach(function (f) {
+    sv("rect", { x: f[0], y: f[1], width: 2.6, height: 12 - f[1], rx: 1.3 }, g);
+  });
+  // the thumb grows from the lower side of the palm, leaning outwards
+  sv("rect", { x: 12.8, y: 9.5, width: 3, height: 9, rx: 1.5, transform: "rotate(30 14.3 18.5)" }, g);
+  return g;
+}
+var HAND_KINDS = [
+  { key: "right", label: "right-handed", color: C.s1 },
+  { key: "left", label: "left-handed", color: C.s2 },
+  { key: "ambidextrous", label: "both hands", color: C.s3 }
+];
+// 100 hands, one per percent: right hands, left hands, and pairs for both
+function hands(c, shares) {
+  var pct = HAND_KINDS.map(function (h) { return 100 * (shares[h.key] || 0); });
+  // whole hands that add up to 100 (the largest remainders get the rest)
+  var n = pct.map(Math.floor), rest = 100 - sum(n);
+  pct.map(function (v, i) { return [v - Math.floor(v), i]; }).sort(function (a, b) { return b[0] - a[0]; })
+    .slice(0, rest).forEach(function (q) { n[q[1]]++; });
+  fit(c);
+  var cols = 20, cell = W / cols, rows = 5, s = svgOf(rows * cell + 4, "100 hands: " +
+    HAND_KINDS.map(function (h, i) { return n[i] + " " + h.label; }).join(", "));
+  var k = 0;
+  HAND_KINDS.forEach(function (h, i) {
+    for (var j = 0; j < n[i]; j++, k++) {
+      var x = (k % cols) * cell, y = Math.floor(k / cols) * cell + 2, size = cell * 0.9;
+      var tip = "<b>" + h.label + "</b><br>" + pct[i].toFixed(1) + "% of a preprint's participants, on average";
+      var g = sv("g", { "data-tip": tip }, s);
+      if (h.key === "ambidextrous") {
+        handIcon(g, x, y + size * 0.2, size * 0.62, h.color, true);
+        handIcon(g, x + size * 0.38, y + size * 0.2, size * 0.62, h.color, false);
+      } else handIcon(g, x, y, size, h.color, h.key === "left");
+      sv("rect", { x: x, y: y, width: cell, height: cell, class: "hit" }, g);
+    }
+  });
+  c.appendChild(s);
+  legend(c, HAND_KINDS.map(function (h, i) { return { label: h.label + " " + pct[i].toFixed(0) + "%", color: h.color }; }));
+}
+
+function drawParticipants(cards) {
+  // first the block about the data files themselves (scripts/extract_files.py,
+  // run by hand), then the ages from the summaries, then the rest (Daniel, 27 November 2026)
+  var X = D.participants;
+  // medRxiv: only the ages from the summaries (Daniel, 28 November 2026), so
+  // without the data files there is no block about them
+  if (X) {
+    // title and text: Daniel's (27 November 2026)
+    var c3 = card(cards, "Demographic information from data files", "Metacheck retrieves datafiles linked to in scientific manuscripts, and it processes these datafiles. This makes it possible to retrieve information from data columns in these shared datafiles, and re-use them. This functionality needs to be developed further, but in this section we provide a proof of principle where we ran Metacheck on a subset of all preprints, and retrieved the age, country, ethnicity, and handedness of participants when this was reported in the data.", true);
+    var kinds = X.files || {};
+    tiles(c3, [{ value: fmt(X.preprints_read), label: "preprints read" }, { value: fmt(X.preprints_with_people), label: "with participants" },
+               { value: big(X.people), label: "participants" },
+               { value: fmt((X.age_units || {}).unclear || 0), label: "age columns left out: months or years unclear", kind: "yellow",
+                 tip: "A column named just 'age' with values between 6 and 72, in a paper that gives ages in months: these can be months of young children or years of adults." }]);
+    say(c3, "Files: " + fmt(kinds.id || 0) + " with a participant ID, " + fmt(kinds.single || 0) + " with one person each, " +
+        fmt(kinds.rows || 0) + " with one person per row; left out: " + fmt(kinds.trials || 0) + " with trials and no ID, " +
+        fmt((kinds["not people"] || 0) + (kinds.empty || 0)) + " not about people or empty. " +
+        (X.several_ages === 1 ? "1 person has" : fmt(X.several_ages || 0) + " people have") + " several ages (tested more than once); the first is counted. " +
+        (X.young_not_children ? "In " + (X.young_not_children === 1 ? "1 preprint" : fmt(X.young_not_children) + " preprints") + " the ages are left out: on average under 16, in a preprint that does not speak of children (mostly codes of age groups). " : "") +
+        (X.problems && X.problems.length ? "Not read: " + X.problems.map(function (q) { return q[1] + " (" + q[0] + ")"; }).join(", ") + "." : ""));
+  }
+
+  // from the data check's summaries of each age column: one sample per preprint
+  var S = D.samples || [];
+  var c = card(cards, "How old are the samples?", "The mean age of the participants in each preprint, from Metacheck's summary of the age columns in its data files (all versions of Metacheck; the newest version of each preprint). A preprint with several studies counts the average of their means. Columns with someone else's age, a summary, an age group or a code are left out, as are animal studies; ages in months are turned into years.", true);
+  var means = S.map(function (q) { return q.mean; });
+  tiles(c, [{ value: fmt(S.length), label: "preprints with ages" }, { value: fmt(median(means)), label: "median of the mean ages" },
+            { value: pc(count(means, function (v) { return v < 18; }), S.length), label: "samples of children (mean under 18)" }]);
+  strip(c, S.map(function (q) {
+    return { v: q.mean, href: link(q), color: C.s1,
+             tip: paperTip(q, "mean age " + fmt(q.mean) + ", from " + fmt(q.min) + " to " + fmt(q.max) + (q.groups > 1 ? " (" + q.groups + " studies)" : "")) };
+  }), { label: "mean age of the sample (years)", vfmt: fmt });
+  var c2 = card(cards, "From youngest to oldest", "Each line runs from the youngest to the oldest participant in one preprint, the dot is the mean; preprints from the youngest mean to the oldest.", true);
+  ranges(c2, S.map(function (q) {
+    return { mean: q.mean, min: q.min, max: q.max, href: link(q),
+             tip: paperTip(q, "from " + fmt(q.min) + " to " + fmt(q.max) + ", mean " + fmt(q.mean)) };
+  }), { ylabel: "age (years)", xlabel: "preprints, by the mean age of their sample" });
+
+  // the rest needs the data files themselves
+  if (!X) return;
+
+  // the ages counted per preprint (each preprint once), so one large dataset
+  // does not fill the chart; the count over all participants (age_all in
+  // the data) is not drawn (Daniel, 27 November 2026)
+  var each = X.age_each || { preprints: 0, shares: [] }, sh = obj(each.shares || []);
+  var c5 = card(cards, "Age", "The share of each preprint's participants at each age, averaged over the " + fmt(each.preprints) + " preprints with ages of at least 10 participants.");
+  var items2 = [];
+  for (var b = 0; b <= 90; b++) {
+    var w = b < 90 ? (sh[b] || 0) : sum(Object.keys(sh).filter(function (k) { return +k >= 90; }).map(function (k) { return sh[k]; }));
+    items2.push({ label: b < 90 ? String(b) : "90+", value: 100 * w,
+                  tip: "<b>" + (b < 90 ? "age " + b : "90 or older") + "</b><br>" + (100 * w).toFixed(1) + "% of a preprint's participants, on average" });
+  }
+  columns(c5, items2, { every: 20, ylabel: "% of a preprint's participants", xlabel: "age (years)", table: false });
+
+  var ge = (X.gender_each || {}).shares || {};
+  var c6 = card(cards, "Gender", "Counted over all participants, and as the average share in the " + fmt((X.gender_each || {}).preprints || 0) + " preprints with the gender of at least 10 participants. A number code is a gender column whose numbers the file does not explain.");
+  stack100(c6, [{ label: "all participants", counts: X.gender_all || {} },
+                { label: "each preprint once", counts: Object.keys(ge).reduce(function (o, k) { o[k] = Math.round(ge[k] * 1000); return o; }, {}) }],
+           GENDERS, { labelW: 140 });
+  var women = (X.papers || []).filter(function (q) { return q.women !== null && q.n >= 10; });
+  strip(c6, women.map(function (q) {
+    return { v: q.women, href: "../" + q.id + "/", color: C.s2,
+             tip: paperTip(q, Math.round(q.women * 100) + "% women, of " + fmt(q.n) + " participants") };
+  }), { dom: [0, 1], fmt: function (v) { return Math.round(v * 100) + "%"; }, vfmt: function (v) { return Math.round(v * 100) + "%"; },
+        label: "share of women in a preprint (of women, men and other genders)" });
+
+  var H = X.handedness;
+  if (H && H.preprints) {
+    var ch = card(cards, "Handedness", "Each hand is 1% of a preprint's participants, averaged over the " + fmt(H.preprints) +
+      " preprints with the handedness of at least 10 participants. Where a file gives handedness as numbers, its most frequent number is taken as right-handed, the second as left-handed and a third as both hands.");
+    hands(ch, H.shares || {});
+  }
+
+  // the map, with a switch between country of residence and nationality (Daniel, 27 November 2026)
+  var cm = card(cards, "Where participants come from", "Countries shaded by the number of preprints with participants living there, or of that nationality, as the data files say. A country is shaded when at least 5 participants in at least 2 preprints name it. Point at a country for the numbers.", true);
+  var mapBar = el("div", { class: "buttons" }), mapBox = el("div", {}), mapNow = "countries";
+  var mapTabs = [["countries", "Country of residence"], ["nationalities", "Nationality"]];
+  function drawMap(which) {
+    mapNow = which;
+    Array.prototype.forEach.call(mapBar.children, function (b) { b.setAttribute("aria-pressed", b.value === which ? "true" : "false"); });
+    worldMap(mapBox, X[which] || [], which === "countries" ? "country of residence" : "nationality");
+  }
+  mapTabs.forEach(function (t) {
+    var b = el("button", { type: "button", value: t[0] }, t[1]);
+    b.addEventListener("click", function () { drawMap(t[0]); });
+    mapBar.appendChild(b);
+  });
+  cm.appendChild(mapBar);
+  cm.appendChild(mapBox);
+  drawMap(mapNow);
+  if (!WORLD) {
+    fetch("world.json").then(function (r) { if (!r.ok) throw new Error("file not found (" + r.status + ")"); return r.json(); })
+      .then(function (w) { WORLD = w; drawMap(mapNow); })
+      .catch(function (err) { mapBox.innerHTML = ""; mapBox.appendChild(el("p", { class: "note" }, "The map could not be loaded: " + err.message)); });
+  }
+
+  var cats = X.categories || {};
+  var c7 = card(cards, "What the data files say about participants", "The number of preprints whose data give each piece of information about their participants.");
+  hbars(c7, Object.keys(cats).filter(function (k) { return cats[k].preprints; })
+    .sort(function (p, q) { return cats[q].preprints - cats[p].preprints; })
+    .map(function (k) { return { label: CATEGORY_NAME[k] || k, value: cats[k].preprints,
+                                 tip: "<b>" + esc(CATEGORY_NAME[k] || k) + "</b><br>" + fmt(cats[k].preprints) + " preprints, " + fmt(cats[k].people) + " participants" }; }),
+    { labelW: 230, what: "Information", unit: "Preprints" });
+  var pl = X.platforms || {};
+  say(c7, "Where participants came from, by the columns of the data files: " + Object.keys(pl).sort(function (p, q) { return pl[q] - pl[p]; })
+      .map(function (k) { return k + " " + fmt(pl[k]) + " preprints"; }).join(", ") + ".");
+
+  // the answers only where they can be compared across preprints (checked
+  // with extract_files.py --check, 27 November 2026); the other categories
+  // are only counted in the chart above
+  // (country of residence and nationality are on the map)
+  // (handedness has its figure of hands)
+  // (country of birth, language and student status are no longer drawn: Daniel, 27 November 2026)
+  ["ethnicity", "education"].forEach(function (k) {
+    // answers given as a number or letter code ("(a number code)") are not
+    // drawn, only counted below the chart (Daniel, 27 November 2026)
+    var all = (X.values || {})[k] || [];
+    var vals = all.filter(function (q) { return q[0].charAt(0) !== "("; });
+    var codes = all.filter(function (q) { return q[0].charAt(0) === "("; });
+    if (!vals.length) return;
+    var cv = card(cards, ANSWER_TITLE[k] || "Most frequent answers: " + (CATEGORY_NAME[k] || k), "As written in the data files, in lower case; an answer is shown when at least 5 participants in at least 2 preprints gave it.");
+    hbars(cv, vals.slice(0, 12).map(function (q) {
+      return { label: q[0], value: q[1], tip: "<b>" + esc(q[0]) + "</b><br>" + fmt(q[1]) + " participants in " + fmt(q[2]) + " preprints" };
+    }), { labelW: 200, what: "Answer", unit: "Participants" });
+    if (codes.length) say(cv, "Not shown: " + codes.map(function (q) {
+      return fmt(q[1]) + " participants in " + fmt(q[2]) + " preprints whose answer is " + q[0].replace(/[()]/g, "") + " the data file does not explain";
+    }).join("; ") + ".");
+  });
+}
+
 function drawRepos(cards) {
   var c = card(cards, "What is in the repositories", "The file types, by the number of preprints whose repository has at least one.");
   hbars(c, list(D.counts.extensions.slice(0, 24), function (e) { return "." + e; }, C.s1), { labelW: 90, what: "Type", unit: "Preprints" });
@@ -1331,6 +1576,7 @@ fetch("../data/totals.json", { cache: "no-cache" })
     section("code", "Code", "The code files in the preprints' repositories.", drawCode);
     section("repro", "Computational Reproducibility", "", drawRepro);
     section("data", "Data", "", drawData);
+    section("participants", "Participants", "", drawParticipants);
     section("repos", "Repositories", "", drawRepos);
     section("literature", "References in the preprints", "", drawLiterature);
     section("preprints", "Information about the preprints", "", drawPreprints);
